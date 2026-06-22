@@ -2,15 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\{AttendanceLog, ShiftAssignment};
+use App\Models\AttendanceLog;
+use App\Models\ShiftAssignment;
 use Carbon\Carbon;
 use RuntimeException;
 
 class AttendanceService
 {
-    public function clockIn(int $assignmentId, float $lat, float $lng): AttendanceLog
+    public function clockIn(int $assignmentId, float $lat, float $lng, bool $enforceGeofence = true): AttendanceLog
     {
         $assignment = ShiftAssignment::with('shift.site')->findOrFail($assignmentId);
+        $withinGeofence = $this->withinGeofence($assignment->shift->site, $lat, $lng);
+
+        if ($enforceGeofence && ! $withinGeofence) {
+            throw new RuntimeException('Clock-in rejected: outside site geofence.');
+        }
+
         $status = Carbon::now()->gt(Carbon::parse($assignment->shift->starts_at)->addMinutes(10)) ? 'late' : 'on_time';
 
         $log = AttendanceLog::create([
@@ -22,10 +29,11 @@ class AttendanceService
             'clock_in_latitude' => $lat,
             'clock_in_longitude' => $lng,
             'status' => $status,
-            'geofence_validated' => $this->withinGeofence($assignment->shift->site, $lat, $lng),
+            'geofence_validated' => $withinGeofence,
         ]);
 
         $assignment->update(['status' => 'in_progress']);
+
         return $log;
     }
 
@@ -43,17 +51,21 @@ class AttendanceService
             'worked_minutes' => Carbon::parse($log->clock_in_at)->diffInMinutes(now()),
         ]);
         $log->shiftAssignment?->update(['status' => 'completed']);
+
         return $log->fresh();
     }
 
     public function withinGeofence($site, float $lat, float $lng): bool
     {
-        if (! $site || ! $site->latitude || ! $site->longitude) return false;
+        if (! $site || ! $site->latitude || ! $site->longitude) {
+            return false;
+        }
         $earth = 6371000;
         $dLat = deg2rad($lat - $site->latitude);
         $dLng = deg2rad($lng - $site->longitude);
-        $a = sin($dLat/2) ** 2 + cos(deg2rad($site->latitude)) * cos(deg2rad($lat)) * sin($dLng/2) ** 2;
-        $distance = 2 * $earth * atan2(sqrt($a), sqrt(1-$a));
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($site->latitude)) * cos(deg2rad($lat)) * sin($dLng / 2) ** 2;
+        $distance = 2 * $earth * atan2(sqrt($a), sqrt(1 - $a));
+
         return $distance <= ($site->geofence_radius_meters ?? 150);
     }
 }

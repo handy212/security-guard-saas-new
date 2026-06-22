@@ -44,7 +44,7 @@ class ScheduleService
 
     public function openShiftsForDate(string $date): Collection
     {
-        return Shift::with(['site','sitePost','assignments.guard'])
+        return Shift::with(['site','sitePost','assignments.assignedGuard'])
             ->whereDate('starts_at', $date)
             ->orderBy('starts_at')
             ->get();

@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\Support\TenantContext;
+
 class TenantScopeService
 {
-    /**
-     * Resolve current tenant and apply tenant isolation to queries.
-     */
-    public function handle(array $payload = []): array
+    public function currentTenantId(): int
     {
-        return ['ok' => true, 'message' => 'Resolve current tenant and apply tenant isolation to queries.'];
+        return TenantContext::id();
+    }
+
+    public function applyTenantScope($query)
+    {
+        return $query->where('tenant_id', $this->currentTenantId());
     }
 }

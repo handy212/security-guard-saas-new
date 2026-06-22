@@ -3,24 +3,46 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Services\TenantDomainResolver;
 use Closure;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenant
 {
-    public function handle(Request $request, Closure $next)
+    public function __construct(private TenantDomainResolver $domainResolver)
     {
+    }
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
         $tenant = null;
 
-        if ($request->user()?->tenant_id) {
-            $tenant = Tenant::find($request->user()->tenant_id);
+        if ($user?->tenant_id) {
+            $tenant = Tenant::find($user->tenant_id);
         }
 
-        if (! $tenant && $request->header('X-Tenant')) {
+        if (! $tenant) {
+            $tenant = $this->domainResolver->resolveFromRequest($request);
+        }
+
+        if (! $tenant && $user?->hasRole('super-admin') && $request->header('X-Tenant')) {
             $tenant = Tenant::where('slug', $request->header('X-Tenant'))->first();
         }
 
+        if (! $tenant && $request->routeIs('saas.*') && $user?->hasRole('super-admin')) {
+            app()->instance('currentTenant', null);
+
+            return $next($request);
+        }
+
+        if (! $tenant) {
+            abort(403, 'Tenant context is required.');
+        }
+
         app()->instance('currentTenant', $tenant);
+
         return $next($request);
     }
 }

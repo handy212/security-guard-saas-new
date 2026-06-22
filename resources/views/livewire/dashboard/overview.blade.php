@@ -7,6 +7,6 @@
     </div>
     <div class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-xl border bg-white p-4"><h2 class="font-bold mb-3">Latest Incidents</h2>@foreach($incidents as $incident)<div class="border-t py-2"><b>{{ $incident->title }}</b><div class="text-sm text-slate-500">{{ $incident->site?->name }} · {{ $incident->severity }} · {{ $incident->status }}</div></div>@endforeach</section>
-        <section class="rounded-xl border bg-white p-4"><h2 class="font-bold mb-3">Live Attendance</h2>@foreach($attendance as $log)<div class="border-t py-2"><b>{{ $log->guard?->full_name ?? 'Guard' }}</b><div class="text-sm text-slate-500">{{ $log->site?->name }} · {{ $log->status }} · {{ $log->clock_in_at }}</div></div>@endforeach</section>
+        <section class="rounded-xl border bg-white p-4"><h2 class="font-bold mb-3">Live Attendance</h2>@foreach($attendance as $log)<div class="border-t py-2"><b>{{ $log->assignedGuard?->full_name ?? 'Guard' }}</b><div class="text-sm text-slate-500">{{ $log->site?->name }} · {{ $log->status }} · {{ $log->clock_in_at }}</div></div>@endforeach</section>
     </div>
 </div>

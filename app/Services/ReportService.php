@@ -2,13 +2,28 @@
 
 namespace App\Services;
 
+use App\Models\DailyActivityReport;
+use App\Support\TenantContext;
+
 class ReportService
 {
-    /**
-     * Generate daily activity reports and PDF exports.
-     */
-    public function handle(array $payload = []): array
+    public function approve(DailyActivityReport $report, int $userId): DailyActivityReport
     {
-        return ['ok' => true, 'message' => 'Generate daily activity reports and PDF exports.'];
+        $report->update([
+            'status' => 'approved',
+            'approved_by_user_id' => $userId,
+            'approved_at' => now(),
+        ]);
+
+        return $report->fresh();
+    }
+
+    public function listForTenant(): \Illuminate\Database\Eloquent\Collection
+    {
+        return DailyActivityReport::query()
+            ->where('tenant_id', TenantContext::id())
+            ->latest()
+            ->limit(50)
+            ->get();
     }
 }

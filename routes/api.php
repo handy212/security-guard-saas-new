@@ -1,9 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\EnterpriseApiController;
 use App\Http\Controllers\Api\MobileAppController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::get('/me/assignments', [MobileAppController::class, 'myAssignments']);
     Route::post('/attendance/clock-in', [MobileAppController::class, 'clockIn']);
     Route::post('/attendance/clock-out', [MobileAppController::class, 'clockOut']);
@@ -15,11 +16,10 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
     Route::post('/visitors/{visitorLog}/check-out', [MobileAppController::class, 'visitorCheckOut']);
 });
 
-
-Route::middleware(['api'])->prefix('enterprise')->group(function () {
-    Route::get('/analytics', function () { return ['data' => \App\Models\AnalyticsSnapshot::latest()->first()]; });
-    Route::get('/deployment-sheet', function () { return ['data' => \App\Models\ShiftAssignment::with(['shift.site','guard'])->latest()->limit(100)->get()]; });
-    Route::get('/patrol-playback/{session}', function (\App\Models\PatrolSession $session) { return ['data' => \App\Models\PatrolPlaybackPoint::where('patrol_session_id',$session->id)->orderBy('recorded_at')->get()]; });
-    Route::post('/client-complaints', function (\Illuminate\Http\Request $request) { return \App\Models\ClientComplaint::create($request->all()); });
-    Route::post('/offline/playback-points', function (\Illuminate\Http\Request $request) { return \App\Models\PatrolPlaybackPoint::create($request->all()); });
+Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('enterprise')->group(function () {
+    Route::get('/analytics', [EnterpriseApiController::class, 'analytics']);
+    Route::get('/deployment-sheet', [EnterpriseApiController::class, 'deploymentSheet']);
+    Route::get('/patrol-playback/{session}', [EnterpriseApiController::class, 'patrolPlayback']);
+    Route::post('/client-complaints', [EnterpriseApiController::class, 'storeComplaint']);
+    Route::post('/offline/playback-points', [EnterpriseApiController::class, 'storePlaybackPoint']);
 });

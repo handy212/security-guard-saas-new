@@ -11,6 +11,8 @@
     "tailwindcss": "^4.0.0",
     "postcss": "^8.5.0",
     "autoprefixer": "^10.4.0",
-    "alpinejs": "^3.14.0"
+    "alpinejs": "^3.14.0",
+    "laravel-echo": "^1.19.0",
+    "pusher-js": "^8.4.0"
   }
 }

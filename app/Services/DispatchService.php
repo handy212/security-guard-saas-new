@@ -2,18 +2,25 @@
 
 namespace App\Services;
 
-use App\Models\{DispatchEvent, SosAlert, User};
+use App\Events\DispatchEventCreated;
+use App\Events\SosAlertRaised;
+use App\Models\DispatchEvent;
+use App\Models\SosAlert;
+use App\Models\User;
 
 class DispatchService
 {
     public function createEvent(array $data): DispatchEvent
     {
-        return DispatchEvent::create($data + ['status' => 'open', 'opened_at' => now()]);
+        $event = DispatchEvent::create($data + ['status' => 'open', 'opened_at' => now()]);
+        DispatchEventCreated::dispatch($event);
+
+        return $event;
     }
 
     public function raiseSos(User $user, array $data): SosAlert
     {
-        return SosAlert::create([
+        $alert = SosAlert::create([
             'tenant_id' => $user->tenant_id,
             'guard_id' => $user->guardProfile?->id,
             'site_id' => $data['site_id'] ?? null,
@@ -23,5 +30,9 @@ class DispatchService
             'status' => 'open',
             'raised_at' => now(),
         ]);
+
+        SosAlertRaised::dispatch($alert);
+
+        return $alert;
     }
 }

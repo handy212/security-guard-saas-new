@@ -2,48 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SitePost extends Model
 {
-    use HasFactory;
+    use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'site_id',
-        'name',
-        'description',
-        'required_guards',
-        'status'
+        'tenant_id', 'site_id', 'name', 'description', 'required_guards', 'status',
     ];
 
-    protected $casts = [
-        'metadata' => 'array',
-        'is_active' => 'boolean',
-        'is_required' => 'boolean',
-        'is_geofence_valid' => 'boolean',
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
-        'recorded_at' => 'datetime',
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
-        'occurred_at' => 'datetime',
-        'submitted_at' => 'datetime',
-        'approved_at' => 'datetime',
-        'opened_at' => 'datetime',
-        'closed_at' => 'datetime',
-        'triggered_at' => 'datetime',
-        'resolved_at' => 'datetime',
-        'issued_at' => 'date',
-        'expires_at' => 'date',
-        'issue_date' => 'date',
-        'due_date' => 'date',
-        'period_start' => 'date',
-        'period_end' => 'date',
-    ];
-
-    public function tenant() { return $this->belongsTo(Tenant::class); }
-
-    public function site() { return $this->belongsTo(Site::class); }
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(Site::class);
+    }
 }

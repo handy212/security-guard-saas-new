@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\{CheckpointScan, PatrolCheckpoint, PatrolSession};
+use App\Models\CheckpointScan;
+use App\Models\PatrolCheckpoint;
+use App\Models\PatrolSession;
 use RuntimeException;
 
 class PatrolService
@@ -22,7 +24,9 @@ class PatrolService
             throw new RuntimeException('Patrol session is not active.');
         }
 
-        return CheckpointScan::create([
+        $this->enforceSequence($session, $checkpoint);
+
+        $scan = CheckpointScan::create([
             'tenant_id' => $session->tenant_id,
             'patrol_session_id' => $session->id,
             'patrol_checkpoint_id' => $checkpoint->id,
@@ -33,6 +37,10 @@ class PatrolService
             'notes' => $data['notes'] ?? null,
             'status' => 'valid',
         ]);
+
+        $this->completeIfAllScanned($session);
+
+        return $scan;
     }
 
     public function completeIfAllScanned(PatrolSession $session): PatrolSession
@@ -42,6 +50,18 @@ class PatrolService
         if ($required > 0 && $scanned >= $required) {
             $session->update(['status' => 'completed', 'completed_at' => now()]);
         }
+
         return $session->fresh();
+    }
+
+    private function enforceSequence(PatrolSession $session, PatrolCheckpoint $checkpoint): void
+    {
+        $lastSequence = $session->scans()
+            ->join('patrol_checkpoints', 'patrol_checkpoints.id', '=', 'checkpoint_scans.patrol_checkpoint_id')
+            ->max('patrol_checkpoints.sequence') ?? 0;
+
+        if ($checkpoint->sequence > $lastSequence + 1) {
+            throw new RuntimeException('Checkpoint scanned out of required sequence.');
+        }
     }
 }
