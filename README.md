@@ -22,7 +22,7 @@ This is a full source starter for an enterprise security guard management SaaS. 
 - Payroll timesheet generation foundation
 - API routes for future mobile app/PWA guard interface
 - Demo data seeder
-- Feature test placeholders for tenant isolation and RBAC
+- Feature tests for tenant isolation, RBAC, and mobile API authorization
 
 ## Install
 
@@ -36,7 +36,27 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-Demo admin after seeding:
+## Authentication
+
+All web and API routes (except login) require authentication. Multi-tenant isolation is enforced via the `tenant` middleware and `BelongsToTenant` model scope.
+
+| Role | Email | Password |
+|------|-------|----------|
+| Company admin | admin@demo.test | password |
+| Guard (mobile API) | john.guard@test | password |
+
+## Security hardening included
+
+- Session login with protected Livewire routes
+- Tenant middleware and global tenant scoping on all tenant-owned models
+- Spatie permission checks on sensitive Livewire actions
+- Policy-based authorization for core models
+- Mobile API IDOR protection and rate limiting
+- Secured enterprise API controller (replaces open closure routes)
+- Schema reconciliation migration aligning models and database
+- Offline sync queue job processor
+
+Demo admin:
 
 ```text
 Email: admin@demo.test
@@ -45,16 +65,15 @@ Password: password
 
 ## Important Note
 
-The sandbox used to build this source package does not have Composer installed, so `vendor/` is not included. Run `composer install` on your development machine or server.
+Run `composer install` on your development machine or server if `vendor/` is not present.
 
 ## Suggested Next Steps
 
-1. Install a Laravel auth starter such as Breeze, Jetstream, or your preferred custom auth.
-2. Add production tenant middleware rules by domain/subdomain.
-3. Connect Reverb/Echo for live control-room updates.
-4. Add file upload storage for incident media, guard documents, and certifications.
-5. Add PDF report exports using DomPDF.
-6. Add mobile app or PWA scanner UI for guards.
+1. Add production tenant resolution by domain/subdomain.
+2. Connect Reverb/Echo for live control-room updates.
+3. Add file upload storage for incident media, guard documents, and certifications.
+4. Add PDF report exports using DomPDF.
+5. Add mobile app or PWA scanner UI for guards.
 
 
 ## Enterprise gap review added

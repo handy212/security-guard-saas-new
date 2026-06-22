@@ -2,49 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GuardCertification extends Model
 {
-    use HasFactory;
+    use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'guard_id',
-        'name',
-        'issuer',
-        'issued_at',
-        'expires_at',
-        'status'
+        'tenant_id', 'guard_id', 'name', 'issuer', 'issued_at', 'expires_at', 'status',
     ];
 
-    protected $casts = [
-        'metadata' => 'array',
-        'is_active' => 'boolean',
-        'is_required' => 'boolean',
-        'is_geofence_valid' => 'boolean',
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
-        'recorded_at' => 'datetime',
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
-        'occurred_at' => 'datetime',
-        'submitted_at' => 'datetime',
-        'approved_at' => 'datetime',
-        'opened_at' => 'datetime',
-        'closed_at' => 'datetime',
-        'triggered_at' => 'datetime',
-        'resolved_at' => 'datetime',
-        'issued_at' => 'date',
-        'expires_at' => 'date',
-        'issue_date' => 'date',
-        'due_date' => 'date',
-        'period_start' => 'date',
-        'period_end' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return ['issued_at' => 'date', 'expires_at' => 'date'];
+    }
 
-    public function tenant() { return $this->belongsTo(Tenant::class); }
-
-    public function guard() { return $this->belongsTo(Guard::class); }
+    public function guard(): BelongsTo
+    {
+        return $this->belongsTo(Guard::class);
+    }
 }

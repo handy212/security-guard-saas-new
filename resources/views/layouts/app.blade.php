@@ -8,7 +8,17 @@
 <body class="bg-slate-50 text-slate-900">
 <div class="min-h-screen md:flex">
     <aside class="w-full border-r bg-white p-4 md:w-72">
-        <div class="mb-6"><div class="text-xl font-black">GuardOps SaaS</div><div class="text-xs text-slate-500">Enterprise Security Platform</div></div>
+        <div class="mb-6">
+            <div class="text-xl font-black">GuardOps SaaS</div>
+            <div class="text-xs text-slate-500">Enterprise Security Platform</div>
+            @auth
+                <div class="mt-2 text-xs text-slate-600">{{ auth()->user()->name }}</div>
+                <form method="POST" action="{{ route('logout') }}" class="mt-1">
+                    @csrf
+                    <button type="submit" class="text-xs text-red-600 hover:underline">Sign out</button>
+                </form>
+            @endauth
+        </div>
         <nav class="space-y-1 text-sm">
             @foreach([
                 '/dashboard'=>'Dashboard','/saas/tenants'=>'SaaS','/clients'=>'Clients','/clients/complaints'=>'Complaints','/sites'=>'Sites','/sites/compliance'=>'Site Compliance','/guards'=>'Guards','/guards/hr-records'=>'Guard HR','/schedules'=>'Schedules','/schedules/calendar'=>'Calendar','/schedules/marketplace'=>'Shift Market','/schedules/deployment-sheet'=>'Deployment','/attendance/timekeeping'=>'Attendance','/patrols'=>'Patrols','/patrols/playback'=>'Playback','/patrols/vehicles'=>'Vehicle Patrol','/incidents'=>'Incidents','/reports/daily'=>'Daily Reports','/dispatch'=>'Dispatch','/client-portal'=>'Client Portal','/billing/invoices'=>'Billing','/billing/payroll'=>'Payroll','/analytics'=>'Analytics','/equipment'=>'Equipment','/visitors'=>'Visitors','/compliance'=>'Compliance','/compliance/policies'=>'Policies','/settings/roles'=>'Roles & Permissions'

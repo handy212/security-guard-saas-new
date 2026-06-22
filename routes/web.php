@@ -1,40 +1,50 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
-use App\Livewire\Dashboard\Overview;
-use App\Livewire\Clients\ClientIndex;
-use App\Livewire\Sites\SiteIndex;
-use App\Livewire\Guards\GuardIndex;
-use App\Livewire\Shifts\ScheduleBoard;
-use App\Livewire\Patrols\PatrolBoard;
-use App\Livewire\Incidents\IncidentIndex;
-use App\Livewire\Reports\DailyReportIndex;
-use App\Livewire\Dispatch\ControlRoom;
-use App\Livewire\ClientPortal\PortalDashboard;
-use App\Livewire\Billing\InvoiceIndex;
-use App\Livewire\Settings\RolePermissionManager;
-use App\Livewire\Visitors\VisitorLogIndex;
-use App\Livewire\Equipment\EquipmentIndex;
-use App\Livewire\Compliance\ComplianceDashboard;
-use App\Livewire\ClientPortal\Approvals;
-use App\Livewire\Mobile\OfflineSyncMonitor;
-use App\Livewire\Tenants\TenantManagement;
-use App\Livewire\Schedules\ShiftMarketplace;
-use App\Livewire\Schedules\CalendarView;
-use App\Livewire\Schedules\DeploymentSheet;
+use App\Livewire\Analytics\AnalyticsDashboard;
 use App\Livewire\Attendance\TimekeepingBoard;
+use App\Livewire\Billing\InvoiceIndex;
+use App\Livewire\Billing\PayrollBoard;
+use App\Livewire\ClientPortal\Approvals;
+use App\Livewire\ClientPortal\PortalDashboard;
+use App\Livewire\Clients\ClientIndex;
+use App\Livewire\Clients\ComplaintBoard;
+use App\Livewire\Compliance\ComplianceDashboard;
+use App\Livewire\Compliance\PolicyCenter;
+use App\Livewire\Dashboard\Overview;
+use App\Livewire\Dispatch\ControlRoom;
+use App\Livewire\Equipment\EquipmentIndex;
+use App\Livewire\Guards\GuardHrRecords;
+use App\Livewire\Guards\GuardIndex;
+use App\Livewire\Incidents\IncidentIndex;
+use App\Livewire\Mobile\OfflineSyncMonitor;
+use App\Livewire\Patrols\PatrolBoard;
 use App\Livewire\Patrols\Playback;
 use App\Livewire\Patrols\VehiclePatrolBoard;
-use App\Livewire\Clients\ComplaintBoard;
-use App\Livewire\Compliance\PolicyCenter;
-use App\Livewire\Billing\PayrollBoard;
-use App\Livewire\Analytics\AnalyticsDashboard;
-use App\Livewire\Guards\GuardHrRecords;
+use App\Livewire\Reports\DailyReportIndex;
+use App\Livewire\Schedules\CalendarView;
+use App\Livewire\Schedules\DeploymentSheet;
+use App\Livewire\Schedules\ShiftMarketplace;
+use App\Livewire\Settings\RolePermissionManager;
+use App\Livewire\Shifts\ScheduleBoard;
 use App\Livewire\Sites\SiteCompliance;
-
+use App\Livewire\Sites\SiteIndex;
+use App\Livewire\Tenants\TenantManagement;
+use App\Livewire\Visitors\VisitorLogIndex;
 
 Route::redirect('/', '/dashboard');
-Route::middleware(['web'])->group(function () {
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+});
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
+
+Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('/dashboard', Overview::class)->name('dashboard');
     Route::get('/clients', ClientIndex::class)->name('clients.index');
     Route::get('/sites', SiteIndex::class)->name('sites.index');
