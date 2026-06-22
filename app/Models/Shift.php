@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use App\Models\Concerns\BelongsToTenant; use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+class Shift extends Model { use BelongsToTenant; protected $fillable=['tenant_id','client_account_id','site_id','site_post_id','title','starts_at','ends_at','required_guards','billing_rate','billable_hours','status','notes']; protected function casts(): array { return ['starts_at'=>'datetime','ends_at'=>'datetime']; } public function clientAccount(): BelongsTo { return $this->belongsTo(ClientAccount::class); } public function site(): BelongsTo { return $this->belongsTo(Site::class); } public function sitePost(): BelongsTo { return $this->belongsTo(SitePost::class); } public function assignments(): HasMany { return $this->hasMany(ShiftAssignment::class); } }

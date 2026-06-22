@@ -1,0 +1,68 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Livewire\Dashboard\Overview;
+use App\Livewire\Clients\ClientIndex;
+use App\Livewire\Sites\SiteIndex;
+use App\Livewire\Guards\GuardIndex;
+use App\Livewire\Shifts\ScheduleBoard;
+use App\Livewire\Patrols\PatrolBoard;
+use App\Livewire\Incidents\IncidentIndex;
+use App\Livewire\Reports\DailyReportIndex;
+use App\Livewire\Dispatch\ControlRoom;
+use App\Livewire\ClientPortal\PortalDashboard;
+use App\Livewire\Billing\InvoiceIndex;
+use App\Livewire\Settings\RolePermissionManager;
+use App\Livewire\Visitors\VisitorLogIndex;
+use App\Livewire\Equipment\EquipmentIndex;
+use App\Livewire\Compliance\ComplianceDashboard;
+use App\Livewire\ClientPortal\Approvals;
+use App\Livewire\Mobile\OfflineSyncMonitor;
+use App\Livewire\Tenants\TenantManagement;
+use App\Livewire\Schedules\ShiftMarketplace;
+use App\Livewire\Schedules\CalendarView;
+use App\Livewire\Schedules\DeploymentSheet;
+use App\Livewire\Attendance\TimekeepingBoard;
+use App\Livewire\Patrols\Playback;
+use App\Livewire\Patrols\VehiclePatrolBoard;
+use App\Livewire\Clients\ComplaintBoard;
+use App\Livewire\Compliance\PolicyCenter;
+use App\Livewire\Billing\PayrollBoard;
+use App\Livewire\Analytics\AnalyticsDashboard;
+use App\Livewire\Guards\GuardHrRecords;
+use App\Livewire\Sites\SiteCompliance;
+
+
+Route::redirect('/', '/dashboard');
+Route::middleware(['web'])->group(function () {
+    Route::get('/dashboard', Overview::class)->name('dashboard');
+    Route::get('/clients', ClientIndex::class)->name('clients.index');
+    Route::get('/sites', SiteIndex::class)->name('sites.index');
+    Route::get('/guards', GuardIndex::class)->name('guards.index');
+    Route::get('/schedules', ScheduleBoard::class)->name('schedules.index');
+    Route::get('/patrols', PatrolBoard::class)->name('patrols.index');
+    Route::get('/incidents', IncidentIndex::class)->name('incidents.index');
+    Route::get('/reports/daily', DailyReportIndex::class)->name('reports.daily');
+    Route::get('/dispatch', ControlRoom::class)->name('dispatch.control-room');
+    Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
+    Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
+    Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');
+    Route::get('/visitors', VisitorLogIndex::class)->name('visitors.index');
+    Route::get('/equipment', EquipmentIndex::class)->name('equipment.index');
+    Route::get('/compliance', ComplianceDashboard::class)->name('compliance.dashboard');
+    Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
+    Route::get('/mobile/offline-sync', OfflineSyncMonitor::class)->name('mobile.offline-sync');
+    Route::get('/saas/tenants', TenantManagement::class)->name('saas.tenants');
+    Route::get('/schedules/marketplace', ShiftMarketplace::class)->name('schedules.marketplace');
+    Route::get('/schedules/calendar', CalendarView::class)->name('schedules.calendar');
+    Route::get('/schedules/deployment-sheet', DeploymentSheet::class)->name('schedules.deployment-sheet');
+    Route::get('/attendance/timekeeping', TimekeepingBoard::class)->name('attendance.timekeeping');
+    Route::get('/patrols/playback', Playback::class)->name('patrols.playback');
+    Route::get('/patrols/vehicles', VehiclePatrolBoard::class)->name('patrols.vehicles');
+    Route::get('/clients/complaints', ComplaintBoard::class)->name('clients.complaints');
+    Route::get('/compliance/policies', PolicyCenter::class)->name('compliance.policies');
+    Route::get('/billing/payroll', PayrollBoard::class)->name('billing.payroll');
+    Route::get('/analytics', AnalyticsDashboard::class)->name('analytics.dashboard');
+    Route::get('/guards/hr-records', GuardHrRecords::class)->name('guards.hr-records');
+    Route::get('/sites/compliance', SiteCompliance::class)->name('sites.compliance');
+});
