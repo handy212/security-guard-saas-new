@@ -12,6 +12,11 @@ class RolePermissionManager extends Component
 
     public array $permissions = [];
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('settings.manage'), 403);
+    }
+
     public function createRole(): void
     {
         abort_unless(auth()->user()->can('settings.manage'), 403);

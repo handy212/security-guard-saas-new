@@ -33,7 +33,7 @@ class Overview extends Component
                 'patrol_completion' => $this->patrolCompletionRate($tenantId),
             ],
             'incidents' => Incident::with('site')->where('tenant_id', $tenantId)->latest()->limit(8)->get(),
-            'attendance' => AttendanceLog::with(['guard', 'site'])->where('tenant_id', $tenantId)->latest()->limit(8)->get(),
+            'attendance' => AttendanceLog::with(['assignedGuard', 'site'])->where('tenant_id', $tenantId)->latest()->limit(8)->get(),
         ])->layout('layouts.app');
     }
 

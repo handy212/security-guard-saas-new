@@ -27,7 +27,7 @@ class EnterpriseApiController extends Controller
         abort_unless($request->user()->can('schedules.manage'), 403);
 
         return response()->json([
-            'data' => ShiftAssignment::with(['shift.site', 'guard'])
+            'data' => ShiftAssignment::with(['shift.site', 'assignedGuard'])
                 ->latest()
                 ->limit(100)
                 ->get(),

@@ -5,7 +5,10 @@ namespace App\Livewire\Billing;
 use App\Models\ClientAccount;
 use App\Models\Invoice;
 use App\Services\BillingService;
+use App\Services\PdfExportService;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InvoiceIndex extends Component
 {
@@ -29,6 +32,14 @@ class InvoiceIndex extends Component
     {
         $this->authorize('update', $invoice);
         $invoice->update(['status' => 'sent', 'sent_at' => now()]);
+    }
+
+    public function exportPdf(Invoice $invoice, PdfExportService $pdf): StreamedResponse
+    {
+        $this->authorize('update', $invoice);
+        $path = $pdf->exportInvoice($invoice);
+
+        return Storage::download($path);
     }
 
     public function render()

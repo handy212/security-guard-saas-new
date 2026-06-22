@@ -17,7 +17,7 @@ class DailyReportIndex extends Component
     public function render()
     {
         return view('livewire.reports.daily-report-index', [
-            'reports' => DailyActivityReport::with(['site', 'guard'])->latest()->limit(50)->get(),
+            'reports' => DailyActivityReport::with(['site', 'assignedGuard'])->latest()->limit(50)->get(),
         ])->layout('layouts.app');
     }
 }

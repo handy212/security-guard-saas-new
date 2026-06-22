@@ -54,7 +54,7 @@ class EnterpriseScheduleService
     {
         $minutes = ShiftAssignment::query()
             ->join('shifts', 'shifts.id', '=', 'shift_assignments.shift_id')
-            ->where('shift_assignments.guard_id', $guard->id)
+            ->where('shift_assignments.assignedGuard_id', $guard->id)
             ->whereBetween('shifts.starts_at', [$weekStart, now()->parse($weekStart)->addDays(7)])
             ->selectRaw('SUM(TIMESTAMPDIFF(MINUTE, shifts.starts_at, shifts.ends_at)) as minutes')
             ->value('minutes') ?? 0;

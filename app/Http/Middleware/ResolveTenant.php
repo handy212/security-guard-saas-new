@@ -3,12 +3,17 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Services\TenantDomainResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenant
 {
+    public function __construct(private TenantDomainResolver $domainResolver)
+    {
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
@@ -16,6 +21,10 @@ class ResolveTenant
 
         if ($user?->tenant_id) {
             $tenant = Tenant::find($user->tenant_id);
+        }
+
+        if (! $tenant) {
+            $tenant = $this->domainResolver->resolveFromRequest($request);
         }
 
         if (! $tenant && $user?->hasRole('super-admin') && $request->header('X-Tenant')) {

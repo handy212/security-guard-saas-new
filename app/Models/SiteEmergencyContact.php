@@ -9,4 +9,5 @@ class SiteEmergencyContact extends Model
 {
     use BelongsToTenant;
     protected $fillable=['tenant_id','site_id','name','role','phone','email','priority'];
+    public function site() { return $this->belongsTo(Site::class); }
 }

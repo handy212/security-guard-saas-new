@@ -57,7 +57,7 @@ class ScheduleBoard extends Component
     public function render()
     {
         return view('livewire.shifts.schedule-board', [
-            'shifts' => Shift::with(['site', 'sitePost', 'assignments.guard'])->whereDate('starts_at', $this->date)->orderBy('starts_at')->get(),
+            'shifts' => Shift::with(['site', 'sitePost', 'assignments.assignedGuard'])->whereDate('starts_at', $this->date)->orderBy('starts_at')->get(),
             'clients' => ClientAccount::orderBy('name')->get(),
             'sites' => Site::orderBy('name')->get(),
             'posts' => SitePost::orderBy('name')->get(),

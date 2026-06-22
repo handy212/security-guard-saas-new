@@ -19,7 +19,7 @@ class GuardDocument extends Model
         return ['expires_at' => 'date'];
     }
 
-    public function guard(): BelongsTo
+    public function assignedGuard(): BelongsTo
     {
         return $this->belongsTo(Guard::class);
     }

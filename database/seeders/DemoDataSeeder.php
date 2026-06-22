@@ -20,7 +20,15 @@ class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant = Tenant::firstOrCreate(['slug' => 'demo-security'], ['name' => 'Demo Security Company', 'status' => 'active']);
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'demo-security'],
+            [
+                'name' => 'Demo Security Company',
+                'status' => 'active',
+                'subdomain' => 'demo-security',
+                'domain' => null,
+            ]
+        );
         $plan = SubscriptionPlan::firstOrCreate(
             ['slug' => 'enterprise'],
             ['name' => 'Enterprise', 'monthly_price' => 499, 'max_guards' => 1000, 'max_sites' => 500, 'features' => ['gps', 'qr', 'client_portal', 'billing', 'dispatch']]

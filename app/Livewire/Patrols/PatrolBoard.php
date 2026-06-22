@@ -44,7 +44,7 @@ class PatrolBoard extends Component
     {
         return view('livewire.patrols.patrol-board', [
             'routes' => PatrolRoute::with(['site', 'checkpoints'])->latest()->get(),
-            'sessions' => PatrolSession::with(['route', 'guard', 'scans'])->latest()->limit(20)->get(),
+            'sessions' => PatrolSession::with(['route', 'assignedGuard', 'scans'])->latest()->limit(20)->get(),
             'sites' => Site::orderBy('name')->get(),
         ])->layout('layouts.app');
     }

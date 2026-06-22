@@ -30,11 +30,17 @@ This is a full source starter for an enterprise security guard management SaaS. 
 composer install
 cp .env.example .env
 php artisan key:generate
+php artisan storage:link
 npm install
 npm run build
-php artisan migrate --seed
+php artisan migrate:fresh --seed
+php vendor/bin/phpunit
 php artisan serve
 ```
+
+For real-time dispatch, set `BROADCAST_CONNECTION=reverb` in `.env` and run `php artisan reverb:start` in a second terminal.
+
+Subdomain tenant access: set `TENANCY_BASE_DOMAIN=guardops.test` and access `http://demo-security.guardops.test` (after DNS/hosts setup).
 
 ## Authentication
 

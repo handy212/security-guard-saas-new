@@ -29,9 +29,9 @@ class ControlRoom extends Component
     public function render()
     {
         return view('livewire.dispatch.control-room', [
-            'sosAlerts' => SosAlert::with(['guard', 'site'])->whereIn('status', ['open', 'acknowledged'])->latest()->get(),
+            'sosAlerts' => SosAlert::with(['assignedGuard', 'site'])->whereIn('status', ['open', 'acknowledged'])->latest()->get(),
             'events' => DispatchEvent::with(['site'])->latest()->limit(20)->get(),
-            'liveGuards' => AttendanceLog::with(['guard', 'site'])->whereNull('clock_out_at')->latest()->get(),
+            'liveGuards' => AttendanceLog::with(['assignedGuard', 'site'])->whereNull('clock_out_at')->latest()->get(),
         ])->layout('layouts.app');
     }
 }
