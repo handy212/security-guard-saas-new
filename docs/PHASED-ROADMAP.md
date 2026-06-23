@@ -19,13 +19,18 @@ This document tracks delivery of the commercial/enterprise roadmap for GuardOps 
 - [x] Grouped role-based navigation (`config/navigation.php`)
 - [x] Demo notification templates in seeder
 
-## Phase 2 — Guard operations ✅ (web/PWA scaffold)
+## Phase 2 — Guard operations ✅ (PWA hardened)
 
 - [x] Guard mobile web app (`/guard` — clock-in, SOS, checkpoint scan, GPS)
 - [x] Live guard location API (`POST /api/v1/location`)
 - [x] `guard_locations` table + `GuardLocationService`
 - [x] Leaflet map in dispatch control room and patrol playback
 - [x] Reverb listener retained on control room
+- [x] **PWA manifest + service worker** (`public/manifest.json`, `public/sw.js`)
+- [x] **Camera QR scanner** (`html5-qrcode` on guard app)
+- [x] **IndexedDB offline queue** with auto-sync on reconnect
+- [x] **Expanded offline sync processor** (checkpoint, clock-in/out, SOS, location)
+- [x] Patrol session start + active session picker in guard app
 
 ## Phase 3 — SMB commercial ✅ (scaffold)
 

@@ -59,7 +59,7 @@ See `docs/PHASED-ROADMAP.md` for full status. Highlights:
 - **Docker:** `docker-compose up` for nginx, PHP, MySQL, Redis, queue worker, Reverb
 - **Notifications:** Email alerts for incidents, SOS, compliance, missed patrols
 - **Scheduled jobs:** Analytics snapshots, compliance expiry, missed patrol detection
-- **Guard field app:** `/guard` mobile web UI + `POST /api/v1/location`
+- **Guard field app:** `/guard` mobile PWA — installable, offline queue, camera QR scan
 - **Maps:** Leaflet maps in dispatch and patrol playback
 - **Billing:** Stripe checkout scaffold at `/billing/subscription`
 - **Client portal:** Isolated layout with client-scoped data
