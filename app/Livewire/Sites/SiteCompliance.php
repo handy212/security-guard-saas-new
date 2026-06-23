@@ -5,6 +5,7 @@ namespace App\Livewire\Sites;
 use App\Models\Site;
 use App\Models\SiteDocument;
 use App\Models\SiteEmergencyContact;
+use App\Models\SiteSlaRequirement;
 use App\Support\TenantContext;
 use Livewire\Component;
 
@@ -43,6 +44,7 @@ class SiteCompliance extends Component
         return view('livewire.sites.site-compliance', [
             'contacts' => SiteEmergencyContact::with('site')->latest()->limit(50)->get(),
             'documents' => SiteDocument::with('site')->latest()->limit(50)->get(),
+            'sla' => SiteSlaRequirement::with('site')->latest()->limit(50)->get(),
             'sites' => Site::orderBy('name')->get(),
         ])->layout('layouts.app');
     }

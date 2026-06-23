@@ -1,8 +1,8 @@
 <div>
     <x-page-header title="Dispatch / Control Room" description="Live SOS, guard positions, and dispatch events." />
 
-    <div class="grid gap-4 p-6 md:grid-cols-3">
-        <x-stat-card label="Active SOS" :value="$sosAlerts->count()" tone="danger" />
+    <div class="grid gap-4 px-6 pb-4 md:grid-cols-3">
+        <x-stat-card label="Active SOS" :value="$sosAlerts->count()" :tone="$sosAlerts->count() ? 'danger' : 'success'" />
         <x-stat-card label="Live guards" :value="$liveGuards->count()" tone="success" />
         <x-stat-card label="Dispatch events" :value="$events->count()" />
     </div>
@@ -12,29 +12,30 @@
     </div>
 
     <div class="grid gap-6 px-6 pb-6 lg:grid-cols-2">
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">SOS Alerts</h2>
+        <x-section-card title="SOS Alerts" description="Active emergency alerts requiring acknowledgment.">
             @forelse($sosAlerts as $alert)
-                <div class="flex items-center justify-between border-t py-2">
-                    <div>
-                        <b>{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</b>
-                        <div class="text-sm text-slate-500">{{ $alert->site?->name }} · {{ $alert->status }}</div>
+                <div class="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-0 first:pt-0">
+                    <div class="min-w-0">
+                        <div class="font-medium text-slate-900">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
+                        <div class="text-sm text-slate-500">{{ $alert->site?->name }} · <x-badge :status="$alert->status" /></div>
                     </div>
-                    <button wire:click="acknowledgeSos({{ $alert->id }})" class="rounded bg-red-700 px-3 py-1 text-sm text-white">Acknowledge</button>
+                    <x-button size="sm" variant="danger" wire:click="acknowledgeSos({{ $alert->id }})">Acknowledge</x-button>
                 </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No active SOS alerts.</p>
+                <x-empty-state title="No active SOS" description="All clear — no emergency alerts." />
             @endforelse
-        </section>
+        </x-section-card>
 
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">Live Guards</h2>
+        <x-section-card title="Live Guards" description="Guards currently clocked in on site.">
             @forelse($liveGuards as $log)
-                <div class="border-t py-2 text-sm">{{ $log->assignedGuard?->full_name ?? 'Guard' }} — {{ $log->site?->name }} since {{ $log->clock_in_at }}</div>
+                <div class="border-t border-slate-100 py-3 text-sm first:border-0 first:pt-0">
+                    <span class="font-medium text-slate-900">{{ $log->assignedGuard?->full_name ?? 'Guard' }}</span>
+                    <span class="text-slate-500"> — {{ $log->site?->name }} since {{ $log->clock_in_at?->format('H:i') ?? $log->clock_in_at }}</span>
+                </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No guards currently clocked in.</p>
+                <x-empty-state title="No guards on duty" description="No guards are currently clocked in." />
             @endforelse
-        </section>
+        </x-section-card>
     </div>
 </div>
 

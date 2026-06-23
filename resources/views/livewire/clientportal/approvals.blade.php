@@ -1,39 +1,37 @@
 <div>
     <x-page-header title="Report Approvals" description="Review and sign off client-facing reports." />
 
-    <div class="px-6 pb-4">
-        <input wire:model.live.debounce.300ms="search" type="search" placeholder="Search by ID…" class="w-full max-w-sm rounded-lg border px-3 py-2 text-sm">
-    </div>
+    <div class="space-y-5 p-6">
+        <x-search-input wire:model.live.debounce.300ms="search" placeholder="Search by ID…" class="max-w-sm" />
 
-    <div class="px-6 pb-6">
-        <x-data-table>
-            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+        <x-data-table title="Pending approvals">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-4 py-3">ID</th>
                     <th class="px-4 py-3">Client</th>
                     <th class="px-4 py-3">Report</th>
                     <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Actions</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody>
                 @forelse($items as $item)
-                    <tr>
-                        <td class="px-4 py-3">#{{ $item->id }}</td>
-                        <td class="px-4 py-3">{{ $item->clientAccount?->name ?? '—' }}</td>
-                        <td class="px-4 py-3">{{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}</td>
-                        <td class="px-4 py-3">{{ $item->status }}</td>
-                        <td class="px-4 py-3">
+                    <tr class="table-row-hover">
+                        <td class="px-4 py-3 font-medium text-slate-900">#{{ $item->id }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $item->clientAccount?->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}</td>
+                        <td class="px-4 py-3"><x-badge :status="$item->status" /></td>
+                        <td class="px-4 py-3 text-right">
                             @if($item->status === 'pending')
-                                <button wire:click="approve({{ $item->id }})" class="rounded bg-emerald-700 px-2 py-1 text-xs text-white">Approve</button>
-                                <button wire:click="reject({{ $item->id }})" class="rounded bg-red-700 px-2 py-1 text-xs text-white">Reject</button>
+                                <x-button size="sm" wire:click="approve({{ $item->id }})">Approve</x-button>
+                                <x-button size="sm" variant="danger" class="ml-2" wire:click="reject({{ $item->id }})">Reject</x-button>
                             @else
-                                <span class="text-xs text-slate-500">{{ $item->approved_at }}</span>
+                                <span class="text-xs text-slate-500">{{ $item->approved_at?->format('M j, Y') ?? '—' }}</span>
                             @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No approvals pending.</td></tr>
+                    <tr><td colspan="5" class="px-4 py-10"><x-empty-state title="No approvals" description="Client report approvals appear here." /></td></tr>
                 @endforelse
             </tbody>
         </x-data-table>

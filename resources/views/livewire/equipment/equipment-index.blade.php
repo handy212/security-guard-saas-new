@@ -1,31 +1,63 @@
-<div class="p-6 space-y-5">
-    <h1 class="text-2xl font-bold">Equipment Assets</h1>
-    <form wire:submit="save" class="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
-        <input wire:model="form.name" class="rounded border p-2" placeholder="Name" required>
-        <input wire:model="form.asset_tag" class="rounded border p-2" placeholder="Asset tag">
-        <input wire:model="form.category" class="rounded border p-2" placeholder="Category">
-        <input wire:model="form.serial_number" class="rounded border p-2" placeholder="Serial number">
-        <select wire:model="form.condition" class="rounded border p-2"><option>good</option><option>fair</option><option>poor</option></select>
-        <select wire:model="form.status" class="rounded border p-2"><option>available</option><option>issued</option><option>retired</option></select>
-        <button class="rounded bg-slate-900 px-4 py-2 text-white md:col-span-3">{{ $editingId ? 'Update' : 'Create' }} Asset</button>
-    </form>
-    <input wire:model.live="search" class="w-full rounded border p-2" placeholder="Search equipment">
-    <div class="overflow-auto rounded-xl border bg-white">
-        <table class="w-full text-sm">
-            <thead><tr class="bg-slate-50 text-left"><th class="p-3">Asset</th><th>Tag</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-            @foreach($items as $item)
-                <tr class="border-t">
-                    <td class="p-3"><b>{{ $item->name }}</b><div class="text-slate-500">{{ $item->category }}</div></td>
-                    <td>{{ $item->asset_tag }}</td>
-                    <td>{{ $item->status }}</td>
-                    <td class="space-x-2 p-3">
-                        <button wire:click="edit({{ $item->id }})" class="text-blue-600">Edit</button>
-                        <button wire:click="delete({{ $item->id }})" class="text-red-600">Delete</button>
-                    </td>
+<div>
+    <x-page-header title="Equipment Assets" description="Track radios, uniforms, vehicles, and other issued gear." />
+
+    <div class="space-y-5 p-6">
+        <x-form-card :title="$editingId ? 'Edit asset' : 'Add asset'" description="Register equipment and track condition and status." collapsible :open="!$editingId">
+            <form wire:submit="save" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <x-input wire:model="form.name" label="Name" placeholder="Motorola radio" required />
+                <x-input wire:model="form.asset_tag" label="Asset tag" placeholder="EQ-001" />
+                <x-input wire:model="form.category" label="Category" placeholder="Radio, uniform…" />
+                <x-input wire:model="form.serial_number" label="Serial number" placeholder="SN12345" />
+                <x-select wire:model="form.condition" label="Condition">
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                </x-select>
+                <x-select wire:model="form.status" label="Status">
+                    <option value="available">Available</option>
+                    <option value="issued">Issued</option>
+                    <option value="retired">Retired</option>
+                </x-select>
+                <div class="flex items-end gap-2 md:col-span-2 xl:col-span-3">
+                    <x-button type="submit">{{ $editingId ? 'Update asset' : 'Create asset' }}</x-button>
+                    @if($editingId)
+                        <x-button type="button" variant="secondary" wire:click="$set('editingId', null)">Cancel</x-button>
+                    @endif
+                </div>
+            </form>
+        </x-form-card>
+
+        <x-search-input wire:model.live.debounce.300ms="search" placeholder="Search by name, tag, or category…" />
+
+        <x-data-table title="All equipment">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Asset</th>
+                    <th class="px-4 py-3">Tag</th>
+                    <th class="px-4 py-3">Condition</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
-            @endforeach
+            </thead>
+            <tbody>
+                @forelse($items as $item)
+                    <tr class="table-row-hover">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-900">{{ $item->name }}</div>
+                            <div class="text-xs text-slate-500">{{ $item->category ?: '—' }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">{{ $item->asset_tag ?: '—' }}</td>
+                        <td class="px-4 py-3"><x-badge :status="$item->condition" /></td>
+                        <td class="px-4 py-3"><x-badge :status="$item->status" /></td>
+                        <td class="px-4 py-3 text-right">
+                            <button wire:click="edit({{ $item->id }})" class="btn-link">Edit</button>
+                            <button wire:click="delete({{ $item->id }})" wire:confirm="Delete this asset?" class="ml-3 text-sm font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="px-4 py-10"><x-empty-state title="No equipment yet" description="Add your first asset to start tracking issued gear." /></td></tr>
+                @endforelse
             </tbody>
-        </table>
+        </x-data-table>
     </div>
 </div>
