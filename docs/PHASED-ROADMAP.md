@@ -48,6 +48,11 @@ This document tracks delivery of the commercial/enterprise roadmap for GuardOps 
 - [x] 7-day incident and patrol trend charts on dashboard
 - [x] Shared components: `section-card`, `onboarding-checklist`, `flash-status`
 - [x] Polished subscription page with Paystack payment methods
+- [x] **Design system components**: `input`, `select`, `textarea`, `button`, `badge`, `search-input`, `form-card`, `pagination`
+- [x] **Responsive sidebar** with mobile drawer, user profile card, brand styling
+- [x] **Polished login** split-screen with demo credentials
+- [x] **Refactored CRUD pages**: clients, guards, sites, incidents, schedules, patrols, invoices
+- [x] **Client portal** gradient layout with badges and empty states
 
 ## Phase 4 — Enterprise hardening ✅ (foundation)
 

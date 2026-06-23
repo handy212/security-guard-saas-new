@@ -1,53 +1,58 @@
-<div class="space-y-6">
-    <x-page-header title="Client Portal" description="Assigned activity, reports, and proof of service." />
+<div>
+    <x-page-header title="Client Portal" description="Proof of service — shifts, patrols, incidents, and approved reports for your account." />
 
-    <div class="grid gap-4 md:grid-cols-2">
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">Recent shifts</h2>
+    <div class="grid gap-5 md:grid-cols-2">
+        <x-section-card title="Recent shifts" description="Guard deployments at your sites">
             @forelse($shifts as $shift)
-                <div class="border-t py-2 text-sm">
-                    <div class="font-medium">{{ $shift->site?->name }}</div>
-                    <div class="text-slate-500">{{ $shift->starts_at }} · {{ $shift->assignments->count() }} guard(s)</div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-3 first:border-t-0">
+                    <div>
+                        <div class="font-medium">{{ $shift->site?->name }}</div>
+                        <div class="text-sm text-slate-500">{{ $shift->starts_at?->format('M j, Y · H:i') }}</div>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500">{{ $shift->assignments->count() }} guard(s)</span>
                 </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No shifts to display.</p>
+                <x-empty-state title="No shifts" description="Scheduled shifts for your sites will appear here." />
             @endforelse
-        </section>
+        </x-section-card>
 
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">Approved reports</h2>
+        <x-section-card title="Approved reports">
             @forelse($reports as $report)
-                <div class="border-t py-2 text-sm">
+                <div class="border-t border-slate-100 py-3 first:border-t-0">
                     <div class="font-medium">{{ $report->site?->name }}</div>
-                    <div class="text-slate-500">{{ $report->report_date ?? $report->created_at }}</div>
+                    <div class="text-sm text-slate-500">{{ $report->report_date?->format('M j, Y') ?? $report->created_at?->format('M j, Y') }}</div>
                 </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No approved reports yet.</p>
+                <x-empty-state title="No reports yet" description="Approved daily activity reports will be listed here." />
             @endforelse
-        </section>
+        </x-section-card>
 
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">Incidents</h2>
+        <x-section-card title="Incidents">
             @forelse($incidents as $incident)
-                <div class="border-t py-2 text-sm">
-                    <div class="font-medium">{{ $incident->title }}</div>
-                    <div class="text-slate-500">{{ $incident->site?->name }} · {{ $incident->status }}</div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-3 first:border-t-0">
+                    <div>
+                        <div class="font-medium">{{ $incident->title }}</div>
+                        <div class="text-sm text-slate-500">{{ $incident->site?->name }}</div>
+                    </div>
+                    <x-badge :status="$incident->status" />
                 </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No incidents reported.</p>
+                <x-empty-state title="No incidents" description="Security incidents shared with your account appear here." />
             @endforelse
-        </section>
+        </x-section-card>
 
-        <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-bold">Patrol proof</h2>
+        <x-section-card title="Patrol proof">
             @forelse($patrols as $patrol)
-                <div class="border-t py-2 text-sm">
-                    <div class="font-medium">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
-                    <div class="text-slate-500">{{ $patrol->assignedGuard?->full_name }} · {{ $patrol->status }}</div>
+                <div class="flex items-center justify-between border-t border-slate-100 py-3 first:border-t-0">
+                    <div>
+                        <div class="font-medium">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
+                        <div class="text-sm text-slate-500">{{ $patrol->assignedGuard?->full_name }}</div>
+                    </div>
+                    <x-badge :status="$patrol->status" />
                 </div>
             @empty
-                <p class="py-4 text-sm text-slate-500">No patrol sessions yet.</p>
+                <x-empty-state title="No patrols" description="Completed patrol sessions provide proof of guard rounds." />
             @endforelse
-        </section>
+        </x-section-card>
     </div>
 </div>
