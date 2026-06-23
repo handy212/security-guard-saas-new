@@ -7,13 +7,22 @@ use App\Events\SosAlertRaised;
 use App\Models\DispatchEvent;
 use App\Models\SosAlert;
 use App\Models\User;
+use App\Notifications\SosAlertNotification;
 
 class DispatchService
 {
+    public function __construct(
+        private NotificationDispatcher $notifications,
+        private AuditLogService $audit,
+        private WebhookDeliveryService $webhooks,
+    ) {}
+
     public function createEvent(array $data): DispatchEvent
     {
         $event = DispatchEvent::create($data + ['status' => 'open', 'opened_at' => now()]);
         DispatchEventCreated::dispatch($event);
+        $this->audit->record('dispatch.event.created', $event);
+        $this->webhooks->dispatch($event->tenant_id, 'dispatch.event.created', $event->toArray());
 
         return $event;
     }
@@ -32,6 +41,16 @@ class DispatchService
         ]);
 
         SosAlertRaised::dispatch($alert);
+
+        $this->notifications->sendToTenantAdmins(
+            $user->tenant_id,
+            'sos.raised',
+            ['message' => $alert->message ?? 'SOS alert'],
+            new SosAlertNotification($alert),
+        );
+
+        $this->audit->record('sos.raised', $alert);
+        $this->webhooks->dispatch($user->tenant_id, 'sos.raised', $alert->toArray());
 
         return $alert;
     }

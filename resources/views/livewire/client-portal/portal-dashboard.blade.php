@@ -1,1 +1,53 @@
-<div class="p-6 space-y-5"><h1 class="text-2xl font-bold">Client Portal</h1><p class="text-sm text-slate-500">Client-facing view for proof of service, incidents, reports, and patrol completion.</p><div class="grid gap-4 lg:grid-cols-2"><section class="rounded-xl border bg-white p-4"><h2 class="font-bold">Recent Shifts</h2>@foreach($shifts as $shift)<div class="border-t py-2">{{ $shift->site?->name }} · {{ $shift->starts_at }} · {{ $shift->status }}</div>@endforeach</section><section class="rounded-xl border bg-white p-4"><h2 class="font-bold">Approved Reports</h2>@foreach($reports as $report)<div class="border-t py-2">{{ $report->title }} · {{ $report->report_date }}</div>@endforeach</section><section class="rounded-xl border bg-white p-4"><h2 class="font-bold">Incidents</h2>@foreach($incidents as $incident)<div class="border-t py-2">{{ $incident->title }} · {{ $incident->severity }} · {{ $incident->status }}</div>@endforeach</section><section class="rounded-xl border bg-white p-4"><h2 class="font-bold">Patrol Proof</h2>@foreach($patrols as $patrol)<div class="border-t py-2">{{ $patrol->route?->name }} · {{ $patrol->assignedGuard?->full_name ?? 'Guard' }} · {{ $patrol->status }}</div>@endforeach</section></div></div>
+<div class="space-y-6">
+    <x-page-header title="Client Portal" description="Assigned activity, reports, and proof of service." />
+
+    <div class="grid gap-4 md:grid-cols-2">
+        <section class="rounded-xl border bg-white p-4">
+            <h2 class="font-bold">Recent shifts</h2>
+            @forelse($shifts as $shift)
+                <div class="border-t py-2 text-sm">
+                    <div class="font-medium">{{ $shift->site?->name }}</div>
+                    <div class="text-slate-500">{{ $shift->starts_at }} · {{ $shift->assignments->count() }} guard(s)</div>
+                </div>
+            @empty
+                <p class="py-4 text-sm text-slate-500">No shifts to display.</p>
+            @endforelse
+        </section>
+
+        <section class="rounded-xl border bg-white p-4">
+            <h2 class="font-bold">Approved reports</h2>
+            @forelse($reports as $report)
+                <div class="border-t py-2 text-sm">
+                    <div class="font-medium">{{ $report->site?->name }}</div>
+                    <div class="text-slate-500">{{ $report->report_date ?? $report->created_at }}</div>
+                </div>
+            @empty
+                <p class="py-4 text-sm text-slate-500">No approved reports yet.</p>
+            @endforelse
+        </section>
+
+        <section class="rounded-xl border bg-white p-4">
+            <h2 class="font-bold">Incidents</h2>
+            @forelse($incidents as $incident)
+                <div class="border-t py-2 text-sm">
+                    <div class="font-medium">{{ $incident->title }}</div>
+                    <div class="text-slate-500">{{ $incident->site?->name }} · {{ $incident->status }}</div>
+                </div>
+            @empty
+                <p class="py-4 text-sm text-slate-500">No incidents reported.</p>
+            @endforelse
+        </section>
+
+        <section class="rounded-xl border bg-white p-4">
+            <h2 class="font-bold">Patrol proof</h2>
+            @forelse($patrols as $patrol)
+                <div class="border-t py-2 text-sm">
+                    <div class="font-medium">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
+                    <div class="text-slate-500">{{ $patrol->assignedGuard?->full_name }} · {{ $patrol->status }}</div>
+                </div>
+            @empty
+                <p class="py-4 text-sm text-slate-500">No patrol sessions yet.</p>
+            @endforelse
+        </section>
+    </div>
+</div>

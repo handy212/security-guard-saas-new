@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Analytics\AnalyticsDashboard;
 use App\Livewire\Attendance\TimekeepingBoard;
 use App\Livewire\Billing\InvoiceIndex;
 use App\Livewire\Billing\PayrollBoard;
+use App\Livewire\Billing\SubscriptionManager;
 use App\Livewire\ClientPortal\Approvals;
 use App\Livewire\ClientPortal\PortalDashboard;
 use App\Livewire\Clients\ClientIndex;
@@ -17,6 +19,7 @@ use App\Livewire\Dispatch\ControlRoom;
 use App\Livewire\Equipment\EquipmentIndex;
 use App\Livewire\Guards\GuardHrRecords;
 use App\Livewire\Guards\GuardIndex;
+use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Mobile\OfflineSyncMonitor;
 use App\Livewire\Patrols\PatrolBoard;
@@ -27,11 +30,15 @@ use App\Livewire\Schedules\CalendarView;
 use App\Livewire\Schedules\DeploymentSheet;
 use App\Livewire\Schedules\ShiftMarketplace;
 use App\Livewire\Settings\RolePermissionManager;
+use App\Livewire\Settings\TwoFactorSetup;
+use App\Livewire\Settings\WebhookManager;
 use App\Livewire\Shifts\ScheduleBoard;
 use App\Livewire\Sites\SiteCompliance;
 use App\Livewire\Sites\SiteIndex;
 use App\Livewire\Tenants\TenantManagement;
 use App\Livewire\Visitors\VisitorLogIndex;
+
+Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
 Route::redirect('/', '/dashboard');
 
@@ -56,7 +63,11 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('/dispatch', ControlRoom::class)->name('dispatch.control-room');
     Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
     Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
+    Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');
+    Route::get('/settings/two-factor', TwoFactorSetup::class)->name('settings.two-factor');
+    Route::get('/settings/webhooks', WebhookManager::class)->name('settings.webhooks');
+    Route::get('/guard', MobileDashboard::class)->name('guard.mobile');
     Route::get('/visitors', VisitorLogIndex::class)->name('visitors.index');
     Route::get('/equipment', EquipmentIndex::class)->name('equipment.index');
     Route::get('/compliance', ComplianceDashboard::class)->name('compliance.dashboard');

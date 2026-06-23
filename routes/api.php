@@ -11,6 +11,7 @@ Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->gr
     Route::post('/patrols/scan', [MobileAppController::class, 'scanCheckpoint']);
     Route::post('/incidents', [MobileAppController::class, 'reportIncident']);
     Route::post('/sos', [MobileAppController::class, 'sos']);
+    Route::post('/location', [MobileAppController::class, 'updateLocation']);
     Route::post('/offline-sync', [MobileAppController::class, 'offlineSync']);
     Route::post('/visitors/check-in', [MobileAppController::class, 'visitorCheckIn']);
     Route::post('/visitors/{visitorLog}/check-out', [MobileAppController::class, 'visitorCheckOut']);

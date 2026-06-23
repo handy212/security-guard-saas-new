@@ -22,4 +22,11 @@ class ComplianceService
             ->whereDate('expires_at', '<=', now()->addDays($days))
             ->get();
     }
+
+    public function expiringWithinDays(int $tenantId, int $days = 30)
+    {
+        return $this->expiringCertifications($tenantId, $days)->merge(
+            $this->expiringDocuments($tenantId, $days)
+        );
+    }
 }

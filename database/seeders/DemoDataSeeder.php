@@ -4,9 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\ClientAccount;
 use App\Models\Guard;
+use App\Models\NotificationTemplate;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\Site;
 use App\Models\SitePost;
 use App\Models\SubscriptionPlan;
@@ -31,7 +33,11 @@ class DemoDataSeeder extends Seeder
         );
         $plan = SubscriptionPlan::firstOrCreate(
             ['slug' => 'enterprise'],
-            ['name' => 'Enterprise', 'monthly_price' => 499, 'max_guards' => 1000, 'max_sites' => 500, 'features' => ['gps', 'qr', 'client_portal', 'billing', 'dispatch']]
+            ['name' => 'Enterprise', 'monthly_price' => 499, 'annual_price' => 4990, 'max_guards' => 1000, 'max_sites' => 500, 'features' => ['gps', 'qr', 'client_portal', 'billing', 'dispatch'], 'status' => 'active']
+        );
+        SubscriptionPlan::firstOrCreate(
+            ['slug' => 'starter'],
+            ['name' => 'Starter', 'monthly_price' => 99, 'annual_price' => 990, 'max_guards' => 25, 'max_sites' => 10, 'features' => ['gps', 'patrols'], 'status' => 'active']
         );
         TenantSubscription::firstOrCreate(
             ['tenant_id' => $tenant->id],
@@ -98,5 +104,23 @@ class DemoDataSeeder extends Seeder
                 'status' => 'open',
             ]
         );
+
+        $shift = Shift::where('tenant_id', $tenant->id)->where('title', 'Day Shift')->first();
+        ShiftAssignment::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'shift_id' => $shift->id, 'guard_id' => $guard->id],
+            ['status' => 'assigned']
+        );
+
+        foreach ([
+            ['incident.submitted', 'New incident: {{title}}', 'An incident ({{severity}}) was submitted and needs review.'],
+            ['sos.raised', 'SOS ALERT', '{{message}} — respond immediately in the control room.'],
+            ['compliance.expiring', 'Compliance expiry notice', '{{count}} certifications/documents expire soon for {{tenant}}.'],
+            ['patrol.missed', 'Missed patrol alert', '{{count}} patrol session(s) were marked missed for {{tenant}}.'],
+        ] as [$code, $subject, $body]) {
+            NotificationTemplate::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => $code, 'channel' => 'email'],
+                ['subject' => $subject, 'body' => $body, 'is_active' => true]
+            );
+        }
     }
 }

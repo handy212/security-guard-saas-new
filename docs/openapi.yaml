@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: GuardOps SaaS API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /me/assignments:
+    get:
+      summary: List guard shift assignments
+      security: [{sanctum: []}]
+  /attendance/clock-in:
+    post:
+      summary: Clock in with GPS coordinates
+  /attendance/clock-out:
+    post:
+      summary: Clock out with GPS coordinates
+  /patrols/scan:
+    post:
+      summary: Scan patrol checkpoint
+  /incidents:
+    post:
+      summary: Submit incident report
+  /sos:
+    post:
+      summary: Raise SOS alert
+  /location:
+    post:
+      summary: Update guard live location
+  /offline-sync:
+    post:
+      summary: Queue offline sync batch
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
