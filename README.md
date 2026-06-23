@@ -61,7 +61,8 @@ See `docs/PHASED-ROADMAP.md` for full status. Highlights:
 - **Scheduled jobs:** Analytics snapshots, compliance expiry, missed patrol detection
 - **Guard field app:** `/guard` mobile PWA — installable, offline queue, camera QR scan
 - **Maps:** Leaflet maps in dispatch and patrol playback
-- **Billing:** Stripe checkout scaffold at `/billing/subscription`
+- **Billing:** Paystack checkout at `/billing/subscription` (cards, bank, USSD)
+- **UX:** Onboarding checklist, dashboard trend charts, design system components
 - **Client portal:** Isolated layout with client-scoped data
 - **Enterprise:** Audit logs, 2FA setup, webhook subscriptions, OpenAPI stub
 

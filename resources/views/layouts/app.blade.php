@@ -43,7 +43,7 @@
     </aside>
     <main class="flex-1 min-w-0">
         @if (session('status'))
-            <div class="border-b border-emerald-200 bg-emerald-50 px-6 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            <x-flash-status class="border-b" />
         @endif
         {{ $slot }}
     </main>

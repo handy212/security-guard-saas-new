@@ -32,13 +32,22 @@ This document tracks delivery of the commercial/enterprise roadmap for GuardOps 
 - [x] **Expanded offline sync processor** (checkpoint, clock-in/out, SOS, location)
 - [x] Patrol session start + active session picker in guard app
 
-## Phase 3 — SMB commercial ✅ (scaffold)
+## Phase 3 — SMB commercial ✅ (Paystack)
 
-- [x] Stripe billing service + checkout flow (`/billing/subscription`)
-- [x] Stripe webhook endpoint (`POST /stripe/webhook`)
+- [x] Paystack billing service + checkout (`/billing/subscription`)
+- [x] Paystack webhook (`POST /paystack/webhook`) with signature verification
+- [x] Payment callback verification (`/billing/subscription/callback`)
 - [x] Plan limit service + middleware alias `plan.limits`
 - [x] Isolated client portal layout (`layouts/portal.blade.php`)
 - [x] Client-scoped portal data + approval workflow
+
+## UX polish ✅
+
+- [x] Design tokens in `app.css` (brand colors, typography)
+- [x] Dashboard onboarding checklist with progress bar
+- [x] 7-day incident and patrol trend charts on dashboard
+- [x] Shared components: `section-card`, `onboarding-checklist`, `flash-status`
+- [x] Polished subscription page with Paystack payment methods
 
 ## Phase 4 — Enterprise hardening ✅ (foundation)
 
@@ -57,7 +66,7 @@ This document tracks delivery of the commercial/enterprise roadmap for GuardOps 
 ## Still required for full production
 
 - Native mobile app (React Native / Flutter) or hardened PWA offline store
-- Stripe signature verification with `stripe/stripe-php`
+- Paystack recurring subscription sync (plan API)
 - TOTP library for real 2FA (currently setup key scaffold)
 - SSO OIDC/SAML controller implementation
 - File virus scanning, S3 production disks

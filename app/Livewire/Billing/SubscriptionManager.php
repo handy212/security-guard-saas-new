@@ -3,8 +3,9 @@
 namespace App\Livewire\Billing;
 
 use App\Models\SubscriptionPlan;
+use App\Models\TenantSubscription;
+use App\Services\PaystackBillingService;
 use App\Services\PlanLimitService;
-use App\Services\StripeBillingService;
 use App\Support\TenantContext;
 use Livewire\Component;
 
@@ -15,16 +16,18 @@ class SubscriptionManager extends Component
         abort_unless(auth()->user()->can('billing.manage'), 403);
     }
 
-    public function checkout(int $planId, StripeBillingService $stripe): void
+    public function checkout(int $planId, PaystackBillingService $paystack): void
     {
         $tenant = app('currentTenant');
         $plan = SubscriptionPlan::findOrFail($planId);
-        $url = $stripe->createCheckoutSession($tenant, $plan);
+        $email = auth()->user()->email;
+
+        $url = $paystack->initializeCheckout($tenant, $plan, $email);
 
         if ($url) {
             $this->redirect($url);
         } else {
-            session()->flash('status', 'Stripe is not configured. Set STRIPE_SECRET in your environment.');
+            session()->flash('status', 'Paystack is not configured. Set PAYSTACK_SECRET_KEY and PAYSTACK_PUBLIC_KEY in your environment.');
         }
     }
 
@@ -35,7 +38,9 @@ class SubscriptionManager extends Component
         return view('livewire.billing.subscription-manager', [
             'plans' => SubscriptionPlan::where('status', 'active')->orderBy('monthly_price')->get(),
             'usage' => app(PlanLimitService::class)->usageSummary($tenantId),
-            'stripeConfigured' => app(StripeBillingService::class)->isConfigured(),
+            'paystackConfigured' => app(PaystackBillingService::class)->isConfigured(),
+            'currency' => config('paystack.currency', 'NGN'),
+            'activeSubscription' => TenantSubscription::with('plan')->where('tenant_id', $tenantId)->first(),
         ])->layout('layouts.app');
     }
 }
