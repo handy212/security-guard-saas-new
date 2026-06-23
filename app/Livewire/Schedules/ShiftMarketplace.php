@@ -25,7 +25,7 @@ class ShiftMarketplace extends Component
     {
         return view('livewire.schedules.shift-marketplace', [
             'bids' => OpenShiftBid::with(['shift', 'assignedGuard'])->latest()->limit(50)->get(),
-            'swaps' => ShiftSwapRequest::latest()->limit(50)->get(),
+            'swaps' => ShiftSwapRequest::with(['requestedByGuard', 'replacementGuard'])->latest()->limit(50)->get(),
         ])->layout('layouts.app');
     }
 }

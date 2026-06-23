@@ -1,20 +1,24 @@
-<div class="p-6">
+<div>
     <x-page-header title="Two-Factor Authentication" description="Protect admin accounts with an additional verification step." />
 
-    <div class="mx-auto mt-6 max-w-lg rounded-xl border bg-white p-6">
-        @if(auth()->user()->two_factor_confirmed_at)
-            <p class="text-sm text-emerald-700">Two-factor authentication is enabled on your account.</p>
-            <form wire:submit="verify" class="mt-4 space-y-3">
-                <input wire:model="code" class="w-full rounded-lg border px-3 py-2" placeholder="Enter verification code">
-                <button class="w-full rounded-lg bg-slate-900 py-2 text-white">Verify session</button>
-            </form>
-        @else
-            <p class="text-sm text-slate-600">Save this setup key in your authenticator app:</p>
-            <code class="mt-2 block rounded bg-slate-100 p-3 text-sm">{{ $secret }}</code>
-            <form wire:submit="enable" class="mt-4 space-y-3">
-                <input wire:model="code" class="w-full rounded-lg border px-3 py-2" placeholder="Enter code to confirm">
-                <button class="w-full rounded-lg bg-slate-900 py-2 text-white">Enable 2FA</button>
-            </form>
-        @endif
+    <div class="p-6">
+        <x-form-card title="Authenticator setup" description="Use Google Authenticator, Authy, or any TOTP app." class="mx-auto max-w-lg">
+            @if(auth()->user()->two_factor_confirmed_at)
+                <div class="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-600/20">
+                    Two-factor authentication is enabled on your account.
+                </div>
+                <form wire:submit="verify" class="space-y-4">
+                    <x-input wire:model="code" label="Verification code" placeholder="000000" autocomplete="one-time-code" />
+                    <x-button type="submit" class="w-full">Verify session</x-button>
+                </form>
+            @else
+                <p class="text-sm text-slate-600">Save this setup key in your authenticator app:</p>
+                <code class="mt-3 block rounded-lg bg-slate-100 px-4 py-3 text-sm font-mono text-slate-800">{{ $secret }}</code>
+                <form wire:submit="enable" class="mt-6 space-y-4">
+                    <x-input wire:model="code" label="Confirm with code" placeholder="Enter 6-digit code" autocomplete="one-time-code" />
+                    <x-button type="submit" class="w-full">Enable 2FA</x-button>
+                </form>
+            @endif
+        </x-form-card>
     </div>
 </div>

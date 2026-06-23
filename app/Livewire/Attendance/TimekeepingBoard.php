@@ -27,7 +27,7 @@ class TimekeepingBoard extends Component
         abort_unless(auth()->user()->can('attendance.manage'), 403);
 
         return view('livewire.attendance.timekeeping-board', [
-            'logs' => AttendanceLog::with(['assignedGuard', 'shift'])->latest()->limit(80)->get(),
+            'logs' => AttendanceLog::with(['assignedGuard', 'site'])->latest()->limit(80)->get(),
             'breaks' => BreakLog::latest()->limit(20)->get(),
         ])->layout('layouts.app');
     }

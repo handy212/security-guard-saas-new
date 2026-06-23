@@ -15,6 +15,10 @@ class RolePermissionManager extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()->can('settings.manage'), 403);
+
+        foreach (Role::with('permissions')->get() as $role) {
+            $this->permissions[$role->id] = $role->permissions->pluck('name')->toArray();
+        }
     }
 
     public function createRole(): void

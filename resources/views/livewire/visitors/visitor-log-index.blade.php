@@ -1,31 +1,62 @@
-<div class="p-6 space-y-5">
-    <h1 class="text-2xl font-bold">Visitor Log</h1>
-    <form wire:submit="checkIn" class="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
-        <select wire:model="form.site_id" class="rounded border p-2" required>
-            <option value="">Site</option>
-            @foreach($sites as $site)<option value="{{ $site->id }}">{{ $site->name }}</option>@endforeach
-        </select>
-        <input wire:model="form.visitor_name" class="rounded border p-2" placeholder="Visitor name" required>
-        <input wire:model="form.visitor_phone" class="rounded border p-2" placeholder="Phone">
-        <input wire:model="form.company" class="rounded border p-2" placeholder="Company">
-        <input wire:model="form.purpose" class="rounded border p-2" placeholder="Purpose">
-        <input wire:model="form.vehicle_plate" class="rounded border p-2" placeholder="Vehicle plate">
-        <button class="rounded bg-slate-900 px-4 py-2 text-white">Check in visitor</button>
-    </form>
-    <input wire:model.live="search" class="w-full rounded border p-2" placeholder="Search visitors">
-    <div class="overflow-auto rounded-xl border bg-white">
-        <table class="w-full text-sm">
-            <thead><tr class="bg-slate-50 text-left"><th class="p-3">Visitor</th><th>Site</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-            @foreach($items as $item)
-                <tr class="border-t">
-                    <td class="p-3"><b>{{ $item->visitor_name }}</b><div class="text-slate-500">{{ $item->company }}</div></td>
-                    <td>{{ $item->site?->name }}</td>
-                    <td>{{ $item->status }}</td>
-                    <td>@if(!$item->checked_out_at)<button wire:click="checkOut({{ $item->id }})" class="text-blue-600">Check out</button>@endif</td>
+<div>
+    <x-page-header title="Visitor Log" description="Check visitors in and out at client sites." />
+
+    <div class="space-y-5 p-6">
+        <x-form-card title="Check in visitor" description="Record visitor details at the gate or reception." collapsible open>
+            <form wire:submit="checkIn" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <x-select wire:model="form.site_id" label="Site" required>
+                    <option value="">Select site</option>
+                    @foreach($sites as $site)
+                        <option value="{{ $site->id }}">{{ $site->name }}</option>
+                    @endforeach
+                </x-select>
+                <x-input wire:model="form.visitor_name" label="Visitor name" placeholder="Jane Doe" required />
+                <x-input wire:model="form.visitor_phone" label="Phone" placeholder="+234…" />
+                <x-input wire:model="form.company" label="Company" placeholder="Acme Ltd" />
+                <x-input wire:model="form.purpose" label="Purpose" placeholder="Meeting, delivery…" />
+                <x-input wire:model="form.vehicle_plate" label="Vehicle plate" placeholder="ABC-123" />
+                <div class="flex items-end md:col-span-2 xl:col-span-3">
+                    <x-button type="submit">Check in visitor</x-button>
+                </div>
+            </form>
+        </x-form-card>
+
+        <x-search-input wire:model.live.debounce.300ms="search" placeholder="Search by name, company, or plate…" />
+
+        <x-data-table title="Today's visitors">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Visitor</th>
+                    <th class="px-4 py-3">Site</th>
+                    <th class="px-4 py-3">Checked in</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
-            @endforeach
+            </thead>
+            <tbody>
+                @forelse($items as $item)
+                    <tr class="table-row-hover">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-900">{{ $item->visitor_name }}</div>
+                            <div class="text-xs text-slate-500">{{ $item->company ?: $item->purpose ?: '—' }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">{{ $item->site?->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $item->checked_in_at?->format('M j, H:i') ?? '—' }}</td>
+                        <td class="px-4 py-3">
+                            <x-badge :status="$item->checked_out_at ? 'closed' : 'in_progress'" />
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            @if(!$item->checked_out_at)
+                                <x-button size="sm" wire:click="checkOut({{ $item->id }})">Check out</x-button>
+                            @else
+                                <span class="text-xs text-slate-500">Out {{ $item->checked_out_at->format('H:i') }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="px-4 py-10"><x-empty-state title="No visitors logged" description="Check in the first visitor to start the log." /></td></tr>
+                @endforelse
             </tbody>
-        </table>
+        </x-data-table>
     </div>
 </div>
