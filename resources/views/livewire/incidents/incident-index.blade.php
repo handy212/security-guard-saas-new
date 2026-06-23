@@ -1,18 +1,81 @@
-<div class="p-6 space-y-5"><h1 class="text-2xl font-bold">Incident Reports</h1>
-<form wire:submit="save" class="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
-    <select wire:model="form.site_id" class="rounded border p-2"><option value="">Site</option>@foreach($sites as $site)<option value="{{ $site->id }}">{{ $site->name }}</option>@endforeach</select>
-    <input wire:model="form.title" class="rounded border p-2" placeholder="Title">
-    <input wire:model="form.type" class="rounded border p-2" placeholder="Type">
-    <select wire:model="form.severity" class="rounded border p-2"><option>low</option><option>medium</option><option>high</option><option>critical</option></select>
-    <textarea wire:model="form.description" class="rounded border p-2 md:col-span-2" placeholder="Description"></textarea>
-    <button class="rounded bg-slate-900 px-4 py-2 text-white">Submit Incident</button>
-</form>
-<form wire:submit="uploadMedia" class="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
-    <select wire:model="uploadIncidentId" class="rounded border p-2"><option value="">Incident for media</option>@foreach($incidents as $incident)<option value="{{ $incident->id }}">#{{ $incident->id }} {{ $incident->title }}</option>@endforeach</select>
-    <input wire:model="mediaFile" type="file" class="rounded border p-2">
-    <button class="rounded bg-blue-700 px-4 py-2 text-white">Upload media</button>
-</form>
-<input wire:model.live="search" class="w-full rounded border p-2" placeholder="Search incidents">
-<div class="overflow-auto rounded-xl border bg-white"><table class="w-full text-sm"><thead><tr class="bg-slate-50 text-left"><th class="p-3">Incident</th><th>Site</th><th>Severity</th><th>Status</th><th></th></tr></thead><tbody>
-@foreach($incidents as $incident)<tr class="border-t"><td class="p-3"><b>{{ $incident->title }}</b><div class="text-slate-500">{{ $incident->type }}</div></td><td>{{ $incident->site?->name }}</td><td>{{ $incident->severity }}</td><td>{{ $incident->status }}</td><td class="space-x-2"><button wire:click="approve({{ $incident->id }})" class="text-blue-600">Approve</button><button wire:click="close({{ $incident->id }})" class="text-green-700">Close</button><button wire:click="exportPdf({{ $incident->id }})" class="text-slate-700">PDF</button></td></tr>@endforeach
-</tbody></table></div>{{ $incidents->links() }}</div>
+<div>
+    <x-page-header title="Incident Reports" description="Log, review, and export security incidents across all sites." />
+
+    <div class="space-y-5 p-6">
+        <x-form-card title="Report new incident" description="Submitted incidents notify supervisors and appear in the client portal." collapsible :open="true">
+            <form wire:submit="save" class="grid gap-4 md:grid-cols-2">
+                <x-select wire:model="form.site_id" label="Site">
+                    <option value="">Select site</option>
+                    @foreach($sites as $site)
+                        <option value="{{ $site->id }}">{{ $site->name }}</option>
+                    @endforeach
+                </x-select>
+                <x-input wire:model="form.title" label="Title" placeholder="Brief incident title" />
+                <x-input wire:model="form.type" label="Type" placeholder="Theft, trespass, medical…" />
+                <x-select wire:model="form.severity" label="Severity">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </x-select>
+                <x-textarea wire:model="form.description" label="Description" class="md:col-span-2" rows="4" placeholder="Describe what happened…" />
+                <div class="md:col-span-2">
+                    <x-button type="submit">Submit incident</x-button>
+                </div>
+            </form>
+        </x-form-card>
+
+        <x-form-card title="Attach media" description="Upload photos or documents to an existing incident." collapsible :open="false">
+            <form wire:submit="uploadMedia" class="grid gap-4 md:grid-cols-3">
+                <x-select wire:model="uploadIncidentId" label="Incident">
+                    <option value="">Select incident</option>
+                    @foreach($incidents as $incident)
+                        <option value="{{ $incident->id }}">#{{ $incident->id }} — {{ $incident->title }}</option>
+                    @endforeach
+                </x-select>
+                <x-form-field label="File">
+                    <input wire:model="mediaFile" type="file" class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm" />
+                </x-form-field>
+                <div class="flex items-end">
+                    <x-button type="submit" variant="secondary">Upload media</x-button>
+                </div>
+            </form>
+        </x-form-card>
+
+        <x-search-input wire:model.live.debounce.300ms="search" placeholder="Search incidents…" />
+
+        <x-data-table title="All incidents">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Incident</th>
+                    <th class="px-4 py-3">Site</th>
+                    <th class="px-4 py-3">Severity</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($incidents as $incident)
+                    <tr class="table-row-hover">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-900">{{ $incident->title }}</div>
+                            <div class="text-xs text-slate-500">{{ $incident->type ?? $incident->incident_type }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">{{ $incident->site?->name }}</td>
+                        <td class="px-4 py-3"><x-badge :status="$incident->severity" :map="['low'=>'neutral','medium'=>'info','high'=>'warning','critical'=>'danger']" /></td>
+                        <td class="px-4 py-3"><x-badge :status="$incident->status" /></td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <button wire:click="approve({{ $incident->id }})" class="btn-link">Approve</button>
+                            <button wire:click="close({{ $incident->id }})" class="btn-link">Close</button>
+                            <button wire:click="exportPdf({{ $incident->id }})" class="btn-link">PDF</button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="px-4 py-10"><x-empty-state title="No incidents reported" description="Incident reports from guards and supervisors will appear here." /></td></tr>
+                @endforelse
+            </tbody>
+        </x-data-table>
+
+        {{ $incidents->links('components.pagination') }}
+    </div>
+</div>

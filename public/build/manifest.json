@@ -1,6 +1,10 @@
 {
+  "__commonjsHelpers-Cpj98o6Y.js": {
+    "file": "assets/_commonjsHelpers-Cpj98o6Y.js",
+    "name": "_commonjsHelpers"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-C6G_3qQV.css",
+    "file": "assets/app-BAWCXXJh.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,9 +13,21 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CzI1vhkK.js",
+    "file": "assets/app-C30GwrGy.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "__commonjsHelpers-Cpj98o6Y.js"
+    ]
+  },
+  "resources/js/guard-pwa.js": {
+    "file": "assets/guard-pwa-X9s_Y9Kt.js",
+    "name": "guard-pwa",
+    "src": "resources/js/guard-pwa.js",
+    "isEntry": true,
+    "imports": [
+      "__commonjsHelpers-Cpj98o6Y.js"
+    ]
   }
 }

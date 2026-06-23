@@ -49,7 +49,33 @@ All web and API routes (except login) require authentication. Multi-tenant isola
 | Role | Email | Password |
 |------|-------|----------|
 | Company admin | admin@demo.test | password |
-| Guard (mobile API) | john.guard@test | password |
+| Guard (mobile API / web app) | john.guard@test | password |
+
+## Roadmap implementation (Phases 0–5)
+
+See `docs/PHASED-ROADMAP.md` for full status. Highlights:
+
+- **CI/CD:** GitHub Actions workflow
+- **Docker:** `docker-compose up` for nginx, PHP, MySQL, Redis, queue worker, Reverb
+- **Notifications:** Email alerts for incidents, SOS, compliance, missed patrols
+- **Scheduled jobs:** Analytics snapshots, compliance expiry, missed patrol detection
+- **Guard field app:** `/guard` mobile PWA — installable, offline queue, camera QR scan
+- **Maps:** Leaflet maps in dispatch and patrol playback
+- **Billing:** Paystack checkout at `/billing/subscription` (cards, bank, USSD)
+- **UX:** Onboarding checklist, dashboard trend charts, design system components
+- **Client portal:** Isolated layout with client-scoped data
+- **Enterprise:** Audit logs, 2FA setup, webhook subscriptions, OpenAPI stub
+
+## Production deployment
+
+```bash
+cp .env.production.example .env
+docker compose up -d
+php artisan migrate --force
+php artisan db:seed --class=RolePermissionSeeder --force
+```
+
+Schedule runner (cron): `* * * * * php artisan schedule:run`
 
 ## Security hardening included
 
@@ -73,19 +99,10 @@ Password: password
 
 Run `composer install` on your development machine or server if `vendor/` is not present.
 
-## Suggested Next Steps
+## Documentation
 
-1. Add production tenant resolution by domain/subdomain.
-2. Connect Reverb/Echo for live control-room updates.
-3. Add file upload storage for incident media, guard documents, and certifications.
-4. Add PDF report exports using DomPDF.
-5. Add mobile app or PWA scanner UI for guards.
-
-
-## Enterprise gap review added
-See `docs/ENTERPRISE-GAP-REVIEW.md` for the review of included modules, added enterprise modules, and remaining production work.
-
-
-## Full Enterprise Completion
-
-The package now includes expanded source modules for SaaS tenant management, branches, tenant settings, billing limits, HR records, shift marketplace, calendar, deployment sheets, break tracking, patrol playback, vehicle patrols, complaints, SLA/compliance policies, accounting exports and analytics snapshots. See `docs/FULL-ENTERPRISE-COMPLETION.md`.
+- `docs/PHASED-ROADMAP.md` — phased delivery status
+- `docs/ENTERPRISE-GAP-REVIEW.md` — gap analysis
+- `docs/FULL-ENTERPRISE-COMPLETION.md` — module inventory
+- `docs/TENANCY.md` — multi-tenant architecture
+- `docs/openapi.yaml` — API v1 reference stub

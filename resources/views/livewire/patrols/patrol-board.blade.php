@@ -1,3 +1,58 @@
-<div class="p-6 space-y-5"><h1 class="text-2xl font-bold">Patrol Routes & Checkpoints</h1>
-<div class="grid gap-4 lg:grid-cols-2"><form wire:submit="saveRoute" class="rounded-xl border bg-white p-4 space-y-3"><h2 class="font-bold">Create Patrol Route</h2><select wire:model="routeForm.site_id" class="w-full rounded border p-2"><option value="">Site</option>@foreach($sites as $site)<option value="{{ $site->id }}">{{ $site->name }}</option>@endforeach</select><input wire:model="routeForm.name" class="w-full rounded border p-2" placeholder="Route name"><input wire:model="routeForm.expected_duration_minutes" class="w-full rounded border p-2" placeholder="Expected duration"><button class="rounded bg-slate-900 px-4 py-2 text-white">Save Route</button></form><form wire:submit="saveCheckpoint" class="rounded-xl border bg-white p-4 space-y-3"><h2 class="font-bold">Add QR/NFC Checkpoint</h2><select wire:model="checkpointForm.patrol_route_id" class="w-full rounded border p-2"><option value="">Route</option>@foreach($routes as $route)<option value="{{ $route->id }}">{{ $route->name }}</option>@endforeach</select><input wire:model="checkpointForm.name" class="w-full rounded border p-2" placeholder="Checkpoint name"><input wire:model="checkpointForm.code" class="w-full rounded border p-2" placeholder="QR/NFC code"><input wire:model="checkpointForm.sequence" class="w-full rounded border p-2" placeholder="Sequence"><button class="rounded bg-slate-900 px-4 py-2 text-white">Save Checkpoint</button></form></div>
-<div class="grid gap-4 md:grid-cols-2">@foreach($routes as $route)<div class="rounded-xl border bg-white p-4"><b>{{ $route->name }}</b><div class="text-sm text-slate-500">{{ $route->site?->name }} · {{ $route->checkpoints->count() }} checkpoints</div><ol class="mt-2 list-decimal pl-5 text-sm">@foreach($route->checkpoints as $cp)<li>{{ $cp->sequence }}. {{ $cp->name }} — {{ $cp->code }}</li>@endforeach</ol></div>@endforeach</div></div>
+<div>
+    <x-page-header title="Patrol Routes & Checkpoints" description="Define guard tour routes with sequenced QR/NFC checkpoints." />
+
+    <div class="space-y-5 p-6">
+        <div class="grid gap-5 lg:grid-cols-2">
+            <x-form-card title="Create patrol route">
+                <form wire:submit="saveRoute" class="space-y-4">
+                    <x-select wire:model="routeForm.site_id" label="Site">
+                        <option value="">Select site</option>
+                        @foreach($sites as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="routeForm.name" label="Route name" />
+                    <x-input wire:model="routeForm.expected_duration_minutes" label="Expected duration (min)" type="number" />
+                    <x-button type="submit">Save route</x-button>
+                </form>
+            </x-form-card>
+
+            <x-form-card title="Add checkpoint">
+                <form wire:submit="saveCheckpoint" class="space-y-4">
+                    <x-select wire:model="checkpointForm.patrol_route_id" label="Route">
+                        <option value="">Select route</option>
+                        @foreach($routes as $route)
+                            <option value="{{ $route->id }}">{{ $route->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="checkpointForm.name" label="Checkpoint name" />
+                    <x-input wire:model="checkpointForm.code" label="QR / NFC code" hint="Scanned by guards in the field app." />
+                    <x-input wire:model="checkpointForm.sequence" label="Sequence" type="number" min="1" />
+                    <x-button type="submit">Save checkpoint</x-button>
+                </form>
+            </x-form-card>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            @forelse($routes as $route)
+                <x-section-card :title="$route->name" :description="$route->site?->name.' · '.$route->checkpoints->count().' checkpoints'">
+                    <ol class="space-y-2">
+                        @foreach($route->checkpoints->sortBy('sequence') as $cp)
+                            <li class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-slate-600">{{ $cp->sequence }}</span>
+                                <div class="flex-1">
+                                    <div class="font-medium">{{ $cp->name }}</div>
+                                    <div class="font-mono text-xs text-slate-500">{{ $cp->code }}</div>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
+                </x-section-card>
+            @empty
+                <div class="md:col-span-2">
+                    <x-empty-state title="No patrol routes" description="Create a route and add checkpoints for guards to scan." />
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>

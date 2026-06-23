@@ -15,10 +15,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
-        'tenant_id', 'name', 'email', 'phone', 'password', 'status', 'last_login_at', 'timezone', 'avatar_path',
+        'tenant_id', 'client_account_id', 'name', 'email', 'phone', 'password', 'status', 'last_login_at', 'timezone', 'avatar_path',
+        'two_factor_secret', 'two_factor_confirmed_at',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'two_factor_secret'];
 
     protected function casts(): array
     {
@@ -26,6 +27,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 

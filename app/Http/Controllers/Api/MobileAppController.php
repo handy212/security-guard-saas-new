@@ -119,6 +119,19 @@ class MobileAppController extends Controller
         return $service->raiseSos($request->user(), $data);
     }
 
+    public function updateLocation(Request $request, \App\Services\GuardLocationService $locations): JsonResponse
+    {
+        $data = $request->validate([
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+            'accuracy_meters' => ['nullable', 'numeric'],
+        ]);
+
+        $location = $locations->record($request->user(), $data['latitude'], $data['longitude'], $data['accuracy_meters'] ?? null);
+
+        return response()->json($location, 201);
+    }
+
     public function offlineSync(Request $request): JsonResponse
     {
         $data = $request->validate([
