@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Equipment;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\EquipmentAsset;
 use App\Support\TenantContext;
@@ -10,7 +11,7 @@ use Livewire\WithPagination;
 
 class EquipmentIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -23,6 +24,11 @@ class EquipmentIndex extends Component
     public ?int $editingId = null;
 
     protected $queryString = ['search' => ['except' => ''], 'statusFilter' => ['except' => 'all', 'as' => 'status']];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', EquipmentAsset::class);
+    }
 
     public function updated($property): void
     {
@@ -80,8 +86,6 @@ class EquipmentIndex extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('equipment.manage'), 403);
-
         $tenantId = TenantContext::id();
         $base = EquipmentAsset::where('tenant_id', $tenantId);
 

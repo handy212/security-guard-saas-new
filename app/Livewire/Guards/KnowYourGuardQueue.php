@@ -2,15 +2,21 @@
 
 namespace App\Livewire\Guards;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\Guard;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class KnowYourGuardQueue extends Component
 {
-    use WithPagination;
+    use AuthorizesModuleAccess, WithPagination;
 
     public string $search = '';
+
+    public function mount(): void
+    {
+        $this->authorizePermission('guards.manage');
+    }
 
     public function updatingSearch(): void
     {
@@ -19,8 +25,6 @@ class KnowYourGuardQueue extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('guards.manage'), 403);
-
         return view('livewire.guards.know-your-guard-queue', [
             'guards' => Guard::query()
                 ->with('branch')

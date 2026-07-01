@@ -5,6 +5,11 @@
                 <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
                     {{ ucfirst($activeSubscription->status) }} — {{ $activeSubscription->plan?->name }}
                 </span>
+                @if($activeSubscription->status === 'active')
+                    <button wire:click="cancelSubscription" wire:confirm="Cancel your recurring subscription?" class="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50">
+                        Cancel subscription
+                    </button>
+                @endif
             @endif
         </x-slot:actions>
 

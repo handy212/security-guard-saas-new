@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Guards;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\DisciplinaryRecord;
 use App\Models\Guard;
 use App\Models\GuardSkill;
@@ -13,7 +14,7 @@ use Livewire\WithFileUploads;
 
 class GuardHrRecords extends Component
 {
-    use WithFileUploads;
+    use AuthorizesModuleAccess, WithFileUploads;
 
     public array $skillForm = ['guard_id' => '', 'skill' => '', 'level' => 'basic'];
 
@@ -24,6 +25,11 @@ class GuardHrRecords extends Component
     public array $documentForm = ['guard_id' => '', 'type' => 'license', 'expires_at' => ''];
 
     public $documentFile;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('guards.manage');
+    }
 
     public function saveSkill(): void
     {
@@ -81,8 +87,6 @@ class GuardHrRecords extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('guards.manage'), 403);
-
         return view('livewire.guards.guard-hr-records', [
             'guards' => Guard::orderBy('first_name')->get(),
             'skills' => GuardSkill::with('assignedGuard')->latest()->limit(50)->get(),

@@ -32,6 +32,17 @@ class SubscriptionManager extends Component
         }
     }
 
+    public function cancelSubscription(PaystackBillingService $paystack): void
+    {
+        $tenant = app('currentTenant');
+
+        if ($paystack->disableSubscription($tenant)) {
+            session()->flash('status', 'Subscription cancelled.');
+        } else {
+            session()->flash('status', 'Unable to cancel subscription. Contact support if this persists.');
+        }
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();
