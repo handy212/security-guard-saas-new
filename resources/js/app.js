@@ -1,12 +1,12 @@
-import Alpine from 'alpinejs';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-window.Pusher = Pusher;
-
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
+
 if (reverbKey) {
-    window.Echo = new Echo({
+    window.Pusher = Pusher;
+
+    const echo = new Echo({
         broadcaster: 'reverb',
         key: reverbKey,
         wsHost: import.meta.env.VITE_REVERB_HOST,
@@ -15,7 +15,9 @@ if (reverbKey) {
         forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
         enabledTransports: ['ws', 'wss'],
     });
-}
 
-window.Alpine = Alpine;
-Alpine.start();
+    // Only expose Echo to Livewire after the socket connects so X-Socket-ID is never "undefined".
+    echo.connector.pusher.connection.bind('connected', () => {
+        window.Echo = echo;
+    });
+}

@@ -1,13 +1,11 @@
 <div>
-    <x-page-header title="Site Compliance" description="Emergency contacts, site documents, and SLA requirements." />
-
-    <div class="grid gap-4 px-6 pb-4 md:grid-cols-3">
-        <x-stat-card label="Emergency contacts" :value="$contacts->count()" />
+    <x-page-shell title="Site Compliance" description="Emergency contacts, site documents, and SLA requirements." >
+        <div class="grid gap-3 md:grid-cols-3">
         <x-stat-card label="Documents" :value="$documents->count()" />
         <x-stat-card label="SLA requirements" :value="$sla->count()" tone="info" />
-    </div>
+        </div>
 
-    <div class="space-y-6 p-6 pt-0">
+    <div class="space-y-4 page-content pt-0">
         <div class="grid gap-4 lg:grid-cols-2">
             <x-form-card title="Add emergency contact" description="On-call contacts for each site.">
                 <form wire:submit="saveContact" class="space-y-3">
@@ -42,70 +40,70 @@
 
         <div class="grid gap-4 lg:grid-cols-3">
             <x-data-table title="Emergency contacts">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     <tr>
-                        <th class="px-4 py-3">Name</th>
-                        <th class="px-4 py-3">Site</th>
-                        <th class="px-4 py-3">Phone</th>
+                        <th class="px-3 py-2">Name</th>
+                        <th class="px-3 py-2">Site</th>
+                        <th class="px-3 py-2">Phone</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($contacts as $contact)
                         <tr class="table-row-hover">
-                            <td class="px-4 py-3">
-                                <div class="font-medium text-slate-900">{{ $contact->name }}</div>
-                                <div class="text-xs text-slate-500">{{ $contact->role ?: '—' }}</div>
+                            <td class="px-3 py-2">
+                                <div class="font-medium text-zinc-900">{{ $contact->name }}</div>
+                                <div class="text-xs text-zinc-500">{{ $contact->role ?: '—' }}</div>
                             </td>
-                            <td class="px-4 py-3 text-slate-600">{{ $contact->site?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $contact->phone }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $contact->site?->name ?? '—' }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $contact->phone }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-4 py-10"><x-empty-state title="No contacts" description="Add emergency contacts above." /></td></tr>
+                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No contacts" description="Add emergency contacts above." /></td></tr>
                     @endforelse
                 </tbody>
             </x-data-table>
 
             <x-data-table title="Documents">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     <tr>
-                        <th class="px-4 py-3">Title</th>
-                        <th class="px-4 py-3">Site</th>
-                        <th class="px-4 py-3">Type</th>
+                        <th class="px-3 py-2">Title</th>
+                        <th class="px-3 py-2">Site</th>
+                        <th class="px-3 py-2">Type</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($documents as $document)
                         <tr class="table-row-hover">
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ $document->title }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $document->site?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $document->document_type ?: '—' }}</td>
+                            <td class="px-3 py-2 font-medium text-zinc-900">{{ $document->title }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $document->site?->name ?? '—' }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $document->document_type ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-4 py-10"><x-empty-state title="No documents" description="Upload site documents above." /></td></tr>
+                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No documents" description="Upload site documents above." /></td></tr>
                     @endforelse
                 </tbody>
             </x-data-table>
 
             <x-data-table title="SLA requirements">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     <tr>
-                        <th class="px-4 py-3">Site</th>
-                        <th class="px-4 py-3">Metric</th>
-                        <th class="px-4 py-3">Target</th>
+                        <th class="px-3 py-2">Site</th>
+                        <th class="px-3 py-2">Metric</th>
+                        <th class="px-3 py-2">Target</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($sla as $requirement)
                         <tr class="table-row-hover">
-                            <td class="px-4 py-3 text-slate-900">{{ $requirement->site?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $requirement->metric }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $requirement->target_value }}</td>
+                            <td class="px-3 py-2 text-zinc-900">{{ $requirement->site?->name ?? '—' }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $requirement->metric }}</td>
+                            <td class="px-3 py-2 text-zinc-600">{{ $requirement->target_value }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-4 py-10"><x-empty-state title="No SLAs" description="Configure SLAs in Compliance Policies." /></td></tr>
+                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No SLAs" description="Configure SLAs in Compliance Policies." /></td></tr>
                     @endforelse
                 </tbody>
             </x-data-table>
         </div>
-    </div>
+    </x-page-shell>
 </div>

@@ -23,4 +23,14 @@ class Tenant extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function guards()
+    {
+        return $this->hasMany(Guard::class);
+    }
+
+    public function subscription()
+    {
+        return $this->hasOne(TenantSubscription::class);
+    }
 }

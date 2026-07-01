@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use App\Services\TenantDomainResolver;
+use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,12 +29,38 @@ class ResolveTenant
         }
 
         if (! $tenant && $user?->hasRole('super-admin') && $request->header('X-Tenant')) {
-            $tenant = Tenant::where('slug', $request->header('X-Tenant'))->first();
+            $tenant = Tenant::query()
+                ->where('slug', $request->header('X-Tenant'))
+                ->where('status', 'active')
+                ->first();
         }
 
-        if (! $tenant && $request->routeIs('saas.*') && $user?->hasRole('super-admin')) {
-            app()->instance('currentTenant', null);
+        if (! $tenant && $user?->hasRole('super-admin') && $user->tenant_id === null) {
+            $switchedSlug = session('platform_tenant_slug');
+            if ($switchedSlug && ! TenantContext::isSaasRequest($request)) {
+                $tenant = Tenant::query()
+                    ->where('slug', $switchedSlug)
+                    ->where('status', 'active')
+                    ->first();
+                if ($tenant) {
+                    app()->instance('currentTenant', $tenant);
 
+                    return $next($request);
+                }
+
+                session()->forget('platform_tenant_slug');
+            }
+
+            if ($request->routeIs('dashboard')) {
+                return redirect()->route('saas.tenants');
+            }
+
+            if (TenantContext::isSaasRequest($request)) {
+                return $next($request);
+            }
+        }
+
+        if (! $tenant && TenantContext::isSaasRequest($request) && $user?->hasRole('super-admin')) {
             return $next($request);
         }
 

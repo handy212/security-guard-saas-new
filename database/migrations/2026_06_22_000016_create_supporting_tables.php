@@ -34,11 +34,11 @@ return new class extends Migration
         });
         Schema::create('invoices', function (Blueprint $table) {
             $table->id(); $table->foreignId('tenant_id')->constrained()->cascadeOnDelete(); $table->foreignId('client_account_id')->constrained()->cascadeOnDelete();
-            $table->string('invoice_no'); $table->string('status')->default('draft'); $table->date('issue_date')->nullable(); $table->date('due_date')->nullable(); $table->decimal('subtotal',12,2)->default(0); $table->decimal('tax',12,2)->default(0); $table->decimal('total',12,2)->default(0); $table->timestamps();
+            $table->string('invoice_number'); $table->string('status')->default('draft'); $table->date('invoice_date')->nullable(); $table->date('due_date')->nullable(); $table->decimal('subtotal',12,2)->default(0); $table->decimal('tax_total',12,2)->default(0); $table->decimal('grand_total',12,2)->default(0); $table->timestamp('sent_at')->nullable(); $table->timestamp('paid_at')->nullable(); $table->timestamps();
         });
         Schema::create('invoice_items', function (Blueprint $table) {
             $table->id(); $table->foreignId('tenant_id')->constrained()->cascadeOnDelete(); $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
-            $table->string('description'); $table->decimal('quantity',10,2)->default(1); $table->decimal('unit_price',12,2)->default(0); $table->decimal('total',12,2)->default(0); $table->timestamps();
+            $table->string('description'); $table->decimal('quantity',10,2)->default(1); $table->decimal('unit_price',12,2)->default(0); $table->decimal('line_total',12,2)->default(0); $table->timestamps();
         });
         Schema::create('timesheets', function (Blueprint $table) {
             $table->id(); $table->foreignId('tenant_id')->constrained()->cascadeOnDelete(); $table->foreignId('guard_id')->constrained()->cascadeOnDelete();

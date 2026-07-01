@@ -33,11 +33,23 @@ class PortalDashboard extends Component
             $patrolQuery->whereHas('route.site', fn ($q) => $q->where('client_account_id', $clientId));
         }
 
+        $shiftCount = Shift::where('tenant_id', $tenantId)
+            ->when($clientId, fn ($q) => $q->where('client_account_id', $clientId))
+            ->count();
+
         return view('livewire.client-portal.portal-dashboard', [
             'shifts' => $shiftQuery->latest()->limit(10)->get(),
             'reports' => $reportQuery->latest()->limit(10)->get(),
             'incidents' => $incidentQuery->latest()->limit(10)->get(),
             'patrols' => $patrolQuery->latest()->limit(10)->get(),
-        ])->layout('layouts.portal');
+            'stats' => [
+                'shifts' => $shiftCount,
+                'reports' => (clone $reportQuery)->count(),
+                'incidents' => (clone $incidentQuery)->count(),
+                'patrols' => (clone $patrolQuery)->where('status', 'completed')->count(),
+            ],
+        ])->layout('layouts.portal', [
+            'portalTenantName' => TenantContext::current()?->name,
+        ]);
     }
 }

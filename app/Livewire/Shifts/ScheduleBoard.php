@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Shifts;
 
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\Guard;
 use App\Models\Shift;
@@ -13,6 +14,8 @@ use Livewire\Component;
 
 class ScheduleBoard extends Component
 {
+    use HasFormDrawer;
+
     public string $date;
 
     public array $form = [
@@ -44,6 +47,7 @@ class ScheduleBoard extends Component
             'form.billing_rate' => 'numeric',
         ])['form'];
         $service->createShift($data + ['tenant_id' => TenantContext::id()]);
+        $this->closeDrawer();
     }
 
     public function assign(ScheduleService $service): void
@@ -56,8 +60,21 @@ class ScheduleBoard extends Component
 
     public function render()
     {
+        $shifts = Shift::with(['site', 'sitePost', 'assignments.assignedGuard'])
+            ->whereDate('starts_at', $this->date)
+            ->orderBy('starts_at')
+            ->get();
+
+        $needsGuards = $shifts->filter(fn (Shift $shift) => $shift->assignments->count() < $shift->required_guards)->count();
+
         return view('livewire.shifts.schedule-board', [
-            'shifts' => Shift::with(['site', 'sitePost', 'assignments.assignedGuard'])->whereDate('starts_at', $this->date)->orderBy('starts_at')->get(),
+            'shifts' => $shifts,
+            'scheduleStats' => [
+                'total' => $shifts->count(),
+                'open' => $shifts->where('status', 'open')->count(),
+                'staffed' => $shifts->filter(fn (Shift $shift) => $shift->assignments->count() >= $shift->required_guards)->count(),
+                'needs_guards' => $needsGuards,
+            ],
             'clients' => ClientAccount::orderBy('name')->get(),
             'sites' => Site::orderBy('name')->get(),
             'posts' => SitePost::orderBy('name')->get(),

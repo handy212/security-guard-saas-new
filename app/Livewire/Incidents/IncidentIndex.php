@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Incidents;
 
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Enums\IncidentSeverity;
 use App\Models\Incident;
 use App\Models\Site;
@@ -18,9 +19,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncidentIndex extends Component
 {
-    use WithFileUploads, WithPagination;
+    use HasFormDrawer, WithFileUploads, WithPagination;
 
     public string $search = '';
+
+    public string $statusFilter = 'all';
+
+    public string $severityFilter = 'all';
+
+    public bool $showMediaForm = false;
 
     public array $form = [
         'site_id' => '', 'title' => '', 'type' => '', 'severity' => 'medium', 'description' => '', 'status' => 'submitted',
@@ -29,6 +36,33 @@ class IncidentIndex extends Component
     public $mediaFile;
 
     public ?int $uploadIncidentId = null;
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'statusFilter' => ['except' => 'all', 'as' => 'status'],
+        'severityFilter' => ['except' => 'all', 'as' => 'severity'],
+    ];
+
+    public function applyStatFilter(string $filter): void
+    {
+        match ($filter) {
+            'total' => [$this->statusFilter, $this->severityFilter] = ['all', 'all'],
+            'open' => [$this->statusFilter, $this->severityFilter] = ['open', 'all'],
+            'critical' => [$this->statusFilter, $this->severityFilter] = ['all', 'critical'],
+            'closed' => [$this->statusFilter, $this->severityFilter] = ['closed', 'all'],
+            default => null,
+        };
+
+        $this->resetPage();
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->statusFilter = 'all';
+        $this->severityFilter = 'all';
+        $this->resetPage();
+    }
 
     public function save(IncidentService $service): void
     {
@@ -45,6 +79,12 @@ class IncidentIndex extends Component
             'reported_by_user_id' => TenantContext::userId(),
         ]);
         $this->form = ['site_id' => '', 'title' => '', 'type' => '', 'severity' => 'medium', 'description' => '', 'status' => 'submitted'];
+        $this->closeDrawer();
+    }
+
+    public function closeMediaDrawer(): void
+    {
+        $this->showMediaForm = false;
     }
 
     public function uploadMedia(FileUploadService $uploads): void
@@ -62,6 +102,7 @@ class IncidentIndex extends Component
         );
 
         $this->reset('mediaFile');
+        $this->showMediaForm = false;
     }
 
     public function exportPdf(Incident $incident, PdfExportService $pdf): StreamedResponse
@@ -84,11 +125,38 @@ class IncidentIndex extends Component
         $service->close($incident, 'Closed from operations dashboard');
     }
 
+    public function updated($property): void
+    {
+        if (in_array($property, ['search', 'statusFilter', 'severityFilter'], true)) {
+            $this->resetPage();
+        }
+    }
+
     public function render()
     {
+        $tenantId = TenantContext::id();
+
         return view('livewire.incidents.incident-index', [
-            'incidents' => Incident::with('site')->where('title', 'like', '%'.$this->search.'%')->latest()->paginate(10),
+            'incidents' => $this->incidentsQuery()->paginate(10),
             'sites' => Site::orderBy('name')->get(),
+            'incidentStats' => [
+                'total' => Incident::where('tenant_id', $tenantId)->count(),
+                'open' => Incident::where('tenant_id', $tenantId)->whereNotIn('status', ['closed', 'rejected'])->count(),
+                'critical' => Incident::where('tenant_id', $tenantId)->whereIn('severity', ['critical', 'high'])->whereNotIn('status', ['closed', 'rejected'])->count(),
+                'closed' => Incident::where('tenant_id', $tenantId)->where('status', 'closed')->count(),
+            ],
+            'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->severityFilter !== 'all',
         ])->layout('layouts.app');
+    }
+
+    private function incidentsQuery()
+    {
+        return Incident::query()
+            ->with('site')
+            ->when($this->search !== '', fn ($query) => $query->where('title', 'like', '%'.$this->search.'%'))
+            ->when($this->statusFilter === 'open', fn ($query) => $query->whereNotIn('status', ['closed', 'rejected']))
+            ->when($this->statusFilter === 'closed', fn ($query) => $query->where('status', 'closed'))
+            ->when($this->severityFilter !== 'all', fn ($query) => $query->where('severity', $this->severityFilter))
+            ->latest();
     }
 }

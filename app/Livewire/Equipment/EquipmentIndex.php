@@ -2,19 +2,34 @@
 
 namespace App\Livewire\Equipment;
 
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\EquipmentAsset;
 use App\Support\TenantContext;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class EquipmentIndex extends Component
 {
+    use HasFormDrawer, WithPagination;
+
     public string $search = '';
+
+    public string $statusFilter = 'all';
 
     public array $form = [
         'name' => '', 'asset_tag' => '', 'category' => '', 'serial_number' => '', 'condition' => 'good', 'status' => 'available',
     ];
 
     public ?int $editingId = null;
+
+    protected $queryString = ['search' => ['except' => ''], 'statusFilter' => ['except' => 'all', 'as' => 'status']];
+
+    public function updated($property): void
+    {
+        if (in_array($property, ['search', 'statusFilter'], true)) {
+            $this->resetPage();
+        }
+    }
 
     public function save(): void
     {
@@ -34,18 +49,27 @@ class EquipmentIndex extends Component
         );
 
         $this->resetForm();
+        $this->closeDrawer();
     }
 
-    public function edit(EquipmentAsset $asset): void
+    public function openCreate(): void
     {
+        $this->resetForm();
+        $this->openForm();
+    }
+
+    public function edit(int $id): void
+    {
+        $asset = EquipmentAsset::findOrFail($id);
         $this->editingId = $asset->id;
         $this->form = $asset->only(array_keys($this->form));
+        $this->openForm();
     }
 
-    public function delete(EquipmentAsset $asset): void
+    public function delete(int $id): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        $asset->delete();
+        EquipmentAsset::findOrFail($id)->delete();
     }
 
     public function resetForm(): void
@@ -58,8 +82,20 @@ class EquipmentIndex extends Component
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
 
+        $tenantId = TenantContext::id();
+        $base = EquipmentAsset::where('tenant_id', $tenantId);
+
         return view('livewire.equipment.equipment-index', [
-            'items' => EquipmentAsset::query()->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))->latest()->limit(50)->get(),
+            'items' => (clone $base)->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
+                ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
+                ->latest()
+                ->paginate(25),
+            'stats' => [
+                'total' => (clone $base)->count(),
+                'available' => (clone $base)->where('status', 'available')->count(),
+                'issued' => (clone $base)->where('status', 'issued')->count(),
+                'retired' => (clone $base)->where('status', 'retired')->count(),
+            ],
         ])->layout('layouts.app');
     }
 }

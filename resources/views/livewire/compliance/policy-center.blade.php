@@ -1,7 +1,5 @@
 <div>
-    <x-page-header title="Compliance Policies" description="Escalation rules, data retention, and site SLA requirements." />
-
-    <div class="space-y-6 p-6">
+    <x-page-shell title="Compliance Policies" description="Escalation rules, data retention, and site SLA requirements." >
         <div class="grid gap-4 lg:grid-cols-3">
             <x-form-card title="Escalation rule" description="Auto-notify supervisors after a delay.">
                 <form wire:submit="saveEscalation" class="space-y-3">
@@ -43,10 +41,10 @@
         <div class="grid gap-4 lg:grid-cols-3">
             <x-section-card title="Escalation rules">
                 @forelse($escalations as $row)
-                    <div class="flex items-center justify-between border-t border-slate-100 py-3 first:border-0 first:pt-0">
+                    <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-0 first:pt-0">
                         <div>
-                            <div class="text-sm font-medium text-slate-900">{{ $row->incident_type ?: 'Any type' }}</div>
-                            <div class="text-xs text-slate-500">Notify after {{ $row->notify_after_minutes }}m</div>
+                            <div class="text-sm font-medium text-zinc-900">{{ $row->incident_type ?: 'Any type' }}</div>
+                            <div class="text-xs text-zinc-500">Notify after {{ $row->notify_after_minutes }}m</div>
                         </div>
                         <x-badge :status="$row->severity" />
                     </div>
@@ -57,9 +55,9 @@
 
             <x-section-card title="Retention policies">
                 @forelse($retention as $row)
-                    <div class="border-t border-slate-100 py-3 first:border-0 first:pt-0">
-                        <div class="text-sm font-medium text-slate-900">{{ $row->record_type }}</div>
-                        <div class="text-xs text-slate-500">{{ $row->retention_days }} days</div>
+                    <div class="border-t border-zinc-100 py-3 first:border-0 first:pt-0">
+                        <div class="text-sm font-medium text-zinc-900">{{ $row->record_type }}</div>
+                        <div class="text-xs text-zinc-500">{{ $row->retention_days }} days</div>
                     </div>
                 @empty
                     <x-empty-state title="No policies" description="Add a retention policy above." />
@@ -68,14 +66,14 @@
 
             <x-section-card title="SLA requirements">
                 @forelse($sla as $row)
-                    <div class="border-t border-slate-100 py-3 first:border-0 first:pt-0">
-                        <div class="text-sm font-medium text-slate-900">{{ $row->site?->name ?? 'Site' }}</div>
-                        <div class="text-xs text-slate-500">{{ $row->metric }} = {{ $row->target_value }}</div>
+                    <div class="border-t border-zinc-100 py-3 first:border-0 first:pt-0">
+                        <div class="text-sm font-medium text-zinc-900">{{ $row->site?->name ?? 'Site' }}</div>
+                        <div class="text-xs text-zinc-500">{{ $row->metric }} = {{ $row->target_value }}</div>
                     </div>
                 @empty
                     <x-empty-state title="No SLAs" description="Add an SLA requirement above." />
                 @endforelse
             </x-section-card>
         </div>
-    </div>
+    </x-page-shell>
 </div>

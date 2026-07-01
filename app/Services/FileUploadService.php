@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Guard;
 use App\Models\GuardDocument;
 use App\Models\IncidentMedia;
 use Illuminate\Http\UploadedFile;
@@ -34,5 +35,24 @@ class FileUploadService
             'expires_at' => $expiresAt,
             'status' => 'valid',
         ]);
+    }
+
+    public function storeGuardPhoto(int $tenantId, int $guardId, UploadedFile $file): string
+    {
+        return $file->store("tenants/{$tenantId}/guards/{$guardId}/photos", 'public');
+    }
+
+    public function guardPhotoUrl(Guard $guard): ?string
+    {
+        if (! $guard->photo_path) {
+            return null;
+        }
+
+        return route('files.guard-photo', $guard);
+    }
+
+    public function guardDocumentUrl(GuardDocument $document): string
+    {
+        return route('files.guard-document', $document);
     }
 }

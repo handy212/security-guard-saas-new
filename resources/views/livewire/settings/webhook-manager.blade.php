@@ -1,7 +1,7 @@
 <div>
-    <x-page-header title="Webhook Subscriptions" description="Deliver GuardOps events to external systems." />
+    <x-page-shell title="Webhook Subscriptions" description="Deliver GuardOps events to external systems.">
+        <x-settings-nav />
 
-    <div class="space-y-5 p-6">
         <x-form-card title="Add webhook" description="Subscribe to an event and receive POST payloads at your URL.">
             <form wire:submit="create" class="grid gap-4 md:grid-cols-3">
                 <x-input wire:model="event" label="Event code" placeholder="incident.created" />
@@ -13,34 +13,34 @@
         </x-form-card>
 
         <x-data-table title="Active subscriptions">
-            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <tr>
-                    <th class="px-4 py-3">Event</th>
-                    <th class="px-4 py-3">URL</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Last delivered</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
+                    <th class="px-3 py-2">Event</th>
+                    <th class="px-3 py-2">URL</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2">Last delivered</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($subscriptions as $subscription)
                     <tr class="table-row-hover">
-                        <td class="px-4 py-3 font-medium text-slate-900">{{ $subscription->event }}</td>
-                        <td class="px-4 py-3 max-w-xs truncate text-slate-600">{{ $subscription->target_url }}</td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 py-2 font-medium text-zinc-900">{{ $subscription->event }}</td>
+                        <td class="px-3 py-2 max-w-xs truncate text-zinc-600">{{ $subscription->target_url }}</td>
+                        <td class="px-3 py-2">
                             <x-badge :status="$subscription->is_active ? 'active' : 'inactive'" />
                         </td>
-                        <td class="px-4 py-3 text-slate-600">{{ $subscription->last_delivered_at?->format('M j, H:i') ?? '—' }}</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="px-3 py-2 text-zinc-600">{{ $subscription->last_delivered_at?->format('M j, H:i') ?? '—' }}</td>
+                        <td class="px-3 py-2 text-right">
                             <button wire:click="toggle({{ $subscription->id }})" class="btn-link">
                                 {{ $subscription->is_active ? 'Pause' : 'Activate' }}
                             </button>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-10"><x-empty-state title="No webhooks" description="Add a webhook subscription above." /></td></tr>
+                    <tr><td colspan="5" class="px-3 py-8"><x-empty-state title="No webhooks" description="Add a webhook subscription above." /></td></tr>
                 @endforelse
             </tbody>
         </x-data-table>
-    </div>
+    </x-page-shell>
 </div>

@@ -18,7 +18,17 @@ class GenericGuardOpsNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'title' => $this->subject,
+            'body' => $this->body,
+            'action_url' => '/dashboard',
+            'type' => 'system',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -274,6 +274,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
             'DeepCopy\\' => 9,
             'Database\\Seeders\\' => 17,
             'Database\\Factories\\' => 19,
+            'DASPRiD\\Enum\\' => 13,
         ),
         'C' =>
         array (
@@ -290,6 +291,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         array (
             'Brick\\Math\\' => 11,
             'Barryvdh\\DomPDF\\' => 16,
+            'BaconQrCode\\' => 12,
         ),
         'A' =>
         array (
@@ -710,6 +712,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
             0 => __DIR__ . '/../..' . '/database/factories',
             1 => __DIR__ . '/..' . '/laravel/pint/database/factories',
         ),
+        'DASPRiD\\Enum\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/dasprid/enum/src',
+        ),
         'Cron\\' =>
         array (
             0 => __DIR__ . '/..' . '/dragonmantank/cron-expression/src/Cron',
@@ -749,6 +755,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         'Barryvdh\\DomPDF\\' =>
         array (
             0 => __DIR__ . '/..' . '/barryvdh/laravel-dompdf/src',
+        ),
+        'BaconQrCode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/bacon/bacon-qr-code/src',
         ),
         'App\\' =>
         array (

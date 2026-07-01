@@ -33,11 +33,32 @@ class DemoDataSeeder extends Seeder
         );
         $plan = SubscriptionPlan::firstOrCreate(
             ['slug' => 'enterprise'],
-            ['name' => 'Enterprise', 'monthly_price' => 499, 'annual_price' => 4990, 'max_guards' => 1000, 'max_sites' => 500, 'features' => ['gps', 'qr', 'client_portal', 'billing', 'dispatch'], 'status' => 'active']
+            [
+                'name' => 'Enterprise',
+                'monthly_price' => 499,
+                'annual_price' => 4990,
+                'max_guards' => 1000,
+                'max_sites' => 500,
+                'features' => [
+                    'guards', 'schedules', 'attendance', 'incidents', 'reports',
+                    'patrols', 'gps', 'dispatch', 'equipment', 'visitors',
+                    'clients', 'client_portal', 'billing', 'payroll',
+                    'compliance', 'analytics', 'marketplace',
+                ],
+                'status' => 'active',
+            ]
         );
         SubscriptionPlan::firstOrCreate(
             ['slug' => 'starter'],
-            ['name' => 'Starter', 'monthly_price' => 99, 'annual_price' => 990, 'max_guards' => 25, 'max_sites' => 10, 'features' => ['gps', 'patrols'], 'status' => 'active']
+            [
+                'name' => 'Starter',
+                'monthly_price' => 99,
+                'annual_price' => 990,
+                'max_guards' => 25,
+                'max_sites' => 10,
+                'features' => ['guards', 'schedules', 'patrols', 'gps', 'incidents', 'clients'],
+                'status' => 'active',
+            ]
         );
         TenantSubscription::firstOrCreate(
             ['tenant_id' => $tenant->id],
@@ -49,6 +70,12 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'name' => 'Demo Admin', 'password' => Hash::make('password'), 'status' => 'active']
         );
         $admin->assignRole('company-admin');
+
+        $platformAdmin = User::firstOrCreate(
+            ['email' => 'platform@guardops.test'],
+            ['tenant_id' => null, 'name' => 'Platform Admin', 'password' => Hash::make('password'), 'status' => 'active']
+        );
+        $platformAdmin->assignRole('super-admin');
 
         $guardUser = User::firstOrCreate(
             ['email' => 'john.guard@test'],
@@ -68,7 +95,7 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'site_id' => $site->id, 'name' => 'Gatehouse A'],
             ['status' => 'active']
         );
-        $guard = Guard::firstOrCreate(
+        $guard = Guard::updateOrCreate(
             ['tenant_id' => $tenant->id, 'employee_number' => 'G-001'],
             [
                 'user_id' => $guardUser->id,
@@ -79,8 +106,32 @@ class DemoDataSeeder extends Seeder
                 'status' => 'active',
                 'hourly_rate' => 10,
                 'license_number' => 'SEC-001',
+                'rank' => 'Senior Officer',
+                'verification_status' => 'verified',
+                'verified_at' => now(),
+                'verified_by_user_id' => $admin->id,
+                'show_current_assignment' => true,
             ]
         );
+
+        \App\Models\GuardVerificationToken::updateOrCreate(
+            ['guard_id' => $guard->id, 'token' => 'DEMOVERIFY01'],
+            ['tenant_id' => $tenant->id, 'revoked_at' => null, 'expires_at' => now()->addYear()]
+        );
+
+        \App\Models\TenantSetting::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'key' => 'id_card'],
+            ['value' => [
+                'tagline' => 'Stay connected. Stay protected.',
+                'brand_color' => '#8C1D2F',
+                'phone' => '+233 302 770 0205',
+                'phone_secondary' => '0205 965 133',
+                'email' => 'info@demosecurity.test',
+                'website' => 'www.demosecurity.test',
+                'address' => 'Ringway Estates, Accra, Ghana',
+            ]]
+        );
+
         $route = PatrolRoute::firstOrCreate(
             ['tenant_id' => $tenant->id, 'site_id' => $site->id, 'name' => 'Night Round'],
             ['expected_duration_minutes' => 45, 'status' => 'active']

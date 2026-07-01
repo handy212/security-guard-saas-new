@@ -5,6 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\SubscriptionPlan;
 use App\Models\TenantSubscription;
 use App\Services\PaystackBillingService;
+use App\Services\PlanEntitlementService;
 use App\Services\PlanLimitService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -41,6 +42,7 @@ class SubscriptionManager extends Component
             'paystackConfigured' => app(PaystackBillingService::class)->isConfigured(),
             'currency' => config('paystack.currency', 'NGN'),
             'activeSubscription' => TenantSubscription::with('plan')->where('tenant_id', $tenantId)->first(),
+            'entitlements' => app(PlanEntitlementService::class),
         ])->layout('layouts.app');
     }
 }

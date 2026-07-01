@@ -16,14 +16,24 @@ class IncidentSubmittedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'title' => 'New incident: '.$this->incident->title,
+            'body' => $this->incident->description,
+            'action_url' => '/incidents',
+            'type' => 'incident',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('New incident: '.$this->incident->title)
-            ->line('Severity: '.$this->incident->severity?->value ?? $this->incident->severity)
+            ->line('Severity: '.(string) ($this->incident->severity?->value ?? $this->incident->severity))
             ->line($this->incident->description)
             ->action('Review incident', url('/incidents'));
     }

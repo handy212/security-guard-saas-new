@@ -14,7 +14,9 @@ return new class extends Migration
             $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
             $table->foreignId('guard_id')->constrained()->cascadeOnDelete();
             $table->string('status')->default('assigned');
+            $table->timestamp('assigned_at')->nullable();
             $table->timestamp('confirmed_at')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->index('tenant_id');
         });

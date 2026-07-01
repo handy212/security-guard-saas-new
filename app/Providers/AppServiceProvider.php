@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\EnsurePlanFeature;
+use App\Http\Middleware\ResolveTenant;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        Livewire::addPersistentMiddleware([
+            ResolveTenant::class,
+            EnsurePlanFeature::class,
+        ]);
     }
 }

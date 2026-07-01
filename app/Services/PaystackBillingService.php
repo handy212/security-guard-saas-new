@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\BillingLimit;
+use App\Services\PlanEntitlementService;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
@@ -86,15 +86,7 @@ class PaystackBillingService
             'paystack_customer_code' => $paymentData['customer']['customer_code'] ?? $tenant->paystack_customer_code,
         ]);
 
-        BillingLimit::updateOrCreate(
-            ['tenant_id' => $tenant->id],
-            [
-                'max_guards' => $plan->max_guards,
-                'max_sites' => $plan->max_sites,
-                'max_clients' => 50,
-                'storage_mb' => 1024,
-            ]
-        );
+        app(PlanEntitlementService::class)->syncBillingLimits($tenant, $plan);
 
         return TenantSubscription::updateOrCreate(
             ['tenant_id' => $tenant->id],

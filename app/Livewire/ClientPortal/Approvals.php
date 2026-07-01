@@ -43,6 +43,8 @@ class Approvals extends Component
             ->limit(50)
             ->get();
 
-        return view('livewire.clientportal.approvals', compact('items'))->layout('layouts.portal');
+        return view('livewire.clientportal.approvals', compact('items'))->layout('layouts.portal', [
+            'portalTenantName' => TenantContext::current()?->name,
+        ]);
     }
 }

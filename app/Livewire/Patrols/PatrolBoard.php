@@ -42,10 +42,19 @@ class PatrolBoard extends Component
 
     public function render()
     {
+        $routes = PatrolRoute::with(['site', 'checkpoints'])->latest()->get();
+        $sessions = PatrolSession::with(['route', 'assignedGuard', 'scans'])->latest()->limit(20)->get();
+
         return view('livewire.patrols.patrol-board', [
-            'routes' => PatrolRoute::with(['site', 'checkpoints'])->latest()->get(),
-            'sessions' => PatrolSession::with(['route', 'assignedGuard', 'scans'])->latest()->limit(20)->get(),
+            'routes' => $routes,
+            'sessions' => $sessions,
             'sites' => Site::orderBy('name')->get(),
+            'stats' => [
+                'routes' => $routes->count(),
+                'checkpoints' => $routes->sum(fn ($r) => $r->checkpoints->count()),
+                'active_sessions' => $sessions->where('status', 'in_progress')->count(),
+                'completed_today' => $sessions->filter(fn ($s) => $s->completed_at?->isToday())->count(),
+            ],
         ])->layout('layouts.app');
     }
 }

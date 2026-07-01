@@ -2,50 +2,64 @@
 
 return [
     'navigation' => [
-        'Overview' => [
+        'primary' => [
             ['href' => '/dashboard', 'label' => 'Dashboard', 'permission' => 'dashboard.view'],
-            ['href' => '/analytics', 'label' => 'Analytics', 'permission' => 'analytics.view'],
-            ['href' => '/dispatch', 'label' => 'Dispatch', 'permission' => 'dispatch.manage'],
+            ['href' => '/settings', 'label' => 'Settings', 'permission' => 'settings.manage'],
         ],
-        'Operations' => [
-            ['href' => '/schedules', 'label' => 'Schedules', 'permission' => 'schedules.manage'],
-            ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage'],
-            ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage'],
-            ['href' => '/attendance/timekeeping', 'label' => 'Attendance', 'permission' => 'attendance.manage'],
-            ['href' => '/patrols', 'label' => 'Patrols', 'permission' => 'patrols.manage'],
-            ['href' => '/patrols/playback', 'label' => 'Playback', 'permission' => 'patrols.manage'],
-            ['href' => '/incidents', 'label' => 'Incidents', 'permission' => 'incidents.manage'],
-            ['href' => '/reports/daily', 'label' => 'Daily Reports', 'permission' => 'reports.approve'],
+        'groups' => [
+            'Operations' => [
+                ['href' => '/dispatch', 'label' => 'Dispatch', 'permission' => 'dispatch.manage', 'feature' => 'dispatch'],
+                ['href' => '/schedules', 'label' => 'Schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+                ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+                ['href' => '/attendance/timekeeping', 'label' => 'Attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
+                ['href' => '/patrols', 'label' => 'Patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+                ['href' => '/incidents', 'label' => 'Incidents', 'permission' => 'incidents.manage', 'feature' => 'incidents'],
+                ['href' => '/reports/daily', 'label' => 'Daily Reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
+            ],
+            'People' => [
+                ['href' => '/guards', 'label' => 'Guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
+                ['href' => '/guards/know-your-guard', 'label' => 'Know Your Guard', 'permission' => 'guards.manage', 'feature' => 'guards'],
+                ['href' => '/guard', 'label' => 'Field app', 'permission' => 'mobile.use', 'feature' => 'guards'],
+                ['href' => '/equipment', 'label' => 'Equipment', 'permission' => 'equipment.manage', 'feature' => 'equipment'],
+                ['href' => '/visitors', 'label' => 'Visitors', 'permission' => 'visitors.manage', 'feature' => 'visitors'],
+            ],
+            'Clients' => [
+                ['href' => '/clients', 'label' => 'Clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
+                ['href' => '/sites', 'label' => 'Sites', 'permission' => 'sites.manage', 'feature' => 'clients'],
+                ['href' => '/clients/complaints', 'label' => 'Complaints', 'permission' => 'clients.manage', 'feature' => 'clients'],
+            ],
+            'Finance' => [
+                ['href' => '/billing/invoices', 'label' => 'Invoices', 'permission' => 'billing.manage', 'feature' => 'billing'],
+                ['href' => '/billing/payroll', 'label' => 'Payroll', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
+                ['href' => '/billing/subscription', 'label' => 'Subscription', 'permission' => 'billing.manage'],
+            ],
+            'Compliance' => [
+                ['href' => '/compliance', 'label' => 'Overview', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+                ['href' => '/compliance/policies', 'label' => 'Policies', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+                ['href' => '/sites/compliance', 'label' => 'Site SLA', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+            ],
+            'Insights' => [
+                ['href' => '/analytics', 'label' => 'Analytics', 'permission' => 'analytics.view', 'feature' => 'analytics'],
+                ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment Sheet', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+                ['href' => '/schedules/marketplace', 'label' => 'Shift Marketplace', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
+                ['href' => '/patrols/playback', 'label' => 'Patrol Playback', 'permission' => 'patrols.manage', 'feature' => 'gps'],
+                ['href' => '/patrols/vehicles', 'label' => 'Vehicle Patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+            ],
         ],
-        'People & Assets' => [
-            ['href' => '/guards', 'label' => 'Guards', 'permission' => 'guards.manage'],
-            ['href' => '/guards/hr-records', 'label' => 'Guard HR', 'permission' => 'guards.manage'],
-            ['href' => '/equipment', 'label' => 'Equipment', 'permission' => 'equipment.manage'],
-            ['href' => '/visitors', 'label' => 'Visitors', 'permission' => 'visitors.manage'],
-        ],
-        'Clients' => [
-            ['href' => '/clients', 'label' => 'Clients', 'permission' => 'clients.manage'],
-            ['href' => '/sites', 'label' => 'Sites', 'permission' => 'sites.manage'],
-            ['href' => '/clients/complaints', 'label' => 'Complaints', 'permission' => 'clients.manage'],
-            ['href' => '/client-portal', 'label' => 'Client Portal', 'permission' => 'client_portal.view'],
-        ],
-        'Finance' => [
-            ['href' => '/billing/invoices', 'label' => 'Invoices', 'permission' => 'billing.manage'],
-            ['href' => '/billing/payroll', 'label' => 'Payroll', 'permission' => 'payroll.manage'],
-            ['href' => '/billing/subscription', 'label' => 'Subscription', 'permission' => 'billing.manage'],
-        ],
-        'Compliance' => [
-            ['href' => '/compliance', 'label' => 'Compliance', 'permission' => 'compliance.manage'],
-            ['href' => '/compliance/policies', 'label' => 'Policies', 'permission' => 'compliance.manage'],
-            ['href' => '/sites/compliance', 'label' => 'Site SLA', 'permission' => 'compliance.manage'],
-        ],
-        'Platform' => [
-            ['href' => '/saas/tenants', 'label' => 'SaaS Tenants', 'permission' => 'tenants.manage'],
-            ['href' => '/settings/roles', 'label' => 'Roles', 'permission' => 'settings.manage'],
-            ['href' => '/settings/two-factor', 'label' => 'Two-Factor Auth', 'permission' => null],
-            ['href' => '/settings/webhooks', 'label' => 'Webhooks', 'permission' => 'settings.manage'],
-            ['href' => '/mobile/offline-sync', 'label' => 'Offline Sync', 'permission' => 'mobile.use'],
-            ['href' => '/guard', 'label' => 'Guard App', 'permission' => 'mobile.use'],
-        ],
+    ],
+
+    'settings' => [
+        ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],
+        ['href' => '/settings/audit-log', 'label' => 'Audit trail', 'permission' => 'view audit trail'],
+        ['href' => '/settings/team', 'label' => 'Team passwords', 'permission' => 'settings.manage'],
+        ['href' => '/settings/two-factor', 'label' => 'Two-Factor Auth', 'permission' => null],
+        ['href' => '/settings/webhooks', 'label' => 'Webhooks', 'permission' => 'settings.manage'],
+        ['href' => '/mobile/offline-sync', 'label' => 'Offline Sync', 'permission' => 'mobile.use'],
+    ],
+
+    'platform' => [
+        ['href' => '/saas/tenants', 'label' => 'Tenants', 'permission' => 'tenants.manage'],
+        ['href' => '/saas/plans', 'label' => 'Plans', 'permission' => 'tenants.manage'],
+        ['href' => '/saas/subscriptions', 'label' => 'Subscriptions', 'permission' => 'tenants.manage'],
     ],
 ];

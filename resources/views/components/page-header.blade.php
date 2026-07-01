@@ -1,13 +1,14 @@
-@props(['title', 'description' => null, 'actions' => null])
+@props(['title', 'description' => null])
 
-<div {{ $attributes->merge(['class' => 'flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between']) }}>
-    <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $title }}</h1>
-        @if ($description)
-            <p class="mt-1 text-sm text-slate-500">{{ $description }}</p>
-        @endif
-    </div>
-    @if ($actions)
-        <div class="flex flex-wrap gap-2">{{ $actions }}</div>
+@push('page-header')
+    <h1 class="truncate text-base font-semibold text-zinc-900 sm:text-lg">{{ $title }}</h1>
+    @if ($description)
+        <p class="hidden truncate text-sm text-zinc-500 sm:block">{{ $description }}</p>
     @endif
-</div>
+@endpush
+
+@if (isset($actions))
+    @push('page-actions')
+        {{ $actions }}
+    @endpush
+@endif

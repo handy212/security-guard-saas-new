@@ -1,8 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\GuardIdCardController;
+use App\Http\Controllers\GuardVerificationController;
+use App\Http\Controllers\GuardVerificationPhotoController;
 use App\Http\Controllers\PaystackCallbackController;
 use App\Http\Controllers\PaystackWebhookController;
+use App\Http\Controllers\TenantFileController;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Analytics\AnalyticsDashboard;
 use App\Livewire\Attendance\TimekeepingBoard;
@@ -20,6 +24,8 @@ use App\Livewire\Dispatch\ControlRoom;
 use App\Livewire\Equipment\EquipmentIndex;
 use App\Livewire\Guards\GuardHrRecords;
 use App\Livewire\Guards\GuardIndex;
+use App\Livewire\Guards\GuardProfile;
+use App\Livewire\Guards\KnowYourGuardQueue;
 use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Mobile\OfflineSyncMonitor;
@@ -30,16 +36,30 @@ use App\Livewire\Reports\DailyReportIndex;
 use App\Livewire\Schedules\CalendarView;
 use App\Livewire\Schedules\DeploymentSheet;
 use App\Livewire\Schedules\ShiftMarketplace;
+use App\Livewire\Settings\SettingsHub;
+use App\Livewire\Settings\AuditLogIndex;
 use App\Livewire\Settings\RolePermissionManager;
 use App\Livewire\Settings\TwoFactorSetup;
+use App\Livewire\Settings\TeamPasswordReset;
 use App\Livewire\Settings\WebhookManager;
 use App\Livewire\Shifts\ScheduleBoard;
 use App\Livewire\Sites\SiteCompliance;
 use App\Livewire\Sites\SiteIndex;
+use App\Livewire\Tenants\PlatformPlanManagement;
+use App\Livewire\Tenants\PlatformSubscriptionManagement;
 use App\Livewire\Tenants\TenantManagement;
+use App\Http\Controllers\PlatformTenantContextController;
 use App\Livewire\Visitors\VisitorLogIndex;
 
 Route::post('/paystack/webhook', PaystackWebhookController::class)->name('paystack.webhook');
+
+Route::get('/g/{token}', GuardVerificationController::class)
+    ->middleware('throttle:60,1')
+    ->name('guard.verify');
+
+Route::get('/g/{token}/photo', GuardVerificationPhotoController::class)
+    ->middleware('throttle:120,1')
+    ->name('guard.verify.photo');
 
 Route::redirect('/', '/dashboard');
 
@@ -52,11 +72,16 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'tenant'])->group(function () {
+Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
     Route::get('/dashboard', Overview::class)->name('dashboard');
     Route::get('/clients', ClientIndex::class)->name('clients.index');
     Route::get('/sites', SiteIndex::class)->name('sites.index');
     Route::get('/guards', GuardIndex::class)->name('guards.index');
+    Route::get('/guards/know-your-guard', KnowYourGuardQueue::class)->name('guards.kyg');
+    Route::get('/guards/{guard}', GuardProfile::class)->name('guards.show');
+    Route::get('/guards/{guard}/id-card', GuardIdCardController::class)->name('guards.id-card');
+    Route::get('/files/guards/{guard}/photo', [TenantFileController::class, 'guardPhoto'])->name('files.guard-photo');
+    Route::get('/files/guard-documents/{document}', [TenantFileController::class, 'guardDocument'])->name('files.guard-document');
     Route::get('/schedules', ScheduleBoard::class)->name('schedules.index');
     Route::get('/patrols', PatrolBoard::class)->name('patrols.index');
     Route::get('/incidents', IncidentIndex::class)->name('incidents.index');
@@ -66,16 +91,25 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
     Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
     Route::get('/billing/subscription/callback', PaystackCallbackController::class)->name('billing.paystack.callback');
+    Route::get('/settings', SettingsHub::class)->name('settings.index');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');
     Route::get('/settings/two-factor', TwoFactorSetup::class)->name('settings.two-factor');
     Route::get('/settings/webhooks', WebhookManager::class)->name('settings.webhooks');
+    Route::get('/settings/audit-log', AuditLogIndex::class)->name('settings.audit-log');
+    Route::get('/settings/team', TeamPasswordReset::class)->name('settings.team');
     Route::get('/guard', MobileDashboard::class)->name('guard.mobile');
     Route::get('/visitors', VisitorLogIndex::class)->name('visitors.index');
     Route::get('/equipment', EquipmentIndex::class)->name('equipment.index');
     Route::get('/compliance', ComplianceDashboard::class)->name('compliance.dashboard');
     Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
     Route::get('/mobile/offline-sync', OfflineSyncMonitor::class)->name('mobile.offline-sync');
-    Route::get('/saas/tenants', TenantManagement::class)->name('saas.tenants');
+    Route::middleware('platform')->group(function () {
+        Route::redirect('/saas', '/saas/tenants')->name('saas');
+        Route::get('/saas/tenants', TenantManagement::class)->name('saas.tenants');
+        Route::get('/saas/plans', PlatformPlanManagement::class)->name('saas.plans');
+        Route::get('/saas/subscriptions', PlatformSubscriptionManagement::class)->name('saas.subscriptions');
+        Route::post('/saas/exit-tenant', [PlatformTenantContextController::class, 'exit'])->name('saas.exit-tenant');
+    });
     Route::get('/schedules/marketplace', ShiftMarketplace::class)->name('schedules.marketplace');
     Route::get('/schedules/calendar', CalendarView::class)->name('schedules.calendar');
     Route::get('/schedules/deployment-sheet', DeploymentSheet::class)->name('schedules.deployment-sheet');
@@ -86,6 +120,6 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('/compliance/policies', PolicyCenter::class)->name('compliance.policies');
     Route::get('/billing/payroll', PayrollBoard::class)->name('billing.payroll');
     Route::get('/analytics', AnalyticsDashboard::class)->name('analytics.dashboard');
-    Route::get('/guards/hr-records', GuardHrRecords::class)->name('guards.hr-records');
+    Route::get('/guards/hr-records', fn () => redirect()->route('guards.index'))->name('guards.hr-records');
     Route::get('/sites/compliance', SiteCompliance::class)->name('sites.compliance');
 });

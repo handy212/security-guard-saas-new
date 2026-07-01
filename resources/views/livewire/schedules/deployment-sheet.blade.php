@@ -1,39 +1,38 @@
 <div>
-    <x-page-header title="Deployment Sheet" description="Daily guard deployment roster.">
+    <x-page-shell title="Deployment Sheet" description="Daily guard deployment roster.">
         <x-slot:actions>
-            <input type="date" wire:model.live="date" class="rounded-lg border px-3 py-2 text-sm">
-            <button onclick="window.print()" class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Print</button>
+            <input type="date" wire:model.live="date" class="form-input text-sm">
+            <button type="button" onclick="window.print()" class="btn-secondary text-sm">Print</button>
         </x-slot:actions>
-    </x-page-header>
 
-    <div class="grid gap-4 p-6 md:grid-cols-3">
-        <x-stat-card label="Assignments" :value="$stats['assignments']" />
-        <x-stat-card label="Sites covered" :value="$stats['sites']" tone="info" />
-        <x-stat-card label="Guards deployed" :value="$stats['guards']" tone="success" />
-    </div>
+        <div class="grid grid-cols-4 gap-2">
+            <x-stat-card compact label="Assignments" :value="$stats['assignments']" icon="schedules" />
+            <x-stat-card compact label="Sites covered" :value="$stats['sites']" icon="sites" tone="info" />
+            <x-stat-card compact label="Guards deployed" :value="$stats['guards']" icon="guards" tone="success" />
+            <x-stat-card compact label="Date" :value="\Carbon\Carbon::parse($date)->format('M j')" icon="plan" />
+        </div>
 
-    <div class="px-6 pb-6">
         <x-data-table title="Roster for {{ \Carbon\Carbon::parse($date)->format('M j, Y') }}">
-            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
                 <tr>
-                    <th class="px-4 py-3">Time</th>
-                    <th class="px-4 py-3">Site</th>
-                    <th class="px-4 py-3">Guard</th>
-                    <th class="px-4 py-3">Status</th>
+                    <th class="px-3 py-2">Time</th>
+                    <th class="px-3 py-2">Site</th>
+                    <th class="px-3 py-2">Guard</th>
+                    <th class="px-3 py-2">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody>
                 @forelse($assignments as $assignment)
-                    <tr>
-                        <td class="px-4 py-3">{{ $assignment->shift?->starts_at?->format('H:i') }}–{{ $assignment->shift?->ends_at?->format('H:i') }}</td>
-                        <td class="px-4 py-3">{{ $assignment->shift?->site?->name }}</td>
-                        <td class="px-4 py-3">{{ $assignment->assignedGuard?->full_name ?? 'Unassigned' }}</td>
-                        <td class="px-4 py-3">{{ $assignment->status }}</td>
+                    <tr class="table-row-hover">
+                        <td class="px-3 py-2">{{ $assignment->shift?->starts_at?->format('H:i') }}–{{ $assignment->shift?->ends_at?->format('H:i') }}</td>
+                        <td class="px-3 py-2">{{ $assignment->shift?->site?->name }}</td>
+                        <td class="px-3 py-2">{{ $assignment->assignedGuard?->full_name ?? 'Unassigned' }}</td>
+                        <td class="px-3 py-2"><x-badge :status="$assignment->status" /></td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No deployments for this date.</td></tr>
+                    <tr><td colspan="4" class="px-3 py-8"><x-empty-state title="No deployments for this date" /></td></tr>
                 @endforelse
             </tbody>
         </x-data-table>
-    </div>
+    </x-page-shell>
 </div>

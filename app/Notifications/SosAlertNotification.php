@@ -16,7 +16,17 @@ class SosAlertNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'title' => 'SOS alert — immediate attention',
+            'body' => $this->alert->message ?? 'A guard has raised an SOS alert.',
+            'action_url' => '/dispatch',
+            'type' => 'sos',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

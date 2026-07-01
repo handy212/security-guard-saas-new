@@ -15,4 +15,9 @@ class SubscriptionPlan extends Model
     {
         return ['features' => 'array'];
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(TenantSubscription::class);
+    }
 }

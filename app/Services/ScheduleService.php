@@ -16,6 +16,10 @@ class ScheduleService
 
     public function assignGuard(Shift $shift, Guard $guard): ShiftAssignment
     {
+        if ($guard->verification_status !== 'verified') {
+            throw new RuntimeException('Guard must be verified before assignment. Complete Know Your Guard vetting first.');
+        }
+
         if ($this->hasConflict($guard, $shift->starts_at, $shift->ends_at)) {
             throw new RuntimeException('Guard has another assignment in this time range.');
         }
