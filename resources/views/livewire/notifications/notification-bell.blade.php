@@ -2,6 +2,7 @@
     <button
         type="button"
         @click="open = !open"
+        :aria-expanded="open"
         class="relative rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 shadow-sm transition hover:bg-zinc-50"
         aria-label="Notifications"
     >

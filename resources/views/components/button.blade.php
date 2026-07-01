@@ -1,4 +1,4 @@
-@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button'])
+@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button', 'loadingText' => null])
 
 @php
     $classes = match($variant) {
@@ -9,8 +9,18 @@
         default => 'btn-primary',
     };
     $sizeClass = $size === 'sm' ? 'px-3 py-1.5 text-xs' : '';
+    $loadingLabel = $loadingText ?? ($type === 'submit' ? 'Saving…' : null);
 @endphp
 
-<button type="{{ $type }}" {{ $attributes->merge(['class' => trim($classes.' '.$sizeClass)]) }}>
-    {{ $slot }}
+<button
+    type="{{ $type }}"
+    wire:loading.attr="disabled"
+    {{ $attributes->merge(['class' => trim($classes.' '.$sizeClass)]) }}
+>
+    @if ($loadingLabel)
+        <span wire:loading.remove>{{ $slot }}</span>
+        <span wire:loading>{{ $loadingLabel }}</span>
+    @else
+        {{ $slot }}
+    @endif
 </button>

@@ -5,12 +5,12 @@
     @endphp
 
     <x-page-shell title="Vehicle Patrols" description="Mobile patrols with odometer readings.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$vehiclePatrols->count()" icon="patrols" />
             <x-stat-card compact label="Active" :value="$active" icon="gps" tone="info" />
             <x-stat-card compact label="Completed" :value="$completed" icon="check" tone="success" />
             <x-stat-card compact label="In progress" :value="$active" icon="schedules" :tone="$active ? 'warning' : 'default'" />
-        </div>
+        </x-stat-grid>
 
         <x-form-card title="Start vehicle patrol" description="Log vehicle number, driver, and odometer readings." collapsible open>
             <form wire:submit="save" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

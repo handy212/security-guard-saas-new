@@ -4,12 +4,12 @@
             <x-button wire:click="openCreate">Add client</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$clientStats['total']" icon="users" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $search === ''" />
             <x-stat-card compact label="Active" :value="$clientStats['active']" icon="check" tone="success" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active'" />
             <x-stat-card compact label="With email" :value="$clientStats['with_email']" icon="billing" tone="info" class="text-left" />
             <x-stat-card compact label="Inactive" :value="$clientStats['inactive']" icon="pause" wire:click="applyStatFilter('inactive')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'inactive'" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search clients…">
             <x-slot:tabs>
@@ -71,7 +71,7 @@
                 <x-input wire:model="form.phone" label="Phone" />
                 <x-input wire:model="form.default_hourly_rate" label="Default hourly rate" type="number" step="0.01" />
                 <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">{{ $editingId ? 'Update' : 'Create' }}</x-button>
+                    <x-button type="submit" loading-text="{{ $editingId ? 'Updating…' : 'Creating…' }}">{{ $editingId ? 'Update' : 'Create' }}</x-button>
                     <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
                 </div>
             </form>

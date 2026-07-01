@@ -29,10 +29,10 @@
     $path = $icons[$icon] ?? $icons['users'];
 
     $shellClass = $stacked
-        ? 'flex h-full min-w-0 flex-col items-center justify-center rounded-lg border border-zinc-200 bg-white px-2 py-3 text-center'
+        ? 'flex h-full min-w-0 flex-col items-center justify-center rounded-lg border border-zinc-200 bg-white px-2 py-3 text-center dark:border-zinc-700 dark:bg-zinc-900'
         : ($compact
-            ? 'flex min-w-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5'
-            : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5');
+            ? 'flex min-w-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-900'
+            : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-zinc-900');
 
     if ($active) {
         $shellClass .= ' border-zinc-400 bg-zinc-50 shadow-sm';
@@ -42,15 +42,22 @@
         : ($compact ? 'flex h-6 w-6 shrink-0 items-center justify-center rounded-md' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg');
     $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-3 w-3' : 'h-4 w-4');
     $valueClass = $stacked
-        ? 'truncate text-base font-semibold leading-tight text-zinc-900'
-        : ($compact ? 'truncate text-sm font-semibold leading-none text-zinc-900' : 'truncate text-lg font-semibold leading-tight text-zinc-900');
+        ? 'truncate text-base font-semibold leading-tight text-zinc-900 dark:text-zinc-100'
+        : ($compact ? 'truncate text-sm font-semibold leading-none text-zinc-900 dark:text-zinc-100' : 'truncate text-lg font-semibold leading-tight text-zinc-900 dark:text-zinc-100');
     $labelClass = $stacked
         ? 'mt-0.5 truncate text-[10px] font-medium text-zinc-500'
-        : ($compact ? 'truncate text-[9px] font-medium leading-tight text-zinc-500' : 'truncate text-[11px] font-medium text-zinc-500');
+        : ($compact ? 'truncate text-[10px] font-medium leading-tight text-zinc-500 sm:text-[11px]' : 'truncate text-[11px] font-medium text-zinc-500');
+
+    $isInteractive = $attributes->whereStartsWith('wire:click')->isNotEmpty();
+    if ($isInteractive) {
+        $shellClass .= ' w-full text-left transition hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/20';
+    }
 @endphp
 
 @if ($href)
     <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition hover:border-zinc-300']) }}>
+@elseif ($isInteractive)
+    <button type="button" {{ $attributes->merge(['class' => $shellClass]) }}>
 @else
     <div {{ $attributes->merge(['class' => $shellClass]) }}>
 @endif
@@ -68,6 +75,8 @@
     </div>
 @if ($href)
     </a>
+@elseif ($isInteractive)
+    </button>
 @else
     </div>
 @endif

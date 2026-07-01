@@ -8,12 +8,12 @@
             </select>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Sessions" :value="$sessions->count()" icon="patrols" />
             <x-stat-card compact label="GPS points" :value="$points->count()" icon="gps" tone="info" />
             <x-stat-card compact label="Track" :value="$points->count() > 1 ? $points->count().' pts' : '—'" icon="plan" />
             <x-stat-card compact label="Status" :value="$points->isNotEmpty() ? 'Ready' : 'Empty'" icon="check" :tone="$points->isNotEmpty() ? 'success' : 'default'" />
-        </div>
+        </x-stat-grid>
 
         @if($points->isNotEmpty())
             <x-map id="playback-map" :lat="$points->first()->latitude" :lng="$points->first()->longitude" :markers="$markers" :polyline="$polyline" height="420px" />

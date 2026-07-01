@@ -8,12 +8,12 @@
             @endif
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Guards used" :value="$usage['guards']['used'].' / '.$usage['guards']['max']" icon="guards" :tone="$usage['guards']['used'] >= $usage['guards']['max'] ? 'danger' : 'default'" />
             <x-stat-card compact label="Sites used" :value="$usage['sites']['used'].' / '.$usage['sites']['max']" icon="sites" tone="info" />
             <x-stat-card compact label="Plans available" :value="$plans->count()" icon="plan" />
             <x-stat-card compact label="Paystack" :value="$paystackConfigured ? 'Ready' : 'Setup'" icon="billing" :tone="$paystackConfigured ? 'success' : 'warning'" />
-        </div>
+        </x-stat-grid>
 
         @unless($paystackConfigured)
             <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

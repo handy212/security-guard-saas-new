@@ -5,12 +5,12 @@
             <x-button variant="secondary" wire:click="$set('showMediaForm', true)">Attach media</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$incidentStats['total']" icon="incidents" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $severityFilter === 'all' && $search === ''" />
             <x-stat-card compact label="Open" :value="$incidentStats['open']" icon="pause" :tone="$incidentStats['open'] > 0 ? 'warning' : 'default'" wire:click="applyStatFilter('open')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'open'" />
             <x-stat-card compact label="High risk" :value="$incidentStats['critical']" icon="incidents" :tone="$incidentStats['critical'] > 0 ? 'danger' : 'default'" wire:click="applyStatFilter('critical')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$severityFilter === 'critical'" />
             <x-stat-card compact label="Closed" :value="$incidentStats['closed']" icon="check" tone="success" wire:click="applyStatFilter('closed')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'closed'" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search incidents…">
             <x-slot:tabs>
@@ -91,7 +91,7 @@
                 </x-select>
                 <x-textarea wire:model="form.description" label="Description" rows="4" />
                 <div class="flex gap-2">
-                    <x-button type="submit">Submit</x-button>
+                    <x-button type="submit" loading-text="Submitting…">Submit</x-button>
                     <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
                 </div>
             </form>
@@ -109,7 +109,7 @@
                 </x-select>
                 <input wire:model="mediaFile" type="file" class="form-input text-sm">
                 <div class="flex gap-2">
-                    <x-button type="submit" variant="secondary">Upload</x-button>
+                    <x-button type="submit" variant="secondary" loading-text="Uploading…">Upload</x-button>
                     <x-button type="button" variant="secondary" wire:click="closeMediaDrawer">Cancel</x-button>
                 </div>
             </form>

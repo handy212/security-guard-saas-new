@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Billing & Invoices" description="Generate client invoices and export PDFs.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$stats['total']" icon="billing" />
             <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
             <x-stat-card compact label="Sent" :value="$stats['sent']" icon="check" tone="info" />
             <x-stat-card compact label="Paid" :value="$stats['paid']" icon="check" tone="success" />
-        </div>
+        </x-stat-grid>
 
         <x-form-card title="Generate monthly invoice">
             <form wire:submit="generate" class="flex flex-col gap-4 sm:flex-row sm:items-end">

@@ -1,6 +1,13 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+const storedTheme = localStorage.getItem('theme');
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+if (storedTheme === 'dark' || (! storedTheme && prefersDark)) {
+    document.documentElement.classList.add('dark');
+}
+
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
 
 if (reverbKey) {
@@ -16,7 +23,6 @@ if (reverbKey) {
         enabledTransports: ['ws', 'wss'],
     });
 
-    // Only expose Echo to Livewire after the socket connects so X-Socket-ID is never "undefined".
     echo.connector.pusher.connection.bind('connected', () => {
         window.Echo = echo;
     });

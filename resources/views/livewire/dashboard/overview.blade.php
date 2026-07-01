@@ -33,12 +33,12 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact :label="$onDuty['label']" :value="$onDuty['value']" :hint="$onDuty['hint']" icon="guards" :href="url($onDuty['href'])" />
             <x-stat-card compact :label="$shifts['label']" :value="$shifts['value']" :hint="$shifts['hint']" icon="shifts" tone="info" :href="url($shifts['href'])" />
             <x-stat-card compact :label="$incidents['label']" :value="$incidents['value']" :hint="$incidents['hint']" :tone="$incidents['tone']" icon="incidents" :href="url($incidents['href'])" />
             <x-stat-card compact :label="$patrols['label']" :value="$patrols['value']" :hint="$patrols['hint']" :tone="$patrols['tone']" icon="chart" :href="url($patrols['href'])" />
-        </div>
+        </x-stat-grid>
 
         <div class="grid gap-4 lg:grid-cols-3">
             <div class="space-y-4 lg:col-span-2">

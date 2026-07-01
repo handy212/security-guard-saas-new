@@ -4,12 +4,12 @@
             <x-button wire:click="openCheckIn">Check in visitor</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total visits" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="On site now" :value="$stats['on_site']" icon="guards" :tone="$stats['on_site'] ? 'warning' : 'success'" />
             <x-stat-card compact label="Today" :value="$stats['today']" icon="schedules" tone="info" />
             <x-stat-card compact label="Sites" :value="$stats['sites']" icon="sites" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search visitors…">
             <x-slot:tabs>
