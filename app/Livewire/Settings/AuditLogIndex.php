@@ -22,7 +22,7 @@ class AuditLogIndex extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('view audit trail'), 403);
+        abort_unless(auth()->user()->can('audit.view'), 403);
     }
 
     public function updated($property): void
@@ -41,7 +41,7 @@ class AuditLogIndex extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('view audit trail'), 403);
+        abort_unless(auth()->user()->can('audit.view'), 403);
 
         $tenantId = TenantContext::id();
 

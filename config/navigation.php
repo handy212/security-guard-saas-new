@@ -50,7 +50,7 @@ return [
 
     'settings' => [
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],
-        ['href' => '/settings/audit-log', 'label' => 'Audit trail', 'permission' => 'view audit trail'],
+        ['href' => '/settings/audit-log', 'label' => 'Audit trail', 'permission' => 'audit.view'],
         ['href' => '/settings/team', 'label' => 'Team passwords', 'permission' => 'settings.manage'],
         ['href' => '/settings/two-factor', 'label' => 'Two-Factor Auth', 'permission' => null],
         ['href' => '/settings/webhooks', 'label' => 'Webhooks', 'permission' => 'settings.manage'],

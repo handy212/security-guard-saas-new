@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dispatch;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\AttendanceLog;
 use App\Models\DispatchEvent;
 use App\Models\SosAlert;
@@ -11,6 +12,13 @@ use Livewire\Component;
 
 class ControlRoom extends Component
 {
+    use AuthorizesModuleAccess;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('dispatch.manage');
+    }
+
     public function acknowledgeSos(SosAlert $alert): void
     {
         $this->authorize('acknowledge', $alert);

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\OfflineSyncBatch;
 use App\Services\OfflineSyncService;
+use App\Services\TenantScopeService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -15,8 +16,10 @@ class ProcessOfflineSyncBatch implements ShouldQueue
     {
     }
 
-    public function handle(OfflineSyncService $service): void
+    public function handle(OfflineSyncService $service, TenantScopeService $tenantScope): void
     {
-        $service->process($this->batch);
+        $tenantScope->runForTenant($this->batch->tenant_id, function () use ($service) {
+            $service->process($this->batch->fresh());
+        });
     }
 }

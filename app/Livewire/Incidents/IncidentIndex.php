@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Incidents;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Enums\IncidentSeverity;
 use App\Models\Incident;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncidentIndex extends Component
 {
-    use HasFormDrawer, WithFileUploads, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithFileUploads, WithPagination;
 
     public string $search = '';
 
@@ -42,6 +43,11 @@ class IncidentIndex extends Component
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
         'severityFilter' => ['except' => 'all', 'as' => 'severity'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', Incident::class);
+    }
 
     public function applyStatFilter(string $filter): void
     {

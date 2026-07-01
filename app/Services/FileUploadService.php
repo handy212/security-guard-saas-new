@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Guard;
 use App\Models\GuardDocument;
+use App\Models\Incident;
 use App\Models\IncidentMedia;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,11 @@ class FileUploadService
 {
     public function storeIncidentMedia(int $tenantId, int $incidentId, UploadedFile $file, ?string $caption = null): IncidentMedia
     {
+        Incident::query()
+            ->where('id', $incidentId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+
         $path = $file->store("tenants/{$tenantId}/incidents/{$incidentId}", 'public');
 
         return IncidentMedia::create([
@@ -25,6 +31,11 @@ class FileUploadService
 
     public function storeGuardDocument(int $tenantId, int $guardId, string $type, UploadedFile $file, ?string $expiresAt = null): GuardDocument
     {
+        Guard::query()
+            ->where('id', $guardId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+
         $path = $file->store("tenants/{$tenantId}/guards/{$guardId}", 'public');
 
         return GuardDocument::create([

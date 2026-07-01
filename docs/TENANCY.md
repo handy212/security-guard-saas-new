@@ -11,7 +11,7 @@ GuardOps uses a **custom single-database multi-tenant** model, not `stancl/tenan
 
 ## Why not stancl/tenancy?
 
-The package is listed historically but **not integrated**. Removing it avoids conflicting tenancy strategies. If you need database-per-tenant at scale, evaluate stancl as a dedicated migration project.
+The `stancl/tenancy` package was removed from dependencies to avoid conflicting tenancy strategies. If you need database-per-tenant at scale, evaluate stancl as a dedicated migration project.
 
 ## Production DNS
 

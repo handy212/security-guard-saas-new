@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Sites;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\Site;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class SiteIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -28,6 +29,11 @@ class SiteIndex extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', Site::class);
+    }
 
     protected function rules(): array
     {
