@@ -5,12 +5,12 @@
             <x-button wire:click="openCreate">Add guard</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$guardStats['total']" icon="guards" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $verificationFilter === 'all' && $search === ''" />
             <x-stat-card compact label="Active" :value="$guardStats['active']" icon="check" tone="success" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active'" />
             <x-stat-card compact label="Pending KYG" :value="$guardStats['pending']" icon="incidents" :tone="$guardStats['pending'] > 0 ? 'warning' : 'default'" wire:click="applyStatFilter('pending')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$verificationFilter === 'pending'" />
             <x-stat-card compact label="Inactive" :value="$guardStats['inactive']" icon="pause" wire:click="applyStatFilter('inactive')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'inactive'" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search by name, email, or ID…">
             <x-slot:tabs>
@@ -112,7 +112,7 @@
                     <x-input wire:model="form.hourly_rate" label="Hourly rate" type="number" step="0.01" class="sm:col-span-2" />
                 </div>
                 <div class="flex gap-2 pt-2">
-                    <x-button type="submit">Save</x-button>
+                    <x-button type="submit" loading-text="Saving…">Save</x-button>
                     <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
                 </div>
             </form>

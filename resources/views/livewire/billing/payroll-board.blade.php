@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Payroll & Accounting Exports" description="Generate timesheets and export data for accounting.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Exports" :value="$exports->count()" icon="billing" tone="info" />
             <x-stat-card compact label="Active guards" :value="$guards->count()" icon="guards" tone="success" />
             <x-stat-card compact label="Timesheets" :value="$timesheets->count()" icon="plan" />
             <x-stat-card compact label="Period" :value="$periodStart ? \Carbon\Carbon::parse($periodStart)->format('M Y') : '—'" icon="schedules" />
-        </div>
+        </x-stat-grid>
 
         <div class="grid gap-4 lg:grid-cols-2">
             <x-form-card title="Generate timesheet" description="Build a payroll timesheet from attendance for a guard.">

@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Client Complaints" description="Log, track, and resolve client service issues.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="incidents" :tone="$stats['open'] ? 'warning' : 'success'" />
             <x-stat-card compact label="High priority" :value="$stats['high']" icon="dispatch" :tone="$stats['high'] ? 'danger' : 'default'" />
             <x-stat-card compact label="Resolved" :value="$stats['resolved']" icon="check" tone="success" />
-        </div>
+        </x-stat-grid>
 
         <x-form-card title="Log complaint" description="Record a new client complaint or service issue." collapsible>
             <form wire:submit="save" class="grid gap-4 md:grid-cols-2">

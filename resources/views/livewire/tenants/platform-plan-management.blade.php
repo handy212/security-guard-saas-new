@@ -4,12 +4,12 @@
             <x-button wire:click="openCreate">Add plan</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total plans" :value="$planStats['total']" icon="plan" />
             <x-stat-card compact label="Active" :value="$planStats['active']" icon="check" tone="success" />
             <x-stat-card compact label="In use" :value="$planStats['assigned']" icon="users" tone="info" />
             <x-stat-card compact label="Showing" :value="$plans->count()" icon="billing" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search plans…">
             <x-slot:tabs>

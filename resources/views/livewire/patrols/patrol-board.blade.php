@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Patrol Routes" description="Guard tour routes with QR/NFC checkpoints and live sessions.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Routes" :value="$stats['routes']" icon="patrols" />
             <x-stat-card compact label="Checkpoints" :value="$stats['checkpoints']" icon="gps" tone="info" />
             <x-stat-card compact label="Active sessions" :value="$stats['active_sessions']" icon="schedules" :tone="$stats['active_sessions'] ? 'warning' : 'default'" />
             <x-stat-card compact label="Completed today" :value="$stats['completed_today']" icon="check" tone="success" />
-        </div>
+        </x-stat-grid>
 
         <div class="grid gap-4 lg:grid-cols-2">
             <x-form-card title="Create route">

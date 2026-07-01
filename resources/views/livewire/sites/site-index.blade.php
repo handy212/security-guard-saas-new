@@ -4,12 +4,12 @@
             <x-button wire:click="openCreate">Add site</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$siteStats['total']" icon="plan" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $search === ''" />
             <x-stat-card compact label="Active" :value="$siteStats['active']" icon="check" tone="success" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active'" />
             <x-stat-card compact label="Geofenced" :value="$siteStats['geofenced']" icon="guards" tone="info" class="text-left" />
             <x-stat-card compact label="Inactive" :value="$siteStats['inactive']" icon="pause" wire:click="applyStatFilter('inactive')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'inactive'" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search sites…">
             <x-slot:tabs>
@@ -77,7 +77,7 @@
                 <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
                 <x-input wire:model="form.geofence_radius_meters" label="Geofence radius (m)" type="number" class="sm:col-span-2" />
                 <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Save</x-button>
+                    <x-button type="submit" loading-text="Saving…">Save</x-button>
                     <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
                 </div>
             </form>

@@ -1,9 +1,13 @@
-@props(['title', 'description' => null, 'breadcrumbs' => []])
+@props(['title', 'description' => null, 'breadcrumbs' => [], 'variant' => 'app'])
 
 <div class="flex min-h-full flex-col">
-    <div class="sticky top-0 z-20 border-b border-zinc-200 bg-white shadow-sm">
+    <div @class([
+        'z-20 border-b border-zinc-200 bg-white shadow-sm',
+        'lg:sticky lg:top-0' => $variant === 'app',
+    ])>
         <div class="page-content flex items-center justify-between gap-4 py-3">
             <div class="flex min-w-0 items-center gap-3">
+                @if ($variant === 'app')
                 <button
                     type="button"
                     @click="sidebarOpen = true"
@@ -12,6 +16,7 @@
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
+                @endif
                 <div class="min-w-0">
                     @if (! empty($breadcrumbs))
                         <nav class="mb-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">

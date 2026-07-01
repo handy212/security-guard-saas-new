@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Daily Activity Reports" description="Review guard shift summaries and approve for clients.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$stats['total']" icon="plan" />
             <x-stat-card compact label="Pending" :value="$stats['pending']" icon="pause" :tone="$stats['pending'] ? 'warning' : 'default'" />
             <x-stat-card compact label="Approved" :value="$stats['approved']" icon="check" tone="success" />
             <x-stat-card compact label="Today" :value="$stats['today']" icon="schedules" tone="info" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search reports, sites, guards…">
             <x-slot:tabs>

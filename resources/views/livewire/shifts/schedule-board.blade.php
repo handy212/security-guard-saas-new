@@ -5,12 +5,12 @@
             <x-button wire:click="openForm">Create shift</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Shifts" :value="$scheduleStats['total']" icon="shifts" />
             <x-stat-card compact label="Open" :value="$scheduleStats['open']" icon="pause" :tone="$scheduleStats['open'] > 0 ? 'warning' : 'default'" />
             <x-stat-card compact label="Staffed" :value="$scheduleStats['staffed']" icon="check" tone="success" />
             <x-stat-card compact label="Need guards" :value="$scheduleStats['needs_guards']" icon="guards" :tone="$scheduleStats['needs_guards'] > 0 ? 'info' : 'default'" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar>
             <x-slot:controls>

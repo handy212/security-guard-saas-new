@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Subscriptions" description="Tenant billing status and plan assignments.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="Active" :value="$stats['active']" icon="check" tone="success" />
             <x-stat-card compact label="Trial" :value="$stats['trial']" icon="plan" tone="info" />
             <x-stat-card compact label="Showing" :value="$subscriptions->count()" icon="billing" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search tenants…">
             <x-slot:tabs>

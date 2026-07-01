@@ -2,12 +2,12 @@
     <x-page-shell title="Audit trail" description="Immutable log of security-sensitive actions across your organization.">
         <x-settings-nav />
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total events" :value="$total" icon="billing" />
             <x-stat-card compact label="Today" :value="$today" icon="check" tone="info" />
             <x-stat-card compact label="Filtered" :value="$logs->total()" icon="users" />
             <x-stat-card compact label="Page" :value="$logs->currentPage().' / '.$logs->lastPage()" icon="plan" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search actions or users…">
             <x-slot:controls>

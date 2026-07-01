@@ -41,6 +41,7 @@
                 <button type="submit" class="btn-primary w-full">Sign in</button>
             </form>
 
+            @if(config('app.debug'))
             <div class="mt-4 space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
                 <div>
                     <div class="font-medium text-zinc-800">SaaS platform admin</div>
@@ -52,6 +53,7 @@
                     <div class="mt-1 font-mono text-[11px]">admin@demo.test / password</div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>

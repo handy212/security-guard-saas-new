@@ -4,12 +4,12 @@
             <x-button wire:click="openCreate">Add asset</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Total assets" :value="$stats['total']" icon="billing" />
             <x-stat-card compact label="Available" :value="$stats['available']" icon="check" tone="success" />
             <x-stat-card compact label="Issued" :value="$stats['issued']" icon="guards" tone="info" />
             <x-stat-card compact label="Retired" :value="$stats['retired']" icon="pause" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search equipment…">
             <x-slot:tabs>

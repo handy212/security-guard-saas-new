@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Compliance Dashboard" description="Certifications and documents nearing expiry.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Expiring certs" :value="$items->count()" icon="guards" :tone="$items->count() ? 'warning' : 'success'" />
             <x-stat-card compact label="Expiring docs" :value="$documents->count()" icon="billing" :tone="$documents->count() ? 'warning' : 'success'" />
             <x-stat-card compact label="Certifications" :value="$certifications->count()" icon="check" />
             <x-stat-card compact label="Window" value="30 days" icon="plan" tone="info" />
-        </div>
+        </x-stat-grid>
 
         <div class="grid gap-4 lg:grid-cols-2">
             <x-section-card title="Expiring certifications">

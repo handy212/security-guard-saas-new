@@ -4,12 +4,12 @@
             <a href="{{ route('schedules.index') }}" class="btn-secondary text-sm">Day list</a>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="In range" :value="$stats['total']" icon="schedules" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="pause" :tone="$stats['open'] > 0 ? 'warning' : 'default'" />
             <x-stat-card compact label="Posts" :value="$stats['posts']" icon="plan" tone="info" />
             <x-stat-card compact label="View" :value="ucfirst($view)" icon="check" />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar>
             <x-slot:tabs>

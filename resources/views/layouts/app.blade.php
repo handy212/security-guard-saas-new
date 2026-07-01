@@ -26,13 +26,21 @@
         class="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-zinc-200 bg-white transition-transform duration-200 ease-out lg:translate-x-0"
     >
         <div class="flex h-14 shrink-0 items-center gap-2.5 border-b border-zinc-100 px-4">
-            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}" class="flex min-w-0 items-center gap-2.5">
+            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}" class="flex min-w-0 flex-1 items-center gap-2.5">
                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-xs font-bold text-white">G</div>
                 <div class="min-w-0 leading-tight">
                     <div class="truncate text-sm font-semibold text-zinc-900">GuardOps</div>
                     <div class="truncate text-[11px] text-zinc-500">Security Operations</div>
                 </div>
             </a>
+            <button
+                type="button"
+                @click="sidebarOpen = false"
+                class="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 lg:hidden"
+                aria-label="Close navigation"
+            >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
 
         <x-sidebar-nav />
@@ -54,7 +62,7 @@
         </div>
 
         @if (session('status'))
-            <x-flash-status type="success" class="fixed inset-x-0 top-0 z-[70] lg:left-60" />
+            <x-flash-status type="success" class="border-b lg:fixed lg:inset-x-0 lg:top-0 lg:z-[70] lg:left-60" />
         @endif
 
         @if (\App\Support\TenantContext::isViewingAsTenant())
@@ -71,7 +79,7 @@
 
         @auth
             @if (! \App\Support\TenantContext::isPlatformConsole())
-                <div class="sticky top-0 z-30 flex items-center justify-end gap-2 border-b border-zinc-100 bg-white/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:pl-[calc(15rem+1rem)]">
+                <div class="flex items-center justify-end gap-2 border-b border-zinc-100 bg-white px-4 py-2 lg:sticky lg:top-0 lg:z-30 lg:bg-white/95 lg:py-2 lg:backdrop-blur supports-[backdrop-filter]:lg:bg-white/80 lg:pl-[calc(15rem+1rem)]">
                     <livewire:notifications.notification-bell />
                 </div>
             @endif

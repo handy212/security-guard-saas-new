@@ -5,19 +5,19 @@
         </x-slot:actions>
 
         @if($snapshot)
-            <div class="grid grid-cols-4 gap-2">
+            <x-stat-grid>
                 <x-stat-card compact label="Active guards" :value="$snapshot->active_guards" icon="guards" />
                 <x-stat-card compact label="Patrol completion" :value="$snapshot->patrol_completion_rate.'%'" icon="patrols" tone="success" />
                 <x-stat-card compact label="Missed patrols" :value="$snapshot->missed_patrols" icon="incidents" tone="danger" />
                 <x-stat-card compact label="SLA performance" :value="$snapshot->client_sla_performance.'%'" icon="check" tone="info" />
-            </div>
+            </x-stat-grid>
 
-            <div class="grid grid-cols-4 gap-2">
+            <x-stat-grid>
                 <x-stat-card compact label="Active sites" :value="$snapshot->active_sites" icon="sites" />
                 <x-stat-card compact label="Late shifts" :value="$snapshot->late_shifts" icon="schedules" tone="warning" />
                 <x-stat-card compact label="No-shows" :value="$snapshot->no_show_shifts" icon="guards" tone="warning" />
                 <x-stat-card compact label="Revenue (day)" :value="'₦'.number_format($snapshot->revenue_total, 0)" icon="billing" />
-            </div>
+            </x-stat-grid>
 
             <x-section-card title="30-day patrol completion trend">
                 <div class="flex h-36 items-end gap-1">

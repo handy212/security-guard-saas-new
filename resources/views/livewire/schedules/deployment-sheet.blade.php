@@ -5,12 +5,12 @@
             <button type="button" onclick="window.print()" class="btn-secondary text-sm">Print</button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Assignments" :value="$stats['assignments']" icon="schedules" />
             <x-stat-card compact label="Sites covered" :value="$stats['sites']" icon="sites" tone="info" />
             <x-stat-card compact label="Guards deployed" :value="$stats['guards']" icon="guards" tone="success" />
             <x-stat-card compact label="Date" :value="\Carbon\Carbon::parse($date)->format('M j')" icon="plan" />
-        </div>
+        </x-stat-grid>
 
         <x-data-table title="Roster for {{ \Carbon\Carbon::parse($date)->format('M j, Y') }}">
             <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">

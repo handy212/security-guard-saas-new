@@ -4,12 +4,12 @@
     @endphp
 
     <x-page-shell title="Attendance" description="Clock events, geofence validation, and breaks.">
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card compact label="Attendance logs" :value="$logs->count()" icon="schedules" />
             <x-stat-card compact label="Break logs" :value="$breaks->count()" icon="plan" tone="info" />
             <x-stat-card compact label="Exceptions" :value="$exceptions" icon="incidents" :tone="$exceptions ? 'warning' : 'success'" />
             <x-stat-card compact label="On duty" :value="$logs->where('clock_out_at', null)->count()" icon="guards" tone="success" />
-        </div>
+        </x-stat-grid>
 
         <x-form-card title="Log break">
             <form wire:submit="saveBreak" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

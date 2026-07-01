@@ -5,7 +5,7 @@
             <x-button wire:click="openCreateTenant">Add tenant</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <x-stat-grid>
             <x-stat-card
                 compact
                 label="Total"
@@ -45,7 +45,7 @@
                 class="cursor-pointer text-left transition hover:border-zinc-300"
                 :active="$planFilter === 'none'"
             />
-        </div>
+        </x-stat-grid>
 
         <x-page-toolbar search="search" searchPlaceholder="Search…">
             <x-slot:tabs>
