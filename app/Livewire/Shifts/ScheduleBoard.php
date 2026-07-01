@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Shifts;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\Guard;
@@ -14,7 +15,7 @@ use Livewire\Component;
 
 class ScheduleBoard extends Component
 {
-    use HasFormDrawer;
+    use AuthorizesModuleAccess, HasFormDrawer;
 
     public string $date;
 
@@ -29,6 +30,7 @@ class ScheduleBoard extends Component
 
     public function mount(): void
     {
+        $this->authorizePolicy('viewAny', Shift::class);
         $this->date = today()->toDateString();
         $this->form['starts_at'] = today()->setHour(8)->format('Y-m-d\TH:i');
         $this->form['ends_at'] = today()->setHour(17)->format('Y-m-d\TH:i');

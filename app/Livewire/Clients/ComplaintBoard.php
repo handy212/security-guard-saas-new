@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Clients;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\ClientAccount;
 use App\Models\ClientComplaint;
 use App\Models\Site;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class ComplaintBoard extends Component
 {
-    use WithPagination;
+    use AuthorizesModuleAccess, WithPagination;
 
     public string $search = '';
 
@@ -25,6 +26,11 @@ class ComplaintBoard extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', ClientComplaint::class);
+    }
 
     public function updated($property): void
     {
@@ -64,8 +70,6 @@ class ComplaintBoard extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('clients.manage'), 403);
-
         $tenantId = TenantContext::id();
         $base = ClientComplaint::where('tenant_id', $tenantId);
 

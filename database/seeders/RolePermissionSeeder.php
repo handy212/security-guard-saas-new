@@ -13,7 +13,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'dashboard.view', 'clients.manage', 'sites.manage', 'guards.manage', 'schedules.manage',
             'attendance.manage', 'patrols.manage', 'incidents.manage', 'reports.approve', 'dispatch.manage',
-            'billing.manage', 'payroll.manage', 'settings.manage', 'client_portal.view', 'mobile.use',
+            'billing.manage', 'payroll.manage', 'settings.manage', 'audit.view', 'client_portal.view', 'mobile.use',
             'tenants.manage', 'analytics.view', 'compliance.manage', 'equipment.manage', 'visitors.manage',
             'exports.manage',
         ];
@@ -28,11 +28,11 @@ class RolePermissionSeeder extends Seeder
             'operations-manager' => [
                 'dashboard.view', 'clients.manage', 'sites.manage', 'guards.manage', 'schedules.manage',
                 'attendance.manage', 'patrols.manage', 'incidents.manage', 'reports.approve', 'dispatch.manage',
-                'analytics.view', 'compliance.manage', 'equipment.manage', 'visitors.manage',
+                'analytics.view', 'compliance.manage', 'equipment.manage', 'visitors.manage', 'audit.view',
             ],
             'supervisor' => [
                 'dashboard.view', 'attendance.manage', 'patrols.manage', 'incidents.manage',
-                'reports.approve', 'dispatch.manage',
+                'reports.approve', 'dispatch.manage', 'audit.view',
             ],
             'guard' => ['mobile.use'],
             'client' => ['client_portal.view'],

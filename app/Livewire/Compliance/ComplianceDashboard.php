@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Compliance;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\GuardCertification;
 use App\Services\ComplianceService;
 use App\Support\TenantContext;
@@ -9,11 +10,17 @@ use Livewire\Component;
 
 class ComplianceDashboard extends Component
 {
+    use AuthorizesModuleAccess;
+
     public string $search = '';
+
+    public function mount(): void
+    {
+        $this->authorizePermission('compliance.manage');
+    }
 
     public function render()
     {
-        abort_unless(auth()->user()->can('compliance.manage'), 403);
         $service = app(ComplianceService::class);
         $tenantId = TenantContext::id();
 

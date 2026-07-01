@@ -41,6 +41,14 @@
                 <button type="submit" class="btn-primary w-full">Sign in</button>
             </form>
 
+            @if(config('sso.enabled') && config('sso.client_id') && config('sso.issuer'))
+                <div class="mt-4">
+                    <a href="{{ route('sso.redirect') }}" class="flex w-full items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                        Continue with SSO
+                    </a>
+                </div>
+            @endif
+
             <div class="mt-4 space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
                 <div>
                     <div class="font-medium text-zinc-800">SaaS platform admin</div>

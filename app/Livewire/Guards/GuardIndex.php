@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Guards;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\Branch;
 use App\Models\Guard;
@@ -13,7 +14,7 @@ use Livewire\WithPagination;
 
 class GuardIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -34,6 +35,11 @@ class GuardIndex extends Component
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
         'verificationFilter' => ['except' => 'all', 'as' => 'kyg'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', Guard::class);
+    }
 
     protected function rules(): array
     {

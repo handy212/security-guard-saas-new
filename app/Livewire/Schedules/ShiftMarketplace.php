@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Schedules;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\OpenShiftBid;
 use App\Models\ShiftSwapRequest;
 use App\Services\EnterpriseScheduleService;
@@ -9,6 +10,13 @@ use Livewire\Component;
 
 class ShiftMarketplace extends Component
 {
+    use AuthorizesModuleAccess;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('schedules.manage');
+    }
+
     public function approveSwap(ShiftSwapRequest $swap, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardVerificationController;
 use App\Http\Controllers\GuardVerificationPhotoController;
@@ -66,13 +67,15 @@ Route::redirect('/', '/dashboard');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
+Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(function () {
     Route::get('/dashboard', Overview::class)->name('dashboard');
     Route::get('/clients', ClientIndex::class)->name('clients.index');
     Route::get('/sites', SiteIndex::class)->name('sites.index');
@@ -87,7 +90,10 @@ Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
     Route::get('/incidents', IncidentIndex::class)->name('incidents.index');
     Route::get('/reports/daily', DailyReportIndex::class)->name('reports.daily');
     Route::get('/dispatch', ControlRoom::class)->name('dispatch.control-room');
-    Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
+    Route::middleware('client.portal')->group(function () {
+        Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
+        Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
+    });
     Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
     Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
     Route::get('/billing/subscription/callback', PaystackCallbackController::class)->name('billing.paystack.callback');
@@ -101,7 +107,6 @@ Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
     Route::get('/visitors', VisitorLogIndex::class)->name('visitors.index');
     Route::get('/equipment', EquipmentIndex::class)->name('equipment.index');
     Route::get('/compliance', ComplianceDashboard::class)->name('compliance.dashboard');
-    Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
     Route::get('/mobile/offline-sync', OfflineSyncMonitor::class)->name('mobile.offline-sync');
     Route::middleware('platform')->group(function () {
         Route::redirect('/saas', '/saas/tenants')->name('saas');

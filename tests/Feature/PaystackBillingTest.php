@@ -111,4 +111,73 @@ class PaystackBillingTest extends TestCase
         $response->assertOk();
         $this->assertEquals('active', TenantSubscription::where('tenant_id', $tenant->id)->value('status'));
     }
+
+    public function test_successful_charge_creates_recurring_subscription_when_plan_configured(): void
+    {
+        Http::fake([
+            'api.paystack.co/subscription' => Http::response([
+                'status' => true,
+                'data' => ['subscription_code' => 'SUB_recurring123'],
+            ]),
+        ]);
+
+        $tenant = Tenant::create(['name' => 'Recurring Co', 'slug' => 'recurring-co', 'status' => 'active']);
+        $plan = SubscriptionPlan::create([
+            'name' => 'Pro', 'slug' => 'pro-recurring', 'paystack_plan_code' => 'PLN_pro',
+            'monthly_price' => 19900, 'max_guards' => 50, 'max_sites' => 20, 'status' => 'active',
+        ]);
+
+        app(PaystackBillingService::class)->processSuccessfulCharge([
+            'status' => 'success',
+            'metadata' => ['tenant_id' => $tenant->id, 'plan_id' => $plan->id],
+            'customer' => ['customer_code' => 'CUS_recurring', 'email' => 'admin@test.com'],
+            'authorization' => ['authorization_code' => 'AUTH_recurring'],
+        ]);
+
+        $this->assertEquals('SUB_recurring123', $tenant->fresh()->paystack_subscription_code);
+    }
+
+    public function test_subscription_disable_webhook_cancels_local_subscription(): void
+    {
+        Config::set('paystack.webhook_secret', 'whsec_test');
+
+        $tenant = Tenant::create([
+            'name' => 'Cancel Co', 'slug' => 'cancel-co', 'status' => 'active',
+            'paystack_subscription_code' => 'SUB_cancel_me',
+        ]);
+        $plan = SubscriptionPlan::create([
+            'name' => 'Starter', 'slug' => 'starter-cancel', 'monthly_price' => 5000,
+            'max_guards' => 10, 'max_sites' => 5, 'status' => 'active',
+        ]);
+        TenantSubscription::create([
+            'tenant_id' => $tenant->id,
+            'subscription_plan_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => now()->addMonth(),
+        ]);
+
+        $payload = json_encode([
+            'event' => 'subscription.disable',
+            'data' => [
+                'subscription_code' => 'SUB_cancel_me',
+                'metadata' => ['tenant_id' => $tenant->id],
+            ],
+        ]);
+
+        $signature = hash_hmac('sha512', $payload, 'whsec_test');
+
+        $this->call(
+            'POST',
+            '/paystack/webhook',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json', 'HTTP_X_PAYSTACK_SIGNATURE' => $signature],
+            $payload
+        )->assertOk();
+
+        $this->assertEquals('cancelled', TenantSubscription::where('tenant_id', $tenant->id)->value('status'));
+        $this->assertNull($tenant->fresh()->paystack_subscription_code);
+    }
 }

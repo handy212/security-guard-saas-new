@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Enums\IncidentSeverity;
+use App\Support\TenantValidation;
 
 class MobileAppController extends Controller
 {
@@ -86,9 +87,11 @@ class MobileAppController extends Controller
 
     public function reportIncident(Request $request, IncidentService $service)
     {
+        $tenantId = (int) $request->user()->tenant_id;
+
         $data = $request->validate([
-            'site_id' => ['required', 'integer'],
-            'shift_assignment_id' => ['nullable', 'integer'],
+            'site_id' => ['required', 'integer', TenantValidation::existsForTenant($tenantId, 'sites')],
+            'shift_assignment_id' => ['nullable', 'integer', TenantValidation::existsForTenant($tenantId, 'shift_assignments')],
             'title' => ['required', 'string', 'max:180'],
             'type' => ['required', 'string', 'max:80'],
             'severity' => ['required', Rule::enum(IncidentSeverity::class)],
@@ -109,8 +112,10 @@ class MobileAppController extends Controller
 
     public function sos(Request $request, DispatchService $service)
     {
+        $tenantId = (int) $request->user()->tenant_id;
+
         $data = $request->validate([
-            'site_id' => ['nullable', 'integer'],
+            'site_id' => ['nullable', 'integer', TenantValidation::existsForTenant($tenantId, 'sites')],
             'latitude' => ['required', 'numeric'],
             'longitude' => ['required', 'numeric'],
             'message' => ['nullable', 'string'],
@@ -154,8 +159,10 @@ class MobileAppController extends Controller
 
     public function visitorCheckIn(Request $request): JsonResponse
     {
+        $tenantId = (int) $request->user()->tenant_id;
+
         $visitor = VisitorLog::create($request->validate([
-            'site_id' => ['required', 'integer'],
+            'site_id' => ['required', 'integer', TenantValidation::existsForTenant($tenantId, 'sites')],
             'guard_id' => ['nullable', 'integer'],
             'visitor_name' => ['required', 'string'],
             'visitor_phone' => ['nullable', 'string'],
@@ -163,7 +170,7 @@ class MobileAppController extends Controller
             'purpose' => ['nullable', 'string'],
             'vehicle_plate' => ['nullable', 'string'],
         ]) + [
-            'tenant_id' => $request->user()->tenant_id,
+            'tenant_id' => $tenantId,
             'guard_id' => $this->guardId($request),
             'checked_in_at' => now(),
         ]);

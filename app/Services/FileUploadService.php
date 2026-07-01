@@ -4,15 +4,24 @@ namespace App\Services;
 
 use App\Models\Guard;
 use App\Models\GuardDocument;
+use App\Models\Incident;
 use App\Models\IncidentMedia;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class FileUploadService
 {
+    public function __construct(private TenantFileStorageService $storage)
+    {
+    }
+
     public function storeIncidentMedia(int $tenantId, int $incidentId, UploadedFile $file, ?string $caption = null): IncidentMedia
     {
-        $path = $file->store("tenants/{$tenantId}/incidents/{$incidentId}", 'public');
+        Incident::query()
+            ->where('id', $incidentId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+
+        $path = $this->storage->store($file, "tenants/{$tenantId}/incidents/{$incidentId}");
 
         return IncidentMedia::create([
             'tenant_id' => $tenantId,
@@ -25,7 +34,12 @@ class FileUploadService
 
     public function storeGuardDocument(int $tenantId, int $guardId, string $type, UploadedFile $file, ?string $expiresAt = null): GuardDocument
     {
-        $path = $file->store("tenants/{$tenantId}/guards/{$guardId}", 'public');
+        Guard::query()
+            ->where('id', $guardId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+
+        $path = $this->storage->store($file, "tenants/{$tenantId}/guards/{$guardId}");
 
         return GuardDocument::create([
             'tenant_id' => $tenantId,
@@ -39,7 +53,7 @@ class FileUploadService
 
     public function storeGuardPhoto(int $tenantId, int $guardId, UploadedFile $file): string
     {
-        return $file->store("tenants/{$tenantId}/guards/{$guardId}/photos", 'public');
+        return $this->storage->store($file, "tenants/{$tenantId}/guards/{$guardId}/photos");
     }
 
     public function guardPhotoUrl(Guard $guard): ?string

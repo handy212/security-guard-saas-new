@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Clients;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Support\TenantContext;
@@ -10,7 +11,7 @@ use Livewire\WithPagination;
 
 class ClientIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -24,6 +25,11 @@ class ClientIndex extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', ClientAccount::class);
+    }
 
     protected function rules(): array
     {
