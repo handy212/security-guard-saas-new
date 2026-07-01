@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardVerificationController;
 use App\Http\Controllers\GuardVerificationPhotoController;
@@ -61,7 +62,7 @@ Route::get('/g/{token}/photo', GuardVerificationPhotoController::class)
     ->middleware('throttle:120,1')
     ->name('guard.verify.photo');
 
-Route::redirect('/', '/dashboard');
+Route::get('/', HomeController::class)->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');

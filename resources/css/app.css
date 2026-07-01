@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
 @source "../../storage/framework/views/*.php";
 @source "../**/*.blade.php";
@@ -17,7 +19,7 @@
 
 @layer base {
     body {
-        @apply antialiased text-zinc-900 bg-zinc-100;
+        @apply antialiased text-zinc-900 bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100;
     }
 
     [x-cloak] {
@@ -29,22 +31,26 @@
     .form-input {
         @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm shadow-sm transition
             placeholder:text-zinc-400 hover:border-zinc-400
-            focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900/20;
+            focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900/20
+            dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500
+            dark:hover:border-zinc-500 dark:focus:border-zinc-300 dark:focus:ring-zinc-300/20;
     }
 
     .form-label {
-        @apply mb-0.5 block text-xs font-medium text-zinc-700;
+        @apply mb-0.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300;
     }
 
     .btn-primary {
         @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm
             transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/20
-            disabled:cursor-not-allowed disabled:opacity-60;
+            disabled:cursor-not-allowed disabled:opacity-60
+            dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-100/20;
     }
 
     .btn-secondary {
         @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm
-            transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/50;
+            transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/50
+            dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700;
     }
 
     .btn-danger {
@@ -53,11 +59,11 @@
     }
 
     .btn-link {
-        @apply text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:underline;
+        @apply text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100;
     }
 
     .table-row-hover {
-        @apply border-t border-zinc-100 transition hover:bg-zinc-50/80;
+        @apply border-t border-zinc-100 transition hover:bg-zinc-50/80 dark:border-zinc-800 dark:hover:bg-zinc-800/60;
     }
 
     .page-content {

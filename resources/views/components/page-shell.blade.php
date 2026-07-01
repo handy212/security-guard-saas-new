@@ -2,7 +2,7 @@
 
 <div class="flex min-h-full flex-col">
     <div @class([
-        'z-20 border-b border-zinc-200 bg-white shadow-sm',
+        'z-20 border-b border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900',
         'lg:sticky lg:top-0' => $variant === 'app',
     ])>
         <div class="page-content flex items-center justify-between gap-4 py-3">
@@ -19,7 +19,7 @@
                 @endif
                 <div class="min-w-0">
                     @if (! empty($breadcrumbs))
-                        <nav class="mb-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                        <nav class="mb-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                             @foreach ($breadcrumbs as $crumb)
                                 @if (! empty($crumb['href']))
                                     <a href="{{ $crumb['href'] }}" class="hover:text-zinc-800">{{ $crumb['label'] }}</a>
@@ -30,9 +30,9 @@
                             @endforeach
                         </nav>
                     @endif
-                    <h1 class="truncate text-lg font-semibold text-zinc-900">{{ $title }}</h1>
+                    <h1 class="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ $title }}</h1>
                     @if ($description)
-                        <p class="truncate text-sm text-zinc-500">{{ $description }}</p>
+                        <p class="truncate text-sm text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                     @endif
                 </div>
             </div>

@@ -9,6 +9,7 @@
         default => 'btn-primary',
     };
     $sizeClass = $size === 'sm' ? 'px-3 py-1.5 text-xs' : '';
+    $loadingLabel = $loadingText ?? ($type === 'submit' ? 'Saving…' : null);
 @endphp
 
 <button
@@ -16,9 +17,9 @@
     wire:loading.attr="disabled"
     {{ $attributes->merge(['class' => trim($classes.' '.$sizeClass)]) }}
 >
-    @if ($loadingText)
+    @if ($loadingLabel)
         <span wire:loading.remove>{{ $slot }}</span>
-        <span wire:loading>{{ $loadingText }}</span>
+        <span wire:loading>{{ $loadingLabel }}</span>
     @else
         {{ $slot }}
     @endif
