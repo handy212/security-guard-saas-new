@@ -31,7 +31,7 @@ class ControlRoom extends Component
 
     public function closeEvent(DispatchEvent $event): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
+        $this->authorize('update', $event);
         $event->update(['status' => 'closed', 'closed_at' => now()]);
     }
 

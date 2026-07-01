@@ -22,6 +22,8 @@ class TenantFileStorageService
 
     public function store(UploadedFile $file, string $directory): string
     {
+        app(\App\Contracts\FileScanner::class)->scan($file);
+
         return $file->store($directory, $this->diskName());
     }
 

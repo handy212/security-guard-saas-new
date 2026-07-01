@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Settings;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\AuditLog;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -9,7 +10,7 @@ use Livewire\WithPagination;
 
 class AuditLogIndex extends Component
 {
-    use WithPagination;
+    use AuthorizesModuleAccess, WithPagination;
 
     public string $search = '';
 
@@ -22,7 +23,7 @@ class AuditLogIndex extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('audit.view'), 403);
+        $this->authorizePolicy('viewAny', AuditLog::class);
     }
 
     public function updated($property): void
@@ -41,8 +42,6 @@ class AuditLogIndex extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('audit.view'), 403);
-
         $tenantId = TenantContext::id();
 
         $query = AuditLog::query()

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardVerificationController;
 use App\Http\Controllers\GuardVerificationPhotoController;
@@ -66,6 +67,8 @@ Route::redirect('/', '/dashboard');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
