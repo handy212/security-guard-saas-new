@@ -12,6 +12,11 @@ class DispatchEventPolicy
         return $user->can('dispatch.manage');
     }
 
+    public function create(User $user): bool
+    {
+        return $user->can('dispatch.manage');
+    }
+
     public function update(User $user, DispatchEvent $event): bool
     {
         return $user->can('dispatch.manage') && $user->tenant_id === $event->tenant_id;

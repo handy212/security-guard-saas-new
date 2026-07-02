@@ -2,18 +2,25 @@
 
 namespace App\Livewire\Assets;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Models\EquipmentAsset;
 use App\Services\AssetManagementService;
 use App\Support\TenantContext;
 use Livewire\Component;
 
 class InventoryIndex extends Component
 {
+    use AuthorizesModuleAccess;
+
     public string $search = '';
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', EquipmentAsset::class);
+    }
 
     public function render(AssetManagementService $assets)
     {
-        abort_unless(auth()->user()->can('equipment.manage'), 403);
-
         $inventory = $assets->inventoryByCategory(TenantContext::id())
             ->when($this->search !== '', fn ($rows) => $rows->filter(
                 fn ($row) => str_contains(strtolower($row->name), strtolower($this->search))

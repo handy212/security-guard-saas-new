@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Assets;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\AssetCategory;
 use App\Models\AssetPurchaseOrder;
 use App\Models\AssetVendor;
+use App\Models\EquipmentAsset;
 use App\Services\AssetManagementService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -12,7 +14,7 @@ use Livewire\WithPagination;
 
 class PurchaseOrderIndex extends Component
 {
-    use WithPagination;
+    use AuthorizesModuleAccess, WithPagination;
 
     public bool $showForm = false;
 
@@ -26,7 +28,7 @@ class PurchaseOrderIndex extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('equipment.manage'), 403);
+        $this->authorizePolicy('viewAny', EquipmentAsset::class);
     }
 
     public function addLine(): void

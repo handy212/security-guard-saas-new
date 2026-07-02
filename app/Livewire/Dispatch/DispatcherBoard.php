@@ -80,7 +80,7 @@ class DispatcherBoard extends Component
 
     public function save(DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
+        $this->authorize('create', DispatchEvent::class);
 
         $this->normalizeForm();
 
@@ -123,9 +123,7 @@ class DispatcherBoard extends Component
 
     public function saveDetail(DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
-        $dispatch = $this->selectedDispatch();
-        abort_unless($dispatch, 404);
+        $dispatch = $this->authorizeSelectedDispatch();
 
         $data = $this->validate([
             'detail.action_taken' => 'nullable|string',
@@ -139,27 +137,22 @@ class DispatcherBoard extends Component
 
     public function assignGuard(DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
-        $dispatch = $this->selectedDispatch();
-        abort_unless($dispatch && $this->assignGuardId, 422);
+        $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless($this->assignGuardId, 422);
 
         $service->assignGuard($dispatch, (int) $this->assignGuardId, TenantContext::userId());
     }
 
     public function advanceStatus(DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
-        $dispatch = $this->selectedDispatch();
-        abort_unless($dispatch, 404);
+        $dispatch = $this->authorizeSelectedDispatch();
 
         $service->advanceStatus($dispatch, TenantContext::userId());
     }
 
     public function cancelDispatch(DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
-        $dispatch = $this->selectedDispatch();
-        abort_unless($dispatch, 404);
+        $dispatch = $this->authorizeSelectedDispatch();
 
         $service->setStatus($dispatch, DispatchStatus::CANCELLED, TenantContext::userId());
         $this->selectedId = null;
@@ -177,7 +170,7 @@ class DispatcherBoard extends Component
 
     public function dispatchFromSos(int $alertId, DispatchService $service): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
+        $this->authorize('create', DispatchEvent::class);
         $alert = SosAlert::with(['assignedGuard', 'site'])->findOrFail($alertId);
         $event = $service->createFromSos($alert, TenantContext::userId());
         $this->selectedId = $event->id;
@@ -246,6 +239,15 @@ class DispatcherBoard extends Component
     private function selectedDispatch(): ?DispatchEvent
     {
         return $this->selectedId ? DispatchEvent::find($this->selectedId) : null;
+    }
+
+    private function authorizeSelectedDispatch(): DispatchEvent
+    {
+        $dispatch = $this->selectedDispatch();
+        abort_unless($dispatch, 404);
+        $this->authorize('update', $dispatch);
+
+        return $dispatch;
     }
 
     private function normalizeForm(): void

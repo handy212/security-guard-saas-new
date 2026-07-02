@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Assets;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\AssetCategory;
 use App\Support\TenantContext;
@@ -10,7 +11,7 @@ use Livewire\WithPagination;
 
 class CategoryIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -19,6 +20,11 @@ class CategoryIndex extends Component
     ];
 
     public ?int $editingId = null;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('equipment.manage');
+    }
 
     public function save(): void
     {

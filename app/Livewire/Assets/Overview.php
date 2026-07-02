@@ -2,18 +2,25 @@
 
 namespace App\Livewire\Assets;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\AssetPurchaseOrder;
-use App\Models\EquipmentAssignment;
 use App\Models\EquipmentAsset;
+use App\Models\EquipmentAssignment;
 use App\Services\AssetManagementService;
 use App\Support\TenantContext;
 use Livewire\Component;
 
 class Overview extends Component
 {
+    use AuthorizesModuleAccess;
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', EquipmentAsset::class);
+    }
+
     public function render(AssetManagementService $assets)
     {
-        abort_unless(auth()->user()->can('equipment.manage'), 403);
         $tenantId = TenantContext::id();
 
         return view('livewire.assets.overview', [
