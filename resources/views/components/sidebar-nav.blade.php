@@ -44,7 +44,7 @@
                         <a href="{{ $link['href'] }}"
                            @click="sidebarOpen = false"
                            title="{{ $link['label'] }}"
-                           class="nav-link group {{ $active ? 'nav-link-active' : '' }}"
+                           class="nav-link group {{ $active ? 'nav-link-active' : '' }} {{ ! empty($link['highlight']) ? 'nav-link-highlight' : '' }}"
                            :class="sidebarCollapsed ? 'justify-center px-2' : ''">
                             <x-nav-icon :name="$link['icon'] ?? 'dashboard'" class="h-[18px] w-[18px] shrink-0" />
                             <span x-show="!sidebarCollapsed" x-cloak class="flex-1 truncate">{{ $link['label'] }}</span>

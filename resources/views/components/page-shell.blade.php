@@ -1,4 +1,4 @@
-@props(['title', 'description' => null, 'breadcrumbs' => [], 'showHeader' => true])
+@props(['title' => null, 'description' => null, 'breadcrumbs' => [], 'showHeader' => true])
 
 <div class="flex min-h-full flex-col">
     @if ($showHeader)

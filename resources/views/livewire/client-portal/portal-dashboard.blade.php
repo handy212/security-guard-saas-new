@@ -1,5 +1,10 @@
 <div>
-    <x-page-shell title="Service overview" description="Live visibility into guard coverage, patrols, incidents, and approved reports." :show-header="true">
+    <x-page-shell :show-header="false">
+
+        <x-portal-page-header
+            title="Service overview"
+            description="Live visibility into guard coverage, patrols, incidents, and approved reports."
+        />
 
         <div class="kpi-grid">
             <x-stat-card compact label="Shifts" :value="$stats['shifts']" icon="schedules" />

@@ -144,6 +144,10 @@
         @apply bg-accent-50 text-accent-600 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:rounded-r before:bg-accent-500;
     }
 
+    .nav-link-highlight:not(.nav-link-active) {
+        @apply border border-accent-200/80 bg-accent-50/50 text-accent-700 hover:bg-accent-50;
+    }
+
     .nav-sublink {
         @apply block rounded-md py-1.5 pl-2 pr-2 text-sm text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-800;
     }
