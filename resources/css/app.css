@@ -145,7 +145,7 @@
     }
 
     .nav-link-highlight:not(.nav-link-active) {
-        @apply border border-accent-200/80 bg-accent-50/50 text-accent-700 hover:bg-accent-50;
+        @apply border border-accent-100 bg-accent-50/50 text-accent-700 hover:bg-accent-50;
     }
 
     .nav-sublink {
