@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Livewire\Clients\ClientIndex;
-use App\Livewire\Equipment\EquipmentIndex;
+use App\Livewire\Assets\AssetIndex;
 use App\Livewire\Guards\GuardProfile;
 use App\Livewire\Guards\GuardIndex;
 use App\Livewire\Incidents\IncidentIndex;
-use App\Livewire\Shifts\ScheduleBoard;
+use App\Livewire\Scheduling\ScheduleIndex;
 use App\Livewire\Sites\SiteIndex;
 use App\Livewire\Visitors\VisitorLogIndex;
 use App\Models\ClientAccount;
@@ -33,6 +33,7 @@ class AdminCrudTest extends TestCase
         parent::setUp();
         $this->seed();
         $this->admin = User::where('email', 'admin@demo.test')->first();
+        app()->instance('currentTenant', $this->admin->tenant);
     }
 
     public function test_admin_pages_load_with_page_titles(): void
@@ -42,7 +43,8 @@ class AdminCrudTest extends TestCase
             '/guards',
             '/clients',
             '/sites',
-            '/equipment',
+            '/assets',
+            '/assets/list',
             '/incidents',
             '/schedules',
             '/compliance',
@@ -160,7 +162,7 @@ class AdminCrudTest extends TestCase
     public function test_equipment_crud_via_livewire(): void
     {
         Livewire::actingAs($this->admin)
-            ->test(EquipmentIndex::class)
+            ->test(AssetIndex::class)
             ->call('openCreate')
             ->set('form.name', 'Radio Unit')
             ->set('form.asset_tag', 'RAD-99')
@@ -171,7 +173,7 @@ class AdminCrudTest extends TestCase
         $this->assertNotNull($asset);
 
         Livewire::actingAs($this->admin)
-            ->test(EquipmentIndex::class)
+            ->test(AssetIndex::class)
             ->call('delete', $asset->id);
 
         $this->assertDatabaseMissing('equipment_assets', ['id' => $asset->id]);
@@ -203,7 +205,7 @@ class AdminCrudTest extends TestCase
         $site = Site::first();
 
         Livewire::actingAs($this->admin)
-            ->test(ScheduleBoard::class)
+            ->test(ScheduleIndex::class)
             ->assertSet('showForm', false)
             ->call('openForm')
             ->assertSet('showForm', true)
@@ -216,6 +218,43 @@ class AdminCrudTest extends TestCase
             ->assertSet('showForm', false);
 
         $this->assertDatabaseHas('shifts', ['title' => 'Night patrol']);
+    }
+
+    public function test_unverified_guard_assignment_shows_error(): void
+    {
+        $client = ClientAccount::first();
+        $site = Site::first();
+
+        $unverified = Guard::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'first_name' => 'Unverified',
+            'last_name' => 'Officer',
+            'employee_number' => 'G-UV-01',
+            'status' => 'active',
+            'verification_status' => 'pending',
+        ]);
+
+        $shift = Shift::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'client_account_id' => $client->id,
+            'site_id' => $site->id,
+            'title' => 'Test shift',
+            'starts_at' => now()->addDay()->setTime(8, 0),
+            'ends_at' => now()->addDay()->setTime(16, 0),
+            'required_guards' => 1,
+            'status' => 'open',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(ScheduleIndex::class)
+            ->set('pendingGuard.'.$shift->id, $unverified->id)
+            ->call('assignGuard', $shift->id)
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseMissing('shift_assignments', [
+            'shift_id' => $shift->id,
+            'guard_id' => $unverified->id,
+        ]);
     }
 
     public function test_visitor_check_in_drawer(): void

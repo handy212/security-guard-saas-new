@@ -8,12 +8,24 @@
         ]"
     >
         <x-slot:actions>
-            @if ($guard->verification_status === 'verified' && $guard->activeVerificationToken())
-                <a href="{{ route('guards.id-card', $guard) }}" class="btn-secondary">Download ID card</a>
+            @if ($idCardEligibility['can_download'])
+                <x-button variant="secondary" :href="route('guards.id-card', $guard)" title="Download printable CR80 ID card (PDF)">
+                    Download ID card
+                </x-button>
+            @elseif ($idCardEligibility['action'] === 'regenerate')
+                <x-button variant="secondary" wire:click="setTab('verification')" title="{{ $idCardEligibility['message'] }}">
+                    Set up ID card
+                </x-button>
+            @elseif ($idCardEligibility['action'] === 'verification')
+                <x-button variant="secondary" wire:click="setTab('verification')" title="{{ $idCardEligibility['message'] }}">
+                    Verify for ID card
+                </x-button>
             @else
-                <span class="btn-secondary cursor-not-allowed opacity-50" title="Verify the guard first">Download ID card</span>
+                <x-button variant="secondary" type="button" disabled class="cursor-not-allowed opacity-60" title="{{ $idCardEligibility['message'] }}">
+                    Download ID card
+                </x-button>
             @endif
-            <a href="{{ route('guards.index') }}" class="btn-secondary">Back to roster</a>
+            <x-button variant="secondary" :href="route('guards.index')">Back to roster</x-button>
         </x-slot:actions>
 
         @error('verification')
@@ -294,10 +306,47 @@
                             <x-button wire:click="regenerateToken" variant="secondary" size="sm" class="mt-3">Regenerate QR</x-button>
                         </div>
                     @else
-                        <x-empty-state title="No active token" description="Regenerate to issue a new QR code." />
+                        <x-empty-state title="No active token" description="Regenerate to issue a new QR code for verification and the ID card." />
                         <div class="mt-2 text-center">
                             <x-button wire:click="regenerateToken" size="sm">Regenerate QR</x-button>
                         </div>
+                    @endif
+                </x-section-card>
+
+                <x-section-card title="ID card" class="lg:col-span-2">
+                    @if ($idCardEligibility['can_download'])
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="space-y-2 text-sm text-zinc-600">
+                                <p>Printable <strong>CR80</strong> security ID card (credit-card size). The PDF has two pages — front and back — for double-sided printing.</p>
+                                <ul class="list-inside list-disc text-xs text-zinc-500">
+                                    <li>Front: photo, name, role, employee ID</li>
+                                    <li>Back: emergency contacts, company details, verification QR</li>
+                                </ul>
+                                @unless ($guard->photo_path)
+                                    <p class="text-xs text-amber-700">No photo on file — the card will use initials until a photo is uploaded.</p>
+                                @endunless
+                            </div>
+                            <div class="flex shrink-0 flex-col gap-2">
+                                <x-button :href="route('guards.id-card', $guard)">
+                                    Download ID card (PDF)
+                                </x-button>
+                                <p class="text-center text-[11px] text-zinc-400">Opens as a PDF download</p>
+                            </div>
+                        </div>
+                    @else
+                        <x-empty-state
+                            compact
+                            :title="$idCardEligibility['action'] === 'regenerate' ? 'QR token required' : 'ID card not available'"
+                            :description="$idCardEligibility['message']"
+                        >
+                            <x-slot:actions>
+                                @if ($idCardEligibility['action'] === 'regenerate')
+                                    <x-button wire:click="regenerateToken" size="sm">Regenerate QR</x-button>
+                                @elseif ($idCardEligibility['action'] === 'verification')
+                                    <x-button wire:click="markVerified" size="sm" :disabled="! $checklist['ready']">Mark verified</x-button>
+                                @endif
+                            </x-slot:actions>
+                        </x-empty-state>
                     @endif
                 </x-section-card>
             </div>

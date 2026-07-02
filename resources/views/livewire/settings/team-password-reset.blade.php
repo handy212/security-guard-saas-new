@@ -2,7 +2,14 @@
     <x-page-shell title="Team passwords" description="Reset passwords when a team member forgets their login.">
         <x-settings-nav />
 
-        <div class="rounded-xl border border-zinc-200 bg-white">
+        <div class="stat-grid">
+            <x-stat-card compact label="Team members" :value="$users->count()" icon="users" />
+            <x-stat-card compact label="Admins" :value="$users->filter(fn ($u) => $u->hasRole('admin'))->count()" icon="plan" tone="info" />
+            <x-stat-card compact label="Selected" :value="$selectedUserId ? '1' : '0'" icon="check" />
+            <x-stat-card compact label="Tenant" :value="auth()->user()->tenant?->name ?? '—'" icon="billing" />
+        </div>
+
+        <div class="card-surface overflow-hidden">
             <ul class="divide-y divide-zinc-100">
                 @forelse ($users as $user)
                     <li class="px-4 py-3" wire:key="team-user-{{ $user->id }}">

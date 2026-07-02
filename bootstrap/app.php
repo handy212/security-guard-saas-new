@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('guardops:analytics-snapshot')->dailyAt('01:00');
         $schedule->command('guardops:compliance-expiry')->dailyAt('07:00');
         $schedule->command('guardops:missed-patrols')->everyFifteenMinutes();
+        $schedule->command('guardops:detect-idle-guards')->everyFiveMinutes();
+        $schedule->command('guardops:deliver-client-reports')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {

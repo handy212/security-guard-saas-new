@@ -13,32 +13,32 @@
         </x-form-card>
 
         <x-data-table title="Active subscriptions">
-            <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Event</th>
-                    <th class="px-3 py-2">URL</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2">Last delivered</th>
-                    <th class="px-3 py-2 text-right">Actions</th>
+                    <x-table.th>Event</x-table.th>
+                    <x-table.th>URL</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th>Last delivered</x-table.th>
+                    <x-table.th align="right">Actions</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($subscriptions as $subscription)
-                    <tr class="table-row-hover">
-                        <td class="px-3 py-2 font-medium text-zinc-900">{{ $subscription->event }}</td>
-                        <td class="px-3 py-2 max-w-xs truncate text-zinc-600">{{ $subscription->target_url }}</td>
-                        <td class="px-3 py-2">
-                            <x-badge :status="$subscription->is_active ? 'active' : 'inactive'" />
-                        </td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $subscription->last_delivered_at?->format('M j, H:i') ?? '—' }}</td>
-                        <td class="px-3 py-2 text-right">
-                            <button wire:click="toggle({{ $subscription->id }})" class="btn-link">
+                    <tr class="table-row-hover" wire:key="webhook-{{ $subscription->id }}">
+                        <x-table.td><span class="font-medium text-zinc-900">{{ $subscription->event }}</span></x-table.td>
+                        <x-table.td muted class="max-w-xs truncate">{{ $subscription->target_url }}</x-table.td>
+                        <x-table.td><x-badge :status="$subscription->is_active ? 'active' : 'inactive'" /></x-table.td>
+                        <x-table.td muted>{{ $subscription->last_delivered_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                        <x-table.td align="right">
+                            <button wire:click="toggle({{ $subscription->id }})" class="table-action">
                                 {{ $subscription->is_active ? 'Pause' : 'Activate' }}
                             </button>
-                        </td>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-3 py-8"><x-empty-state title="No webhooks" description="Add a webhook subscription above." /></td></tr>
+                    <x-table.empty colspan="5">
+                        <x-empty-state title="No webhooks" description="Add a webhook subscription above." />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>

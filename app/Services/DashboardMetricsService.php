@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\AttendanceLog;
+use App\Models\DailyActivityReport;
 use App\Models\Guard;
+use App\Models\GuardIdleAlert;
 use App\Models\Incident;
 use App\Models\PatrolSession;
 use App\Models\Shift;
@@ -39,39 +41,68 @@ class DashboardMetricsService
         $patrolRate = $this->patrolCompletionRate($tenantId);
         $verifiedGuards = Guard::where('tenant_id', $tenantId)->where('verification_status', 'verified')->count();
         $sites = Site::where('tenant_id', $tenantId)->where('status', 'active')->count();
+        $pendingReports = DailyActivityReport::where('tenant_id', $tenantId)
+            ->whereNotIn('status', ['approved', 'rejected'])
+            ->count();
+        $totalReports = DailyActivityReport::where('tenant_id', $tenantId)->count();
+        $idleAlerts = GuardIdleAlert::where('tenant_id', $tenantId)->whereNull('resolved_at')->count();
+        $activeTours = PatrolSession::where('tenant_id', $tenantId)
+            ->whereDate('started_at', today())
+            ->where('status', 'in_progress')
+            ->count();
+        $completedTours = PatrolSession::where('tenant_id', $tenantId)
+            ->whereDate('started_at', today())
+            ->where('status', 'completed')
+            ->count();
 
         return [
             [
-                'key' => 'guards',
-                'label' => 'Guards on duty',
-                'value' => $onDuty,
-                'hint' => "{$activeGuards} active · {$verifiedGuards} verified",
-                'tone' => 'default',
-                'href' => '/guards',
-            ],
-            [
-                'key' => 'shifts',
-                'label' => "Today's shifts",
-                'value' => $todayShifts,
-                'hint' => $sites.' active sites',
-                'tone' => 'info',
-                'href' => '/schedules',
+                'key' => 'reports',
+                'label' => 'Reports',
+                'value' => $totalReports,
+                'hint' => $pendingReports ? "Pending {$pendingReports}" : 'All reviewed',
+                'tone' => $pendingReports > 0 ? 'warning' : 'default',
+                'href' => '/reports/daily',
             ],
             [
                 'key' => 'incidents',
-                'label' => 'Open incidents',
+                'label' => 'Incidents',
                 'value' => $openIncidents,
-                'hint' => $openIncidents ? 'Needs attention' : 'All clear',
+                'hint' => $openIncidents ? "Open {$openIncidents}" : 'All clear',
                 'tone' => $openIncidents > 0 ? 'warning' : 'success',
                 'href' => '/incidents',
             ],
             [
                 'key' => 'patrols',
-                'label' => 'Patrol completion',
-                'value' => $patrolRate.'%',
-                'hint' => 'Today',
+                'label' => 'Tours',
+                'value' => $activeTours + $completedTours,
+                'hint' => "Completed {$completedTours}",
                 'tone' => $patrolRate >= 80 ? 'success' : ($patrolRate >= 50 ? 'warning' : 'danger'),
                 'href' => '/patrols',
+            ],
+            [
+                'key' => 'guards',
+                'label' => 'On duty',
+                'value' => $onDuty,
+                'hint' => "{$activeGuards} active guards",
+                'tone' => 'info',
+                'href' => '/guards',
+            ],
+            [
+                'key' => 'shifts',
+                'label' => 'Shifts',
+                'value' => $todayShifts,
+                'hint' => $sites.' active sites',
+                'tone' => 'default',
+                'href' => '/schedules',
+            ],
+            [
+                'key' => 'alerts',
+                'label' => 'Alerts',
+                'value' => $openSos + $idleAlerts,
+                'hint' => $openSos ? "SOS {$openSos}" : ($idleAlerts ? "Idle {$idleAlerts}" : 'None'),
+                'tone' => ($openSos + $idleAlerts) > 0 ? 'danger' : 'success',
+                'href' => '/dispatch',
             ],
             [
                 'key' => 'sos',
@@ -164,6 +195,32 @@ class DashboardMetricsService
             'incidents' => $incidents,
             'patrols' => $patrols,
             'missed_patrols' => $missedPatrols,
+        ];
+    }
+
+    public function incidentBreakdown(int $tenantId, int $days = 7): Collection
+    {
+        return Incident::query()
+            ->where('tenant_id', $tenantId)
+            ->where('created_at', '>=', now()->subDays($days - 1)->startOfDay())
+            ->selectRaw("COALESCE(NULLIF(incident_type, ''), NULLIF(type, ''), 'Other') as category, COUNT(*) as total")
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->pluck('total', 'category');
+    }
+
+    public function activitySummary(int $tenantId): array
+    {
+        $from = now()->subDays(6)->startOfDay();
+
+        return [
+            'site_tours' => PatrolSession::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'tasks' => \App\Models\TaskSubmission::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'checklists' => \App\Models\CheckpointScan::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'check_ins' => AttendanceLog::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'passdowns' => \App\Models\PassdownLog::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'idle_alerts' => GuardIdleAlert::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
         ];
     }
 }

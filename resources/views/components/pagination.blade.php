@@ -1,20 +1,20 @@
 @if ($paginator->hasPages())
-    <nav role="navigation" aria-label="Pagination" class="flex items-center justify-between gap-4 px-2 py-3">
-        <div class="text-sm text-slate-500">
+    <nav role="navigation" aria-label="Pagination" class="flex flex-col gap-3 px-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-sm text-zinc-500">
             @if ($paginator->firstItem())
-                Showing {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }} of {{ $paginator->total() }}
+                Showing <span class="font-medium text-zinc-700">{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</span> of <span class="font-medium text-zinc-700">{{ $paginator->total() }}</span>
             @endif
         </div>
         <div class="flex gap-1">
             @if ($paginator->onFirstPage())
-                <span class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-400">Prev</span>
+                <span class="pagination-btn pagination-btn-disabled">Prev</span>
             @else
-                <button wire:click="previousPage('{{ $paginator->getPageName() }}')" class="btn-secondary !px-3 !py-1.5 text-sm">Prev</button>
+                <button wire:click="previousPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Prev</button>
             @endif
             @if ($paginator->hasMorePages())
-                <button wire:click="nextPage('{{ $paginator->getPageName() }}')" class="btn-secondary !px-3 !py-1.5 text-sm">Next</button>
+                <button wire:click="nextPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Next</button>
             @else
-                <span class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-400">Next</span>
+                <span class="pagination-btn pagination-btn-disabled">Next</span>
             @endif
         </div>
     </nav>

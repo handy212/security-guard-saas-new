@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Compliance Dashboard" description="Certifications and documents nearing expiry.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Expiring certs" :value="$items->count()" icon="guards" :tone="$items->count() ? 'warning' : 'success'" />
             <x-stat-card compact label="Expiring docs" :value="$documents->count()" icon="billing" :tone="$documents->count() ? 'warning' : 'success'" />
             <x-stat-card compact label="Certifications" :value="$certifications->count()" icon="check" />
@@ -10,22 +10,22 @@
         <div class="grid gap-4 lg:grid-cols-2">
             <x-section-card title="Expiring certifications">
                 <x-data-table>
-                    <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+                    <x-table.head>
                         <tr>
-                            <th class="px-3 py-2">Guard</th>
-                            <th class="px-3 py-2">Certification</th>
-                            <th class="px-3 py-2">Expires</th>
+                            <x-table.th>Guard</x-table.th>
+                            <x-table.th>Certification</x-table.th>
+                            <x-table.th>Expires</x-table.th>
                         </tr>
-                    </thead>
+                    </x-table.head>
                     <tbody>
                         @forelse($items as $item)
-                            <tr class="table-row-hover">
-                                <td class="px-3 py-2">{{ $item->assignedGuard?->full_name ?? '—' }}</td>
-                                <td class="px-3 py-2 text-zinc-600">{{ $item->name }}</td>
-                                <td class="px-3 py-2 text-xs text-zinc-500">{{ $item->expires_at?->format('M j, Y') }}</td>
+                            <tr class="table-row-hover" wire:key="cert-{{ $item->id }}">
+                                <x-table.td>{{ $item->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                <x-table.td muted>{{ $item->name }}</x-table.td>
+                                <x-table.td mono>{{ $item->expires_at?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-3 py-6"><x-empty-state title="No expiring certs" /></td></tr>
+                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring certs" /></x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
@@ -33,22 +33,22 @@
 
             <x-section-card title="Expiring documents">
                 <x-data-table>
-                    <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+                    <x-table.head>
                         <tr>
-                            <th class="px-3 py-2">Guard</th>
-                            <th class="px-3 py-2">Type</th>
-                            <th class="px-3 py-2">Expires</th>
+                            <x-table.th>Guard</x-table.th>
+                            <x-table.th>Type</x-table.th>
+                            <x-table.th>Expires</x-table.th>
                         </tr>
-                    </thead>
+                    </x-table.head>
                     <tbody>
                         @forelse($documents as $doc)
-                            <tr class="table-row-hover">
-                                <td class="px-3 py-2">{{ $doc->assignedGuard?->full_name ?? '—' }}</td>
-                                <td class="px-3 py-2 text-zinc-600">{{ $doc->type }}</td>
-                                <td class="px-3 py-2 text-xs text-zinc-500">{{ $doc->expires_at?->format('M j, Y') }}</td>
+                            <tr class="table-row-hover" wire:key="doc-{{ $doc->id }}">
+                                <x-table.td>{{ $doc->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                <x-table.td muted>{{ $doc->type }}</x-table.td>
+                                <x-table.td mono>{{ $doc->expires_at?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-3 py-6"><x-empty-state title="No expiring documents" /></td></tr>
+                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring documents" /></x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>

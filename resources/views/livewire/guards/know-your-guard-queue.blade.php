@@ -1,32 +1,41 @@
 <div>
     <x-page-shell title="Know Your Guard" description="Guards awaiting vetting and verification.">
+        <div class="stat-grid">
+            <x-stat-card compact label="Pending review" :value="$guards->total()" icon="guards" :tone="$guards->total() ? 'warning' : 'success'" />
+            <x-stat-card compact label="On this page" :value="$guards->count()" icon="users" />
+            <x-stat-card compact label="Page" :value="$guards->currentPage().' / '.$guards->lastPage()" icon="plan" />
+            <x-stat-card compact label="Status" value="Awaiting KYG" icon="incidents" tone="info" />
+        </div>
+
         <x-page-toolbar search="search" searchPlaceholder="Search pending guards…" />
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Guard</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2">KYG</th>
-                    <th class="px-3 py-2 text-right">Action</th>
+                    <x-table.th>Guard</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th>KYG</x-table.th>
+                    <x-table.th align="right">Action</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($guards as $guard)
-                    <tr class="table-row-hover">
-                        <td class="px-3 py-2 font-medium text-zinc-900">{{ $guard->full_name }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$guard->status" /></td>
-                        <td class="px-3 py-2"><x-badge :status="$guard->verification_status" /></td>
-                        <td class="px-3 py-2 text-right">
-                            <a href="{{ route('guards.show', $guard) }}?tab=verification" class="btn-link">Review</a>
-                        </td>
+                    <tr class="table-row-hover" wire:key="kyg-{{ $guard->id }}">
+                        <x-table.td><span class="font-medium text-zinc-900">{{ $guard->full_name }}</span></x-table.td>
+                        <x-table.td><x-badge :status="$guard->status" /></x-table.td>
+                        <x-table.td><x-badge :status="$guard->verification_status" /></x-table.td>
+                        <x-table.td align="right">
+                            <x-button size="sm" variant="secondary" :href="route('guards.show', $guard).'?tab=verification'">Review</x-button>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-3 py-8"><x-empty-state title="All clear" description="No guards pending Know Your Guard verification." /></td></tr>
+                    <x-table.empty colspan="4">
+                        <x-empty-state title="All clear" description="No guards pending Know Your Guard verification." />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>
 
-        {{ $guards->links('components.pagination') }}
+        <x-pagination :paginator="$guards" />
     </x-page-shell>
 </div>

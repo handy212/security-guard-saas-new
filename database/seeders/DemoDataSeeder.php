@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\ClientAccount;
+use App\Models\EquipmentAsset;
 use App\Models\Guard;
 use App\Models\NotificationTemplate;
 use App\Models\PatrolCheckpoint;
@@ -44,6 +45,7 @@ class DemoDataSeeder extends Seeder
                     'patrols', 'gps', 'dispatch', 'equipment', 'visitors',
                     'clients', 'client_portal', 'billing', 'payroll',
                     'compliance', 'analytics', 'marketplace',
+                    'custom_reports', 'messenger', 'estimates', 'workforce', 'passdown', 'sms_alerts', 'webhooks', 'api',
                 ],
                 'status' => 'active',
             ]
@@ -56,7 +58,7 @@ class DemoDataSeeder extends Seeder
                 'annual_price' => 990,
                 'max_guards' => 25,
                 'max_sites' => 10,
-                'features' => ['guards', 'schedules', 'patrols', 'gps', 'incidents', 'clients'],
+                'features' => ['guards', 'schedules', 'patrols', 'gps', 'incidents', 'clients', 'attendance'],
                 'status' => 'active',
             ]
         );
@@ -167,11 +169,55 @@ class DemoDataSeeder extends Seeder
             ['sos.raised', 'SOS ALERT', '{{message}} — respond immediately in the control room.'],
             ['compliance.expiring', 'Compliance expiry notice', '{{count}} certifications/documents expire soon for {{tenant}}.'],
             ['patrol.missed', 'Missed patrol alert', '{{count}} patrol session(s) were marked missed for {{tenant}}.'],
+            ['geofence.violation', 'Geofence violation', '{{guard}} left {{site}} ({{distance}}m outside boundary).'],
+            ['guard.idle', 'Guard idle alert', '{{guard}} inactive for {{minutes}} minutes at {{site}}.'],
+            ['shift.confirmed', 'Shift confirmed', '{{guard}} confirmed shift starting {{shift}}.'],
+            ['report.delivered', 'Report delivered', 'A new custom report is available in your portal.'],
         ] as [$code, $subject, $body]) {
             NotificationTemplate::firstOrCreate(
                 ['tenant_id' => $tenant->id, 'code' => $code, 'channel' => 'email'],
                 ['subject' => $subject, 'body' => $body, 'is_active' => true]
             );
         }
+
+        $radioCategory = \App\Models\AssetCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Radios'],
+            ['type' => 'serialized', 'description' => 'Two-way radios and accessories', 'is_active' => true]
+        );
+        $uniformCategory = \App\Models\AssetCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Uniforms'],
+            ['type' => 'consumable', 'min_stock_level' => 10, 'description' => 'Uniforms and PPE', 'is_active' => true]
+        );
+        $vendor = \App\Models\AssetVendor::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'SecureGear Supply'],
+            ['contact_name' => 'Alex Morgan', 'email' => 'orders@securegear.test', 'phone' => '+233 20 000 0000', 'status' => 'active']
+        );
+        EquipmentAsset::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'asset_tag' => 'RAD-001'],
+            [
+                'asset_category_id' => $radioCategory->id,
+                'vendor_id' => $vendor->id,
+                'name' => 'Motorola DP4400',
+                'category' => 'Radios',
+                'serial_number' => 'MOT-4400-001',
+                'purchase_cost' => 450,
+                'purchase_date' => now()->subMonths(6)->toDateString(),
+                'warranty_expires_at' => now()->addYear()->toDateString(),
+                'status' => 'available',
+                'condition' => 'good',
+            ]
+        );
+        EquipmentAsset::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Duty shirts (L)'],
+            [
+                'asset_category_id' => $uniformCategory->id,
+                'vendor_id' => $vendor->id,
+                'category' => 'Uniforms',
+                'quantity_on_hand' => 24,
+                'purchase_cost' => 35,
+                'status' => 'available',
+                'condition' => 'good',
+            ]
+        );
     }
 }

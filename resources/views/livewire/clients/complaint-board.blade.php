@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Client Complaints" description="Log, track, and resolve client service issues.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="incidents" :tone="$stats['open'] ? 'warning' : 'success'" />
             <x-stat-card compact label="High priority" :value="$stats['high']" icon="dispatch" :tone="$stats['high'] ? 'danger' : 'default'" />
@@ -40,39 +40,41 @@
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
-                    <button type="button" wire:click="clearFilters" class="text-xs font-medium text-zinc-500 hover:text-zinc-800">Clear filters</button>
+                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
                 @endif
             </x-slot:controls>
         </x-page-toolbar>
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Subject</th>
-                    <th class="hidden px-3 py-2 md:table-cell">Client</th>
-                    <th class="px-3 py-2">Priority</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2 text-right">Actions</th>
+                    <x-table.th>Subject</x-table.th>
+                    <x-table.th responsive="md">Client</x-table.th>
+                    <x-table.th>Priority</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th align="right">Actions</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($complaints as $complaint)
                     <tr class="table-row-hover" wire:key="complaint-{{ $complaint->id }}">
-                        <td class="px-3 py-2">
+                        <x-table.td>
                             <div class="font-medium text-zinc-900">{{ $complaint->subject }}</div>
                             <div class="mt-0.5 line-clamp-1 text-xs text-zinc-500">{{ $complaint->description }}</div>
-                        </td>
-                        <td class="hidden px-3 py-2 text-zinc-600 md:table-cell">{{ $complaint->clientAccount?->name ?? '—' }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$complaint->priority" /></td>
-                        <td class="px-3 py-2"><x-badge :status="$complaint->status" /></td>
-                        <td class="px-3 py-2 text-right">
+                        </x-table.td>
+                        <x-table.td responsive="md" muted>{{ $complaint->clientAccount?->name ?? '—' }}</x-table.td>
+                        <x-table.td><x-badge :status="$complaint->priority" /></x-table.td>
+                        <x-table.td><x-badge :status="$complaint->status" /></x-table.td>
+                        <x-table.td align="right">
                             @if($complaint->status !== 'resolved')
                                 <x-button size="sm" wire:click="resolve({{ $complaint->id }})">Resolve</x-button>
                             @endif
-                        </td>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-3 py-8"><x-empty-state :title="$hasActiveFilters ? 'No matching complaints' : 'No complaints'" /></td></tr>
+                    <x-table.empty colspan="5">
+                        <x-empty-state compact :title="$hasActiveFilters ? 'No matching complaints' : 'No complaints'" />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>

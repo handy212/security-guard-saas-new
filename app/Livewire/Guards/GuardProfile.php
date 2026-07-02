@@ -244,6 +244,7 @@ class GuardProfile extends Component
             : null;
         $verifyUrl = $token ? $verification->verificationUrl($token) : null;
         $qrSvg = $verifyUrl ? $qr->svg($verifyUrl, 100) : null;
+        $idCardEligibility = $verification->idCardEligibility($this->guard);
 
         return view('livewire.guards.guard-profile', [
             'branches' => Branch::orderBy('name')->get(),
@@ -253,6 +254,7 @@ class GuardProfile extends Component
             'qrSvg' => $qrSvg,
             'lastScannedAt' => $token?->last_scanned_at,
             'tokenExpiresAt' => $token?->expires_at,
+            'idCardEligibility' => $idCardEligibility,
         ])->layout('layouts.app');
     }
 

@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Scheduling & Rostering" description="Create shifts, assign guards, and manage deployments.">
         <x-slot:actions>
-            <a href="{{ route('schedules.calendar') }}" class="btn-secondary">Calendar</a>
+            <x-button variant="secondary" :href="route('schedules.calendar')">Calendar</x-button>
             <x-button wire:click="openForm">Create shift</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Shifts" :value="$scheduleStats['total']" icon="shifts" />
             <x-stat-card compact label="Open" :value="$scheduleStats['open']" icon="pause" :tone="$scheduleStats['open'] > 0 ? 'warning' : 'default'" />
             <x-stat-card compact label="Staffed" :value="$scheduleStats['staffed']" icon="check" tone="success" />
@@ -14,16 +14,13 @@
 
         <x-page-toolbar>
             <x-slot:controls>
-                <label class="flex items-center gap-2 text-sm text-zinc-600">
-                    <span>Date</span>
-                    <input wire:model.live="date" type="date" class="form-input !w-auto text-sm" />
-                </label>
+                <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
             </x-slot:controls>
         </x-page-toolbar>
 
         <div class="grid gap-3">
             @forelse($shifts as $shift)
-                <div class="rounded-lg border border-zinc-200 bg-white p-3" wire:key="shift-{{ $shift->id }}">
+                <div class="card-surface p-3" wire:key="shift-{{ $shift->id }}">
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <div class="flex items-center gap-2">
@@ -70,7 +67,7 @@
 
     @if ($showForm)
         <x-drawer title="Create shift" width="lg">
-            <form wire:submit="save" class="grid gap-3 sm:grid-cols-2">
+            <x-drawer-form wire:submit="save" submit-label="Create shift">
                 <x-select wire:model="form.client_account_id" label="Client">
                     <option value="">Client</option>
                     @foreach ($clients as $client)
@@ -88,11 +85,7 @@
                 <x-input wire:model="form.ends_at" label="Ends" type="datetime-local" />
                 <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" />
                 <x-input wire:model="form.billing_rate" label="Billing rate" type="number" step="0.01" />
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Create</x-button>
-                    <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
-                </div>
-            </form>
+            </x-drawer-form>
         </x-drawer>
     @endif
 </div>

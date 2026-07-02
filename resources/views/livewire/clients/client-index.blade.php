@@ -4,7 +4,7 @@
             <x-button wire:click="openCreate">Add client</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$clientStats['total']" icon="users" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $search === ''" />
             <x-stat-card compact label="Active" :value="$clientStats['active']" icon="check" tone="success" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active'" />
             <x-stat-card compact label="With email" :value="$clientStats['with_email']" icon="billing" tone="info" class="text-left" />
@@ -17,44 +17,47 @@
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
-                    <button type="button" wire:click="clearFilters" class="text-xs font-medium text-zinc-500 hover:text-zinc-800">Clear filters</button>
+                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
                 @endif
             </x-slot:controls>
         </x-page-toolbar>
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Name</th>
-                    <th class="hidden px-3 py-2 md:table-cell">Email</th>
-                    <th class="hidden px-3 py-2 lg:table-cell">Phone</th>
-                    <th class="px-3 py-2">Rate</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2 text-right w-12"></th>
+                    <x-table.th>Name</x-table.th>
+                    <x-table.th responsive="md">Email</x-table.th>
+                    <x-table.th responsive="lg">Phone</x-table.th>
+                    <x-table.th>Rate</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th align="right" class="w-12"></x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($clients as $client)
                     <tr class="table-row-hover" wire:key="client-{{ $client->id }}">
-                        <td class="px-3 py-2 font-medium">{{ $client->name }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 md:table-cell">{{ $client->email ?: '—' }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 lg:table-cell">{{ $client->phone ?: '—' }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $client->default_hourly_rate ? number_format($client->default_hourly_rate, 2) : '—' }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$client->status" /></td>
-                        <td class="px-3 py-2 text-right">
-                            <div x-data="{ open: false }" class="relative inline-block text-left">
-                                <button type="button" @click="open = !open" class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100" aria-label="Actions">
-                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4z"/></svg>
-                                </button>
-                                <div x-show="open" x-cloak @click.outside="open = false" class="absolute right-0 z-10 mt-1 w-32 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
-                                    <button type="button" wire:click="edit({{ $client->id }})" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50">Edit</button>
-                                    <button type="button" wire:click="delete({{ $client->id }})" wire:confirm="Delete this client?" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">Delete</button>
-                                </div>
-                            </div>
-                        </td>
+                        <x-table.td class="font-medium">{{ $client->name }}</x-table.td>
+                        <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
+                        <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>
+                        <x-table.td muted>{{ $client->default_hourly_rate ? number_format($client->default_hourly_rate, 2) : '—' }}</x-table.td>
+                        <x-table.td><x-badge :status="$client->status" /></x-table.td>
+                        <x-table.td align="right">
+                            <x-row-menu>
+                                <x-row-menu-item wire:click="edit({{ $client->id }})">Edit</x-row-menu-item>
+                                <x-row-menu-item wire:click="delete({{ $client->id }})" wire:confirm="Delete this client?" danger>Delete</x-row-menu-item>
+                            </x-row-menu>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-3 py-8"><x-empty-state :title="$hasActiveFilters ? 'No matching clients' : 'No clients yet'" /></td></tr>
+                    <x-table.empty colspan="6">
+                        <x-empty-state compact :title="$hasActiveFilters ? 'No matching clients' : 'No clients yet'">
+                            <x-slot:actions>
+                                @if (! $hasActiveFilters)
+                                    <x-button size="sm" wire:click="openCreate">Add client</x-button>
+                                @endif
+                            </x-slot:actions>
+                        </x-empty-state>
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>
@@ -64,17 +67,13 @@
 
     @if ($showForm)
         <x-drawer :title="$editingId ? 'Edit client' : 'Add client'" width="lg">
-            <form wire:submit="save" class="grid gap-3 sm:grid-cols-2">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update client' : 'Create client'">
                 <x-input wire:model="form.name" label="Client name" class="sm:col-span-2" />
                 <x-input wire:model="form.industry" label="Industry" />
                 <x-input wire:model="form.email" label="Email" type="email" />
                 <x-input wire:model="form.phone" label="Phone" />
                 <x-input wire:model="form.default_hourly_rate" label="Default hourly rate" type="number" step="0.01" />
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">{{ $editingId ? 'Update' : 'Create' }}</x-button>
-                    <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
-                </div>
-            </form>
+            </x-drawer-form>
         </x-drawer>
     @endif
 </div>

@@ -31,11 +31,17 @@ class GuardIdCardController extends Controller
         $guard->loadMissing(['tenant', 'branch']);
 
         $token = $guard->activeVerificationToken();
-        abort_unless($token, 403, 'No active verification token. Regenerate QR from the guard profile.');
+        abort_unless($token, 403, 'No active verification token. Regenerate the QR code from the guard profile Verification tab.');
+
         $verifyUrl = $verification->verificationUrl($token);
         $qrSize = 128;
         $qrPath = $qr->pngFile($verifyUrl, $qrSize);
-        $qrPng = $qrPath === null ? $qr->pngBase64($verifyUrl, $qrSize) : null;
+        $qrPng = ($qrPath === null) ? $qr->pngBase64($verifyUrl, $qrSize) : null;
+
+        if ($qrPath === null && ($qrPng === null || $qrPng === '')) {
+            abort(503, 'Could not generate the QR code for this ID card. Ensure the PHP GD extension is installed and enabled.');
+        }
+
         $photoPath = $photos->pngFile($guard->photo_path);
 
         try {
@@ -59,7 +65,7 @@ class GuardIdCardController extends Controller
                     'chroot' => realpath(base_path()) ?: base_path(),
                 ]);
 
-            $filename = 'guard-id-'.($guard->employee_number ?: $guard->id).'.pdf';
+            $filename = 'guard-id-'.preg_replace('/[^a-zA-Z0-9._-]+/', '-', $guard->employee_number ?: (string) $guard->id).'.pdf';
 
             return $pdf->download($filename);
         } finally {

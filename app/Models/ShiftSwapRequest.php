@@ -22,4 +22,9 @@ class ShiftSwapRequest extends Model
     {
         return $this->belongsTo(Guard::class, 'replacement_guard_id');
     }
+
+    public function shiftAssignment()
+    {
+        return $this->belongsTo(ShiftAssignment::class);
+    }
 }

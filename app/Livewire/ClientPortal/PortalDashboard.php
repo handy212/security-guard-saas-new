@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ClientPortal;
 
+use App\Models\CustomReportSubmission;
 use App\Models\DailyActivityReport;
 use App\Models\Incident;
 use App\Models\PatrolSession;
@@ -25,12 +26,14 @@ class PortalDashboard extends Component
         $reportQuery = DailyActivityReport::with('site')->where('tenant_id', $tenantId)->where('status', 'approved');
         $incidentQuery = Incident::with('site')->where('tenant_id', $tenantId)->whereIn('status', ['submitted', 'approved', 'closed']);
         $patrolQuery = PatrolSession::with(['route', 'assignedGuard'])->where('tenant_id', $tenantId);
+        $customReportQuery = CustomReportSubmission::with(['site', 'template'])->where('tenant_id', $tenantId)->whereIn('status', ['submitted', 'delivered']);
 
         if ($clientId) {
             $shiftQuery->where('client_account_id', $clientId);
             $reportQuery->whereHas('site', fn ($q) => $q->where('client_account_id', $clientId));
             $incidentQuery->whereHas('site', fn ($q) => $q->where('client_account_id', $clientId));
             $patrolQuery->whereHas('route.site', fn ($q) => $q->where('client_account_id', $clientId));
+            $customReportQuery->whereHas('site', fn ($q) => $q->where('client_account_id', $clientId));
         }
 
         $shiftCount = Shift::where('tenant_id', $tenantId)
@@ -42,11 +45,13 @@ class PortalDashboard extends Component
             'reports' => $reportQuery->latest()->limit(10)->get(),
             'incidents' => $incidentQuery->latest()->limit(10)->get(),
             'patrols' => $patrolQuery->latest()->limit(10)->get(),
+            'customReports' => $customReportQuery->latest()->limit(10)->get(),
             'stats' => [
                 'shifts' => $shiftCount,
                 'reports' => (clone $reportQuery)->count(),
                 'incidents' => (clone $incidentQuery)->count(),
                 'patrols' => (clone $patrolQuery)->where('status', 'completed')->count(),
+                'custom_reports' => (clone $customReportQuery)->count(),
             ],
         ])->layout('layouts.portal', [
             'portalTenantName' => TenantContext::current()?->name,

@@ -5,7 +5,7 @@
             <x-button wire:click="openCreateTenant">Add tenant</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card
                 compact
                 label="Total"
@@ -57,37 +57,37 @@
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
-                    <button type="button" wire:click="clearFilters" class="text-xs font-medium text-zinc-500 hover:text-zinc-800">
+                    <button type="button" wire:click="clearFilters" class="table-action">
                         Clear filters
                     </button>
                 @endif
-                <select wire:model.live="planFilter" class="form-input w-auto min-w-[8.5rem] text-sm">
+                <x-filter-select wire:model.live="planFilter">
                     <option value="all">All plans</option>
                     <option value="none">No plan</option>
                     @foreach ($plans as $plan)
                         <option value="{{ $plan->id }}">{{ $plan->name }}</option>
                     @endforeach
-                </select>
-                <select wire:model.live="sortBy" class="form-input w-auto min-w-[8.5rem] text-sm">
+                </x-filter-select>
+                <x-filter-select wire:model.live="sortBy">
                     <option value="name">Sort: Name</option>
                     <option value="created">Sort: Newest</option>
                     <option value="users">Sort: Users</option>
-                </select>
+                </x-filter-select>
             </x-slot:controls>
         </x-page-toolbar>
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Company</th>
-                    <th class="hidden px-3 py-2 md:table-cell">Subdomain</th>
-                    <th class="hidden px-3 py-2 lg:table-cell">Users</th>
-                    <th class="hidden px-3 py-2 lg:table-cell">Guards</th>
-                    <th class="hidden px-3 py-2 xl:table-cell">Plan</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2 text-right w-12"></th>
+                    <x-table.th>Company</x-table.th>
+                    <x-table.th responsive="md">Subdomain</x-table.th>
+                    <x-table.th responsive="lg">Users</x-table.th>
+                    <x-table.th responsive="lg">Guards</x-table.th>
+                    <x-table.th responsive="xl">Plan</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th align="right" class="w-12"></x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($tenants as $tenant)
                     @php
@@ -101,7 +101,7 @@
                         wire:key="tenant-{{ $tenant->id }}"
                         wire:click="openViewTenant({{ $tenant->id }})"
                     >
-                        <td class="px-3 py-2">
+                        <x-table.td>
                             <div class="flex items-center gap-3">
                                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-600">
                                     {{ strtoupper(substr($tenant->name, 0, 2)) }}
@@ -116,56 +116,40 @@
                                     @endif
                                 </div>
                             </div>
-                        </td>
-                        <td class="hidden px-3 py-2 text-zinc-600 md:table-cell">{{ $tenant->subdomain ?: '—' }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 lg:table-cell">{{ number_format($tenant->users_count) }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 lg:table-cell">{{ number_format($tenant->guards_count) }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 xl:table-cell">{{ $planName ?? '—' }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$tenant->status ?? 'active'" /></td>
-                        <td class="px-3 py-2 text-right" wire:click.stop>
-                            <div x-data="{ open: false }" class="relative inline-block text-left">
-                                <button
-                                    type="button"
-                                    @click="open = !open"
-                                    class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-                                    aria-label="Tenant actions"
-                                >
-                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4z"/></svg>
-                                </button>
-                                <div
-                                    x-show="open"
-                                    x-cloak
-                                    @click.outside="open = false"
-                                    class="absolute right-0 z-10 mt-1 w-40 origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
-                                >
-                                    <button type="button" wire:click="openViewTenant({{ $tenant->id }})" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50">View details</button>
-                                    @if (($tenant->status ?? 'active') === 'active')
-                                        <button type="button" wire:click="enterTenant({{ $tenant->id }})" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50">Open tenant app</button>
-                                    @endif
-                                    <button type="button" wire:click="openEditTenant({{ $tenant->id }})" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50">Edit</button>
-                                    @if (($tenant->status ?? 'active') === 'active')
-                                        <button type="button" wire:click="updateTenantStatus({{ $tenant->id }}, 'suspended')" wire:confirm="Suspend this tenant?" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">Suspend</button>
-                                    @else
-                                        <button type="button" wire:click="updateTenantStatus({{ $tenant->id }}, 'active')" wire:confirm="Activate this tenant?" @click="open = false" class="block w-full px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50">Activate</button>
-                                    @endif
-                                </div>
-                            </div>
-                        </td>
+                        </x-table.td>
+                        <x-table.td responsive="md" muted>{{ $tenant->subdomain ?: '—' }}</x-table.td>
+                        <x-table.td responsive="lg" muted>{{ number_format($tenant->users_count) }}</x-table.td>
+                        <x-table.td responsive="lg" muted>{{ number_format($tenant->guards_count) }}</x-table.td>
+                        <x-table.td responsive="xl" muted>{{ $planName ?? '—' }}</x-table.td>
+                        <x-table.td><x-badge :status="$tenant->status ?? 'active'" /></x-table.td>
+                        <x-table.td align="right" wire:click.stop>
+                            <x-row-menu>
+                                <x-row-menu-item wire:click="openViewTenant({{ $tenant->id }})">View details</x-row-menu-item>
+                                @if (($tenant->status ?? 'active') === 'active')
+                                    <x-row-menu-item wire:click="enterTenant({{ $tenant->id }})">Open tenant app</x-row-menu-item>
+                                @endif
+                                <x-row-menu-item wire:click="openEditTenant({{ $tenant->id }})">Edit</x-row-menu-item>
+                                @if (($tenant->status ?? 'active') === 'active')
+                                    <x-row-menu-item wire:click="updateTenantStatus({{ $tenant->id }}, 'suspended')" wire:confirm="Suspend this tenant?" danger>Suspend</x-row-menu-item>
+                                @else
+                                    <x-row-menu-item wire:click="updateTenantStatus({{ $tenant->id }}, 'active')" wire:confirm="Activate this tenant?">Activate</x-row-menu-item>
+                                @endif
+                            </x-row-menu>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" class="px-3 py-8">
-                            <x-empty-state
-                                :title="$hasActiveFilters ? 'No matching tenants' : 'No tenants yet'"
-                                :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Add your first security company.'"
-                            />
-                            @if (! $hasActiveFilters)
-                                <div class="mt-3 text-center">
+                    <x-table.empty colspan="7">
+                        <x-empty-state
+                            :title="$hasActiveFilters ? 'No matching tenants' : 'No tenants yet'"
+                            :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Add your first security company.'"
+                        >
+                            <x-slot:actions>
+                                @if (! $hasActiveFilters)
                                     <x-button wire:click="openCreateTenant" size="sm">Add tenant</x-button>
-                                </div>
-                            @endif
-                        </td>
-                    </tr>
+                                @endif
+                            </x-slot:actions>
+                        </x-empty-state>
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>
@@ -203,24 +187,26 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <button
+                    <x-button
                         type="button"
+                        size="sm"
+                        variant="secondary"
                         x-data="{ copied: false }"
                         @click="navigator.clipboard.writeText(@js($viewingTenant->slug)); copied = true; setTimeout(() => copied = false, 1500)"
-                        class="btn-secondary text-xs"
                         x-text="copied ? 'Copied!' : 'Copy slug'"
-                    ></button>
+                    />
                     @if ($viewingTenant->subdomain)
-                        <button
+                        <x-button
                             type="button"
+                            size="sm"
+                            variant="secondary"
                             x-data="{ copied: false }"
                             @click="navigator.clipboard.writeText(@js($viewingTenant->subdomain)); copied = true; setTimeout(() => copied = false, 1500)"
-                            class="btn-secondary text-xs"
                             x-text="copied ? 'Copied!' : 'Copy subdomain'"
-                        ></button>
+                        />
                     @endif
                     @if ($viewingTenant->subscription)
-                        <a href="{{ route('saas.subscriptions', ['search' => $viewingTenant->slug]) }}" class="btn-secondary text-xs">View subscription</a>
+                        <x-button size="sm" variant="secondary" :href="route('saas.subscriptions', ['search' => $viewingTenant->slug])">View subscription</x-button>
                     @endif
                 </div>
 
@@ -322,7 +308,7 @@
             width="lg"
             closeMethod="closeDrawer"
         >
-            <form wire:submit="saveTenant" class="space-y-4">
+            <x-drawer-form wire:submit="saveTenant" :submit-label="$editingTenantId ? 'Save tenant' : 'Create tenant'">
                 <x-input wire:model.live="tenantForm.name" label="Company name" placeholder="Acme Security Ltd" />
                 <div class="grid gap-3 sm:grid-cols-2">
                     <x-input wire:model="tenantForm.slug" label="Slug" placeholder="acme-security" />
@@ -330,40 +316,27 @@
                 </div>
                 <x-input wire:model="tenantForm.domain" label="Custom domain" placeholder="security.acme.com" />
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-zinc-700">Status</label>
-                        <select wire:model="tenantForm.status" class="form-input w-full">
-                            <option value="active">Active</option>
-                            <option value="suspended">Suspended</option>
-                        </select>
-                    </div>
+                    <x-select wire:model="tenantForm.status" label="Status">
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
+                    </x-select>
                     <x-input wire:model="tenantForm.trial_ends_at" label="Trial ends" type="date" />
                 </div>
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-zinc-700">Subscription plan</label>
-                    <select wire:model="tenantForm.plan_id" class="form-input w-full">
-                        <option value="">No plan yet</option>
-                        @foreach ($plans as $plan)
-                            <option value="{{ $plan->id }}">{{ $plan->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-select wire:model="tenantForm.plan_id" label="Subscription plan">
+                    <option value="">No plan yet</option>
+                    @foreach ($plans as $plan)
+                        <option value="{{ $plan->id }}">{{ $plan->name }}</option>
+                    @endforeach
+                </x-select>
                 @if (! $editingTenantId)
-                    <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 space-y-3">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 space-y-3 sm:col-span-2">
                         <p class="text-sm font-medium text-zinc-900">Company admin (optional)</p>
                         <x-input wire:model="tenantForm.admin_name" label="Name" placeholder="Jane Admin" />
                         <x-input wire:model="tenantForm.admin_email" label="Email" type="email" placeholder="admin@acme.test" />
                         <x-input wire:model="tenantForm.admin_password" label="Password" type="password" hint="Min. 12 characters when inviting an admin." />
                     </div>
                 @endif
-                <div class="flex gap-2 border-t border-zinc-100 pt-4">
-                    <x-button type="submit" wire:loading.attr="disabled" wire:target="saveTenant">
-                        <span wire:loading.remove wire:target="saveTenant">{{ $editingTenantId ? 'Save' : 'Create' }}</span>
-                        <span wire:loading wire:target="saveTenant">Saving…</span>
-                    </x-button>
-                    <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
-                </div>
-            </form>
+            </x-drawer-form>
         </x-drawer>
     @endif
 </div>

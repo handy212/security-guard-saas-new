@@ -4,17 +4,14 @@
         :description="now()->format('l, F j').' · Operations overview'"
     >
         <x-slot:actions>
-            <a href="{{ route('schedules.index') }}" class="btn-secondary">Schedules</a>
-            <a href="{{ route('incidents.index') }}" class="btn-primary">Report incident</a>
+            <x-button variant="secondary" :href="route('schedules.index')">Schedules</x-button>
+            <x-button :href="route('incidents.index')">Report incident</x-button>
         </x-slot:actions>
 
         @php
             $sosKpi = collect($kpis)->firstWhere('key', 'sos');
             $hasUrgent = ($sosKpi['value'] ?? 0) > 0;
-            $onDuty = collect($kpis)->firstWhere('key', 'guards');
-            $shifts = collect($kpis)->firstWhere('key', 'shifts');
-            $incidents = collect($kpis)->firstWhere('key', 'incidents');
-            $patrols = collect($kpis)->firstWhere('key', 'patrols');
+            $displayKpis = collect($kpis)->whereIn('key', ['reports', 'incidents', 'patrols', 'guards', 'shifts', 'alerts']);
         @endphp
 
         @if ($hasUrgent)
@@ -33,22 +30,42 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-4 gap-2">
-            <x-stat-card compact :label="$onDuty['label']" :value="$onDuty['value']" :hint="$onDuty['hint']" icon="guards" :href="url($onDuty['href'])" />
-            <x-stat-card compact :label="$shifts['label']" :value="$shifts['value']" :hint="$shifts['hint']" icon="shifts" tone="info" :href="url($shifts['href'])" />
-            <x-stat-card compact :label="$incidents['label']" :value="$incidents['value']" :hint="$incidents['hint']" :tone="$incidents['tone']" icon="incidents" :href="url($incidents['href'])" />
-            <x-stat-card compact :label="$patrols['label']" :value="$patrols['value']" :hint="$patrols['hint']" :tone="$patrols['tone']" icon="chart" :href="url($patrols['href'])" />
+        <div class="kpi-grid">
+            @foreach ($displayKpis as $kpi)
+                <x-stat-card
+                    stacked
+                    :label="$kpi['label']"
+                    :value="$kpi['value']"
+                    :hint="$kpi['hint']"
+                    :tone="$kpi['tone']"
+                    :icon="match($kpi['key']) {
+                        'reports' => 'plan',
+                        'incidents' => 'incidents',
+                        'patrols' => 'patrols',
+                        'guards' => 'guards',
+                        'shifts' => 'shifts',
+                        'alerts' => 'dispatch',
+                        default => 'chart',
+                    }"
+                    :href="url($kpi['href'])"
+                />
+            @endforeach
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
+            <x-dashboard.incident-bar-chart :series="$incidentTrend" />
         </div>
 
         <div class="grid gap-4 lg:grid-cols-3">
             <div class="space-y-4 lg:col-span-2">
-                <section class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                <section class="card-surface overflow-hidden">
                     <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                         <div>
                             <h2 class="text-sm font-semibold text-zinc-900">Today's schedule</h2>
                             <p class="text-xs text-zinc-500">{{ $todayShifts->count() }} shift{{ $todayShifts->count() === 1 ? '' : 's' }} scheduled</p>
                         </div>
-                        <a href="{{ route('schedules.index') }}" class="text-xs font-medium text-zinc-600 hover:text-zinc-900">View all</a>
+                        <a href="{{ route('schedules.index') }}" class="text-xs font-medium text-accent-600 hover:text-accent-700">View all</a>
                     </div>
 
                     @forelse ($todayShifts as $shift)
@@ -71,18 +88,18 @@
                     @empty
                         <div class="px-4 py-10 text-center">
                             <p class="text-sm text-zinc-500">No shifts scheduled for today.</p>
-                            <a href="{{ route('schedules.index') }}" class="mt-2 inline-block text-sm font-medium text-zinc-700 hover:underline">Create a shift</a>
+                            <a href="{{ route('schedules.index') }}" class="mt-2 inline-block text-sm font-medium text-accent-600 hover:underline">Create a shift</a>
                         </div>
                     @endforelse
                 </section>
 
-                <section class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                <section class="card-surface overflow-hidden">
                     <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                         <div>
                             <h2 class="text-sm font-semibold text-zinc-900">Recent incidents</h2>
                             <p class="text-xs text-zinc-500">{{ $weekSummary['incidents'] }} this week</p>
                         </div>
-                        <a href="{{ route('incidents.index') }}" class="text-xs font-medium text-zinc-600 hover:text-zinc-900">View all</a>
+                        <a href="{{ route('incidents.index') }}" class="text-xs font-medium text-accent-600 hover:text-accent-700">View all</a>
                     </div>
 
                     @forelse ($incidentsList as $incident)
@@ -116,7 +133,9 @@
                     <x-onboarding-checklist :steps="$onboardingSteps" :progress="$onboardingProgress" />
                 @endif
 
-                <section class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                <x-dashboard.activity-summary :summary="$activitySummary" />
+
+                <section class="card-surface overflow-hidden">
                     <div class="border-b border-zinc-100 px-4 py-3">
                         <h2 class="text-sm font-semibold text-zinc-900">On duty now</h2>
                         <p class="text-xs text-zinc-500">Guards currently clocked in</p>
@@ -124,7 +143,7 @@
 
                     @forelse ($attendance as $log)
                         <div class="flex items-center gap-3 border-t border-zinc-100 px-4 py-3 first:border-t-0">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-xs font-semibold text-accent-700">
                                 {{ strtoupper(substr($log->assignedGuard?->first_name ?? 'G', 0, 1)) }}
                             </div>
                             <div class="min-w-0 flex-1">
@@ -135,12 +154,12 @@
                     @empty
                         <div class="px-4 py-8 text-center">
                             <p class="text-sm text-zinc-500">Nobody clocked in.</p>
-                            <a href="{{ route('attendance.timekeeping') }}" class="mt-2 inline-block text-xs font-medium text-zinc-600 hover:underline">Timekeeping</a>
+                            <a href="{{ route('schedules.attendance') }}" class="mt-2 inline-block text-xs font-medium text-accent-600 hover:underline">Attendance</a>
                         </div>
                     @endforelse
                 </section>
 
-                <section class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <section class="card-surface p-4">
                     <h2 class="text-sm font-semibold text-zinc-900">Quick actions</h2>
                     <div class="mt-3 grid grid-cols-2 gap-2">
                         <a href="{{ route('guards.index') }}" class="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-xs font-medium text-zinc-700 transition hover:bg-zinc-50">Guards</a>
@@ -150,13 +169,10 @@
                     </div>
                 </section>
 
-                <section class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                    <h2 class="text-sm font-semibold text-zinc-900">7-day activity</h2>
+                <section class="card-surface p-4">
+                    <h2 class="text-sm font-semibold text-zinc-900">7-day patrol activity</h2>
                     <p class="mb-4 text-xs text-zinc-500">{{ $weekSummary['patrols'] }} patrols · {{ $weekSummary['missed_patrols'] }} missed</p>
-                    <x-dashboard.trend-chart :series="$patrolTrend" color="zinc" />
-                    <div class="mt-4 border-t border-zinc-100 pt-4">
-                        <x-dashboard.trend-chart title="Incidents" :series="$incidentTrend" color="amber" />
-                    </div>
+                    <x-dashboard.trend-chart :series="$patrolTrend" color="accent" />
                 </section>
             </div>
         </div>

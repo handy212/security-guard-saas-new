@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Billing & Invoices" description="Generate client invoices and export PDFs.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$stats['total']" icon="billing" />
             <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
             <x-stat-card compact label="Sent" :value="$stats['sent']" icon="check" tone="info" />
@@ -8,15 +8,17 @@
         </div>
 
         <x-form-card title="Generate monthly invoice">
-            <form wire:submit="generate" class="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <x-select wire:model="clientId" label="Client" class="flex-1">
+            <form wire:submit="generate" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                <x-select wire:model="clientId" label="Client" class="sm:col-span-2 lg:col-span-1">
                     <option value="">Select client</option>
                     @foreach($clients as $client)
                         <option value="{{ $client->id }}">{{ $client->name }}</option>
                     @endforeach
                 </x-select>
-                <x-input wire:model="month" label="Month" type="month" class="sm:w-48" />
-                <x-button type="submit">Generate invoice</x-button>
+                <x-input wire:model="month" label="Month" type="month" />
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <x-button type="submit" class="w-full sm:w-auto">Generate invoice</x-button>
+                </div>
             </form>
         </x-form-card>
 
@@ -27,35 +29,40 @@
         </x-page-toolbar>
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Invoice #</th>
-                    <th class="px-3 py-2">Client</th>
-                    <th class="hidden px-3 py-2 md:table-cell">Date</th>
-                    <th class="px-3 py-2">Total</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2 text-right">Actions</th>
+                    <x-table.th>Invoice #</x-table.th>
+                    <x-table.th>Client</x-table.th>
+                    <x-table.th responsive="md">Date</x-table.th>
+                    <x-table.th>Total</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th align="right">Actions</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($invoices as $invoice)
                     <tr class="table-row-hover" wire:key="inv-{{ $invoice->id }}">
-                        <td class="px-3 py-2 font-mono font-medium">{{ $invoice->invoice_number }}</td>
-                        <td class="px-3 py-2">{{ $invoice->clientAccount?->name }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 md:table-cell">{{ $invoice->invoice_date }}</td>
-                        <td class="px-3 py-2 font-semibold">{{ number_format($invoice->grand_total, 2) }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$invoice->status" /></td>
-                        <td class="px-3 py-2 text-right">
-                            <div class="flex justify-end gap-2">
-                                <button type="button" wire:click="exportPdf({{ $invoice->id }})" class="btn-link text-xs">PDF</button>
+                        <x-table.td class="font-mono font-medium">{{ $invoice->invoice_number }}</x-table.td>
+                        <x-table.td>{{ $invoice->clientAccount?->name }}</x-table.td>
+                        <x-table.td responsive="md" muted>{{ $invoice->invoice_date }}</x-table.td>
+                        <x-table.td class="font-semibold">{{ number_format($invoice->grand_total, 2) }}</x-table.td>
+                        <x-table.td><x-badge :status="$invoice->status" /></x-table.td>
+                        <x-table.td align="right">
+                            <div class="table-inline-actions">
+                                @if($invoice->status !== 'paid')
+                                    <button type="button" wire:click="recordPayment({{ $invoice->id }})" class="table-action">Record payment</button>
+                                @endif
+                                <button type="button" wire:click="exportPdf({{ $invoice->id }})" class="table-action">PDF</button>
                                 @if ($invoice->status === 'draft')
-                                    <button type="button" wire:click="markSent({{ $invoice->id }})" class="btn-link text-xs">Mark sent</button>
+                                    <button type="button" wire:click="markSent({{ $invoice->id }})" class="table-action">Mark sent</button>
                                 @endif
                             </div>
-                        </td>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-3 py-8"><x-empty-state title="No invoices" description="Generate a monthly invoice for a client to get started." /></td></tr>
+                    <x-table.empty colspan="6">
+                        <x-empty-state compact title="No invoices" description="Generate a monthly invoice for a client to get started." />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>

@@ -41,7 +41,18 @@ This document tracks delivery of the commercial/enterprise roadmap for GuardOps 
 - [x] Isolated client portal layout (`layouts/portal.blade.php`)
 - [x] Client-scoped portal data + approval workflow
 
-## UX polish ✅
+## UX refresh (2026)
+
+- [x] Hybrid sidebar navigation with pinned items, icons, and rebalanced groups
+- [x] Design tokens: accent color, card radius, shadows, responsive stat grids
+- [x] Unified app header with search, notifications, and user menu
+- [x] Command palette (Cmd/Ctrl+K), sidebar collapse, nav favorites
+- [x] Dashboard KPI expansion, Chart.js incident charts, activity summary
+- [x] Client portal layout fixes; messenger and guard PWA accent alignment
+- [x] CRUD component system: table primitives, row-menu, drawer-form, filter-select, file-input, form validation wiring
+- [x] Design archive: `docs/design-archive/securguard-dashboard-mockup.html`
+
+## UX polish (legacy) ✅
 
 - [x] Design tokens in `app.css` (brand colors, typography)
 - [x] Dashboard onboarding checklist with progress bar

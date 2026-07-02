@@ -20,6 +20,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         '606a39d89246991a373564698c2d8383' => __DIR__ . '/..' . '/symfony/polyfill-php85/bootstrap.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
+        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '72243e5536b63e298acb6476f01f1aff' => __DIR__ . '/..' . '/thecodingmachine/safe/lib/special_cases.php',
         '3f648889e687f31c52f949ba8a9d0873' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apache.php',
         'eeb4581d958421a4244aaa4167c6a575' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apcu.php',
@@ -100,7 +101,6 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         '4af1dca6db8c527c6eed27bff85ff0e5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/yaz.php',
         'fe43ca06499ac37bc2dedd823af71eb5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zip.php',
         '356736db98a6834f0a886b8d509b0ecd' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zlib.php',
-        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '47e1160838b5e5a10346ac4084b58c23' => __DIR__ . '/..' . '/laravel/prompts/src/helpers.php',
         '972fda704d680a3a53c68e34e193cb22' => __DIR__ . '/..' . '/react/promise-timer/src/functions_include.php',
         '0174385c3be07e86008907d06ee66531' => __DIR__ . '/..' . '/sabberworm/php-css-parser/src/Rule/Rule.php',
@@ -181,6 +181,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
             'Stancl\\VirtualColumn\\' => 21,
             'Stancl\\Tenancy\\' => 15,
             'Stancl\\JobPipeline\\' => 19,
+            'SpomkyLabs\\Pki\\' => 15,
             'Spatie\\Permission\\' => 18,
             'Spatie\\LaravelPackageTools\\' => 27,
             'Spatie\\Activitylog\\' => 19,
@@ -221,6 +222,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         array (
             'Monolog\\' => 8,
             'Mockery\\' => 8,
+            'Minishlink\\WebPush\\' => 19,
             'Matrix\\' => 7,
             'Masterminds\\' => 12,
             'Maatwebsite\\Excel\\' => 18,
@@ -238,6 +240,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
             'Laravel\\Sanctum\\' => 16,
             'Laravel\\Reverb\\' => 15,
             'Laravel\\Prompts\\' => 16,
+        ),
+        'J' =>
+        array (
+            'Jose\\Component\\' => 15,
         ),
         'I' =>
         array (
@@ -290,6 +296,7 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         'B' =>
         array (
             'Brick\\Math\\' => 11,
+            'Base64Url\\' => 10,
             'Barryvdh\\DomPDF\\' => 16,
             'BaconQrCode\\' => 12,
         ),
@@ -452,6 +459,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         array (
             0 => __DIR__ . '/..' . '/stancl/jobpipeline/src',
         ),
+        'SpomkyLabs\\Pki\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spomky-labs/pki-framework/src',
+        ),
         'Spatie\\Permission\\' =>
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-permission/src',
@@ -566,6 +577,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         array (
             0 => __DIR__ . '/..' . '/mockery/mockery/library/Mockery',
         ),
+        'Minishlink\\WebPush\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/minishlink/web-push/src',
+        ),
         'Matrix\\' =>
         array (
             0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
@@ -622,6 +637,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         'Laravel\\Prompts\\' =>
         array (
             0 => __DIR__ . '/..' . '/laravel/prompts/src',
+        ),
+        'Jose\\Component\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/web-token/jwt-library',
         ),
         'Illuminate\\Support\\' =>
         array (
@@ -751,6 +770,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         'Brick\\Math\\' =>
         array (
             0 => __DIR__ . '/..' . '/brick/math/src',
+        ),
+        'Base64Url\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spomky-labs/base64url/src',
         ),
         'Barryvdh\\DomPDF\\' =>
         array (

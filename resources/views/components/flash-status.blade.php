@@ -9,8 +9,14 @@
     ];
 @endphp
 
+@if(session('error'))
+    <div {{ $attributes->merge(['class' => 'mb-4 border px-4 py-3 text-sm '.($styles['error'])]) }} role="alert">
+        {{ session('error') }}
+    </div>
+@endif
+
 @if(session('status'))
-    <div {{ $attributes->merge(['class' => 'border px-4 py-3 text-sm '.($styles[$type] ?? $styles['info'])]) }} role="alert">
+    <div {{ $attributes->merge(['class' => 'mb-4 border px-4 py-3 text-sm '.($styles[$type] ?? $styles['info'])]) }} role="alert">
         <div class="flex items-center gap-2">
             @if($type === 'success')
                 <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

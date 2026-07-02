@@ -33,7 +33,7 @@ class LivewireUpdateTest extends TestCase
             $decoded = html_entity_decode($encodedSnapshot, ENT_QUOTES);
             $payload = json_decode($decoded, true);
 
-            if (($payload['memo']['name'] ?? null) === 'shifts.schedule-board') {
+            if (($payload['memo']['name'] ?? null) === 'scheduling.schedule-index') {
                 $snapshot = $decoded;
                 break;
             }

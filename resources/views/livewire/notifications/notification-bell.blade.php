@@ -2,7 +2,7 @@
     <button
         type="button"
         @click="open = !open"
-        class="relative rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+        class="relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
         aria-label="Notifications"
     >
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,7 +37,7 @@
                     <a
                         href="{{ $data['action_url'] ?? '#' }}"
                         wire:click="markRead('{{ $notification->id }}')"
-                        class="block px-3 py-2.5 transition hover:bg-zinc-50 {{ $isUnread ? 'bg-sky-50/50' : '' }}"
+                        class="block px-3 py-2.5 transition hover:bg-zinc-50 {{ $isUnread ? 'bg-accent-50/50' : '' }}"
                     >
                         <p class="text-sm font-medium text-zinc-900">{{ $data['title'] ?? 'Notification' }}</p>
                         @if (! empty($data['body']))

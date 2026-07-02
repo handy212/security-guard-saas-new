@@ -107,9 +107,9 @@
                     <img
                         src="{{ $photoPath }}"
                         alt=""
-                        width="96"
-                        height="201"
-                        style="display:block;margin:0;padding:0;border:0"
+                        width="{{ $photoWidth }}"
+                        height="{{ $photoHeight }}"
+                        style="display:block;margin:0;padding:0;border:0;width:{{ $photoWidth }}pt;height:{{ $photoHeight }}pt"
                     >
                 @else
                     <table width="72" height="151" cellpadding="0" cellspacing="0" style="border:1.5pt solid #111;border-bottom:0">
@@ -199,6 +199,9 @@
                                     style="width:52pt;height:52pt;border:0.5pt solid #cccccc;"
                                 >
                                 <div class="qr-caption">Scan to verify</div>
+                                @if ($verifyHost)
+                                    <div style="font-size:4.5pt;color:#666;margin-top:1pt;text-align:center">{{ $verifyHost }}</div>
+                                @endif
                             @endif
                         </td>
                     </tr>

@@ -1,11 +1,19 @@
-@props(['title', 'description' => null, 'action' => null, 'actionLabel' => null])
+@props(['title', 'description' => null, 'action' => null, 'actionLabel' => null, 'compact' => false])
 
-<div {{ $attributes->merge(['class' => 'rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 px-4 py-8 text-center']) }}>
+<div {{ $attributes->class([
+    'rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 text-center',
+    $compact ? 'px-3 py-6' : 'px-4 py-8',
+]) }}>
     <h3 class="text-sm font-semibold text-zinc-900">{{ $title }}</h3>
     @if ($description)
         <p class="mt-1 text-xs text-zinc-500">{{ $description }}</p>
     @endif
-    @if ($action && $actionLabel)
+
+    @if (isset($actions))
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {{ $actions }}
+        </div>
+    @elseif ($action && $actionLabel)
         <a href="{{ $action }}" class="btn-primary mt-3 inline-flex">{{ $actionLabel }}</a>
     @endif
 </div>

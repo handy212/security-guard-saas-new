@@ -13,7 +13,7 @@
             @endif
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Guards used" :value="$usage['guards']['used'].' / '.$usage['guards']['max']" icon="guards" :tone="$usage['guards']['used'] >= $usage['guards']['max'] ? 'danger' : 'default'" />
             <x-stat-card compact label="Sites used" :value="$usage['sites']['used'].' / '.$usage['sites']['max']" icon="sites" tone="info" />
             <x-stat-card compact label="Plans available" :value="$plans->count()" icon="plan" />
@@ -28,7 +28,7 @@
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @foreach($plans as $plan)
-                <div class="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-col card-surface p-5">
                     <h3 class="text-lg font-bold text-zinc-900">{{ $plan->name }}</h3>
                     <div class="mt-2 text-3xl font-black text-zinc-900">
                         {{ $currency === 'NGN' ? '₦' : ($currency === 'GHS' ? 'GH₵' : $currency.' ') }}{{ number_format($plan->monthly_price, 0) }}
@@ -43,9 +43,7 @@
                             @endforeach
                         @endif
                     </ul>
-                    <button wire:click="checkout({{ $plan->id }})" class="mt-4 w-full rounded-lg bg-zinc-900 py-2.5 text-sm font-medium text-white hover:bg-zinc-800">
-                        Pay with Paystack
-                    </button>
+                    <x-button wire:click="checkout({{ $plan->id }})" class="mt-4 w-full">Pay with Paystack</x-button>
                 </div>
             @endforeach
         </div>
