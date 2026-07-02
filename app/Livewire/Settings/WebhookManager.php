@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Settings;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\WebhookSubscription;
 use App\Services\WebhookDeliveryService;
 use App\Support\TenantContext;
@@ -9,17 +10,21 @@ use Livewire\Component;
 
 class WebhookManager extends Component
 {
+    use AuthorizesModuleAccess;
+
     public string $event = 'incident.submitted';
 
     public string $targetUrl = '';
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('settings.manage'), 403);
+        $this->authorizePolicy('viewAny', WebhookSubscription::class);
     }
 
     public function create(): void
     {
+        $this->authorize('create', WebhookSubscription::class);
+
         $this->validate([
             'event' => 'required|string|max:120',
             'targetUrl' => 'required|url|max:255',
@@ -39,6 +44,7 @@ class WebhookManager extends Component
 
     public function toggle(WebhookSubscription $subscription): void
     {
+        $this->authorize('delete', $subscription);
         $subscription->update(['is_active' => ! $subscription->is_active]);
     }
 

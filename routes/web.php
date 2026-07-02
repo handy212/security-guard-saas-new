@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardVerificationController;
@@ -83,13 +84,15 @@ Route::get('/', HomeController::class)->name('home');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+    Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
+Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(function () {
     Route::get('/dashboard', Overview::class)->name('dashboard');
     Route::get('/clients', ClientIndex::class)->name('clients.index');
     Route::get('/sites', SiteIndex::class)->name('sites.index');
@@ -115,7 +118,10 @@ Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
     Route::get('/reports/templates', ReportTemplateBuilder::class)->name('reports.templates');
     Route::get('/tracking', LiveTracker::class)->name('tracking.live');
     Route::get('/dispatch', DispatcherBoard::class)->name('dispatch.control-room');
-    Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
+    Route::middleware('client.portal')->group(function () {
+        Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
+        Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
+    });
     Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
     Route::get('/billing/estimates', EstimateIndex::class)->name('billing.estimates');
     Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
@@ -136,7 +142,6 @@ Route::middleware(['auth', 'tenant', 'plan.feature'])->group(function () {
     Route::get('/assets/vendors', VendorIndex::class)->name('assets.vendors');
     Route::get('/assets/purchase-orders', PurchaseOrderIndex::class)->name('assets.purchase-orders');
     Route::get('/compliance', ComplianceDashboard::class)->name('compliance.dashboard');
-    Route::get('/client-portal/approvals', Approvals::class)->name('client-portal.approvals');
     Route::get('/mobile/offline-sync', OfflineSyncMonitor::class)->name('mobile.offline-sync');
     Route::middleware('platform')->group(function () {
         Route::redirect('/saas', '/saas/tenants')->name('saas');

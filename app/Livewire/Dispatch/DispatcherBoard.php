@@ -4,6 +4,7 @@ namespace App\Livewire\Dispatch;
 
 use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
@@ -18,7 +19,7 @@ use Livewire\WithFileUploads;
 
 class DispatcherBoard extends Component
 {
-    use HasFormDrawer, WithFileUploads;
+    use AuthorizesModuleAccess, HasFormDrawer, WithFileUploads;
 
     public string $search = '';
 
@@ -55,7 +56,7 @@ class DispatcherBoard extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('dispatch.manage'), 403);
+        $this->authorizePermission('dispatch.manage');
         $this->form['incident_date'] = now()->toDateString();
         $this->form['incident_time'] = now()->format('H:i');
     }

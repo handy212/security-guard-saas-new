@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Scheduling;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\Guard;
@@ -16,7 +17,7 @@ use RuntimeException;
 
 class ScheduleIndex extends Component
 {
-    use HasFormDrawer;
+    use AuthorizesModuleAccess, HasFormDrawer;
 
     public string $date = '';
 
@@ -27,7 +28,7 @@ class ScheduleIndex extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('schedules.manage'), 403);
+        $this->authorizePolicy('viewAny', Shift::class);
         $this->date = today()->toDateString();
         $this->form['starts_at'] = today()->setHour(8)->format('Y-m-d\TH:i');
         $this->form['ends_at'] = today()->setHour(17)->format('Y-m-d\TH:i');

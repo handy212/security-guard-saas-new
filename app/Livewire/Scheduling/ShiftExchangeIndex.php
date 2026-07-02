@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Scheduling;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\ShiftSwapRequest;
 use App\Services\EnterpriseScheduleService;
 use App\Support\TenantContext;
@@ -9,6 +10,13 @@ use Livewire\Component;
 
 class ShiftExchangeIndex extends Component
 {
+    use AuthorizesModuleAccess;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('schedules.manage');
+    }
+
     public function approveSwap(int $swapId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
@@ -25,8 +33,6 @@ class ShiftExchangeIndex extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('schedules.manage'), 403);
-
         return view('livewire.scheduling.shift-exchange-index', [
             'swaps' => ShiftSwapRequest::with(['requestedByGuard', 'replacementGuard', 'shiftAssignment.shift.site'])
                 ->where('tenant_id', TenantContext::id())

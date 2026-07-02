@@ -3,6 +3,7 @@
 namespace App\Livewire\Assets;
 
 use App\Enums\AssetStatus;
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\AssetCategory;
 use App\Models\AssetVendor;
@@ -17,7 +18,7 @@ use Livewire\WithPagination;
 
 class AssetIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -49,6 +50,11 @@ class AssetIndex extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
     ];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', EquipmentAsset::class);
+    }
 
     public function updated($property): void
     {

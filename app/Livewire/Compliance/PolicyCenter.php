@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Compliance;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\DataRetentionPolicy;
 use App\Models\IncidentEscalationRule;
 use App\Models\Site;
@@ -11,11 +12,18 @@ use Livewire\Component;
 
 class PolicyCenter extends Component
 {
+    use AuthorizesModuleAccess;
+
     public array $escalationForm = ['incident_type' => '', 'severity' => 'high', 'notify_after_minutes' => 15, 'notify_client' => true];
 
     public array $retentionForm = ['record_type' => 'incidents', 'retention_days' => 365];
 
     public array $slaForm = ['site_id' => '', 'metric' => '', 'target_value' => '', 'frequency' => 'daily'];
+
+    public function mount(): void
+    {
+        $this->authorizePermission('compliance.manage');
+    }
 
     public function saveEscalation(): void
     {
@@ -50,8 +58,6 @@ class PolicyCenter extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('compliance.manage'), 403);
-
         return view('livewire.compliance.policy-center', [
             'escalations' => IncidentEscalationRule::latest()->get(),
             'retention' => DataRetentionPolicy::latest()->get(),

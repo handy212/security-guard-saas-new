@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\AttendanceLog;
 use App\Models\OfflineSyncBatch;
 use App\Models\PatrolPlaybackPoint;
+use App\Models\PatrolSession;
+use App\Models\ShiftAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -34,30 +37,17 @@ class OfflineSyncService
         $processed = [];
         $errors = [];
 
+        $guardId = $this->guardIdForBatch($batch, $user);
+
         foreach ($batch->payload as $item) {
             $type = $item['type'] ?? null;
 
             try {
                 match ($type) {
-                    'playback_point' => $this->processPlaybackPoint($batch, $item),
-                    'checkpoint_scan' => $this->patrol->scanCheckpoint([
-                        'patrol_session_id' => $item['patrol_session_id'],
-                        'checkpoint_code' => $item['checkpoint_code'],
-                        'latitude' => $item['latitude'],
-                        'longitude' => $item['longitude'],
-                        'notes' => $item['notes'] ?? null,
-                    ]),
-                    'clock_in' => $this->attendance->clockIn(
-                        (int) $item['shift_assignment_id'],
-                        (float) $item['latitude'],
-                        (float) $item['longitude'],
-                        (bool) ($item['enforce_geofence'] ?? false),
-                    ),
-                    'clock_out' => $this->attendance->clockOut(
-                        (int) $item['attendance_log_id'],
-                        (float) $item['latitude'],
-                        (float) $item['longitude'],
-                    ),
+                    'playback_point' => $this->processPlaybackPoint($batch, $item, $guardId),
+                    'checkpoint_scan' => $this->processCheckpointScan($batch, $item, $guardId),
+                    'clock_in' => $this->processClockIn($batch, $item, $guardId),
+                    'clock_out' => $this->processClockOut($batch, $item, $guardId),
                     'sos' => $user
                         ? $this->dispatch->raiseSos($user, [
                             'site_id' => $item['site_id'] ?? null,
@@ -83,8 +73,10 @@ class OfflineSyncService
         return $this->markProcessed($batch, ['processed' => $processed, 'errors' => $errors], $status);
     }
 
-    private function processPlaybackPoint(OfflineSyncBatch $batch, array $item): void
+    private function processPlaybackPoint(OfflineSyncBatch $batch, array $item, ?int $guardId): void
     {
+        $this->ownedPatrolSession($batch->tenant_id, (int) $item['patrol_session_id'], $guardId);
+
         PatrolPlaybackPoint::create([
             'tenant_id' => $batch->tenant_id,
             'patrol_session_id' => $item['patrol_session_id'],
@@ -92,6 +84,86 @@ class OfflineSyncService
             'longitude' => $item['longitude'],
             'recorded_at' => $item['recorded_at'] ?? now(),
         ]);
+    }
+
+    private function processCheckpointScan(OfflineSyncBatch $batch, array $item, ?int $guardId): void
+    {
+        $session = $this->ownedPatrolSession($batch->tenant_id, (int) $item['patrol_session_id'], $guardId);
+
+        $this->patrol->scanCheckpoint([
+            'patrol_session_id' => $session->id,
+            'checkpoint_code' => $item['checkpoint_code'],
+            'latitude' => $item['latitude'],
+            'longitude' => $item['longitude'],
+            'notes' => $item['notes'] ?? null,
+        ]);
+    }
+
+    private function processClockIn(OfflineSyncBatch $batch, array $item, ?int $guardId): void
+    {
+        $assignment = $this->ownedAssignment($batch->tenant_id, (int) $item['shift_assignment_id'], $guardId);
+
+        $this->attendance->clockIn(
+            $assignment->id,
+            (float) $item['latitude'],
+            (float) $item['longitude'],
+            (bool) ($item['enforce_geofence'] ?? false),
+        );
+    }
+
+    private function processClockOut(OfflineSyncBatch $batch, array $item, ?int $guardId): void
+    {
+        $log = $this->ownedAttendanceLog($batch->tenant_id, (int) $item['attendance_log_id'], $guardId);
+
+        $this->attendance->clockOut(
+            $log->id,
+            (float) $item['latitude'],
+            (float) $item['longitude'],
+        );
+    }
+
+    private function guardIdForBatch(OfflineSyncBatch $batch, ?User $user): ?int
+    {
+        return $user?->guardProfile?->id;
+    }
+
+    private function ownedAssignment(int $tenantId, int $assignmentId, ?int $guardId): ShiftAssignment
+    {
+        if (! $guardId) {
+            throw new RuntimeException('Guard profile is required for offline sync.');
+        }
+
+        return ShiftAssignment::query()
+            ->where('id', $assignmentId)
+            ->where('guard_id', $guardId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+    }
+
+    private function ownedAttendanceLog(int $tenantId, int $logId, ?int $guardId): AttendanceLog
+    {
+        if (! $guardId) {
+            throw new RuntimeException('Guard profile is required for offline sync.');
+        }
+
+        return AttendanceLog::query()
+            ->where('id', $logId)
+            ->where('guard_id', $guardId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+    }
+
+    private function ownedPatrolSession(int $tenantId, int $sessionId, ?int $guardId): PatrolSession
+    {
+        if (! $guardId) {
+            throw new RuntimeException('Guard profile is required for offline sync.');
+        }
+
+        return PatrolSession::query()
+            ->where('id', $sessionId)
+            ->where('guard_id', $guardId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
     }
 
     public function markProcessed(OfflineSyncBatch $batch, array $result, string $status = 'processed'): OfflineSyncBatch

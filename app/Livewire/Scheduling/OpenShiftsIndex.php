@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Scheduling;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\OpenShiftBid;
 use App\Services\EnterpriseScheduleService;
 use App\Services\SchedulingService;
@@ -10,6 +11,13 @@ use Livewire\Component;
 
 class OpenShiftsIndex extends Component
 {
+    use AuthorizesModuleAccess;
+
+    public function mount(): void
+    {
+        $this->authorizePermission('schedules.manage');
+    }
+
     public function approveBid(int $bidId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
@@ -19,7 +27,6 @@ class OpenShiftsIndex extends Component
 
     public function render(SchedulingService $scheduling)
     {
-        abort_unless(auth()->user()->can('schedules.manage'), 403);
         $tenantId = TenantContext::id();
         $openShifts = $scheduling->openShifts($tenantId, today()->toDateString());
 

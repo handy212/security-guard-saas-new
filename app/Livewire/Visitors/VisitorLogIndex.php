@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Visitors;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\Site;
 use App\Models\VisitorLog;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class VisitorLogIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -22,6 +23,11 @@ class VisitorLogIndex extends Component
     ];
 
     protected $queryString = ['search' => ['except' => ''], 'statusFilter' => ['except' => 'all', 'as' => 'status']];
+
+    public function mount(): void
+    {
+        $this->authorizePolicy('viewAny', VisitorLog::class);
+    }
 
     public function updated($property): void
     {
@@ -66,8 +72,6 @@ class VisitorLogIndex extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('visitors.manage'), 403);
-
         $tenantId = TenantContext::id();
         $base = VisitorLog::where('tenant_id', $tenantId);
 

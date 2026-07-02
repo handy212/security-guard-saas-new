@@ -2,13 +2,21 @@
 
 namespace App\Livewire\Patrols;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\VehiclePatrol;
 use App\Support\TenantContext;
 use Livewire\Component;
 
 class VehiclePatrolBoard extends Component
 {
+    use AuthorizesModuleAccess;
+
     public array $form = ['vehicle_number' => '', 'driver_name' => '', 'start_odometer' => '', 'end_odometer' => ''];
+
+    public function mount(): void
+    {
+        $this->authorizePermission('patrols.manage');
+    }
 
     public function save(): void
     {
@@ -23,8 +31,6 @@ class VehiclePatrolBoard extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('patrols.manage'), 403);
-
         return view('livewire.patrols.vehicle-patrol-board', [
             'vehiclePatrols' => VehiclePatrol::latest()->limit(50)->get(),
         ])->layout('layouts.app');

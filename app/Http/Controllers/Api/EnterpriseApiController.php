@@ -8,6 +8,7 @@ use App\Models\ClientComplaint;
 use App\Models\PatrolPlaybackPoint;
 use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
+use App\Support\TenantValidation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,9 +54,11 @@ class EnterpriseApiController extends Controller
             403
         );
 
+        $tenantId = (int) $request->user()->tenant_id;
+
         $data = $request->validate([
-            'client_account_id' => ['required', 'integer'],
-            'site_id' => ['nullable', 'integer'],
+            'client_account_id' => ['required', 'integer', TenantValidation::existsForTenant($tenantId, 'client_accounts')],
+            'site_id' => ['nullable', 'integer', TenantValidation::existsForTenant($tenantId, 'sites')],
             'subject' => ['required', 'string', 'max:180'],
             'description' => ['required', 'string'],
             'priority' => ['nullable', 'string', 'max:40'],
@@ -71,8 +74,10 @@ class EnterpriseApiController extends Controller
 
     public function storePlaybackPoint(Request $request): JsonResponse
     {
+        $tenantId = (int) $request->user()->tenant_id;
+
         $data = $request->validate([
-            'patrol_session_id' => ['required', 'integer'],
+            'patrol_session_id' => ['required', 'integer', TenantValidation::existsForTenant($tenantId, 'patrol_sessions')],
             'latitude' => ['required', 'numeric'],
             'longitude' => ['required', 'numeric'],
             'recorded_at' => ['nullable', 'date'],

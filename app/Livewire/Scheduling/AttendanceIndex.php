@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Scheduling;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\AttendanceLog;
 use App\Models\BreakLog;
 use App\Support\TenantContext;
@@ -9,11 +10,13 @@ use Livewire\Component;
 
 class AttendanceIndex extends Component
 {
+    use AuthorizesModuleAccess;
+
     public array $breakForm = ['attendance_log_id' => '', 'type' => 'meal', 'started_at' => '', 'ended_at' => ''];
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('attendance.manage'), 403);
+        $this->authorizePermission('attendance.manage');
     }
 
     public function saveBreak(): void

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Sites;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\Site;
 use App\Models\SiteDocument;
 use App\Models\SiteEmergencyContact;
@@ -11,9 +12,16 @@ use Livewire\Component;
 
 class SiteCompliance extends Component
 {
+    use AuthorizesModuleAccess;
+
     public array $contactForm = ['site_id' => '', 'name' => '', 'phone' => '', 'role' => ''];
 
     public array $documentForm = ['site_id' => '', 'title' => '', 'file_path' => '', 'document_type' => ''];
+
+    public function mount(): void
+    {
+        $this->authorizePermission('sites.manage');
+    }
 
     public function saveContact(): void
     {
@@ -39,8 +47,6 @@ class SiteCompliance extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()->can('sites.manage'), 403);
-
         return view('livewire.sites.site-compliance', [
             'contacts' => SiteEmergencyContact::with('site')->latest()->limit(50)->get(),
             'documents' => SiteDocument::with('site')->latest()->limit(50)->get(),

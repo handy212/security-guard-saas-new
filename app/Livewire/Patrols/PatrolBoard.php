@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Patrols;
 
+use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
@@ -11,7 +12,14 @@ use Livewire\Component;
 
 class PatrolBoard extends Component
 {
+    use AuthorizesModuleAccess;
+
     public string $search = '';
+
+    public function mount(): void
+    {
+        $this->authorizePermission('patrols.manage');
+    }
 
     public array $routeForm = ['site_id' => '', 'name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
 
