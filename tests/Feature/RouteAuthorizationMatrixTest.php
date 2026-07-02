@@ -29,7 +29,7 @@ class RouteAuthorizationMatrixTest extends TestCase
             'billing invoices' => ['/billing/invoices'],
             'billing payroll' => ['/billing/payroll'],
             'settings' => ['/settings'],
-            'schedules marketplace' => ['/schedules/marketplace'],
+            'schedules open shifts' => ['/schedules/open-shifts'],
             'compliance policies' => ['/compliance/policies'],
         ];
     }

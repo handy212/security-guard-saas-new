@@ -12,7 +12,13 @@ class EnsureClientPortal
     {
         $user = $request->user();
 
-        abort_unless($user && ($user->can('client_portal.view') || $user->hasRole('client')), 403);
+        abort_unless(
+            $user && (
+                $user->hasRole('client')
+                || ($user->can('client_portal.view') && ! $user->can('dashboard.view'))
+            ),
+            403
+        );
 
         return $next($request);
     }
