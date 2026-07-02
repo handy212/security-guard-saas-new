@@ -2,40 +2,50 @@
     <x-page-shell title="Offline Sync Monitor" description="Review and process guard mobile offline sync batches.">
         <x-settings-nav />
 
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <x-search-input wire:model.live.debounce.300ms="search" placeholder="Filter by status (pending, processed, failed)…" class="max-w-sm" />
-            <p class="text-xs text-zinc-500">Batches queue patrol checkpoints, clock events, and SOS from the guard PWA.</p>
+        <div class="stat-grid">
+            <x-stat-card compact label="Batches" :value="$items->count()" icon="plan" />
+            <x-stat-card compact label="Pending" :value="$items->where('status', 'pending')->count()" icon="pause" :tone="$items->where('status', 'pending')->count() ? 'warning' : 'default'" />
+            <x-stat-card compact label="Processed" :value="$items->where('status', 'processed')->count()" icon="check" tone="success" />
+            <x-stat-card compact label="Failed" :value="$items->where('status', 'failed')->count()" icon="incidents" :tone="$items->where('status', 'failed')->count() ? 'danger' : 'default'" />
         </div>
 
+        <x-page-toolbar search="search" searchPlaceholder="Filter by status (pending, processed, failed)…">
+            <x-slot:controls>
+                <p class="text-xs text-zinc-500">Patrol checkpoints, clock events, and SOS from the guard PWA.</p>
+            </x-slot:controls>
+        </x-page-toolbar>
+
         <x-data-table title="Sync batches">
-            <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Batch</th>
-                    <th class="px-3 py-2">User</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2">Items</th>
-                    <th class="px-3 py-2">Created</th>
-                    <th class="px-3 py-2 text-right">Actions</th>
+                    <x-table.th>Batch</x-table.th>
+                    <x-table.th>User</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th>Items</x-table.th>
+                    <x-table.th>Created</x-table.th>
+                    <x-table.th align="right">Actions</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($items as $item)
-                    <tr class="table-row-hover">
-                        <td class="px-3 py-2 font-medium text-zinc-900">#{{ $item->id }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $item->user?->name ?? '—' }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$item->status" /></td>
-                        <td class="px-3 py-2 text-zinc-600">{{ is_array($item->payload) ? count($item->payload) : '—' }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $item->created_at?->format('M j, H:i') }}</td>
-                        <td class="px-3 py-2 text-right">
+                    <tr class="table-row-hover" wire:key="sync-{{ $item->id }}">
+                        <x-table.td><span class="font-medium text-zinc-900">#{{ $item->id }}</span></x-table.td>
+                        <x-table.td muted>{{ $item->user?->name ?? '—' }}</x-table.td>
+                        <x-table.td><x-badge :status="$item->status" /></x-table.td>
+                        <x-table.td muted>{{ is_array($item->payload) ? count($item->payload) : '—' }}</x-table.td>
+                        <x-table.td muted>{{ $item->created_at?->format('M j, H:i') }}</x-table.td>
+                        <x-table.td align="right">
                             @if($item->status === 'pending')
                                 <x-button size="sm" wire:click="process({{ $item->id }})">Process</x-button>
                             @else
                                 <span class="text-xs text-zinc-500">{{ $item->processed_at?->format('M j, H:i') ?? 'Done' }}</span>
                             @endif
-                        </td>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-3 py-8"><x-empty-state title="No sync batches" description="Offline batches from guard devices appear here." /></td></tr>
+                    <x-table.empty colspan="6">
+                        <x-empty-state title="No sync batches" description="Offline batches from guard devices appear here." />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>

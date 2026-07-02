@@ -32,6 +32,8 @@ class Overview extends Component
             'weekSummary' => $metrics->weekSummary($tenantId),
             'incidentTrend' => $metrics->weekTrend($tenantId, Incident::class),
             'patrolTrend' => $metrics->weekTrend($tenantId, PatrolSession::class),
+            'incidentBreakdown' => $metrics->incidentBreakdown($tenantId),
+            'activitySummary' => $metrics->activitySummary($tenantId),
             'todayShifts' => $metrics->todayShifts($tenantId),
             'incidentsList' => $metrics->recentIncidents($tenantId),
             'attendance' => $metrics->liveAttendance($tenantId),

@@ -17,6 +17,8 @@
     "vite": "^7.0.0"
   },
   "dependencies": {
-    "html5-qrcode": "^2.3.8"
+    "chart.js": "^4.5.1",
+    "html5-qrcode": "^2.3.8",
+    "leaflet": "^1.9.4"
   }
 }

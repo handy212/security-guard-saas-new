@@ -10,22 +10,22 @@ use Illuminate\Support\Collection;
 
 class NotificationDispatcher
 {
-    public function sendToTenantAdmins(int $tenantId, string $templateCode, array $replacements, ?Notification $fallback = null): void
+    public function sendToTenantAdmins(int $tenantId, string $templateCode, array $replacements, ?Notification $fallback = null, ?string $actionUrl = '/dashboard'): void
     {
         $users = User::role(['company-admin', 'operations-manager', 'supervisor'])
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
             ->get();
 
-        $this->sendToUsers($users, $tenantId, $templateCode, $replacements, $fallback);
+        $this->sendToUsers($users, $tenantId, $templateCode, $replacements, $fallback, $actionUrl);
     }
 
-    public function sendToUser(User $user, string $templateCode, array $replacements, ?Notification $fallback = null): void
+    public function sendToUser(User $user, string $templateCode, array $replacements, ?Notification $fallback = null, ?string $actionUrl = '/dashboard'): void
     {
-        $this->sendToUsers(collect([$user]), $user->tenant_id, $templateCode, $replacements, $fallback);
+        $this->sendToUsers(collect([$user]), $user->tenant_id, $templateCode, $replacements, $fallback, $actionUrl);
     }
 
-    private function sendToUsers(Collection $users, int $tenantId, string $templateCode, array $replacements, ?Notification $fallback): void
+    private function sendToUsers(Collection $users, int $tenantId, string $templateCode, array $replacements, ?Notification $fallback, ?string $actionUrl): void
     {
         $template = NotificationTemplate::query()
             ->where('tenant_id', $tenantId)
@@ -38,6 +38,8 @@ class NotificationDispatcher
                 $user->notify(new GenericGuardOpsNotification(
                     $this->replace($template->subject, $replacements),
                     $this->replace($template->body, $replacements),
+                    $actionUrl,
+                    $templateCode,
                 ));
             } elseif ($fallback) {
                 $user->notify($fallback);

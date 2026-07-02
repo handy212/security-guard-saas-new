@@ -40,4 +40,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Guard::class);
     }
+
+    public function pushSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessOfflineSyncBatch;
 use App\Models\AttendanceLog;
+use App\Models\DispatchEvent;
 use App\Models\OfflineSyncBatch;
 use App\Models\ShiftAssignment;
 use App\Models\VisitorLog;
@@ -119,6 +120,21 @@ class MobileAppController extends Controller
         return $service->raiseSos($request->user(), $data);
     }
 
+    public function myDispatches(Request $request, DispatchService $service): JsonResponse
+    {
+        return response()->json(
+            $service->myActiveDispatches($this->guardId($request))
+        );
+    }
+
+    public function advanceDispatch(Request $request, DispatchEvent $dispatchEvent, DispatchService $service): DispatchEvent
+    {
+        abort_unless($dispatchEvent->tenant_id === $request->user()->tenant_id, 403);
+        abort_unless($dispatchEvent->guard_id === $this->guardId($request), 403);
+
+        return $service->advanceStatus($dispatchEvent, $request->user()->id);
+    }
+
     public function updateLocation(Request $request, \App\Services\GuardLocationService $locations): JsonResponse
     {
         $data = $request->validate([
@@ -178,6 +194,55 @@ class MobileAppController extends Controller
         $visitorLog->update(['checked_out_at' => now(), 'status' => 'checked_out']);
 
         return response()->json($visitorLog);
+    }
+
+    public function saveReportDraft(Request $request, \App\Services\CustomReportService $reports): JsonResponse
+    {
+        $data = $request->validate([
+            'report_template_id' => ['required', 'integer'],
+            'site_id' => ['required', 'integer'],
+            'shift_assignment_id' => ['nullable', 'integer'],
+            'data' => ['required', 'array'],
+        ]);
+
+        $submission = $reports->saveDraft(
+            $data['report_template_id'],
+            $this->guardId($request),
+            $data['site_id'],
+            $data['data'],
+            $data['shift_assignment_id'] ?? null,
+        );
+
+        return response()->json($submission);
+    }
+
+    public function submitCustomReport(Request $request, \App\Services\CustomReportService $reports): JsonResponse
+    {
+        $data = $request->validate([
+            'report_template_id' => ['required', 'integer'],
+            'site_id' => ['required', 'integer'],
+            'shift_assignment_id' => ['nullable', 'integer'],
+            'data' => ['required', 'array'],
+        ]);
+
+        $submission = $reports->saveDraft(
+            $data['report_template_id'],
+            $this->guardId($request),
+            $data['site_id'],
+            $data['data'],
+            $data['shift_assignment_id'] ?? null,
+        );
+
+        return response()->json($reports->submit($submission));
+    }
+
+    public function confirmShift(Request $request, \App\Services\WorkforceService $workforce): JsonResponse
+    {
+        $data = $request->validate(['shift_assignment_id' => ['required', 'integer']]);
+        $assignment = $this->ownedAssignment($request, $data['shift_assignment_id']);
+        $confirmation = $workforce->requestConfirmation($assignment);
+
+        return response()->json($workforce->confirmShift($confirmation));
     }
 
     private function guardId(Request $request): int

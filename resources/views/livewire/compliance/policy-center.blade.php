@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Compliance Policies" description="Escalation rules, data retention, and site SLA requirements." >
+    <x-page-shell title="Compliance Policies" description="Escalation rules, data retention, and site SLA requirements.">
+        <div class="stat-grid">
+            <x-stat-card compact label="Escalation rules" :value="$escalations->count()" icon="incidents" />
+            <x-stat-card compact label="Retention policies" :value="$retention->count()" icon="billing" />
+            <x-stat-card compact label="SLA requirements" :value="$sla->count()" icon="plan" tone="info" />
+            <x-stat-card compact label="Sites" :value="$sites->count()" icon="sites" tone="success" />
+        </div>
+
         <div class="grid gap-4 lg:grid-cols-3">
             <x-form-card title="Escalation rule" description="Auto-notify supervisors after a delay.">
                 <form wire:submit="saveEscalation" class="space-y-3">

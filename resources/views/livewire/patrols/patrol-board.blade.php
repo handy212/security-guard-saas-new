@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Patrol Routes" description="Guard tour routes with QR/NFC checkpoints and live sessions.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Routes" :value="$stats['routes']" icon="patrols" />
             <x-stat-card compact label="Checkpoints" :value="$stats['checkpoints']" icon="gps" tone="info" />
             <x-stat-card compact label="Active sessions" :value="$stats['active_sessions']" icon="schedules" :tone="$stats['active_sessions'] ? 'warning' : 'default'" />
@@ -58,21 +58,23 @@
 
         @if ($sessions->isNotEmpty())
             <x-data-table title="Recent patrol sessions" class="mt-4">
-                <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Route</th>
-                        <th class="px-3 py-2">Guard</th>
-                        <th class="px-3 py-2">Status</th>
-                        <th class="px-3 py-2">Scans</th>
+                        <x-table.th>Route</x-table.th>
+                        <x-table.th>Guard</x-table.th>
+                        <x-table.th>Status</x-table.th>
+                        <x-table.th>Progress</x-table.th>
+                        <x-table.th>Scans</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @foreach($sessions as $session)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2">{{ $session->route?->name ?? '—' }}</td>
-                            <td class="px-3 py-2">{{ $session->assignedGuard?->full_name ?? '—' }}</td>
-                            <td class="px-3 py-2"><x-badge :status="$session->status" /></td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $session->scans->count() }}</td>
+                        <tr class="table-row-hover" wire:key="session-{{ $session->id }}">
+                            <x-table.td>{{ $session->route?->name ?? '—' }}</x-table.td>
+                            <x-table.td>{{ $session->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                            <x-table.td><x-badge :status="$session->status" /></x-table.td>
+                            <x-table.td muted>{{ $session->completion_percent ?? 0 }}%</x-table.td>
+                            <x-table.td muted>{{ $session->scans->count() }}</x-table.td>
                         </tr>
                     @endforeach
                 </tbody>

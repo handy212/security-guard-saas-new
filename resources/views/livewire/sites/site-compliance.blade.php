@@ -1,11 +1,12 @@
 <div>
-    <x-page-shell title="Site Compliance" description="Emergency contacts, site documents, and SLA requirements." >
-        <div class="grid gap-3 md:grid-cols-3">
-        <x-stat-card label="Documents" :value="$documents->count()" />
-        <x-stat-card label="SLA requirements" :value="$sla->count()" tone="info" />
+    <x-page-shell title="Site Compliance" description="Emergency contacts, site documents, and SLA requirements.">
+        <div class="stat-grid">
+            <x-stat-card compact label="Contacts" :value="$contacts->count()" icon="users" />
+            <x-stat-card compact label="Documents" :value="$documents->count()" icon="billing" />
+            <x-stat-card compact label="SLA requirements" :value="$sla->count()" icon="plan" tone="info" />
+            <x-stat-card compact label="Sites" :value="$sites->count()" icon="sites" tone="success" />
         </div>
 
-    <div class="space-y-4 page-content pt-0">
         <div class="grid gap-4 lg:grid-cols-2">
             <x-form-card title="Add emergency contact" description="On-call contacts for each site.">
                 <form wire:submit="saveContact" class="space-y-3">
@@ -40,67 +41,73 @@
 
         <div class="grid gap-4 lg:grid-cols-3">
             <x-data-table title="Emergency contacts">
-                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Name</th>
-                        <th class="px-3 py-2">Site</th>
-                        <th class="px-3 py-2">Phone</th>
+                        <x-table.th>Name</x-table.th>
+                        <x-table.th>Site</x-table.th>
+                        <x-table.th>Phone</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @forelse($contacts as $contact)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2">
+                        <tr class="table-row-hover" wire:key="contact-{{ $contact->id }}">
+                            <x-table.td>
                                 <div class="font-medium text-zinc-900">{{ $contact->name }}</div>
                                 <div class="text-xs text-zinc-500">{{ $contact->role ?: '—' }}</div>
-                            </td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $contact->site?->name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $contact->phone }}</td>
+                            </x-table.td>
+                            <x-table.td muted>{{ $contact->site?->name ?? '—' }}</x-table.td>
+                            <x-table.td muted>{{ $contact->phone }}</x-table.td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No contacts" description="Add emergency contacts above." /></td></tr>
+                        <x-table.empty colspan="3">
+                            <x-empty-state compact title="No contacts" description="Add emergency contacts above." />
+                        </x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>
 
             <x-data-table title="Documents">
-                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Title</th>
-                        <th class="px-3 py-2">Site</th>
-                        <th class="px-3 py-2">Type</th>
+                        <x-table.th>Title</x-table.th>
+                        <x-table.th>Site</x-table.th>
+                        <x-table.th>Type</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @forelse($documents as $document)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2 font-medium text-zinc-900">{{ $document->title }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $document->site?->name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $document->document_type ?: '—' }}</td>
+                        <tr class="table-row-hover" wire:key="document-{{ $document->id }}">
+                            <x-table.td><span class="font-medium text-zinc-900">{{ $document->title }}</span></x-table.td>
+                            <x-table.td muted>{{ $document->site?->name ?? '—' }}</x-table.td>
+                            <x-table.td muted>{{ $document->document_type ?: '—' }}</x-table.td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No documents" description="Upload site documents above." /></td></tr>
+                        <x-table.empty colspan="3">
+                            <x-empty-state compact title="No documents" description="Upload site documents above." />
+                        </x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>
 
             <x-data-table title="SLA requirements">
-                <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Site</th>
-                        <th class="px-3 py-2">Metric</th>
-                        <th class="px-3 py-2">Target</th>
+                        <x-table.th>Site</x-table.th>
+                        <x-table.th>Metric</x-table.th>
+                        <x-table.th>Target</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @forelse($sla as $requirement)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2 text-zinc-900">{{ $requirement->site?->name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $requirement->metric }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $requirement->target_value }}</td>
+                        <tr class="table-row-hover" wire:key="sla-{{ $requirement->id }}">
+                            <x-table.td>{{ $requirement->site?->name ?? '—' }}</x-table.td>
+                            <x-table.td muted>{{ $requirement->metric }}</x-table.td>
+                            <x-table.td muted>{{ $requirement->target_value }}</x-table.td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-3 py-8"><x-empty-state title="No SLAs" description="Configure SLAs in Compliance Policies." /></td></tr>
+                        <x-table.empty colspan="3">
+                            <x-empty-state compact title="No SLAs" description="Configure SLAs in Compliance Policies." />
+                        </x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>

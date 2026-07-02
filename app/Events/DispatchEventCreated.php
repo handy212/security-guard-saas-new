@@ -13,9 +13,7 @@ class DispatchEventCreated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public DispatchEvent $event)
-    {
-    }
+    public function __construct(public DispatchEvent $event) {}
 
     public function broadcastOn(): array
     {
@@ -26,20 +24,27 @@ class DispatchEventCreated implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'dispatch.event';
+        return 'dispatch.created';
     }
 
     public function broadcastWith(): array
     {
-        $this->event->loadMissing('site');
+        $this->event->loadMissing(['site', 'assignedGuard', 'clientAccount']);
 
         return [
             'id' => $this->event->id,
+            'dispatch_number' => $this->event->dispatch_number,
             'event_type' => $this->event->event_type,
-            'priority' => $this->event->priority,
-            'status' => $this->event->status,
+            'priority' => $this->event->priority->value,
+            'status' => $this->event->status->value,
             'site' => $this->event->site?->name,
+            'client' => $this->event->clientAccount?->name,
+            'guard' => $this->event->assignedGuard?->full_name,
+            'caller_name' => $this->event->caller_name,
+            'incident_location' => $this->event->incident_location,
             'description' => $this->event->description,
+            'latitude' => $this->event->latitude,
+            'longitude' => $this->event->longitude,
             'opened_at' => optional($this->event->opened_at)->toIso8601String(),
         ];
     }

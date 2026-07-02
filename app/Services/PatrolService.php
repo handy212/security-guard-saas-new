@@ -38,18 +38,29 @@ class PatrolService
             'status' => 'valid',
         ]);
 
-        $this->completeIfAllScanned($session);
+        $this->updateCompletion($session);
 
         return $scan;
     }
 
     public function completeIfAllScanned(PatrolSession $session): PatrolSession
     {
-        $required = $session->route()->withCount('checkpoints')->first()->checkpoints_count;
+        return $this->updateCompletion($session);
+    }
+
+    public function updateCompletion(PatrolSession $session): PatrolSession
+    {
+        $required = $session->route()->withCount('checkpoints')->first()->checkpoints_count ?? 0;
         $scanned = $session->scans()->distinct('patrol_checkpoint_id')->count('patrol_checkpoint_id');
+        $percent = $required > 0 ? (int) min(100, round(($scanned / $required) * 100)) : 0;
+
+        $updates = ['completion_percent' => $percent];
         if ($required > 0 && $scanned >= $required) {
-            $session->update(['status' => 'completed', 'completed_at' => now()]);
+            $updates['status'] = 'completed';
+            $updates['completed_at'] = now();
         }
+
+        $session->update($updates);
 
         return $session->fresh();
     }

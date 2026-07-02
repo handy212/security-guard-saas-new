@@ -139,6 +139,42 @@ class GuardVerificationService
         return $assignment?->shift?->site?->name;
     }
 
+    /**
+     * @return array{can_download: bool, message: ?string, action: ?string}
+     */
+    public function idCardEligibility(Guard $guard): array
+    {
+        if ($guard->verification_status === 'suspended') {
+            return [
+                'can_download' => false,
+                'message' => 'Verification is suspended. Reinstate this guard before issuing an ID card.',
+                'action' => null,
+            ];
+        }
+
+        if ($guard->verification_status !== 'verified') {
+            return [
+                'can_download' => false,
+                'message' => 'Complete the verification checklist and mark this guard as verified.',
+                'action' => 'verification',
+            ];
+        }
+
+        if (! $guard->activeVerificationToken()) {
+            return [
+                'can_download' => false,
+                'message' => 'An active QR verification token is required. Regenerate the QR code below.',
+                'action' => 'regenerate',
+            ];
+        }
+
+        return [
+            'can_download' => true,
+            'message' => null,
+            'action' => null,
+        ];
+    }
+
     private function generateUniqueToken(): string
     {
         do {

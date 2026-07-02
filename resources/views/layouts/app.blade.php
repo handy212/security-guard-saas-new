@@ -4,16 +4,40 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if(config('notifications.push.vapid.public_key'))
+        <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
+    @endif
     <title>{{ config('app.name', 'GuardOps SaaS') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        try {
+            if (localStorage.getItem('guardops-sidebar-collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        } catch (e) {}
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @stack('styles')
 </head>
-<body class="bg-zinc-100 antialiased text-zinc-900" x-data="{ sidebarOpen: false }">
-<div wire:loading.class="opacity-95">
+<body
+    class="bg-zinc-100 antialiased text-zinc-900"
+    x-data="{
+        sidebarOpen: false,
+        sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
+        commandOpen: false,
+        toggleSidebarCollapse() {
+            this.sidebarCollapsed = !this.sidebarCollapsed;
+            document.documentElement.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
+            localStorage.setItem('guardops-sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
+        }
+    }"
+    @keydown.window.cmd.k.prevent="commandOpen = true"
+    @keydown.window.ctrl.k.prevent="commandOpen = true"
+>
+<div>
     <div
         x-show="sidebarOpen"
         x-cloak
@@ -22,39 +46,55 @@
     ></div>
 
     <aside
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        class="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-zinc-200 bg-white transition-transform duration-200 ease-out lg:translate-x-0"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-white max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
-        <div class="flex h-14 shrink-0 items-center gap-2.5 border-b border-zinc-100 px-4">
-            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}" class="flex min-w-0 items-center gap-2.5">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-xs font-bold text-white">G</div>
-                <div class="min-w-0 leading-tight">
+        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-100 px-3">
+            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}"
+               class="flex min-w-0 flex-1 items-center gap-2.5"
+               :class="sidebarCollapsed ? 'justify-center' : ''">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-600 to-accent-500 text-xs font-bold text-white shadow-sm">G</div>
+                <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
                     <div class="truncate text-sm font-semibold text-zinc-900">GuardOps</div>
                     <div class="truncate text-[11px] text-zinc-500">Security Operations</div>
                 </div>
             </a>
+            <button
+                type="button"
+                @click="toggleSidebarCollapse()"
+                class="hidden rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 lg:inline-flex"
+                :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                aria-label="Toggle sidebar"
+            >
+                <svg class="h-4 w-4 transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                </svg>
+            </button>
         </div>
 
         <x-sidebar-nav />
 
         @auth
-            <div class="shrink-0 border-t border-zinc-100 p-3">
-                <div class="mb-2 truncate px-1 text-xs font-medium text-zinc-700">{{ auth()->user()->name }}</div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn-secondary w-full justify-center text-xs">Sign out</button>
-                </form>
+            <div class="shrink-0 border-t border-zinc-100 p-2" x-show="sidebarCollapsed" x-cloak>
+                <div class="flex justify-center">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100 text-xs font-semibold text-accent-700" title="{{ auth()->user()->name }}">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    </div>
+                </div>
             </div>
         @endauth
     </aside>
 
-    <div class="min-h-screen lg:pl-60">
-        <div wire:loading class="fixed inset-x-0 top-0 z-[70] h-0.5 bg-zinc-900 lg:left-60">
-            <div class="h-full w-1/3 animate-pulse bg-zinc-400"></div>
+    <div class="main-offset min-h-screen">
+        <div
+            wire:loading
+            class="loading-bar-offset fixed inset-x-0 top-0 z-[70] h-0.5 bg-accent-600"
+        >
+            <div class="h-full w-1/3 animate-pulse bg-accent-400"></div>
         </div>
 
         @if (session('status'))
-            <x-flash-status type="success" class="fixed inset-x-0 top-0 z-[70] lg:left-60" />
+            <x-flash-status type="success" class="fixed inset-x-0 top-0 z-[70]" />
         @endif
 
         @if (\App\Support\TenantContext::isViewingAsTenant())
@@ -70,11 +110,7 @@
         @endif
 
         @auth
-            @if (! \App\Support\TenantContext::isPlatformConsole())
-                <div class="sticky top-0 z-30 flex items-center justify-end gap-2 border-b border-zinc-100 bg-white/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:pl-[calc(15rem+1rem)]">
-                    <livewire:notifications.notification-bell />
-                </div>
-            @endif
+            <x-app-header />
         @endauth
 
         <main>

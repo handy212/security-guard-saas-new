@@ -30,7 +30,7 @@ class DetectMissedPatrols extends Command
                 $dispatcher->sendToTenantAdmins($tenant->id, 'patrol.missed', [
                     'count' => $missed->count(),
                     'tenant' => $tenant->name,
-                ]);
+                ], actionUrl: '/patrols');
             }
         });
 

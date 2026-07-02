@@ -1,10 +1,10 @@
 <div>
     <x-page-shell title="Schedule Calendar" description="Monthly and weekly shift planning view.">
         <x-slot:actions>
-            <a href="{{ route('schedules.index') }}" class="btn-secondary text-sm">Day list</a>
+            <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day list</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="In range" :value="$stats['total']" icon="schedules" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="pause" :tone="$stats['open'] > 0 ? 'warning' : 'default'" />
             <x-stat-card compact label="Posts" :value="$stats['posts']" icon="plan" tone="info" />
@@ -16,12 +16,12 @@
                 <x-segment-control model="view" :active="$view" :options="['month' => 'Month', 'week' => 'Week']" />
             </x-slot:tabs>
             <x-slot:controls>
-                <select wire:model.live="siteId" class="form-input w-auto min-w-[8.5rem] text-sm">
+                <x-filter-select wire:model.live="siteId">
                     <option value="">All sites</option>
                     @foreach ($sites as $site)
                         <option value="{{ $site->id }}">{{ $site->name }}</option>
                     @endforeach
-                </select>
+                </x-filter-select>
                 <x-button type="button" variant="secondary" wire:click="previous" size="sm">Prev</x-button>
                 <x-button type="button" variant="secondary" wire:click="next" size="sm">Next</x-button>
             </x-slot:controls>
@@ -58,10 +58,10 @@
                     $dayShifts = $shifts->filter(fn ($s) => $s->starts_at->isSameDay($day));
                     $inMonth = $view === 'week' || $day->month === \Carbon\Carbon::parse($cursorDate)->month;
                 @endphp
-                <div class="min-h-28 rounded-lg border p-2 {{ $inMonth ? 'bg-white' : 'bg-zinc-100 text-zinc-400' }}">
+                <div class="min-h-28 rounded-lg border border-zinc-200 p-2 {{ $inMonth ? 'bg-white' : 'bg-zinc-50 text-zinc-400' }}">
                     <div class="text-xs font-semibold">{{ $day->format('D j') }}</div>
                     @foreach ($dayShifts->take(3) as $shift)
-                        <div class="mt-1 truncate rounded bg-zinc-900 px-1 py-0.5 text-[10px] text-white">
+                        <div class="mt-1 truncate rounded bg-accent-600 px-1 py-0.5 text-[10px] text-white">
                             {{ $shift->starts_at->format('H:i') }} {{ $shift->site?->name }}
                         </div>
                     @endforeach

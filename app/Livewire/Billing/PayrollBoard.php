@@ -4,8 +4,10 @@ namespace App\Livewire\Billing;
 
 use App\Models\AccountingExport;
 use App\Models\Guard;
+use App\Models\PayrollExport;
 use App\Models\Timesheet;
 use App\Services\AccountingExportService;
+use App\Services\PayrollExportService;
 use App\Services\PayrollService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -40,6 +42,13 @@ class PayrollBoard extends Component
         $exports->exportInvoicesCsv(TenantContext::id());
     }
 
+    public function exportQuickBooks(PayrollExportService $exports): void
+    {
+        abort_unless(auth()->user()->can('exports.manage'), 403);
+        $exports->exportQuickBooks($this->periodStart, $this->periodEnd, auth()->id());
+        session()->flash('status', 'QuickBooks payroll export generated.');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()->can('payroll.manage'), 403);
@@ -47,6 +56,7 @@ class PayrollBoard extends Component
         return view('livewire.billing.payroll-board', [
             'timesheets' => Timesheet::with('assignedGuard')->latest()->limit(80)->get(),
             'exports' => AccountingExport::latest()->limit(20)->get(),
+            'payrollExports' => PayrollExport::where('tenant_id', TenantContext::id())->latest()->limit(10)->get(),
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
         ])->layout('layouts.app');
     }

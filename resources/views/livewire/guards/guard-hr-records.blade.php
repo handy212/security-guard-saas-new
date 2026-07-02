@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Guard HR Records" description="Skills, training, documents, and disciplinary history." >
+    <x-page-shell title="Guard HR Records" description="Skills, training, documents, and disciplinary history.">
+        <div class="stat-grid">
+            <x-stat-card compact label="Guards" :value="$guards->count()" icon="guards" />
+            <x-stat-card compact label="Skills" :value="$skills->count()" icon="check" tone="info" />
+            <x-stat-card compact label="Documents" :value="$documents->count()" icon="billing" />
+            <x-stat-card compact label="Disciplinary" :value="$disciplinary->count()" icon="incidents" :tone="$disciplinary->count() ? 'warning' : 'default'" />
+        </div>
+
         <div class="grid gap-4 lg:grid-cols-2">
             <x-form-card title="Add skill" description="Record guard competencies and levels.">
                 <form wire:submit="saveSkill" class="space-y-3">

@@ -34,7 +34,7 @@ class GuardIdCardPresenter
         return [
             'company_name' => $companyName,
             'tagline' => $settings['tagline'] ?? 'Stay connected. Stay protected.',
-            'brand_color' => $settings['brand_color'] ?? '#8C1D2F',
+            'brand_color' => $this->normalizeBrandColor($settings['brand_color'] ?? '#8C1D2F'),
             'emergency_text' => $settings['emergency_text'] ?? $defaultEmergency,
             'phone' => $branch?->phone ?: ($settings['phone'] ?? null),
             'phone_secondary' => $settings['phone_secondary'] ?? null,
@@ -42,5 +42,10 @@ class GuardIdCardPresenter
             'website' => $settings['website'] ?? ($tenant->domain ? 'www.'.$tenant->domain : null),
             'address' => $branch?->address ?: ($settings['address'] ?? null),
         ];
+    }
+
+    private function normalizeBrandColor(string $color): string
+    {
+        return preg_match('/^#[0-9A-Fa-f]{6}$/', $color) ? $color : '#8C1D2F';
     }
 }

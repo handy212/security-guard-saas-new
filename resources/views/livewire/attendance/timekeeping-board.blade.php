@@ -4,7 +4,7 @@
     @endphp
 
     <x-page-shell title="Attendance" description="Clock events, geofence validation, and breaks.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Attendance logs" :value="$logs->count()" icon="schedules" />
             <x-stat-card compact label="Break logs" :value="$breaks->count()" icon="plan" tone="info" />
             <x-stat-card compact label="Exceptions" :value="$exceptions" icon="incidents" :tone="$exceptions ? 'warning' : 'success'" />
@@ -26,47 +26,47 @@
 
         <div class="grid gap-4 lg:grid-cols-2">
             <x-data-table title="Recent attendance">
-                <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Guard</th>
-                        <th class="px-3 py-2">Site</th>
-                        <th class="px-3 py-2">Clock in</th>
-                        <th class="px-3 py-2">Status</th>
+                        <x-table.th>Guard</x-table.th>
+                        <x-table.th>Site</x-table.th>
+                        <x-table.th>Clock in</x-table.th>
+                        <x-table.th>Status</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @forelse($logs as $log)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2 font-medium">{{ $log->assignedGuard?->full_name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $log->site?->name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-zinc-600">{{ $log->clock_in_at?->format('M j, H:i') ?? '—' }}</td>
-                            <td class="px-3 py-2"><x-badge :status="$log->status ?? 'on_time'" /></td>
+                        <tr class="table-row-hover" wire:key="attendance-{{ $log->id }}">
+                            <x-table.td><span class="font-medium text-zinc-900">{{ $log->assignedGuard?->full_name ?? '—' }}</span></x-table.td>
+                            <x-table.td muted>{{ $log->site?->name ?? '—' }}</x-table.td>
+                            <x-table.td muted>{{ $log->clock_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                            <x-table.td><x-badge :status="$log->status ?? 'on_time'" /></x-table.td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="px-3 py-8"><x-empty-state title="No attendance logs" /></td></tr>
+                        <x-table.empty colspan="4"><x-empty-state compact title="No attendance logs" /></x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>
 
             <x-data-table title="Recent breaks">
-                <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+                <x-table.head>
                     <tr>
-                        <th class="px-3 py-2">Log ID</th>
-                        <th class="px-3 py-2">Type</th>
-                        <th class="px-3 py-2">Started</th>
-                        <th class="px-3 py-2">Ended</th>
+                        <x-table.th>Log ID</x-table.th>
+                        <x-table.th>Type</x-table.th>
+                        <x-table.th>Started</x-table.th>
+                        <x-table.th>Ended</x-table.th>
                     </tr>
-                </thead>
+                </x-table.head>
                 <tbody>
                     @forelse($breaks as $break)
-                        <tr class="table-row-hover">
-                            <td class="px-3 py-2">#{{ $break->attendance_log_id }}</td>
-                            <td class="px-3 py-2">{{ $break->type }}</td>
-                            <td class="px-3 py-2">{{ $break->started_at }}</td>
-                            <td class="px-3 py-2">{{ $break->ended_at ?? '—' }}</td>
+                        <tr class="table-row-hover" wire:key="break-{{ $break->id }}">
+                            <x-table.td mono>#{{ $break->attendance_log_id }}</x-table.td>
+                            <x-table.td>{{ $break->type }}</x-table.td>
+                            <x-table.td muted>{{ $break->started_at }}</x-table.td>
+                            <x-table.td muted>{{ $break->ended_at ?? '—' }}</x-table.td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="px-3 py-8"><x-empty-state title="No breaks" /></td></tr>
+                        <x-table.empty colspan="4"><x-empty-state compact title="No breaks" /></x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>

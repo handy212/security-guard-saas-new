@@ -3,14 +3,18 @@
 namespace App\Livewire\Guard;
 
 use App\Models\AttendanceLog;
+use App\Models\DispatchEvent;
+use App\Models\PassdownLog;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
 use App\Services\AttendanceService;
+use App\Services\CustomReportService;
 use App\Services\DispatchService;
 use App\Services\GuardLocationService;
 use App\Services\OfflineSyncService;
 use App\Services\PatrolService;
+use App\Services\WorkforceService;
 use App\Support\TenantContext;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -33,6 +37,14 @@ class MobileDashboard extends Component
     public string $statusMessage = '';
 
     public bool $showScanner = false;
+
+    public bool $showNfcScanner = false;
+
+    public ?int $activeReportTemplateId = null;
+
+    public array $reportData = [];
+
+    public string $passdownContent = '';
 
     public function mount(): void
     {
@@ -62,9 +74,85 @@ class MobileDashboard extends Component
         $this->statusMessage = 'QR code captured: '.$code;
     }
 
+    #[On('nfc-scanned')]
+    public function onNfcScanned(string $code): void
+    {
+        $this->checkpointCode = $code;
+        $this->statusMessage = 'NFC tag captured: '.$code;
+    }
+
+    public function saveReportDraft(CustomReportService $reports): void
+    {
+        $guardId = auth()->user()->guardProfile?->id;
+        abort_unless($guardId && $this->activeReportTemplateId, 422);
+        $siteId = $this->ownedAssignment()->shift->site_id;
+        $reports->saveDraft($this->activeReportTemplateId, $guardId, $siteId, $this->reportData, $this->activeAssignmentId);
+        $this->statusMessage = 'Report draft saved.';
+    }
+
+    public function submitCustomReport(CustomReportService $reports): void
+    {
+        $guardId = auth()->user()->guardProfile?->id;
+        abort_unless($guardId && $this->activeReportTemplateId, 422);
+        $siteId = $this->ownedAssignment()->shift->site_id;
+        $submission = $reports->saveDraft($this->activeReportTemplateId, $guardId, $siteId, $this->reportData, $this->activeAssignmentId);
+        $reports->submit($submission);
+        $this->reportData = [];
+        $this->statusMessage = 'Custom report submitted.';
+    }
+
+    public function savePassdown(): void
+    {
+        $this->validate(['passdownContent' => 'required|string|min:10']);
+        $assignment = $this->ownedAssignment();
+        PassdownLog::create([
+            'tenant_id' => TenantContext::id(),
+            'site_id' => $assignment->shift->site_id,
+            'guard_id' => $assignment->guard_id,
+            'shift_assignment_id' => $assignment->id,
+            'content' => $this->passdownContent,
+        ]);
+        $this->passdownContent = '';
+        $this->statusMessage = 'Passdown saved.';
+    }
+
+    public function confirmMyShift(WorkforceService $workforce): void
+    {
+        $assignment = $this->ownedAssignment();
+        $confirmation = $workforce->requestConfirmation($assignment);
+        $workforce->confirmShift($confirmation);
+        $this->statusMessage = 'Shift confirmed.';
+    }
+
+    public function advanceDispatch(int $dispatchId, DispatchService $dispatch): void
+    {
+        $guardId = auth()->user()->guardProfile?->id;
+        abort_unless($guardId, 403);
+
+        $event = DispatchEvent::query()
+            ->where('id', $dispatchId)
+            ->where('guard_id', $guardId)
+            ->where('tenant_id', TenantContext::id())
+            ->firstOrFail();
+
+        $dispatch->advanceStatus($event, auth()->id());
+        $this->statusMessage = 'Dispatch status: '.$event->fresh()->status->label();
+    }
+
     public function toggleScanner(): void
     {
         $this->showScanner = ! $this->showScanner;
+        if ($this->showScanner) {
+            $this->showNfcScanner = false;
+        }
+    }
+
+    public function toggleNfcScanner(): void
+    {
+        $this->showNfcScanner = ! $this->showNfcScanner;
+        if ($this->showNfcScanner) {
+            $this->showScanner = false;
+        }
     }
 
     public function clockIn(AttendanceService $attendance): void
@@ -168,9 +256,19 @@ class MobileDashboard extends Component
             ->get();
 
         $siteIds = $assignments->pluck('shift.site_id')->filter()->unique();
+        $customReports = app(CustomReportService::class);
+        $reportTemplates = $siteIds->isNotEmpty()
+            ? $customReports->templatesForSite($siteIds->first())
+            : collect();
+
+        $dispatches = $guardId
+            ? app(DispatchService::class)->myActiveDispatches($guardId)
+            : collect();
 
         return view('livewire.guard.mobile-dashboard', [
             'assignments' => $assignments,
+            'dispatches' => $dispatches,
+            'reportTemplates' => $reportTemplates,
             'activePatrols' => PatrolSession::with('route')
                 ->where('tenant_id', $tenantId)
                 ->when($guardId, fn ($q) => $q->where('guard_id', $guardId))

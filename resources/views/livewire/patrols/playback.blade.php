@@ -1,14 +1,14 @@
 <div>
     <x-page-shell title="Patrol Playback" description="Replay guard GPS tracks for completed patrol sessions.">
         <x-slot:actions>
-            <select wire:model.live="sessionId" class="form-input text-sm">
+            <x-filter-select wire:model.live="sessionId" class="min-w-[16rem]">
                 @foreach($sessions as $session)
                     <option value="{{ $session->id }}">#{{ $session->id }} — {{ $session->assignedGuard?->full_name ?? 'Guard' }} ({{ $session->status }})</option>
                 @endforeach
-            </select>
+            </x-filter-select>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Sessions" :value="$sessions->count()" icon="patrols" />
             <x-stat-card compact label="GPS points" :value="$points->count()" icon="gps" tone="info" />
             <x-stat-card compact label="Track" :value="$points->count() > 1 ? $points->count().' pts' : '—'" icon="plan" />

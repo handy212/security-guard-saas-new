@@ -1,10 +1,12 @@
 <div>
-    <x-page-shell title="Service overview" description="Live visibility into guard coverage, patrols, incidents, and approved reports.">
-        <div class="grid grid-cols-4 gap-2">
+    <x-page-shell title="Service overview" description="Live visibility into guard coverage, patrols, incidents, and approved reports." :show-header="true">
+
+        <div class="kpi-grid">
             <x-stat-card compact label="Shifts" :value="$stats['shifts']" icon="schedules" />
             <x-stat-card compact label="Reports" :value="$stats['reports']" icon="plan" tone="success" />
             <x-stat-card compact label="Incidents" :value="$stats['incidents']" icon="incidents" :tone="$stats['incidents'] ? 'warning' : 'default'" />
             <x-stat-card compact label="Patrols done" :value="$stats['patrols']" icon="patrols" tone="info" />
+            <x-stat-card compact label="Custom reports" :value="$stats['custom_reports']" icon="plan" />
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
@@ -52,12 +54,23 @@
                     <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-t-0">
                         <div>
                             <div class="font-medium">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
-                            <div class="text-sm text-zinc-500">{{ $patrol->assignedGuard?->full_name }}</div>
+                            <div class="text-sm text-zinc-500">{{ $patrol->assignedGuard?->full_name }} · {{ $patrol->completion_percent ?? 0 }}% complete</div>
                         </div>
                         <x-badge :status="$patrol->status" />
                     </div>
                 @empty
                     <x-empty-state title="No patrols" />
+                @endforelse
+            </x-section-card>
+
+            <x-section-card title="Custom reports">
+                @forelse($customReports as $report)
+                    <div class="border-t border-zinc-100 py-3 first:border-t-0">
+                        <div class="font-medium">{{ $report->template?->name }}</div>
+                        <div class="text-sm text-zinc-500">{{ $report->site?->name }} · {{ $report->submitted_at?->format('M j, Y') }}</div>
+                    </div>
+                @empty
+                    <x-empty-state title="No custom reports" />
                 @endforelse
             </x-section-card>
         </div>

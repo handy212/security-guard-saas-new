@@ -5,7 +5,7 @@
     @endphp
 
     <x-page-shell title="Vehicle Patrols" description="Mobile patrols with odometer readings.">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$vehiclePatrols->count()" icon="patrols" />
             <x-stat-card compact label="Active" :value="$active" icon="gps" tone="info" />
             <x-stat-card compact label="Completed" :value="$completed" icon="check" tone="success" />
@@ -25,24 +25,24 @@
         </x-form-card>
 
         <x-data-table title="Recent vehicle patrols">
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Vehicle</th>
-                    <th class="px-3 py-2">Driver</th>
-                    <th class="px-3 py-2">Odometer</th>
-                    <th class="px-3 py-2">Logged</th>
+                    <x-table.th>Vehicle</x-table.th>
+                    <x-table.th>Driver</x-table.th>
+                    <x-table.th>Odometer</x-table.th>
+                    <x-table.th>Logged</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($vehiclePatrols as $patrol)
-                    <tr class="table-row-hover">
-                        <td class="px-3 py-2 font-medium">{{ $patrol->vehicle_number }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $patrol->driver_name ?: '—' }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $patrol->start_odometer ?? '—' }} → {{ $patrol->end_odometer ?? 'in progress' }}</td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $patrol->created_at?->format('M j, H:i') }}</td>
+                    <tr class="table-row-hover" wire:key="vpatrol-{{ $patrol->id }}">
+                        <x-table.td><span class="font-medium text-zinc-900">{{ $patrol->vehicle_number }}</span></x-table.td>
+                        <x-table.td muted>{{ $patrol->driver_name ?: '—' }}</x-table.td>
+                        <x-table.td muted>{{ $patrol->start_odometer ?? '—' }} → {{ $patrol->end_odometer ?? 'in progress' }}</x-table.td>
+                        <x-table.td muted>{{ $patrol->created_at?->format('M j, H:i') }}</x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-3 py-8"><x-empty-state title="No vehicle patrols" /></td></tr>
+                    <x-table.empty colspan="4"><x-empty-state title="No vehicle patrols" /></x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>

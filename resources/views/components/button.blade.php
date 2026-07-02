@@ -1,4 +1,4 @@
-@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button'])
+@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button', 'href' => null])
 
 @php
     $classes = match($variant) {
@@ -8,9 +8,20 @@
         'link' => 'btn-link',
         default => 'btn-primary',
     };
-    $sizeClass = $size === 'sm' ? 'px-3 py-1.5 text-xs' : '';
+    $sizeClass = match($size) {
+        'sm' => '!px-2.5 !py-1 text-xs',
+        'lg' => '!px-4 !py-2 text-sm',
+        default => '',
+    };
+    $merged = trim($classes.' '.$sizeClass);
 @endphp
 
-<button type="{{ $type }}" {{ $attributes->merge(['class' => trim($classes.' '.$sizeClass)]) }}>
-    {{ $slot }}
-</button>
+@if ($href)
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $merged]) }}>
+        {{ $slot }}
+    </a>
+@else
+    <button type="{{ $type }}" {{ $attributes->merge(['class' => $merged]) }}>
+        {{ $slot }}
+    </button>
+@endif

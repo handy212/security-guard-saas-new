@@ -4,7 +4,7 @@
             <x-button wire:click="openCreate">Add plan</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total plans" :value="$planStats['total']" icon="plan" />
             <x-stat-card compact label="Active" :value="$planStats['active']" icon="check" tone="success" />
             <x-stat-card compact label="In use" :value="$planStats['assigned']" icon="users" tone="info" />
@@ -19,7 +19,7 @@
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @forelse($plans as $plan)
-                <div class="flex flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm" wire:key="plan-{{ $plan->id }}">
+                <div class="flex flex-col card-surface p-4" wire:key="plan-{{ $plan->id }}">
                     <div class="flex items-start justify-between gap-2">
                         <div>
                             <h3 class="font-semibold text-zinc-900">{{ $plan->name }}</h3>
@@ -60,21 +60,15 @@
 
     @if ($showForm)
         <x-drawer :title="$editingPlanId ? 'Edit plan' : 'Add plan'" width="lg" closeMethod="closeDrawer">
-            <form wire:submit="save" class="space-y-4">
+            <x-drawer-form wire:submit="save" :submit-label="$editingPlanId ? 'Save changes' : 'Create plan'">
                 <x-input wire:model.live="form.name" label="Plan name" />
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <x-input wire:model="form.slug" label="Slug" />
-                    <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
-                </div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
-                    <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
-                </div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
-                    <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
-                </div>
-                <div>
+                <x-input wire:model="form.slug" label="Slug" />
+                <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
+                <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
+                <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
+                <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
+                <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
+                <div class="sm:col-span-2">
                     <p class="mb-2 text-sm font-medium text-zinc-700">Feature entitlements</p>
                     <div class="max-h-64 space-y-4 overflow-y-auto rounded-lg border border-zinc-200 p-3">
                         @foreach ($featureGroups as $group => $features)
@@ -83,7 +77,7 @@
                                 <div class="space-y-2">
                                     @foreach ($features as $feature)
                                         <label class="flex items-start gap-2 text-sm">
-                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300" />
+                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20" />
                                             <span>{{ $feature['label'] }}</span>
                                         </label>
                                     @endforeach
@@ -92,15 +86,11 @@
                         @endforeach
                     </div>
                 </div>
-                <select wire:model="form.status" class="form-input w-full">
+                <x-select wire:model="form.status" label="Status">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                </select>
-                <div class="flex gap-2 border-t border-zinc-100 pt-4">
-                    <x-button type="submit">{{ $editingPlanId ? 'Save changes' : 'Create plan' }}</x-button>
-                    <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
-                </div>
-            </form>
+                </x-select>
+            </x-drawer-form>
         </x-drawer>
     @endif
 </div>

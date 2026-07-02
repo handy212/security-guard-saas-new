@@ -6,6 +6,7 @@
         'zinc' => 'bg-zinc-800',
         'amber' => 'bg-amber-500',
         'emerald' => 'bg-emerald-500',
+        'accent' => 'bg-accent-500',
     ];
     $barColor = $colors[$color] ?? $colors['zinc'];
 @endphp

@@ -5,6 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\ClientAccount;
 use App\Models\Invoice;
 use App\Services\BillingService;
+use App\Services\EstimateService;
 use App\Services\PdfExportService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Storage;
@@ -63,6 +64,16 @@ class InvoiceIndex extends Component
         $path = $pdf->exportInvoice($invoice);
 
         return Storage::download($path);
+    }
+
+    public function recordPayment(Invoice $invoice, EstimateService $service): void
+    {
+        $this->authorize('update', $invoice);
+        $amount = (float) ($invoice->grand_total - ($invoice->amount_paid ?? 0));
+        if ($amount > 0) {
+            $service->recordPayment($invoice, $amount);
+            session()->flash('status', 'Payment recorded.');
+        }
     }
 
     public function render()

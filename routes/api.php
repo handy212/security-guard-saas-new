@@ -11,10 +11,17 @@ Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->gr
     Route::post('/patrols/scan', [MobileAppController::class, 'scanCheckpoint']);
     Route::post('/incidents', [MobileAppController::class, 'reportIncident']);
     Route::post('/sos', [MobileAppController::class, 'sos']);
+    Route::get('/dispatches', [MobileAppController::class, 'myDispatches']);
+    Route::post('/dispatches/{dispatchEvent}/advance', [MobileAppController::class, 'advanceDispatch']);
     Route::post('/location', [MobileAppController::class, 'updateLocation']);
     Route::post('/offline-sync', [MobileAppController::class, 'offlineSync']);
     Route::post('/visitors/check-in', [MobileAppController::class, 'visitorCheckIn']);
     Route::post('/visitors/{visitorLog}/check-out', [MobileAppController::class, 'visitorCheckOut']);
+    Route::post('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'store']);
+    Route::delete('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy']);
+    Route::post('/reports/custom/draft', [MobileAppController::class, 'saveReportDraft']);
+    Route::post('/reports/custom/submit', [MobileAppController::class, 'submitCustomReport']);
+    Route::post('/shifts/confirm', [MobileAppController::class, 'confirmShift']);
 });
 
 Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('enterprise')->group(function () {

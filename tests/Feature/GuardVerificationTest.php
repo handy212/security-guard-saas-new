@@ -237,6 +237,36 @@ class GuardVerificationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_verified_guard_without_token_cannot_download_id_card(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        $guard->verificationTokens()->update(['revoked_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('guards.id-card', $guard))
+            ->assertForbidden();
+    }
+
+    public function test_id_card_eligibility_reflects_verification_state(): void
+    {
+        $this->seed();
+
+        $verification = app(GuardVerificationService::class);
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        $this->assertTrue($verification->idCardEligibility($guard)['can_download']);
+
+        $guard->verificationTokens()->update(['revoked_at' => now()]);
+
+        $eligibility = $verification->idCardEligibility($guard->fresh());
+        $this->assertFalse($eligibility['can_download']);
+        $this->assertSame('regenerate', $eligibility['action']);
+    }
+
     public function test_unverified_guard_cannot_download_id_card(): void
     {
         $this->seed();

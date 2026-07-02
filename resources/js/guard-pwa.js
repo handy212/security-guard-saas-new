@@ -1,4 +1,5 @@
 import { Html5Qrcode } from 'html5-qrcode';
+import { initPushNotifications } from './push-notifications';
 
 const DB_NAME = 'guardops-offline';
 const STORE_NAME = 'queue';
@@ -118,6 +119,46 @@ export async function stopQrScanner() {
     qrScanner = null;
 }
 
+let nfcAbortController = null;
+
+export async function startNfcScanner(onScan) {
+    if (!('NDEFReader' in window)) {
+        throw new Error('Web NFC is not supported on this device.');
+    }
+
+    await stopNfcScanner();
+
+    const reader = new NDEFReader();
+    nfcAbortController = new AbortController();
+
+    reader.addEventListener('reading', ({ message, serialNumber }) => {
+        let value = serialNumber;
+        for (const record of message.records) {
+            if (record.recordType === 'text') {
+                const decoder = new TextDecoder(record.encoding || 'utf-8');
+                value = decoder.decode(record.data);
+                break;
+            }
+            if (record.recordType === 'url') {
+                const decoder = new TextDecoder();
+                value = decoder.decode(record.data);
+                break;
+            }
+        }
+        onScan(value);
+    });
+
+    await reader.scan({ signal: nfcAbortController.signal });
+    return reader;
+}
+
+export async function stopNfcScanner() {
+    if (nfcAbortController) {
+        nfcAbortController.abort();
+        nfcAbortController = null;
+    }
+}
+
 export function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -161,8 +202,14 @@ export function initGuardPwa() {
     window.guardWithGeo = guardWithGeo;
     window.startQrScanner = startQrScanner;
     window.stopQrScanner = stopQrScanner;
+    window.startNfcScanner = startNfcScanner;
+    window.stopNfcScanner = stopNfcScanner;
     window.enqueueOfflineAction = enqueueOfflineAction;
     window.flushOfflineQueue = flushOfflineQueue;
+
+    if (document.querySelector('meta[name="vapid-public-key"]')) {
+        initPushNotifications();
+    }
 
     window.addEventListener('online', () => {
         const root = document.querySelector('[data-guard-app]');

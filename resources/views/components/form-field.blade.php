@@ -1,14 +1,14 @@
 @props(['label' => null, 'for' => null, 'error' => null, 'hint' => null])
 
-<div {{ $attributes->only('class')->merge(['class' => 'space-y-1']) }}>
+<div {{ $attributes->only('class')->merge(['class' => 'form-field']) }}>
     @if($label)
         <label @if($for) for="{{ $for }}" @endif class="form-label">{{ $label }}</label>
     @endif
     {{ $slot }}
     @if($hint && ! $error)
-        <p class="text-xs text-slate-500">{{ $hint }}</p>
+        <p class="form-hint">{{ $hint }}</p>
     @endif
     @if($error)
-        <p class="text-xs text-red-600">{{ $error }}</p>
+        <p class="form-error">{{ $error }}</p>
     @endif
 </div>

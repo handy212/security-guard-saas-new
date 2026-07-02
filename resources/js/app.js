@@ -1,5 +1,8 @@
+import './dashboard-charts.js';
+import './map.js';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { initPushNotifications } from './push-notifications';
 
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
 
@@ -20,4 +23,8 @@ if (reverbKey) {
     echo.connector.pusher.connection.bind('connected', () => {
         window.Echo = echo;
     });
+}
+
+if (document.querySelector('meta[name="vapid-public-key"]')) {
+    initPushNotifications();
 }

@@ -4,7 +4,7 @@
             <x-button wire:click="openCheckIn">Check in visitor</x-button>
         </x-slot:actions>
 
-        <div class="grid grid-cols-4 gap-2">
+        <div class="stat-grid">
             <x-stat-card compact label="Total visits" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="On site now" :value="$stats['on_site']" icon="guards" :tone="$stats['on_site'] ? 'warning' : 'success'" />
             <x-stat-card compact label="Today" :value="$stats['today']" icon="schedules" tone="info" />
@@ -18,35 +18,37 @@
         </x-page-toolbar>
 
         <x-data-table>
-            <thead class="bg-zinc-50 text-left text-xs font-medium text-zinc-500">
+            <x-table.head>
                 <tr>
-                    <th class="px-3 py-2">Visitor</th>
-                    <th class="px-3 py-2">Site</th>
-                    <th class="hidden px-3 py-2 md:table-cell">Checked in</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2 text-right">Actions</th>
+                    <x-table.th>Visitor</x-table.th>
+                    <x-table.th>Site</x-table.th>
+                    <x-table.th responsive="md">Checked in</x-table.th>
+                    <x-table.th>Status</x-table.th>
+                    <x-table.th align="right">Actions</x-table.th>
                 </tr>
-            </thead>
+            </x-table.head>
             <tbody>
                 @forelse($items as $item)
                     <tr class="table-row-hover" wire:key="visitor-{{ $item->id }}">
-                        <td class="px-3 py-2">
+                        <x-table.td>
                             <div class="font-medium">{{ $item->visitor_name }}</div>
                             <div class="text-xs text-zinc-500">{{ $item->company ?: $item->purpose ?: '—' }}</div>
-                        </td>
-                        <td class="px-3 py-2 text-zinc-600">{{ $item->site?->name ?? '—' }}</td>
-                        <td class="hidden px-3 py-2 text-zinc-600 md:table-cell">{{ $item->checked_in_at?->format('M j, H:i') ?? '—' }}</td>
-                        <td class="px-3 py-2"><x-badge :status="$item->status" /></td>
-                        <td class="px-3 py-2 text-right">
+                        </x-table.td>
+                        <x-table.td muted>{{ $item->site?->name ?? '—' }}</x-table.td>
+                        <x-table.td responsive="md" muted>{{ $item->checked_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                        <x-table.td><x-badge :status="$item->status" /></x-table.td>
+                        <x-table.td align="right">
                             @if($item->status === 'checked_in')
                                 <x-button size="sm" wire:click="checkOut({{ $item->id }})">Check out</x-button>
                             @else
                                 <span class="text-xs text-zinc-500">{{ $item->checked_out_at?->format('H:i') ?? '—' }}</span>
                             @endif
-                        </td>
+                        </x-table.td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-3 py-8"><x-empty-state title="No visitors logged" /></td></tr>
+                    <x-table.empty colspan="5">
+                        <x-empty-state compact title="No visitors logged" />
+                    </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>
@@ -56,7 +58,7 @@
 
     @if ($showForm)
         <x-drawer title="Check in visitor" width="lg">
-            <form wire:submit="checkIn" class="grid gap-3 sm:grid-cols-2">
+            <x-drawer-form wire:submit="checkIn" submit-label="Check in" target="checkIn">
                 <x-select wire:model="form.site_id" label="Site" class="sm:col-span-2">
                     <option value="">Select site</option>
                     @foreach($sites as $site)
@@ -68,11 +70,7 @@
                 <x-input wire:model="form.company" label="Company" />
                 <x-input wire:model="form.purpose" label="Purpose" class="sm:col-span-2" />
                 <x-input wire:model="form.vehicle_plate" label="Vehicle plate" class="sm:col-span-2" />
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Check in</x-button>
-                    <x-button type="button" variant="secondary" wire:click="closeDrawer">Cancel</x-button>
-                </div>
-            </form>
+            </x-drawer-form>
         </x-drawer>
     @endif
 </div>

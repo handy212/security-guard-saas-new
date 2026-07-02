@@ -10,8 +10,8 @@
     <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
         <h2 class="font-bold">Today's assignments</h2>
         @forelse($assignments as $assignment)
-            <label class="mt-2 flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-700 p-3 {{ $activeAssignmentId === $assignment->id ? 'border-sky-500' : '' }}">
-                <input type="radio" wire:model.live="activeAssignmentId" value="{{ $assignment->id }}" class="accent-sky-500">
+            <label class="mt-2 flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-700 p-3 {{ $activeAssignmentId === $assignment->id ? 'border-accent-500' : '' }}">
+                <input type="radio" wire:model.live="activeAssignmentId" value="{{ $assignment->id }}" class="accent-500">
                 <div>
                     <div class="font-medium">{{ $assignment->shift?->site?->name }}</div>
                     <div class="text-xs text-zinc-400">{{ $assignment->shift?->starts_at?->format('M j, H:i') }} · {{ $assignment->status }}</div>
@@ -22,6 +22,24 @@
         @endforelse
     </section>
 
+    @if($dispatches->isNotEmpty())
+        <section class="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+            <h2 class="mb-2 font-bold text-amber-200">Active dispatches</h2>
+            @foreach($dispatches as $dispatch)
+                <div class="mb-2 rounded-lg border border-amber-500/30 p-3 text-sm" wire:key="dispatch-{{ $dispatch->id }}">
+                    <div class="font-semibold">{{ $dispatch->dispatch_number }}</div>
+                    <div class="text-xs text-zinc-400">{{ $dispatch->site?->name }} · {{ ucfirst(str_replace('_', ' ', $dispatch->status->value)) }}</div>
+                    <div class="mt-1 text-xs">{{ $dispatch->incident_location }}</div>
+                    @if($dispatch->status->next())
+                        <button type="button" wire:click="advanceDispatch({{ $dispatch->id }})" class="mt-2 w-full rounded-lg bg-amber-600 py-2 text-xs font-semibold">
+                            Mark {{ strtolower($dispatch->status->next()->label()) }}
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </section>
+    @endif
+
     <section class="grid grid-cols-2 gap-3">
         <button type="button"
             onclick="window.guardWithGeo(@this, 'clockIn', 'clock_in', (c, w) => ({ shift_assignment_id: w.activeAssignmentId, latitude: c.lat, longitude: c.lng }))"
@@ -31,7 +49,7 @@
             class="rounded-lg bg-amber-600 py-4 font-bold" @disabled(! $activeAttendanceId)>Clock Out</button>
         <button type="button"
             onclick="window.guardWithGeo(@this, 'updateLocation', 'location', (c) => ({ latitude: c.lat, longitude: c.lng }))"
-            class="rounded-lg bg-sky-600 py-4 font-bold">Update GPS</button>
+            class="rounded-lg bg-accent-600 py-4 font-bold">Update GPS</button>
         <button type="button"
             onclick="window.guardWithGeo(@this, 'raiseSos', 'sos', (c) => ({ latitude: c.lat, longitude: c.lng, message: 'SOS (offline queued)' }))"
             class="rounded-lg bg-red-600 py-4 font-bold">SOS</button>
@@ -50,7 +68,7 @@
                 <div class="text-xs uppercase text-zinc-400">Active sessions</div>
                 @foreach($activePatrols as $patrol)
                     <button type="button" wire:click="$set('patrolSessionId', {{ $patrol->id }})"
-                        class="w-full rounded-lg border px-3 py-2 text-left text-sm {{ $patrolSessionId === $patrol->id ? 'border-sky-500 bg-sky-500/10' : 'border-zinc-600' }}">
+                        class="w-full rounded-lg border px-3 py-2 text-left text-sm {{ $patrolSessionId === $patrol->id ? 'border-accent-500 bg-accent-500/10' : 'border-zinc-600' }}">
                         #{{ $patrol->id }} — {{ $patrol->route?->name }}
                     </button>
                 @endforeach
@@ -63,7 +81,7 @@
                 <div class="flex flex-wrap gap-2">
                     @foreach($patrolRoutes as $route)
                         <button type="button" wire:click="startPatrol({{ $route->id }})"
-                            class="rounded-lg border border-zinc-600 px-3 py-1 text-xs hover:border-sky-500">
+                            class="rounded-lg border border-zinc-600 px-3 py-1 text-xs hover:border-accent-500">
                             {{ $route->name }}
                         </button>
                     @endforeach
@@ -75,10 +93,39 @@
     <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
         <div class="mb-3 flex items-center justify-between">
             <h2 class="font-bold">Checkpoint scan</h2>
-            <button type="button" wire:click="toggleScanner" class="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold">
-                {{ $showScanner ? 'Close camera' : 'Open camera' }}
-            </button>
+            <div class="flex gap-2">
+                <button type="button" wire:click="toggleNfcScanner" class="rounded-lg border border-slate-600 px-3 py-1 text-xs font-semibold">
+                    {{ $showNfcScanner ? 'Stop NFC' : 'Scan NFC' }}
+                </button>
+                <button type="button" wire:click="toggleScanner" class="rounded-lg bg-accent-600 px-3 py-1 text-xs font-semibold">
+                    {{ $showScanner ? 'Close camera' : 'Scan QR' }}
+                </button>
+            </div>
         </div>
+
+        @if($showNfcScanner)
+            @script
+            <script>
+                $wire.$watch('showNfcScanner', async (show) => {
+                    if (show) {
+                        try {
+                            await window.startNfcScanner((code) => {
+                                $wire.dispatch('nfc-scanned', { code });
+                                window.stopNfcScanner();
+                                $wire.set('showNfcScanner', false);
+                            });
+                        } catch (e) {
+                            $wire.set('statusMessage', e.message || 'NFC scan unavailable.');
+                            $wire.set('showNfcScanner', false);
+                        }
+                    } else {
+                        await window.stopNfcScanner?.();
+                    }
+                });
+            </script>
+            @endscript
+            <p class="mb-3 text-xs text-slate-400">Hold device near NFC tag…</p>
+        @endif
 
         @if($showScanner)
             <div id="qr-reader" class="mb-3 overflow-hidden rounded-lg border border-zinc-600" wire:ignore></div>
@@ -110,10 +157,50 @@
                 <option value="{{ $patrol->id }}">#{{ $patrol->id }} — {{ $patrol->route?->name }}</option>
             @endforeach
         </select>
-        <input wire:model="checkpointCode" type="text" placeholder="QR / checkpoint code" class="mb-2 w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm">
+        <input wire:model="checkpointCode" type="text" placeholder="QR / NFC checkpoint code" class="mb-2 w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm">
         <button type="button"
             onclick="window.guardWithGeo(@this, 'scanCheckpoint', 'checkpoint_scan', (c, w) => ({ patrol_session_id: w.patrolSessionId, checkpoint_code: w.checkpointCode, latitude: c.lat, longitude: c.lng }))"
             class="w-full rounded-lg bg-zinc-100 py-2 font-semibold text-zinc-900">Submit scan</button>
+    </section>
+
+    <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
+        <h2 class="mb-2 font-bold">Shift confirm</h2>
+        <button type="button" wire:click="confirmMyShift" class="w-full rounded-lg bg-indigo-600 py-2 font-semibold" @disabled(! $activeAssignmentId)>Confirm shift</button>
+    </section>
+
+    @if($reportTemplates->isNotEmpty())
+        <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
+            <h2 class="mb-2 font-bold">Custom reports</h2>
+            <select wire:model="activeReportTemplateId" class="mb-2 w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm">
+                <option value="">Select report</option>
+                @foreach($reportTemplates as $template)
+                    <option value="{{ $template->id }}">{{ $template->name }}</option>
+                @endforeach
+            </select>
+            @if($activeReportTemplateId)
+                @php $template = $reportTemplates->firstWhere('id', $activeReportTemplateId); @endphp
+                @foreach($template?->fields ?? [] as $field)
+                    <div class="mb-2">
+                        <label class="text-xs text-zinc-400">{{ $field->label }}</label>
+                        @if($field->field_type === 'textarea')
+                            <textarea wire:model="reportData.{{ $field->id }}" class="w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm" rows="2"></textarea>
+                        @else
+                            <input wire:model="reportData.{{ $field->id }}" type="text" class="w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm">
+                        @endif
+                    </div>
+                @endforeach
+                <div class="flex gap-2">
+                    <button type="button" wire:click="saveReportDraft" class="flex-1 rounded-lg border border-zinc-600 py-2 text-sm">Save draft</button>
+                    <button type="button" wire:click="submitCustomReport" class="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold">Submit</button>
+                </div>
+            @endif
+        </section>
+    @endif
+
+    <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
+        <h2 class="mb-2 font-bold">Passdown</h2>
+        <textarea wire:model="passdownContent" rows="3" placeholder="Handoff notes for next guard..." class="mb-2 w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"></textarea>
+        <button type="button" wire:click="savePassdown" class="w-full rounded-lg bg-zinc-100 py-2 font-semibold text-zinc-900" @disabled(! $activeAssignmentId)>Save passdown</button>
     </section>
 
     <p class="text-center text-[10px] text-zinc-500">Install this app from your browser menu for fullscreen field use.</p>

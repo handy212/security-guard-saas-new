@@ -1,0 +1,76 @@
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
+
+const chartColors = ['#0ea5e9', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e'];
+
+function initDashboardCharts() {
+    document.querySelectorAll('[data-dashboard-chart]').forEach((canvas) => {
+        if (canvas.dataset.chartReady) return;
+
+        const type = canvas.dataset.dashboardChart;
+        const payload = JSON.parse(canvas.dataset.chartPayload || '{}');
+
+        if (type === 'donut') {
+            const labels = Object.keys(payload);
+            const values = Object.values(payload);
+            const total = values.reduce((a, b) => a + b, 0);
+
+            if (!total) return;
+
+            new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: chartColors.slice(0, labels.length),
+                        borderWidth: 0,
+                        hoverOffset: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: { legend: { display: false } },
+                },
+            });
+        }
+
+        if (type === 'bar') {
+            const labels = Object.keys(payload).map((d) => {
+                const date = new Date(d);
+                return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            });
+            const values = Object.values(payload);
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: values.map((_, i) => chartColors[i % chartColors.length]),
+                        borderRadius: 4,
+                        barThickness: 22,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f4f4f5' } },
+                    },
+                },
+            });
+        }
+
+        canvas.dataset.chartReady = '1';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initDashboardCharts);
+document.addEventListener('livewire:navigated', initDashboardCharts);
