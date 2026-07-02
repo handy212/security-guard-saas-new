@@ -1,7 +1,10 @@
 @props(['label' => null, 'error' => null, 'hint' => null, 'rows' => 3])
 
 @php
-    $errorKey = $attributes->get('wire:model') ?? $attributes->get('wire:model.live');
+    $errorKey = $attributes->get('wire:model')
+        ?? $attributes->get('wire:model.live')
+        ?? $attributes->get('wire:model.blur')
+        ?? $attributes->get('wire:model.defer');
     $resolvedError = $error ?? ($errorKey ? $errors->first($errorKey) : null);
 @endphp
 

@@ -7,7 +7,16 @@
     @if(config('notifications.push.vapid.public_key'))
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
-    <title>{{ $portalTenantName ?? 'Client Portal' }} — {{ config('app.name') }}</title>
+    <title>{{ ($tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal') }} — {{ config('app.name') }}</title>
+    <script>
+        (function () {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (! stored && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <link rel="manifest" href="/manifest-client.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +24,17 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-zinc-50 text-zinc-900" x-data="{ navOpen: false }">
-<header class="border-b border-zinc-200 bg-white">
+<body class="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100" x-data="{ navOpen: false }">
+<header class="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <div class="flex min-w-0 items-center gap-2">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-900 text-xs font-bold text-white">{{ strtoupper(substr($portalTenantName ?? 'C', 0, 1)) }}</div>
+            <div
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
+                style="background-color: {{ $tenantBranding['color'] ?? '#18181b' }}"
+            >{{ $tenantBranding['initial'] ?? strtoupper(substr($portalTenantName ?? 'C', 0, 1)) }}</div>
             <div class="min-w-0">
-                <div class="truncate text-sm font-semibold">{{ $portalTenantName ?? 'Client Portal' }}</div>
-                <div class="truncate text-[11px] text-zinc-500">Proof of service</div>
+                <div class="truncate text-sm font-semibold dark:text-zinc-100">{{ $tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal' }}</div>
+                <div class="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{{ $tenantBranding['tagline'] ?? 'Proof of service' }}</div>
             </div>
         </div>
         <button type="button" @click="navOpen = !navOpen" class="rounded-md p-2 text-zinc-600 hover:bg-zinc-100 sm:hidden" aria-label="Menu">

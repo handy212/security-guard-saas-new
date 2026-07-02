@@ -7,7 +7,19 @@
     @if(config('notifications.push.vapid.public_key'))
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
-    <title>{{ config('app.name', 'GuardOps SaaS') }}</title>
+    <title>{{ $tenantBranding['name'] ?? config('app.name', 'GuardOps SaaS') }}</title>
+    @if (! empty($tenantBranding['color']))
+        <style>:root { --tenant-brand: {{ $tenantBranding['color'] }}; }</style>
+    @endif
+    <script>
+        (function () {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (! stored && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,7 +35,7 @@
     @stack('styles')
 </head>
 <body
-    class="bg-zinc-100 antialiased text-zinc-900"
+    class="bg-zinc-100 antialiased text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
     x-data="{
         sidebarOpen: false,
         sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
@@ -47,16 +59,19 @@
 
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-white max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
+        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-white max-lg:transition-transform max-lg:duration-200 max-lg:ease-out dark:border-zinc-800 dark:bg-zinc-900"
     >
-        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-100 px-3">
+        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 dark:border-zinc-800">
             <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}"
                class="flex min-w-0 flex-1 items-center gap-2.5"
                :class="sidebarCollapsed ? 'justify-center' : ''">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-600 to-accent-500 text-xs font-bold text-white shadow-sm">G</div>
+                <div
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm"
+                    style="background-color: {{ $tenantBranding['color'] ?? '#0284c7' }}"
+                >{{ $tenantBranding['initial'] ?? 'G' }}</div>
                 <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="truncate text-sm font-semibold text-zinc-900">GuardOps</div>
-                    <div class="truncate text-[11px] text-zinc-500">Security Operations</div>
+                    <div class="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $tenantBranding['name'] ?? 'GuardOps' }}</div>
+                    <div class="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{{ $tenantBranding['tagline'] ?? 'Security Operations' }}</div>
                 </div>
             </a>
             <button

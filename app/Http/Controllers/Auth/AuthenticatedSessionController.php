@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Support\TenantContext;
+use App\Services\UserHomeRouteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +16,7 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, UserHomeRouteService $homeRoute): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -34,11 +34,7 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
         $user?->forceFill(['last_login_at' => now()])->save();
 
-        $home = TenantContext::isPlatformAdmin()
-            ? route('saas.tenants')
-            : route('dashboard');
-
-        return redirect()->intended($home);
+        return redirect()->intended($homeRoute->resolve($user));
     }
 
     public function destroy(Request $request): RedirectResponse

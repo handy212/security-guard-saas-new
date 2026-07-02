@@ -55,6 +55,8 @@
                 <livewire:notifications.notification-bell />
             @endif
 
+            <x-theme-toggle />
+
             <div class="relative" x-data="{ userOpen: false }">
                 <button
                     type="button"

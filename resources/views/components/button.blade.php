@@ -1,4 +1,4 @@
-@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button', 'href' => null])
+@props(['variant' => 'primary', 'size' => 'md', 'type' => 'button', 'href' => null, 'loadingText' => null])
 
 @php
     $classes = match($variant) {
@@ -14,6 +14,7 @@
         default => '',
     };
     $merged = trim($classes.' '.$sizeClass);
+    $loadingLabel = $loadingText ?? ($type === 'submit' ? 'Saving…' : null);
 @endphp
 
 @if ($href)
@@ -21,7 +22,16 @@
         {{ $slot }}
     </a>
 @else
-    <button type="{{ $type }}" {{ $attributes->merge(['class' => $merged]) }}>
-        {{ $slot }}
+    <button
+        type="{{ $type }}"
+        wire:loading.attr="disabled"
+        {{ $attributes->merge(['class' => $merged]) }}
+    >
+        @if ($loadingLabel)
+            <span wire:loading.remove>{{ $slot }}</span>
+            <span wire:loading>{{ $loadingLabel }}</span>
+        @else
+            {{ $slot }}
+        @endif
     </button>
 @endif

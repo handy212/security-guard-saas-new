@@ -46,11 +46,18 @@
         : ($compact ? 'truncate text-sm font-semibold leading-none text-zinc-900' : 'truncate text-lg font-semibold leading-tight text-zinc-900');
     $labelClass = $stacked
         ? 'mt-0.5 truncate text-[10px] font-medium text-zinc-500'
-        : ($compact ? 'truncate text-[9px] font-medium leading-tight text-zinc-500' : 'truncate text-[11px] font-medium text-zinc-500');
+        : ($compact ? 'truncate text-[10px] font-medium leading-tight text-zinc-500 sm:text-[11px]' : 'truncate text-[11px] font-medium text-zinc-500');
+
+    $isInteractive = $attributes->whereStartsWith('wire:click')->isNotEmpty();
+    if ($isInteractive) {
+        $shellClass .= ' w-full text-left transition hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/20';
+    }
 @endphp
 
 @if ($href)
     <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition hover:border-zinc-300']) }}>
+@elseif ($isInteractive)
+    <button type="button" {{ $attributes->merge(['class' => $shellClass]) }}>
 @else
     <div {{ $attributes->merge(['class' => $shellClass]) }}>
 @endif
@@ -68,6 +75,8 @@
     </div>
 @if ($href)
     </a>
+@elseif ($isInteractive)
+    </button>
 @else
     </div>
 @endif
