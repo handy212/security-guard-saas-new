@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GuardIdCardController;
+use App\Http\Controllers\GuardIdCardPreviewController;
+use App\Http\Controllers\GuardIdCardPrintController;
 use App\Http\Controllers\GuardVerificationController;
 use App\Http\Controllers\GuardVerificationPhotoController;
 use App\Http\Controllers\PaystackCallbackController;
@@ -53,6 +55,7 @@ use App\Livewire\Scheduling\ShiftExchangeIndex;
 use App\Livewire\Scheduling\ShiftStatusIndex;
 use App\Livewire\Scheduling\ShiftTemplateIndex;
 use App\Livewire\Scheduling\TimeOffIndex;
+use App\Livewire\Settings\IdCardSettings;
 use App\Livewire\Settings\SettingsHub;
 use App\Livewire\Settings\AuditLogIndex;
 use App\Livewire\Settings\RolePermissionManager;
@@ -71,13 +74,25 @@ use App\Http\Controllers\PushSubscriptionController;
 
 Route::post('/paystack/webhook', PaystackWebhookController::class)->name('paystack.webhook');
 
+Route::get('/g/{tenant}/{token}', GuardVerificationController::class)
+    ->middleware('throttle:60,1')
+    ->where(['tenant' => '[a-z0-9-]+', 'token' => '[A-Z0-9]{8,32}'])
+    ->name('guard.verify');
+
+Route::get('/g/{tenant}/{token}/photo', GuardVerificationPhotoController::class)
+    ->middleware('throttle:120,1')
+    ->where(['tenant' => '[a-z0-9-]+', 'token' => '[A-Z0-9]{8,32}'])
+    ->name('guard.verify.photo');
+
 Route::get('/g/{token}', GuardVerificationController::class)
     ->middleware('throttle:60,1')
-    ->name('guard.verify');
+    ->where('token', '[A-Z0-9]{8,32}')
+    ->name('guard.verify.legacy');
 
 Route::get('/g/{token}/photo', GuardVerificationPhotoController::class)
     ->middleware('throttle:120,1')
-    ->name('guard.verify.photo');
+    ->where('token', '[A-Z0-9]{8,32}')
+    ->name('guard.verify.photo.legacy');
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -100,7 +115,10 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/guards/know-your-guard', KnowYourGuardQueue::class)->name('guards.kyg');
     Route::get('/guards/{guard}', GuardProfile::class)->name('guards.show');
     Route::get('/guards/{guard}/id-card', GuardIdCardController::class)->name('guards.id-card');
+    Route::get('/guards/{guard}/id-card/print', GuardIdCardPrintController::class)->name('guards.id-card.print');
+    Route::get('/guards/{guard}/id-card/preview', [GuardIdCardPreviewController::class, 'guard'])->name('guards.id-card.preview');
     Route::get('/files/guards/{guard}/photo', [TenantFileController::class, 'guardPhoto'])->name('files.guard-photo');
+    Route::get('/files/id-card-logo', [TenantFileController::class, 'idCardLogo'])->name('files.id-card-logo');
     Route::get('/files/guard-documents/{document}', [TenantFileController::class, 'guardDocument'])->name('files.guard-document');
     Route::get('/schedules', ScheduleIndex::class)->name('schedules.index');
     Route::get('/schedules/templates', ShiftTemplateIndex::class)->name('schedules.templates');
@@ -127,6 +145,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
     Route::get('/billing/subscription/callback', PaystackCallbackController::class)->name('billing.paystack.callback');
     Route::get('/settings', SettingsHub::class)->name('settings.index');
+    Route::get('/settings/id-card', IdCardSettings::class)->name('settings.id-card');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');
     Route::get('/settings/two-factor', TwoFactorSetup::class)->name('settings.two-factor');
     Route::get('/settings/webhooks', WebhookManager::class)->name('settings.webhooks');

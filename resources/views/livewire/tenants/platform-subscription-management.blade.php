@@ -9,7 +9,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search tenants…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'trial' => 'Trial', 'cancelled' => 'Cancelled']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'trial' => 'Trial', 'cancelled' => 'Cancelled']" />
             </x-slot:tabs>
         </x-page-toolbar>
 

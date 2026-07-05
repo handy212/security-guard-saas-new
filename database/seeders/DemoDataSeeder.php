@@ -124,8 +124,10 @@ class DemoDataSeeder extends Seeder
         \App\Models\TenantSetting::updateOrCreate(
             ['tenant_id' => $tenant->id, 'key' => 'id_card'],
             ['value' => [
-                'tagline' => 'Stay connected. Stay protected.',
-                'brand_color' => '#8C1D2F',
+                'template' => 'modern',
+                'tagline' => 'Employee Identification',
+                'brand_color' => '#2563eb',
+                'brand_color_dark' => '#1e40af',
                 'phone' => '+233 302 770 0205',
                 'phone_secondary' => '0205 965 133',
                 'email' => 'info@demosecurity.test',

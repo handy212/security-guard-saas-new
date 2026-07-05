@@ -182,8 +182,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
             'Stancl\\Tenancy\\' => 15,
             'Stancl\\JobPipeline\\' => 19,
             'SpomkyLabs\\Pki\\' => 15,
+            'Spatie\\TemporaryDirectory\\' => 26,
             'Spatie\\Permission\\' => 18,
             'Spatie\\LaravelPackageTools\\' => 27,
+            'Spatie\\Browsershot\\' => 19,
             'Spatie\\Activitylog\\' => 19,
             'Sabberworm\\CSS\\' => 15,
         ),
@@ -463,6 +465,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         array (
             0 => __DIR__ . '/..' . '/spomky-labs/pki-framework/src',
         ),
+        'Spatie\\TemporaryDirectory\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spatie/temporary-directory/src',
+        ),
         'Spatie\\Permission\\' =>
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-permission/src',
@@ -470,6 +476,10 @@ class ComposerStaticInit9ee44f8d45b8f63c859588440c30813a
         'Spatie\\LaravelPackageTools\\' =>
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-package-tools/src',
+        ),
+        'Spatie\\Browsershot\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spatie/browsershot/src',
         ),
         'Spatie\\Activitylog\\' =>
         array (

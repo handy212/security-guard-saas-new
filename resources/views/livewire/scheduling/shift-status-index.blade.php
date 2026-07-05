@@ -5,7 +5,7 @@
 
         <x-page-toolbar>
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'pending' => 'Pending', 'confirmed' => 'Confirmed', 'assigned' => 'Assigned']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'pending' => 'Pending', 'confirmed' => 'Confirmed', 'assigned' => 'Assigned']" />
             </x-slot:tabs>
         </x-page-toolbar>
 

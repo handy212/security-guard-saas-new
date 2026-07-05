@@ -15,9 +15,13 @@ class GuardIdCardPhotoService
 
     private const BORDER = 2;
 
-    public function dataUri(?string $path): ?string
+    private const CIRCLE_SIZE = 118;
+
+    private const CIRCLE_BORDER = 4;
+
+    public function dataUri(?string $path, string $style = 'rounded'): ?string
     {
-        $binary = $this->pngBinary($path);
+        $binary = $this->pngBinary($path, $style);
 
         return $binary !== null ? 'data:image/png;base64,'.base64_encode($binary) : null;
     }
@@ -25,13 +29,43 @@ class GuardIdCardPhotoService
     /**
      * @return string|null Absolute path to PNG (within DomPDF chroot)
      */
-    public function pngFile(?string $path): ?string
+    public function pngFile(?string $path, string $style = 'circular'): ?string
     {
-        $binary = $this->pngBinary($path);
+        $binary = $this->pngBinary($path, $style);
         if ($binary === null) {
             return null;
         }
 
+        return $this->writeTempPng($binary);
+    }
+
+    public function initialsFile(string $initial): ?string
+    {
+        if (! extension_loaded('gd')) {
+            return null;
+        }
+
+        $binary = $this->initialsPng(strtoupper(substr($initial, 0, 1)));
+        if ($binary === null) {
+            return null;
+        }
+
+        return $this->writeTempPng($binary);
+    }
+
+    public function initialsDataUri(string $initial): ?string
+    {
+        if (! extension_loaded('gd')) {
+            return null;
+        }
+
+        $binary = $this->initialsPng(strtoupper(substr($initial, 0, 1)));
+
+        return $binary !== null ? 'data:image/png;base64,'.base64_encode($binary) : null;
+    }
+
+    private function writeTempPng(string $binary): ?string
+    {
         $dir = storage_path('app/temp');
         if (! is_dir($dir) && ! @mkdir($dir, 0775, true) && ! is_dir($dir)) {
             return null;
@@ -45,17 +79,17 @@ class GuardIdCardPhotoService
         return $file;
     }
 
-    public function widthPt(): int
+    public function widthPt(string $style = 'rounded'): int
     {
-        return 72;
+        return $style === 'circular' ? 59 : 72;
     }
 
-    public function heightPt(): int
+    public function heightPt(string $style = 'rounded'): int
     {
-        return 151;
+        return $style === 'circular' ? 59 : 151;
     }
 
-    private function pngBinary(?string $path): ?string
+    private function pngBinary(?string $path, string $style = 'rounded'): ?string
     {
         if (! $path || ! Storage::disk('public')->exists($path)) {
             return null;
@@ -74,7 +108,9 @@ class GuardIdCardPhotoService
             return is_readable($absolute) ? (string) file_get_contents($absolute) : null;
         }
 
-        $framed = $this->frameWithRoundedTop($source);
+        $framed = $style === 'circular'
+            ? $this->frameCircular($source)
+            : $this->frameWithRoundedTop($source);
         imagedestroy($source);
 
         if ($framed === null) {
@@ -103,6 +139,87 @@ class GuardIdCardPhotoService
             IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? (@imagecreatefromwebp($absolute) ?: null) : null,
             default => null,
         };
+    }
+
+    private function frameCircular(\GdImage $source): ?\GdImage
+    {
+        $size = self::CIRCLE_SIZE;
+        $border = self::CIRCLE_BORDER;
+        $total = $size + ($border * 2);
+
+        $canvas = imagecreatetruecolor($total, $total);
+        if ($canvas === false) {
+            return null;
+        }
+
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefilledellipse($canvas, (int) ($total / 2), (int) ($total / 2), $total - 1, $total - 1, $white);
+
+        $photo = imagecreatetruecolor($size, $size);
+        if ($photo === false) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        $this->copyCover($source, $photo, $size, $size);
+        $masked = $this->applyCircleMask($photo, $size);
+        imagedestroy($photo);
+
+        if ($masked === null) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        imagecopy($canvas, $masked, $border, $border, 0, 0, $size, $size);
+        imagedestroy($masked);
+
+        imagealphablending($canvas, true);
+
+        return $canvas;
+    }
+
+    private function applyCircleMask(\GdImage $image, int $size): ?\GdImage
+    {
+        $mask = imagecreatetruecolor($size, $size);
+        if ($mask === false) {
+            return null;
+        }
+
+        $black = imagecolorallocate($mask, 0, 0, 0);
+        $white = imagecolorallocate($mask, 255, 255, 255);
+        imagefill($mask, 0, 0, $black);
+        imagefilledellipse($mask, (int) ($size / 2), (int) ($size / 2), $size - 1, $size - 1, $white);
+
+        $output = imagecreatetruecolor($size, $size);
+        if ($output === false) {
+            imagedestroy($mask);
+
+            return null;
+        }
+
+        imagealphablending($output, false);
+        imagesavealpha($output, true);
+        $transparent = imagecolorallocatealpha($output, 0, 0, 0, 127);
+        imagefill($output, 0, 0, $transparent);
+
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
+                if ((imagecolorat($mask, $x, $y) & 0xFF) > 127) {
+                    imagesetpixel($output, $x, $y, imagecolorat($image, $x, $y));
+                }
+            }
+        }
+
+        imagedestroy($mask);
+
+        return $output;
     }
 
     private function frameWithRoundedTop(\GdImage $source): ?\GdImage
@@ -236,5 +353,60 @@ class GuardIdCardPhotoService
         imagearc($canvas, $x2 - $radius, $yTop + $radius, $radius * 2, $radius * 2, 270, 360, $color);
 
         imagesetthickness($canvas, 1);
+    }
+
+    private function initialsPng(string $initial): ?string
+    {
+        $size = self::CIRCLE_SIZE;
+        $border = self::CIRCLE_BORDER;
+        $total = $size + ($border * 2);
+
+        $canvas = imagecreatetruecolor($total, $total);
+        if ($canvas === false) {
+            return null;
+        }
+
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefilledellipse($canvas, (int) ($total / 2), (int) ($total / 2), $total - 1, $total - 1, $white);
+
+        $fill = imagecreatetruecolor($size, $size);
+        if ($fill === false) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        $bg = imagecolorallocate($fill, 226, 232, 240);
+        imagefill($fill, 0, 0, $bg);
+        $textColor = imagecolorallocate($fill, 100, 116, 139);
+        $font = 5;
+        $tw = imagefontwidth($font) * strlen($initial);
+        $th = imagefontheight($font);
+        imagestring($fill, $font, (int) (($size - $tw) / 2), (int) (($size - $th) / 2), $initial, $textColor);
+
+        $masked = $this->applyCircleMask($fill, $size);
+        imagedestroy($fill);
+
+        if ($masked === null) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        imagecopy($canvas, $masked, $border, $border, 0, 0, $size, $size);
+        imagedestroy($masked);
+        imagealphablending($canvas, true);
+
+        ob_start();
+        imagepng($canvas);
+        $png = (string) ob_get_clean();
+        imagedestroy($canvas);
+
+        return $png !== '' ? $png : null;
     }
 }

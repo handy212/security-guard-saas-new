@@ -9,6 +9,8 @@ services:
       APP_URL: http://localhost:8080
       SESSION_DRIVER: file
       SESSION_SECURE_COOKIE: "false"
+      CHROME_PATH: /usr/bin/chromium
+      ID_CARD_PDF_DRIVER: browsershot
     depends_on:
       - mysql
       - redis

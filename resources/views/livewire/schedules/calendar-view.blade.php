@@ -13,7 +13,7 @@
 
         <x-page-toolbar>
             <x-slot:tabs>
-                <x-segment-control model="view" :active="$view" :options="['month' => 'Month', 'week' => 'Week']" />
+                <x-segment-control field="view" :active="$view" :options="['month' => 'Month', 'week' => 'Week']" />
             </x-slot:tabs>
             <x-slot:controls>
                 <x-filter-select wire:model.live="siteId">

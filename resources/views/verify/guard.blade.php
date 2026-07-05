@@ -18,8 +18,8 @@
 
         <div class="p-4">
             <div class="flex flex-col items-center text-center">
-                @if ($guard->photo_path)
-                    <img src="{{ route('guard.verify.photo', $token) }}" alt="{{ $guard->full_name }}" class="h-24 w-24 rounded-full border-2 border-zinc-200 object-cover">
+                @if ($photoUrl)
+                    <img src="{{ $photoUrl }}" alt="{{ $guard->full_name }}" class="h-24 w-24 rounded-full border-2 border-zinc-200 object-cover">
                 @else
                     <div class="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-100 text-2xl font-semibold text-zinc-600">
                         {{ strtoupper(substr($guard->first_name, 0, 1).substr($guard->last_name, 0, 1)) }}

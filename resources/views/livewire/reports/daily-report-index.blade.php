@@ -9,7 +9,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search reports, sites, guards…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'submitted' => 'Pending', 'approved' => 'Approved', 'draft' => 'Draft']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'submitted' => 'Pending', 'approved' => 'Approved', 'draft' => 'Draft']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)

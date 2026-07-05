@@ -9,8 +9,8 @@
     >
         <x-slot:actions>
             @if ($idCardEligibility['can_download'])
-                <x-button variant="secondary" :href="route('guards.id-card', $guard)" title="Download printable CR80 ID card (PDF)">
-                    Download ID card
+                <x-button variant="secondary" :href="route('guards.id-card.print', $guard)" target="_blank" title="Open print-ready ID card (matches preview)">
+                    Print ID card
                 </x-button>
             @elseif ($idCardEligibility['action'] === 'regenerate')
                 <x-button variant="secondary" wire:click="setTab('verification')" title="{{ $idCardEligibility['message'] }}">
@@ -22,7 +22,7 @@
                 </x-button>
             @else
                 <x-button variant="secondary" type="button" disabled class="cursor-not-allowed opacity-60" title="{{ $idCardEligibility['message'] }}">
-                    Download ID card
+                    Print ID card
                 </x-button>
             @endif
             <x-button variant="secondary" :href="route('guards.index')">Back to roster</x-button>
@@ -42,14 +42,7 @@
             @endif
         </div>
 
-        <x-tabs :tabs="[
-            'overview' => 'Overview',
-            'documents' => 'Documents',
-            'certifications' => 'Certifications',
-            'training' => 'Skills & Training',
-            'disciplinary' => 'Disciplinary',
-            'verification' => 'Verification',
-        ]" :active="$activeTab" />
+        <x-tabs :tabs="$profileTabs" :active="$activeTab" />
 
         @if ($activeTab === 'overview')
             <div class="grid gap-4 lg:grid-cols-3">
@@ -241,8 +234,11 @@
         @endif
 
         @if ($activeTab === 'verification')
-            <div class="grid gap-4 lg:grid-cols-2">
-                <x-section-card title="Vetting checklist">
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:items-start">
+                <div class="space-y-4">
+                    <x-section-card title="Vetting checklist">
+                    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                        <div>
                     @error('verification')
                         <div class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                             {{ $message }}
@@ -277,78 +273,101 @@
                     @endif
 
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <x-button wire:click="submitForReview" variant="secondary" size="sm">Submit for review</x-button>
-                        @if ($checklist['ready'])
+                        @if ($guard->verification_status !== 'verified')
+                            <x-button wire:click="submitForReview" variant="secondary" size="sm">Submit for review</x-button>
+                        @endif
+                        @if ($checklist['ready'] && $guard->verification_status !== 'verified')
                             <x-button wire:click="markVerified" size="sm">Mark verified</x-button>
-                        @else
+                        @elseif ($guard->verification_status !== 'verified')
                             <x-button type="button" size="sm" disabled class="opacity-50 cursor-not-allowed">Mark verified</x-button>
                         @endif
-                        <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend this guard's verification?">Suspend</x-button>
+                        @if ($guard->verification_status === 'verified')
+                            <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend this guard's verification?">Suspend</x-button>
+                        @endif
                     </div>
                     @if ($guard->verified_at)
                         <p class="mt-3 text-xs text-zinc-500">Verified {{ $guard->verified_at->format('M j, Y g:i A') }}</p>
                     @endif
-                </x-section-card>
+                        </div>
 
-                <x-section-card title="QR verification">
-                    @if ($guard->verification_status !== 'verified')
-                        <x-empty-state title="Not verified yet" description="Complete the checklist and mark this guard as verified to activate the QR code and ID card." />
-                    @elseif ($verifyUrl && $qrSvg)
-                        <div class="flex flex-col items-center">
-                            <div class="rounded-lg border border-zinc-200 bg-white p-2">{!! $qrSvg !!}</div>
-                            <p class="mt-2 break-all text-center text-xs text-zinc-500">{{ $verifyUrl }}</p>
-                            @if ($lastScannedAt)
-                                <p class="mt-2 text-xs text-zinc-500">Last scanned {{ $lastScannedAt->format('M j, Y g:i A') }}</p>
+                        <div class="lg:border-l lg:border-zinc-200 lg:pl-6">
+                            <h3 class="mb-3 text-sm font-semibold text-zinc-900">QR verification</h3>
+                            @if ($guard->verification_status !== 'verified')
+                                <p class="text-sm text-zinc-500">Complete the checklist and mark this guard as verified to activate the QR code and ID card.</p>
+                            @elseif ($verifyUrl && $qrSvg)
+                                <div class="flex flex-col items-center lg:items-start">
+                                    <div class="rounded-lg border border-zinc-200 bg-white p-2">{!! $qrSvg !!}</div>
+                                    <p class="mt-2 max-w-[200px] break-all text-xs text-zinc-500">{{ $verifyUrl }}</p>
+                                    @if ($lastScannedAt)
+                                        <p class="mt-2 text-xs text-zinc-500">Last scanned {{ $lastScannedAt->format('M j, Y g:i A') }}</p>
+                                    @endif
+                                    @if ($tokenExpiresAt)
+                                        <p class="text-xs text-zinc-400">Token expires {{ $tokenExpiresAt->format('M j, Y') }}</p>
+                                    @endif
+                                    <x-button
+                                        wire:click="rotateQrToken"
+                                        variant="secondary"
+                                        size="sm"
+                                        class="mt-3"
+                                        wire:confirm="Rotate this guard's QR code? Any already-printed ID cards will stop verifying until reprinted."
+                                    >Rotate QR code</x-button>
+                                </div>
+                            @else
+                                <p class="text-sm text-zinc-500">No active token. Issue one to enable verification and the ID card.</p>
+                                <x-button wire:click="issueQrToken" size="sm" class="mt-3">Issue QR code</x-button>
                             @endif
-                            @if ($tokenExpiresAt)
-                                <p class="text-xs text-zinc-400">Token expires {{ $tokenExpiresAt->format('M j, Y') }}</p>
-                            @endif
-                            <x-button wire:click="regenerateToken" variant="secondary" size="sm" class="mt-3">Regenerate QR</x-button>
                         </div>
-                    @else
-                        <x-empty-state title="No active token" description="Regenerate to issue a new QR code for verification and the ID card." />
-                        <div class="mt-2 text-center">
-                            <x-button wire:click="regenerateToken" size="sm">Regenerate QR</x-button>
-                        </div>
-                    @endif
+                    </div>
                 </x-section-card>
+                </div>
 
-                <x-section-card title="ID card" class="lg:col-span-2">
-                    @if ($idCardEligibility['can_download'])
-                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div class="space-y-2 text-sm text-zinc-600">
-                                <p>Printable <strong>CR80</strong> security ID card (credit-card size). The PDF has two pages — front and back — for double-sided printing.</p>
-                                <ul class="list-inside list-disc text-xs text-zinc-500">
-                                    <li>Front: photo, name, role, employee ID</li>
-                                    <li>Back: emergency contacts, company details, verification QR</li>
-                                </ul>
-                                @unless ($guard->photo_path)
-                                    <p class="text-xs text-amber-700">No photo on file — the card will use initials until a photo is uploaded.</p>
-                                @endunless
+                <div class="xl:sticky xl:top-4">
+                    <x-section-card title="ID card">
+                        @if ($idCardEligibility['can_download'])
+                            <div class="mb-4 flex justify-center">
+                                <x-segment-control
+                                    field="idCardPreviewSide"
+                                    :active="$idCardPreviewSide"
+                                    :options="['front' => 'Front', 'back' => 'Back']"
+                                />
                             </div>
-                            <div class="flex shrink-0 flex-col gap-2">
-                                <x-button :href="route('guards.id-card', $guard)">
-                                    Download ID card (PDF)
-                                </x-button>
-                                <p class="text-center text-[11px] text-zinc-400">Opens as a PDF download</p>
+
+                            <div class="flex justify-center" wire:key="guard-card-{{ $idCardPreviewSide }}-{{ $idCardBrand['orientation'] ?? 'portrait' }}-{{ $guard->id }}">
+                                <x-guard-id-card-preview
+                                    :brand="$idCardBrand"
+                                    :card="$idCardData"
+                                    :side="$idCardPreviewSide"
+                                    :photo-url="$photoUrl"
+                                    :logo-url="$idCardBrand['logo_url']"
+                                    :qr-svg="$qrSvg"
+                                />
                             </div>
-                        </div>
-                    @else
-                        <x-empty-state
-                            compact
-                            :title="$idCardEligibility['action'] === 'regenerate' ? 'QR token required' : 'ID card not available'"
-                            :description="$idCardEligibility['message']"
-                        >
-                            <x-slot:actions>
-                                @if ($idCardEligibility['action'] === 'regenerate')
-                                    <x-button wire:click="regenerateToken" size="sm">Regenerate QR</x-button>
-                                @elseif ($idCardEligibility['action'] === 'verification')
-                                    <x-button wire:click="markVerified" size="sm" :disabled="! $checklist['ready']">Mark verified</x-button>
-                                @endif
-                            </x-slot:actions>
-                        </x-empty-state>
-                    @endif
-                </x-section-card>
+
+                            @unless ($guard->photo_path)
+                                <p class="mt-3 text-center text-xs text-amber-700">No photo — upload one on the Profile tab.</p>
+                            @endunless
+
+                            <div class="mt-4 flex flex-col gap-2">
+                                <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="w-full justify-center">Print ID card</x-button>
+                                <x-button variant="secondary" :href="route('settings.id-card')" class="w-full justify-center">Customize design</x-button>
+                            </div>
+                        @else
+                            <x-empty-state
+                                compact
+                                :title="$idCardEligibility['action'] === 'regenerate' ? 'QR token required' : 'ID card not available'"
+                                :description="$idCardEligibility['message']"
+                            >
+                                <x-slot:actions>
+                                    @if ($idCardEligibility['action'] === 'regenerate')
+                                        <x-button wire:click="issueQrToken" size="sm">Issue QR code</x-button>
+                                    @elseif ($idCardEligibility['action'] === 'verification')
+                                        <x-button wire:click="markVerified" size="sm" :disabled="! $checklist['ready']">Mark verified</x-button>
+                                    @endif
+                                </x-slot:actions>
+                            </x-empty-state>
+                        @endif
+                    </x-section-card>
+                </div>
             </div>
         @endif
     </x-page-shell>

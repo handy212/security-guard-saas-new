@@ -10,10 +10,38 @@ class GuardVerificationService
 {
     public function verificationUrl(GuardVerificationToken $token): string
     {
+        $token->loadMissing('assignedGuard.tenant');
+
+        $slug = $token->assignedGuard?->tenant?->slug;
+
+        if ($slug) {
+            return url('/g/'.$slug.'/'.$token->token);
+        }
+
         return url('/g/'.$token->token);
     }
 
-    public function issueToken(Guard $guard): GuardVerificationToken
+    /**
+     * Issue a token only when the guard has none active (safe for verify flow).
+     */
+    public function ensureToken(Guard $guard): GuardVerificationToken
+    {
+        if ($guard->verification_status !== 'verified') {
+            throw new \InvalidArgumentException('Guard must be verified before issuing a QR token.');
+        }
+
+        $existing = $guard->activeVerificationToken();
+        if ($existing) {
+            return $existing;
+        }
+
+        return $this->createToken($guard);
+    }
+
+    /**
+     * Revoke the current token and issue a new one (invalidates printed ID cards).
+     */
+    public function rotateToken(Guard $guard): GuardVerificationToken
     {
         if ($guard->verification_status !== 'verified') {
             throw new \InvalidArgumentException('Guard must be verified before issuing a QR token.');
@@ -24,14 +52,13 @@ class GuardVerificationService
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now()]);
 
-        $ttlDays = config('guard_verification.token_ttl_days', 365);
+        return $this->createToken($guard);
+    }
 
-        return GuardVerificationToken::create([
-            'tenant_id' => $guard->tenant_id,
-            'guard_id' => $guard->id,
-            'token' => $this->generateUniqueToken(),
-            'expires_at' => $ttlDays > 0 ? now()->addDays($ttlDays) : null,
-        ]);
+    /** @deprecated Use ensureToken() or rotateToken() */
+    public function issueToken(Guard $guard): GuardVerificationToken
+    {
+        return $this->rotateToken($guard);
     }
 
     public function revokeActiveTokens(Guard $guard): void
@@ -42,12 +69,17 @@ class GuardVerificationService
             ->update(['revoked_at' => now()]);
     }
 
-    public function findValidToken(string $token): ?GuardVerificationToken
+    public function findValidToken(string $token, ?string $tenantSlug = null): ?GuardVerificationToken
     {
-        $record = GuardVerificationToken::query()
+        $query = GuardVerificationToken::query()
             ->where('token', $token)
-            ->with(['assignedGuard.branch', 'assignedGuard.certifications', 'assignedGuard.skills', 'assignedGuard.tenant'])
-            ->first();
+            ->with(['assignedGuard.branch', 'assignedGuard.certifications', 'assignedGuard.skills', 'assignedGuard.tenant']);
+
+        if ($tenantSlug !== null) {
+            $query->whereHas('assignedGuard.tenant', fn ($q) => $q->where('slug', $tenantSlug));
+        }
+
+        $record = $query->first();
 
         if (! $record || ! $record->isValid()) {
             return null;
@@ -76,7 +108,7 @@ class GuardVerificationService
         ]);
 
         if (! $guard->activeVerificationToken()) {
-            $this->issueToken($guard);
+            $this->ensureToken($guard);
         }
     }
 
@@ -163,7 +195,7 @@ class GuardVerificationService
         if (! $guard->activeVerificationToken()) {
             return [
                 'can_download' => false,
-                'message' => 'An active QR verification token is required. Regenerate the QR code below.',
+                'message' => 'An active QR verification token is required. Rotate the QR code below if needed.',
                 'action' => 'regenerate',
             ];
         }
@@ -182,5 +214,31 @@ class GuardVerificationService
         } while (GuardVerificationToken::query()->where('token', $token)->exists());
 
         return $token;
+    }
+
+    private function createToken(Guard $guard): GuardVerificationToken
+    {
+        $ttlDays = $this->tokenTtlDays($guard);
+
+        return GuardVerificationToken::create([
+            'tenant_id' => $guard->tenant_id,
+            'guard_id' => $guard->id,
+            'token' => $this->generateUniqueToken(),
+            'expires_at' => $ttlDays > 0 ? now()->addDays($ttlDays) : null,
+        ]);
+    }
+
+    private function tokenTtlDays(Guard $guard): int
+    {
+        $guard->loadMissing('tenant');
+
+        $settings = \App\Models\TenantSetting::query()
+            ->where('tenant_id', $guard->tenant_id)
+            ->where('key', 'verification')
+            ->value('value') ?? [];
+
+        $ttl = $settings['token_ttl_days'] ?? config('guard_verification.token_ttl_days', 365);
+
+        return max(0, (int) $ttl);
     }
 }

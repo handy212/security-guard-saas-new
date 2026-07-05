@@ -36,7 +36,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search complaints…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'open' => 'Open', 'resolved' => 'Resolved']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'open' => 'Open', 'resolved' => 'Resolved']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)

@@ -14,7 +14,7 @@
 
         <x-page-toolbar>
             <x-slot:tabs>
-                <x-segment-control model="tab" :active="$tab" :options="['timeoff' => 'Time off', 'availability' => 'Availability', 'confirmations' => 'Shift confirm']" />
+                <x-segment-control field="tab" :active="$tab" :options="['timeoff' => 'Time off', 'availability' => 'Availability', 'confirmations' => 'Shift confirm']" />
             </x-slot:tabs>
         </x-page-toolbar>
 

@@ -24,7 +24,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search invoices…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'paid' => 'Paid']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'paid' => 'Paid']" />
             </x-slot:tabs>
         </x-page-toolbar>
 

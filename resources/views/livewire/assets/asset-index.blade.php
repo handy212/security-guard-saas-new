@@ -9,7 +9,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search assets…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="collect($statuses)->prepend('All', 'all')->all()" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="collect($statuses)->prepend('All', 'all')->all()" />
             </x-slot:tabs>
             <x-slot:controls>
                 <x-filter-select wire:model.live="categoryFilter">

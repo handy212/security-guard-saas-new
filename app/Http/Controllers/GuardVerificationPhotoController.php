@@ -8,9 +8,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GuardVerificationPhotoController extends Controller
 {
-    public function __invoke(string $token, GuardVerificationService $verification): StreamedResponse
+    public function __invoke(GuardVerificationService $verification, ?string $tenant = null, ?string $token = null): StreamedResponse
     {
-        $record = $verification->findValidToken($token);
+        if ($token === null) {
+            $token = $tenant;
+            $tenant = null;
+        }
+
+        $record = $verification->findValidToken($token, $tenant);
 
         abort_unless($record, 404);
 

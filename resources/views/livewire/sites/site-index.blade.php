@@ -13,7 +13,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search sites…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'inactive' => 'Inactive']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'inactive' => 'Inactive']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)

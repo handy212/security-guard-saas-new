@@ -50,7 +50,7 @@
         <x-page-toolbar search="search" searchPlaceholder="Search…">
             <x-slot:tabs>
                 <x-segment-control
-                    model="statusFilter"
+                    field="statusFilter"
                     :active="$statusFilter"
                     :options="['all' => 'All', 'active' => 'Active', 'suspended' => 'Suspended']"
                 />

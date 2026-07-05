@@ -1232,6 +1232,15 @@
             'aliases' => array(),
             'dev_requirement' => true,
         ),
+        'spatie/browsershot' => array(
+            'pretty_version' => '5.4.0',
+            'version' => '5.4.0.0',
+            'reference' => 'dcf7a65fd1d0fc8fd113739b84982377728d0b2f',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../spatie/browsershot',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'spatie/laravel-activitylog' => array(
             'pretty_version' => '4.12.3',
             'version' => '4.12.3.0',
@@ -1264,6 +1273,15 @@
             'replaced' => array(
                 0 => '*',
             ),
+        ),
+        'spatie/temporary-directory' => array(
+            'pretty_version' => '2.4.0',
+            'version' => '2.4.0.0',
+            'reference' => '32cbb9645b28839cf4f476708e99a2c70e6802c9',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../spatie/temporary-directory',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'spomky-labs/base64url' => array(
             'pretty_version' => 'v2.0.4',

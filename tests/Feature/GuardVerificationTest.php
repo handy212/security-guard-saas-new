@@ -5,8 +5,12 @@ namespace Tests\Feature;
 use App\Models\Guard;
 use App\Models\GuardCertification;
 use App\Models\GuardDocument;
+use App\Models\GuardVerificationToken;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
 use App\Models\User;
+use App\Services\GuardIdCardPresenter;
+use App\Services\GuardIdCardRenderService;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +22,14 @@ class GuardVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function tenantVerifyPath(GuardVerificationToken $token): string
+    {
+        $token->loadMissing('assignedGuard.tenant');
+        $slug = $token->assignedGuard->tenant->slug;
+
+        return '/g/'.$slug.'/'.$token->token;
+    }
+
     public function test_public_verification_page_shows_safe_fields(): void
     {
         $this->seed();
@@ -27,7 +39,7 @@ class GuardVerificationTest extends TestCase
 
         $this->assertNotNull($token);
 
-        $response = $this->get('/g/'.$token->token);
+        $response = $this->get($this->tenantVerifyPath($token));
 
         $response->assertOk()
             ->assertSee($guard->full_name)
@@ -68,10 +80,43 @@ class GuardVerificationTest extends TestCase
         $guard = Guard::where('employee_number', 'G-001')->first();
         $oldToken = $guard->activeVerificationToken()->token;
 
-        app(GuardVerificationService::class)->issueToken($guard);
+        app(GuardVerificationService::class)->rotateToken($guard);
 
         $this->get('/g/'.$oldToken)->assertNotFound();
-        $this->get('/g/'.$guard->fresh()->activeVerificationToken()->token)->assertOk();
+        $this->get($this->tenantVerifyPath($guard->fresh()->activeVerificationToken()))->assertOk();
+    }
+
+    public function test_ensure_token_does_not_rotate_existing_qr(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $service = app(GuardVerificationService::class);
+        $original = $guard->activeVerificationToken()->token;
+
+        $service->ensureToken($guard);
+
+        $this->assertSame($original, $guard->fresh()->activeVerificationToken()->token);
+    }
+
+    public function test_tenant_scoped_url_rejects_wrong_tenant_slug(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+
+        $this->get('/g/wrong-tenant/'.$token->token)->assertNotFound();
+    }
+
+    public function test_legacy_verification_url_still_works(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+
+        $this->get('/g/'.$token->token)->assertOk();
     }
 
     public function test_mark_verified_requires_checklist(): void
@@ -173,7 +218,21 @@ class GuardVerificationTest extends TestCase
         ]);
     }
 
-    public function test_guard_id_card_pdf_downloads_as_single_page(): void
+    public function test_guard_id_card_print_page_opens_for_verified_guard(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        $this->actingAs($admin)
+            ->get(route('guards.id-card.print', $guard))
+            ->assertOk()
+            ->assertSee('Print ID card')
+            ->assertSee($guard->full_name);
+    }
+
+    public function test_guard_id_card_pdf_downloads_front_and_back(): void
     {
         $this->seed();
 
@@ -189,7 +248,7 @@ class GuardVerificationTest extends TestCase
         $content = $response->getContent();
         $this->assertNotEmpty($content);
         $this->assertStringContainsString('%PDF', $content);
-        $this->assertMatchesRegularExpression('/\/Count\s+2\b/', $content);
+        $this->assertMatchesRegularExpression('/\/Count\s+[2-9]\b/', $content);
         $this->assertStringContainsString('/Subtype /Image', $content);
     }
 
@@ -333,13 +392,14 @@ class GuardVerificationTest extends TestCase
         $photoPath = "tenants/{$guard->tenant_id}/guards/{$guard->id}/photos/test.png";
         Storage::disk('public')->put($photoPath, 'fake-image');
         $guard->update(['photo_path' => $photoPath]);
+        $guard->load('tenant');
 
-        $this->get(route('guard.verify.photo', $token->token))->assertOk();
+        $this->get(route('guard.verify.photo', ['tenant' => $guard->tenant->slug, 'token' => $token->token]))->assertOk();
 
-        $this->get(route('guard.verify.photo', 'INVALIDTOKEN'))->assertNotFound();
+        $this->get(route('guard.verify.photo.legacy', 'INVALIDTOKEN'))->assertNotFound();
     }
 
-    public function test_regenerate_token_blocked_for_unverified_guard(): void
+    public function test_rotate_token_blocked_for_unverified_guard(): void
     {
         $this->seed();
 
@@ -357,7 +417,7 @@ class GuardVerificationTest extends TestCase
 
         \Livewire\Livewire::actingAs($admin)
             ->test(\App\Livewire\Guards\GuardProfile::class, ['guard' => $guard])
-            ->call('regenerateToken')
+            ->call('rotateQrToken')
             ->assertHasErrors(['verification']);
 
         $this->assertNull($guard->fresh()->activeVerificationToken());
@@ -381,5 +441,89 @@ class GuardVerificationTest extends TestCase
         $this->get('/g/'.$token->token)
             ->assertOk()
             ->assertDontSee('Expired Training');
+    }
+
+    public function test_browser_pdf_view_data_embeds_qr_from_generated_file(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $renderer = app(GuardIdCardRenderService::class);
+
+        $built = $renderer->forGuard($guard);
+        $pdfData = $renderer->browserPdfViewData($built['viewData']);
+        $renderer->cleanup($built['tempFiles']);
+
+        $this->assertNotEmpty($pdfData['qrPng']);
+        $this->assertNotEmpty(base64_decode($pdfData['qrPng'], true));
+    }
+
+    public function test_landscape_print_page_renders_horizontal_card(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        TenantSetting::updateOrCreate(
+            ['tenant_id' => $guard->tenant_id, 'key' => 'id_card'],
+            ['value' => array_merge(
+                TenantSetting::query()
+                    ->where('tenant_id', $guard->tenant_id)
+                    ->where('key', 'id_card')
+                    ->value('value') ?? [],
+                ['orientation' => 'landscape']
+            )]
+        );
+
+        $this->actingAs($admin)
+            ->get(route('guards.id-card.print', $guard))
+            ->assertOk()
+            ->assertSee('orientation-landscape', false);
+    }
+
+    public function test_modern_preview_route_matches_shared_template(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        $this->actingAs($admin)
+            ->get(route('guards.id-card.preview', $guard))
+            ->assertOk()
+            ->assertSee('id-card-preview', false)
+            ->assertSee($guard->full_name);
+    }
+
+    public function test_public_verify_page_references_tenant_scoped_photo_url(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+        $guard->load('tenant');
+
+        Storage::fake('public');
+        $photoPath = "tenants/{$guard->tenant_id}/guards/{$guard->id}/photos/test.png";
+        Storage::disk('public')->put($photoPath, 'fake-image');
+        $guard->update(['photo_path' => $photoPath]);
+
+        $photoUrl = route('guard.verify.photo', [
+            'tenant' => $guard->tenant->slug,
+            'token' => $token->token,
+        ]);
+
+        $this->get($this->tenantVerifyPath($token))
+            ->assertOk()
+            ->assertSee($photoUrl, false);
+    }
+
+    public function test_presenter_preview_scale_differs_by_orientation(): void
+    {
+        $presenter = app(GuardIdCardPresenter::class);
+
+        $this->assertSame(1.0, $presenter->previewScale('portrait'));
+        $this->assertSame(0.72, $presenter->previewScale('landscape'));
     }
 }

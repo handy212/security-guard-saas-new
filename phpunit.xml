@@ -20,5 +20,6 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="BROADCAST_CONNECTION" value="log"/>
+        <env name="ID_CARD_PDF_DRIVER" value="dompdf"/>
     </php>
 </phpunit>

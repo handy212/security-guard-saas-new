@@ -10,10 +10,12 @@ use App\Models\GuardSkill;
 use App\Models\TrainingRecord;
 use App\Models\User;
 use App\Services\FileUploadService;
+use App\Services\GuardIdCardPresenter;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
 use App\Support\TenantContext;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -24,7 +26,10 @@ class GuardProfile extends Component
     #[Locked]
     public Guard $guard;
 
+    #[Url(as: 'tab')]
     public string $activeTab = 'overview';
+
+    public string $idCardPreviewSide = 'front';
 
     public array $overviewForm = [];
 
@@ -48,13 +53,17 @@ class GuardProfile extends Component
         abort_unless((int) $guard->tenant_id === (int) TenantContext::id(), 404);
 
         $this->guard = $guard->load(['branch', 'user', 'documents', 'certifications', 'skills', 'trainingRecords', 'disciplinaryRecords']);
-        $this->activeTab = request()->query('tab', 'overview');
         $this->loadOverviewForm();
     }
 
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
+    }
+
+    public function setIdCardPreviewSide(string $side): void
+    {
+        $this->idCardPreviewSide = in_array($side, ['front', 'back'], true) ? $side : 'front';
     }
 
     public function saveOverview(): void
@@ -220,7 +229,7 @@ class GuardProfile extends Component
         $this->guard->refresh();
     }
 
-    public function regenerateToken(GuardVerificationService $verification): void
+    public function issueQrToken(GuardVerificationService $verification): void
     {
         $this->authorize('update', $this->guard);
 
@@ -230,31 +239,68 @@ class GuardProfile extends Component
             return;
         }
 
-        $verification->issueToken($this->guard);
+        $verification->ensureToken($this->guard);
         $this->guard->refresh();
-        session()->flash('status', 'QR code regenerated.');
+        session()->flash('status', 'QR code issued.');
     }
 
-    public function render(GuardVerificationService $verification, QrCodeService $qr)
+    public function rotateQrToken(GuardVerificationService $verification): void
     {
-        $this->guard->load(['branch', 'user', 'documents', 'certifications', 'skills', 'trainingRecords', 'disciplinaryRecords']);
+        $this->authorize('update', $this->guard);
+
+        if ($this->guard->verification_status !== 'verified') {
+            $this->addError('verification', 'Mark this guard as verified before issuing a QR code.');
+
+            return;
+        }
+
+        $verification->rotateToken($this->guard);
+        $this->guard->refresh();
+        session()->flash('status', 'QR code rotated. Previously printed ID cards will no longer verify until reprinted.');
+    }
+
+    public function render(GuardVerificationService $verification, QrCodeService $qr, GuardIdCardPresenter $presenter)
+    {
+        $this->guard->load(['branch', 'user', 'documents', 'certifications', 'skills', 'trainingRecords', 'disciplinaryRecords', 'tenant']);
 
         $token = $this->guard->verification_status === 'verified'
             ? $this->guard->activeVerificationToken()
             : null;
         $verifyUrl = $token ? $verification->verificationUrl($token) : null;
-        $qrSvg = $verifyUrl ? $qr->svg($verifyUrl, 100) : null;
+        $qrSvg = $verifyUrl ? $qr->svg($verifyUrl, 56) : null;
+        $checklist = $verification->vettingChecklist($this->guard);
         $idCardEligibility = $verification->idCardEligibility($this->guard);
+        $checklistIncomplete = collect($checklist['items'])->reject(fn (array $item) => $item['passed'])->count();
+        $idCardBrand = $presenter->branding($this->guard->tenant, $this->guard->branch);
+        $idCardData = $presenter->cardData($this->guard, $token);
+        $photoUrl = $this->guard->photo_path ? route('files.guard-photo', $this->guard) : null;
+
+        $profileTabs = [
+            'overview' => ['label' => 'Profile', 'hint' => 'Photo and personal details'],
+            'documents' => ['label' => 'Documents', 'hint' => 'ID, license, and contracts'],
+            'certifications' => ['label' => 'Certifications', 'hint' => 'Training certificates'],
+            'training' => ['label' => 'Skills & Training', 'hint' => 'Skills and course history'],
+            'disciplinary' => ['label' => 'Disciplinary', 'hint' => 'Warnings and actions'],
+            'verification' => [
+                'label' => 'ID & Verification',
+                'hint' => 'Vetting, QR code, and ID card',
+                'badge' => $checklistIncomplete > 0 ? (string) $checklistIncomplete : null,
+            ],
+        ];
 
         return view('livewire.guards.guard-profile', [
             'branches' => Branch::orderBy('name')->get(),
             'users' => User::where('tenant_id', TenantContext::id())->orderBy('name')->get(),
-            'checklist' => $verification->vettingChecklist($this->guard),
+            'checklist' => $checklist,
+            'profileTabs' => $profileTabs,
             'verifyUrl' => $verifyUrl,
             'qrSvg' => $qrSvg,
             'lastScannedAt' => $token?->last_scanned_at,
             'tokenExpiresAt' => $token?->expires_at,
             'idCardEligibility' => $idCardEligibility,
+            'idCardBrand' => $idCardBrand,
+            'idCardData' => $idCardData,
+            'photoUrl' => $photoUrl,
         ])->layout('layouts.app');
     }
 

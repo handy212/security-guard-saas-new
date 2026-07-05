@@ -14,7 +14,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search incidents…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'open' => 'Open', 'closed' => 'Closed']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'open' => 'Open', 'closed' => 'Closed']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)

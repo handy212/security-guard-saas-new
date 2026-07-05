@@ -13,7 +13,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search visitors…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'checked_in' => 'On site', 'checked_out' => 'Checked out']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'checked_in' => 'On site', 'checked_out' => 'Checked out']" />
             </x-slot:tabs>
         </x-page-toolbar>
 

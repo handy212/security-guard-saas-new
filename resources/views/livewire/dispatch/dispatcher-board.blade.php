@@ -16,7 +16,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search dispatches…">
             <x-slot:tabs>
-                <x-segment-control model="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'all' => 'All', 'closed' => 'Closed']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'all' => 'All', 'closed' => 'Closed']" />
             </x-slot:tabs>
             <x-slot:controls>
                 <x-filter-select wire:model.live="priorityFilter">
