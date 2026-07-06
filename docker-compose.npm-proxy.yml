@@ -10,11 +10,11 @@
 
 services:
   nginx:
-    ports: !reset
+    ports: !override
       - "8080:80"
 
   reverb:
-    ports: !reset
+    ports: !override
       - "8081:8081"
 
   mysql:
