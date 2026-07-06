@@ -135,6 +135,7 @@ class GuardVerificationService
     {
         $hasPhoto = (bool) $guard->photo_path;
         $hasIdDocument = $guard->documents()->whereIn('type', ['id', 'national_id', 'passport'])->exists();
+        $hasPoliceClearance = $guard->documents()->where('type', 'police_clearance')->exists();
         $licenseValid = $guard->license_number
             && ($guard->license_expires_at === null || $guard->license_expires_at->isFuture());
         $certsCurrent = $guard->certifications()
@@ -146,6 +147,7 @@ class GuardVerificationService
         $items = [
             ['label' => 'Photo uploaded', 'passed' => $hasPhoto, 'tab' => 'overview'],
             ['label' => 'ID document on file', 'passed' => $hasIdDocument, 'tab' => 'documents'],
+            ['label' => 'Police clearance on file', 'passed' => $hasPoliceClearance, 'tab' => 'documents'],
             ['label' => 'License valid', 'passed' => $licenseValid, 'tab' => 'overview'],
             ['label' => 'At least one current certification', 'passed' => $certsCurrent, 'tab' => 'certifications'],
         ];

@@ -249,7 +249,7 @@ class AdminCrudTest extends TestCase
             ->test(ScheduleIndex::class)
             ->set('pendingGuard.'.$shift->id, $unverified->id)
             ->call('assignGuard', $shift->id)
-            ->assertHasNoErrors();
+            ->assertHasErrors(['pendingGuard.'.$shift->id]);
 
         $this->assertDatabaseMissing('shift_assignments', [
             'shift_id' => $shift->id,

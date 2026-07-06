@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessOfflineSyncBatch;
 use App\Models\AttendanceLog;
 use App\Models\DispatchEvent;
+use App\Models\Guard;
 use App\Models\OfflineSyncBatch;
+use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\VisitorLog;
 use App\Services\AttendanceService;
 use App\Services\DispatchService;
+use App\Services\EnterpriseScheduleService;
 use App\Services\IncidentService;
 use App\Services\PatrolService;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Enums\IncidentSeverity;
 use App\Support\TenantValidation;
+use RuntimeException;
 
 class MobileAppController extends Controller
 {
@@ -252,13 +256,94 @@ class MobileAppController extends Controller
         return response()->json($workforce->confirmShift($confirmation));
     }
 
+    public function openShifts(Request $request, EnterpriseScheduleService $enterprise): JsonResponse
+    {
+        $guard = $this->guardProfile($request);
+
+        return response()->json([
+            'data' => $enterprise->openShiftsForGuard($guard),
+        ]);
+    }
+
+    public function myBids(Request $request, EnterpriseScheduleService $enterprise): JsonResponse
+    {
+        $guard = $this->guardProfile($request);
+
+        return response()->json([
+            'data' => $enterprise->guardBids($guard),
+        ]);
+    }
+
+    public function bidOnOpenShift(Request $request, Shift $shift, EnterpriseScheduleService $enterprise): JsonResponse
+    {
+        abort_unless($shift->tenant_id === $request->user()->tenant_id, 404);
+
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $bid = $enterprise->bidForOpenShift($shift, $this->guardProfile($request), $data['notes'] ?? null);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($bid->load('shift.site'), 201);
+    }
+
+    public function myShiftSwaps(Request $request, EnterpriseScheduleService $enterprise): JsonResponse
+    {
+        $guard = $this->guardProfile($request);
+
+        return response()->json([
+            'data' => $enterprise->guardSwapRequests($guard),
+        ]);
+    }
+
+    public function requestShiftSwap(Request $request, EnterpriseScheduleService $enterprise): JsonResponse
+    {
+        $data = $request->validate([
+            'shift_assignment_id' => ['required', 'integer'],
+            'replacement_guard_id' => ['nullable', 'integer', 'exists:guards,id'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $assignment = $this->ownedAssignment($request, $data['shift_assignment_id']);
+        $replacement = null;
+
+        if (! empty($data['replacement_guard_id'])) {
+            $replacement = Guard::query()
+                ->where('id', $data['replacement_guard_id'])
+                ->where('tenant_id', $request->user()->tenant_id)
+                ->firstOrFail();
+        }
+
+        try {
+            $swap = $enterprise->requestSwap(
+                $assignment,
+                $this->guardProfile($request),
+                $replacement,
+                $data['reason'] ?? null,
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($swap->load(['shiftAssignment.shift.site', 'replacementGuard']), 201);
+    }
+
+    private function guardProfile(Request $request): Guard
+    {
+        $guard = $request->user()->guardProfile;
+
+        abort_unless($guard, 403, 'Guard profile is required for this action.');
+
+        return $guard;
+    }
+
     private function guardId(Request $request): int
     {
-        $guardId = $request->user()->guardProfile?->id;
-
-        abort_unless($guardId, 403, 'Guard profile is required for this action.');
-
-        return $guardId;
+        return $this->guardProfile($request)->id;
     }
 
     private function ownedAssignment(Request $request, int $assignmentId): ShiftAssignment

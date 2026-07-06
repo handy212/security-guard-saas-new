@@ -110,15 +110,14 @@
                 <x-form-card title="Upload document">
                     <form wire:submit="uploadDocument" class="space-y-3">
                         <x-select wire:model="documentForm.type" label="Type">
-                            <option value="id">National ID</option>
-                            <option value="passport">Passport</option>
-                            <option value="contract">Contract</option>
-                            <option value="license">License</option>
-                            <option value="other">Other</option>
+                            @foreach ($documentTypes as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
                         </x-select>
                         <x-input wire:model="documentForm.expires_at" label="Expires" type="date" />
-                        <input wire:model="documentFile" type="file" class="form-input text-sm">
+                        <input wire:model="documentFile" type="file" class="form-input text-sm" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        <p class="text-xs text-zinc-500">Include police clearance for vetting. PDF and image files can be previewed in-app.</p>
                         <x-button type="submit">Upload</x-button>
                     </form>
                 </x-form-card>
@@ -126,13 +125,13 @@
                     @forelse($guard->documents as $doc)
                         <div class="flex items-center justify-between border-t border-zinc-100 py-2 text-sm first:border-0">
                             <div>
-                                <div class="font-medium">{{ ucfirst($doc->type) }}</div>
+                                <div class="font-medium">{{ $doc->typeLabel() }}</div>
                                 <div class="text-xs text-zinc-500">{{ $doc->expires_at?->format('M j, Y') ?? 'No expiry' }}</div>
                             </div>
-                            <a href="{{ route('files.guard-document', $doc) }}" target="_blank" class="btn-link">View</a>
+                            <button type="button" wire:click="openDocumentPreview({{ $doc->id }})" class="btn-link">View</button>
                         </div>
                     @empty
-                        <x-empty-state title="No documents" description="Upload ID and license documents for KYG." />
+                        <x-empty-state title="No documents" description="Upload ID, police clearance, and license documents for KYG." />
                     @endforelse
                 </x-section-card>
             </div>
@@ -169,14 +168,36 @@
             <div class="grid gap-4 lg:grid-cols-2">
                 <x-form-card title="Add skill">
                     <form wire:submit="saveSkill" class="space-y-3">
-                        <x-input wire:model="skillForm.skill" label="Skill" />
-                        <x-input wire:model="skillForm.level" label="Level" />
+                        <x-select wire:model.live="skillForm.skill" label="Skill">
+                            <option value="">Select a skill…</option>
+                            @foreach ($skillOptions as $skill)
+                                <option value="{{ $skill }}">{{ $skill }}</option>
+                            @endforeach
+                            <option value="_other">Other (custom)</option>
+                        </x-select>
+                        @if ($skillForm['skill'] === '_other')
+                            <x-input wire:model="skillForm.skill_custom" label="Custom skill" />
+                        @endif
+                        <x-select wire:model="skillForm.level" label="Level">
+                            @foreach ($skillLevels as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </x-select>
                         <x-button type="submit">Save skill</x-button>
                     </form>
                 </x-form-card>
                 <x-form-card title="Add training">
                     <form wire:submit="saveTraining" class="space-y-3">
-                        <x-input wire:model="trainingForm.course_name" label="Course" />
+                        <x-select wire:model.live="trainingForm.course_name" label="Course">
+                            <option value="">Select a course…</option>
+                            @foreach ($trainingCourses as $course)
+                                <option value="{{ $course }}">{{ $course }}</option>
+                            @endforeach
+                            <option value="_other">Other (custom)</option>
+                        </x-select>
+                        @if ($trainingForm['course_name'] === '_other')
+                            <x-input wire:model="trainingForm.course_custom" label="Custom course" />
+                        @endif
                         <x-input wire:model="trainingForm.provider" label="Provider" />
                         <x-input wire:model="trainingForm.completed_on" label="Completed" type="date" />
                         <x-input wire:model="trainingForm.expires_on" label="Expires" type="date" />
@@ -371,4 +392,41 @@
             </div>
         @endif
     </x-page-shell>
+
+    @if ($previewDocument)
+        <x-modal
+            :title="$previewDocument->typeLabel()"
+            :description="$previewDocument->expires_at ? 'Expires '.$previewDocument->expires_at->format('M j, Y') : 'No expiry date'"
+            :width="$previewDocument->isPdfPreview() ? 'xl' : 'lg'"
+            closeMethod="closeDocumentPreview"
+        >
+            @if ($previewDocument->isImagePreview())
+                <div class="flex items-center justify-center bg-zinc-100 p-4">
+                    <img
+                        src="{{ route('files.guard-document', $previewDocument) }}"
+                        alt="{{ $previewDocument->typeLabel() }}"
+                        class="max-h-[70vh] max-w-full object-contain"
+                    >
+                </div>
+            @elseif ($previewDocument->isPdfPreview())
+                <iframe
+                    src="{{ route('files.guard-document', $previewDocument) }}"
+                    title="{{ $previewDocument->typeLabel() }}"
+                    class="h-[75vh] w-full border-0 bg-zinc-50"
+                ></iframe>
+            @else
+                <div class="px-5 py-8 text-center">
+                    <p class="text-sm text-zinc-600">This file type cannot be previewed in the browser.</p>
+                    <x-button
+                        variant="secondary"
+                        :href="route('files.guard-document', $previewDocument)"
+                        target="_blank"
+                        class="mt-4"
+                    >
+                        Download file
+                    </x-button>
+                </div>
+            @endif
+        </x-modal>
+    @endif
 </div>

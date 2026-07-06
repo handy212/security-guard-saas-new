@@ -4,13 +4,16 @@ namespace App\Livewire\Guard;
 
 use App\Models\AttendanceLog;
 use App\Models\DispatchEvent;
+use App\Models\Guard;
 use App\Models\PassdownLog;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
+use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Services\AttendanceService;
 use App\Services\CustomReportService;
 use App\Services\DispatchService;
+use App\Services\EnterpriseScheduleService;
 use App\Services\GuardLocationService;
 use App\Services\OfflineSyncService;
 use App\Services\PatrolService;
@@ -46,24 +49,36 @@ class MobileDashboard extends Component
 
     public string $passdownContent = '';
 
+    public string $swapReason = '';
+
+    public ?int $swapReplacementGuardId = null;
+
+    public array $bidNotes = [];
+
     public function mount(): void
     {
         abort_unless(auth()->user()->can('mobile.use'), 403);
 
         $guardId = auth()->user()->guardProfile?->id;
-        if ($guardId) {
-            $this->activeAttendanceId = AttendanceLog::query()
-                ->where('guard_id', $guardId)
-                ->whereNull('clock_out_at')
-                ->latest()
-                ->value('id');
-
-            $this->activeAssignmentId = ShiftAssignment::query()
-                ->where('guard_id', $guardId)
-                ->where('tenant_id', TenantContext::id())
-                ->latest()
-                ->value('id');
+        if (! $guardId) {
+            return;
         }
+
+        $this->activeAttendanceId = AttendanceLog::query()
+            ->where('guard_id', $guardId)
+            ->whereNull('clock_out_at')
+            ->latest()
+            ->value('id');
+
+        $this->activeAssignmentId = ShiftAssignment::with('shift')
+            ->where('guard_id', $guardId)
+            ->where('tenant_id', TenantContext::id())
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->whereHas('shift', fn ($q) => $q->whereDate('starts_at', today()))
+            ->get()
+            ->sortBy(fn (ShiftAssignment $a) => $a->shift?->starts_at)
+            ->first()
+            ?->id;
     }
 
     #[On('qr-scanned')]
@@ -124,6 +139,52 @@ class MobileDashboard extends Component
         $this->statusMessage = 'Shift confirmed.';
     }
 
+    public function bidOnShift(int $shiftId, EnterpriseScheduleService $enterprise): void
+    {
+        $guard = auth()->user()->guardProfile;
+        abort_unless($guard, 403);
+
+        try {
+            $shift = Shift::query()
+                ->where('tenant_id', TenantContext::id())
+                ->findOrFail($shiftId);
+
+            $enterprise->bidForOpenShift($shift, $guard, filled($this->bidNotes[$shiftId] ?? null) ? $this->bidNotes[$shiftId] : null);
+            unset($this->bidNotes[$shiftId]);
+            $this->statusMessage = 'Bid submitted for '.$shift->title.'.';
+        } catch (RuntimeException $e) {
+            $this->addError('action', $e->getMessage());
+        }
+    }
+
+    public function requestShiftSwap(EnterpriseScheduleService $enterprise): void
+    {
+        $guard = auth()->user()->guardProfile;
+        abort_unless($guard, 403);
+
+        $replacement = $this->swapReplacementGuardId
+            ? Guard::query()
+                ->where('tenant_id', TenantContext::id())
+                ->where('id', $this->swapReplacementGuardId)
+                ->where('id', '!=', $guard->id)
+                ->first()
+            : null;
+
+        try {
+            $enterprise->requestSwap(
+                $this->ownedAssignment(),
+                $guard,
+                $replacement,
+                $this->swapReason ?: null,
+            );
+            $this->swapReason = '';
+            $this->swapReplacementGuardId = null;
+            $this->statusMessage = 'Shift swap request submitted.';
+        } catch (RuntimeException $e) {
+            $this->addError('action', $e->getMessage());
+        }
+    }
+
     public function advanceDispatch(int $dispatchId, DispatchService $dispatch): void
     {
         $guardId = auth()->user()->guardProfile?->id;
@@ -157,20 +218,33 @@ class MobileDashboard extends Component
 
     public function clockIn(AttendanceService $attendance): void
     {
-        $assignment = $this->ownedAssignment();
-        [$lat, $lng] = $this->coordinates();
-        $log = $attendance->clockIn($assignment->id, $lat, $lng);
-        $this->activeAttendanceId = $log->id;
-        $this->statusMessage = 'Clocked in at '.now()->format('H:i');
+        try {
+            $assignment = $this->ownedAssignment();
+            [$lat, $lng] = $this->coordinates();
+            $log = $attendance->clockIn($assignment->id, $lat, $lng);
+            $this->activeAttendanceId = $log->id;
+            $this->statusMessage = 'Clocked in at '.now()->format('H:i');
+        } catch (RuntimeException $e) {
+            $this->addError('action', $e->getMessage());
+        }
     }
 
     public function clockOut(AttendanceService $attendance): void
     {
-        abort_unless($this->activeAttendanceId, 422);
-        [$lat, $lng] = $this->coordinates();
-        $attendance->clockOut($this->activeAttendanceId, $lat, $lng);
-        $this->activeAttendanceId = null;
-        $this->statusMessage = 'Clocked out.';
+        if (! $this->activeAttendanceId) {
+            $this->addError('action', 'No active clock-in found.');
+
+            return;
+        }
+
+        try {
+            [$lat, $lng] = $this->coordinates();
+            $attendance->clockOut($this->activeAttendanceId, $lat, $lng);
+            $this->activeAttendanceId = null;
+            $this->statusMessage = 'Clocked out.';
+        } catch (RuntimeException $e) {
+            $this->addError('action', $e->getMessage());
+        }
     }
 
     public function raiseSos(DispatchService $dispatch): void
@@ -248,12 +322,16 @@ class MobileDashboard extends Component
         $guardId = auth()->user()->guardProfile?->id;
         $tenantId = TenantContext::id();
 
-        $assignments = ShiftAssignment::with(['shift.site'])
-            ->where('tenant_id', $tenantId)
-            ->when($guardId, fn ($q) => $q->where('guard_id', $guardId))
-            ->latest()
-            ->limit(10)
-            ->get();
+        $assignments = $guardId
+            ? ShiftAssignment::with(['shift.site'])
+                ->where('tenant_id', $tenantId)
+                ->where('guard_id', $guardId)
+                ->whereNotIn('status', ['cancelled', 'completed'])
+                ->whereHas('shift', fn ($q) => $q->whereDate('starts_at', today()))
+                ->get()
+                ->sortBy(fn (ShiftAssignment $a) => $a->shift?->starts_at)
+                ->values()
+            : collect();
 
         $siteIds = $assignments->pluck('shift.site_id')->filter()->unique();
         $customReports = app(CustomReportService::class);
@@ -265,9 +343,23 @@ class MobileDashboard extends Component
             ? app(DispatchService::class)->myActiveDispatches($guardId)
             : collect();
 
+        $guard = auth()->user()->guardProfile;
+        $enterprise = app(EnterpriseScheduleService::class);
+
         return view('livewire.guard.mobile-dashboard', [
+            'hasGuardProfile' => (bool) $guardId,
+            'isOnDuty' => (bool) $this->activeAttendanceId,
             'assignments' => $assignments,
             'dispatches' => $dispatches,
+            'openShifts' => $guard ? $enterprise->openShiftsForGuard($guard) : collect(),
+            'myBids' => $guard ? $enterprise->guardBids($guard) : collect(),
+            'mySwaps' => $guard ? $enterprise->guardSwapRequests($guard) : collect(),
+            'colleagueGuards' => Guard::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->when($guardId, fn ($q) => $q->where('id', '!=', $guardId))
+                ->orderBy('first_name')
+                ->get(),
             'reportTemplates' => $reportTemplates,
             'activePatrols' => PatrolSession::with('route')
                 ->where('tenant_id', $tenantId)

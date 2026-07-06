@@ -27,4 +27,11 @@ return [
         'rejected' => 'Rejected',
         'cancelled' => 'Cancelled',
     ],
+
+    'leave_types' => [
+        'annual' => 'Annual leave',
+        'sick' => 'Sick leave',
+        'unpaid' => 'Unpaid leave',
+        'emergency' => 'Emergency leave',
+    ],
 ];

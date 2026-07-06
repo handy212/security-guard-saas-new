@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ConfirmationStatus;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,7 @@ class ShiftConfirmation extends Model
 
     protected function casts(): array
     {
-        return ['confirmed_at' => 'datetime'];
+        return ['confirmed_at' => 'datetime', 'status' => ConfirmationStatus::class];
     }
 
     public function shiftAssignment(): BelongsTo

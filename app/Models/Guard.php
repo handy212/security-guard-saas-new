@@ -85,6 +85,31 @@ class Guard extends Model
         return $this->hasMany(ShiftAssignment::class);
     }
 
+    public function availabilities(): HasMany
+    {
+        return $this->hasMany(GuardAvailability::class);
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function openShiftBids(): HasMany
+    {
+        return $this->hasMany(OpenShiftBid::class);
+    }
+
+    public function attendanceLogs(): HasMany
+    {
+        return $this->hasMany(AttendanceLog::class);
+    }
+
+    public function timesheets(): HasMany
+    {
+        return $this->hasMany(Timesheet::class);
+    }
+
     public function verificationTokens(): HasMany
     {
         return $this->hasMany(GuardVerificationToken::class);

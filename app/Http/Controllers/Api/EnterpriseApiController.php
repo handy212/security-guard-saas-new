@@ -29,6 +29,7 @@ class EnterpriseApiController extends Controller
 
         return response()->json([
             'data' => ShiftAssignment::with(['shift.site', 'assignedGuard'])
+                ->where('tenant_id', TenantContext::id())
                 ->latest()
                 ->limit(100)
                 ->get(),

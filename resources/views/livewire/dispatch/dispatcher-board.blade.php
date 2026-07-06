@@ -127,8 +127,9 @@
                                         <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                                     @endforeach
                                 </x-select>
+                                @error('assignGuardId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                                 <div class="flex flex-wrap gap-2">
-                                    <x-button size="sm" variant="secondary" wire:click="assignGuard">Assign guard</x-button>
+                                    <x-button size="sm" variant="secondary" wire:click="assignGuard" :disabled="! $assignGuardId">Assign guard</x-button>
                                     @if($selected->status->next())
                                         <x-button size="sm" wire:click="advanceStatus">
                                             Mark {{ strtolower($selected->status->next()->label()) }}

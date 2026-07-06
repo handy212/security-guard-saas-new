@@ -4,6 +4,7 @@ namespace App\Livewire\Schedules;
 
 use App\Models\ShiftAssignment;
 use App\Support\TenantContext;
+use Carbon\Carbon;
 use Livewire\Component;
 
 class DeploymentSheet extends Component
@@ -16,13 +17,29 @@ class DeploymentSheet extends Component
         $this->date = today()->toDateString();
     }
 
+    public function previousDay(): void
+    {
+        $this->date = Carbon::parse($this->date)->subDay()->toDateString();
+    }
+
+    public function nextDay(): void
+    {
+        $this->date = Carbon::parse($this->date)->addDay()->toDateString();
+    }
+
+    public function goToday(): void
+    {
+        $this->date = today()->toDateString();
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();
 
         $assignments = ShiftAssignment::with(['shift.site', 'shift.sitePost', 'assignedGuard'])
             ->where('tenant_id', $tenantId)
-            ->whereHas('shift', fn ($q) => $q->whereDate('starts_at', $this->date))
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->whereHas('shift', fn ($q) => $q->whereDate('starts_at', $this->date)->whereNotIn('status', ['cancelled', 'completed']))
             ->get()
             ->sortBy(fn ($a) => $a->shift?->starts_at);
 

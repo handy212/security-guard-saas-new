@@ -11,13 +11,15 @@ return [
     ],
 
     'schedules' => [
-        ['href' => '/schedules', 'label' => 'Schedule', 'permission' => 'schedules.manage'],
-        ['href' => '/schedules/templates', 'label' => 'Shift Templates', 'permission' => 'schedules.manage'],
-        ['href' => '/schedules/attendance', 'label' => 'Attendance', 'permission' => 'attendance.manage'],
-        ['href' => '/schedules/shift-status', 'label' => 'Shift Status', 'permission' => 'schedules.manage'],
-        ['href' => '/schedules/open-shifts', 'label' => 'Open Shifts', 'permission' => 'schedules.manage'],
-        ['href' => '/schedules/shift-exchange', 'label' => 'Shift Exchange', 'permission' => 'schedules.manage'],
-        ['href' => '/schedules/time-off', 'label' => 'Time Off', 'permission' => 'schedules.manage'],
+        ['href' => '/schedules', 'label' => 'Schedule', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/templates', 'label' => 'Shift Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/attendance', 'label' => 'Attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
+        ['href' => '/schedules/shift-status', 'label' => 'Shift Status', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/open-shifts', 'label' => 'Open Shifts', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
+        ['href' => '/schedules/shift-exchange', 'label' => 'Shift Exchange', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
+        ['href' => '/schedules/time-off', 'label' => 'Time Off', 'permission' => 'schedules.manage', 'feature' => 'workforce'],
+        ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
     ],
 
     'pinned' => [

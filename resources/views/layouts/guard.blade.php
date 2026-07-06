@@ -20,7 +20,7 @@
 <header class="sticky top-0 z-20 border-b border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
     <div class="flex items-center justify-between">
         <div>
-            <div class="font-bold">GuardOps Field</div>
+            <div class="font-bold">GuardCore Pro Field</div>
             <div class="text-[10px] text-slate-400" id="guard-connection-status">Online</div>
         </div>
         <a href="{{ route('dashboard') }}" class="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-slate-800">Admin</a>

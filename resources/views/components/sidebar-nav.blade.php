@@ -11,11 +11,11 @@
     class="flex min-h-0 flex-1 flex-col overflow-hidden"
     x-data="{
         open: @js($activeGroup),
-        favorites: JSON.parse(localStorage.getItem('guardops-nav-favorites') || '[]'),
+        favorites: JSON.parse(localStorage.getItem('GuardCore Pro-nav-favorites') || '[]'),
         toggleFavorite(href, label) {
             const i = this.favorites.findIndex((f) => f.href === href);
             if (i >= 0) { this.favorites.splice(i, 1); } else { this.favorites.push({ href, label }); }
-            localStorage.setItem('guardops-nav-favorites', JSON.stringify(this.favorites));
+            localStorage.setItem('GuardCore Pro-nav-favorites', JSON.stringify(this.favorites));
         },
         isFavorite(href) { return this.favorites.some((f) => f.href === href); }
     }"

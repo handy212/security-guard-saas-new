@@ -17,6 +17,16 @@ class ShiftPolicy
         return $user->can('schedules.manage');
     }
 
+    public function update(User $user, Shift $shift): bool
+    {
+        return $user->can('schedules.manage') && $user->tenant_id === $shift->tenant_id;
+    }
+
+    public function delete(User $user, Shift $shift): bool
+    {
+        return $user->can('schedules.manage') && $user->tenant_id === $shift->tenant_id;
+    }
+
     public function assign(User $user, Shift $shift): bool
     {
         return $user->can('schedules.manage') && $user->tenant_id === $shift->tenant_id;

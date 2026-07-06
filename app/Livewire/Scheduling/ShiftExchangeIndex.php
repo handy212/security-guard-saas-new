@@ -12,6 +12,8 @@ class ShiftExchangeIndex extends Component
 {
     use AuthorizesModuleAccess;
 
+    public string $swapFilter = 'pending';
+
     public function mount(): void
     {
         $this->authorizePermission('schedules.manage');
@@ -24,10 +26,10 @@ class ShiftExchangeIndex extends Component
         session()->flash('status', 'Shift exchange approved.');
     }
 
-    public function rejectSwap(int $swapId): void
+    public function rejectSwap(int $swapId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        ShiftSwapRequest::findOrFail($swapId)->update(['status' => 'rejected']);
+        $service->rejectSwap(ShiftSwapRequest::findOrFail($swapId));
         session()->flash('status', 'Shift exchange rejected.');
     }
 
@@ -36,9 +38,11 @@ class ShiftExchangeIndex extends Component
         return view('livewire.scheduling.shift-exchange-index', [
             'swaps' => ShiftSwapRequest::with(['requestedByGuard', 'replacementGuard', 'shiftAssignment.shift.site'])
                 ->where('tenant_id', TenantContext::id())
+                ->when($this->swapFilter !== 'all', fn ($q) => $q->where('status', $this->swapFilter))
                 ->latest()
                 ->limit(50)
                 ->get(),
+            'pendingSwapCount' => ShiftSwapRequest::where('tenant_id', TenantContext::id())->where('status', 'pending')->count(),
         ])->layout('layouts.app');
     }
 }

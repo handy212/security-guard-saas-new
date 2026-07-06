@@ -13,7 +13,7 @@
 <div wire:ignore {{ $attributes->merge(['class' => 'overflow-hidden rounded-xl border border-zinc-200 bg-white']) }}>
     <div
         id="{{ $id }}"
-        data-guardops-map
+        data-guard-core-pro-map
         data-map-options="{{ $mapOptions }}"
         style="height: {{ $height }}; width: 100%;"
     ></div>

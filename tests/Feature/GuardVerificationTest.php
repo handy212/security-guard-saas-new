@@ -151,6 +151,13 @@ class GuardVerificationTest extends TestCase
             'file_path' => 'tenants/1/guards/1/id.pdf',
             'status' => 'valid',
         ]);
+        GuardDocument::create([
+            'tenant_id' => $tenant->id,
+            'guard_id' => $guard->id,
+            'type' => 'police_clearance',
+            'file_path' => 'tenants/1/guards/1/police-clearance.pdf',
+            'status' => 'valid',
+        ]);
         $guard->update(['license_number' => 'LIC-1', 'license_expires_at' => now()->addYear()]);
         GuardCertification::create([
             'tenant_id' => $tenant->id,

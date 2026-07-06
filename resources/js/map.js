@@ -23,7 +23,7 @@ function parseOptions(el) {
     }
 }
 
-export function initGuardOpsMap(el) {
+export function initGuardCoreProMap(el) {
     if (!el || typeof el.id !== 'string' || !el.id) {
         return;
     }
@@ -79,7 +79,7 @@ export function initGuardOpsMap(el) {
 }
 
 function initAllMaps() {
-    document.querySelectorAll('[data-guardops-map]').forEach(initGuardOpsMap);
+    document.querySelectorAll('[data-guard-core-pro-map]').forEach(initGuardCoreProMap);
 }
 
 document.addEventListener('DOMContentLoaded', initAllMaps);
@@ -92,4 +92,4 @@ document.addEventListener('livewire:init', () => {
     });
 });
 
-window.initGuardOpsMap = initGuardOpsMap;
+window.initGuardCoreProMap = initGuardCoreProMap;

@@ -56,6 +56,7 @@ class ComplaintBoard extends Component
             'form.description' => 'required',
             'form.priority' => 'required',
         ])['form'];
+        $data['site_id'] = $data['site_id'] ?: null;
 
         ClientComplaint::create($data + ['tenant_id' => TenantContext::id(), 'status' => 'open']);
         $this->form = ['client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal'];

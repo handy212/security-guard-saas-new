@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Guards;
 
+use App\Enums\GuardDocumentType;
 use App\Models\Branch;
 use App\Models\DisciplinaryRecord;
 use App\Models\Guard;
@@ -14,6 +15,7 @@ use App\Services\GuardIdCardPresenter;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
 use App\Support\TenantContext;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -35,9 +37,9 @@ class GuardProfile extends Component
 
     public array $certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
 
-    public array $skillForm = ['skill' => '', 'level' => 'basic'];
+    public array $skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
 
-    public array $trainingForm = ['course_name' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
+    public array $trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
 
     public array $disciplinaryForm = ['occurred_on' => '', 'type' => 'warning', 'description' => '', 'action_taken' => ''];
 
@@ -46,6 +48,8 @@ class GuardProfile extends Component
     public $photoFile;
 
     public $documentFile;
+
+    public ?int $previewDocumentId = null;
 
     public function mount(Guard $guard): void
     {
@@ -111,7 +115,7 @@ class GuardProfile extends Component
     {
         $this->authorize('update', $this->guard);
         $data = $this->validate([
-            'documentForm.type' => 'required',
+            'documentForm.type' => ['required', Rule::in(array_column(GuardDocumentType::cases(), 'value'))],
             'documentForm.expires_at' => 'nullable|date',
             'documentFile' => 'required|file|max:10240',
         ]);
@@ -121,22 +125,38 @@ class GuardProfile extends Component
             $this->guard->id,
             $data['documentForm']['type'],
             $this->documentFile,
-            $data['documentForm']['expires_at'] ?? null
+            $data['documentForm']['expires_at'] ?: null
         );
 
         $this->reset('documentFile');
         $this->guard->load('documents');
     }
 
+    public function openDocumentPreview(int $documentId): void
+    {
+        $this->authorize('update', $this->guard);
+        abort_unless($this->guard->documents()->whereKey($documentId)->exists(), 404);
+        $this->previewDocumentId = $documentId;
+    }
+
+    public function closeDocumentPreview(): void
+    {
+        $this->previewDocumentId = null;
+    }
+
     public function saveCertification(): void
     {
         $this->authorize('update', $this->guard);
-        GuardCertification::create($this->validate([
+        $data = $this->validate([
             'certForm.name' => 'required',
             'certForm.issuer' => 'nullable',
             'certForm.issued_at' => 'nullable|date',
             'certForm.expires_at' => 'nullable|date',
-        ])['certForm'] + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'valid']);
+        ])['certForm'];
+        $data['issued_at'] = $data['issued_at'] ?: null;
+        $data['expires_at'] = $data['expires_at'] ?: null;
+
+        GuardCertification::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'valid']);
         $this->certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
         $this->guard->load('certifications');
     }
@@ -151,24 +171,39 @@ class GuardProfile extends Component
     public function saveSkill(): void
     {
         $this->authorize('update', $this->guard);
-        GuardSkill::create($this->validate([
+        $data = $this->validate([
             'skillForm.skill' => 'required',
+            'skillForm.skill_custom' => 'required_if:skillForm.skill,_other',
             'skillForm.level' => 'required',
-        ])['skillForm'] + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id]);
-        $this->skillForm = ['skill' => '', 'level' => 'basic'];
+        ])['skillForm'];
+
+        GuardSkill::create([
+            'skill' => $data['skill'] === '_other' ? trim($data['skill_custom']) : $data['skill'],
+            'level' => $data['level'],
+            'tenant_id' => TenantContext::id(),
+            'guard_id' => $this->guard->id,
+        ]);
+        $this->skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
         $this->guard->load('skills');
     }
 
     public function saveTraining(): void
     {
         $this->authorize('update', $this->guard);
-        TrainingRecord::create($this->validate([
+        $data = $this->validate([
             'trainingForm.course_name' => 'required',
+            'trainingForm.course_custom' => 'required_if:trainingForm.course_name,_other',
             'trainingForm.provider' => 'nullable',
             'trainingForm.completed_on' => 'nullable|date',
             'trainingForm.expires_on' => 'nullable|date',
-        ])['trainingForm'] + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'completed']);
-        $this->trainingForm = ['course_name' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
+        ])['trainingForm'];
+        $data['course_name'] = $data['course_name'] === '_other' ? trim($data['course_custom']) : $data['course_name'];
+        unset($data['course_custom']);
+        $data['completed_on'] = $data['completed_on'] ?: null;
+        $data['expires_on'] = $data['expires_on'] ?: null;
+
+        TrainingRecord::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'completed']);
+        $this->trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
         $this->guard->load('trainingRecords');
     }
 
@@ -274,10 +309,13 @@ class GuardProfile extends Component
         $idCardBrand = $presenter->branding($this->guard->tenant, $this->guard->branch);
         $idCardData = $presenter->cardData($this->guard, $token);
         $photoUrl = $this->guard->photo_path ? route('files.guard-photo', $this->guard) : null;
+        $previewDocument = $this->previewDocumentId
+            ? $this->guard->documents->firstWhere('id', $this->previewDocumentId)
+            : null;
 
         $profileTabs = [
             'overview' => ['label' => 'Profile', 'hint' => 'Photo and personal details'],
-            'documents' => ['label' => 'Documents', 'hint' => 'ID, license, and contracts'],
+            'documents' => ['label' => 'Documents', 'hint' => 'ID, police clearance, and contracts'],
             'certifications' => ['label' => 'Certifications', 'hint' => 'Training certificates'],
             'training' => ['label' => 'Skills & Training', 'hint' => 'Skills and course history'],
             'disciplinary' => ['label' => 'Disciplinary', 'hint' => 'Warnings and actions'],
@@ -301,6 +339,11 @@ class GuardProfile extends Component
             'idCardBrand' => $idCardBrand,
             'idCardData' => $idCardData,
             'photoUrl' => $photoUrl,
+            'documentTypes' => GuardDocumentType::options(),
+            'skillOptions' => config('guard_hr.skills'),
+            'trainingCourses' => config('guard_hr.training_courses'),
+            'skillLevels' => config('guard_hr.skill_levels'),
+            'previewDocument' => $previewDocument,
         ])->layout('layouts.app');
     }
 

@@ -1,7 +1,6 @@
 @php
-    $links = collect(config('navigation.schedules', []))->filter(
-        fn ($link) => empty($link['permission']) || auth()->user()?->can($link['permission'])
-    );
+    $nav = app(\App\Services\NavigationBuilder::class);
+    $links = collect(config('navigation.schedules', []))->filter(fn ($link) => $nav->linkVisible($link));
 @endphp
 
 @if ($links->isNotEmpty())

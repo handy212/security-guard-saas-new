@@ -4,6 +4,7 @@
             <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day list</x-button>
         </x-slot:actions>
 
+        <x-schedules-nav />
         <div class="stat-grid">
             <x-stat-card compact label="In range" :value="$stats['total']" icon="schedules" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="pause" :tone="$stats['open'] > 0 ? 'warning' : 'default'" />
@@ -36,10 +37,10 @@
                     <div class="rounded-lg border border-zinc-200 bg-white p-3">
                         <div class="text-xs font-semibold uppercase text-zinc-500">{{ $day->format('D, M j') }}</div>
                         @foreach ($dayShifts as $shift)
-                            <div class="mt-2 flex items-center justify-between text-sm">
+                            <a href="{{ route('schedules.index', ['date' => $shift->starts_at->toDateString()]) }}" class="mt-2 flex items-center justify-between text-sm hover:text-accent-700">
                                 <span class="font-medium">{{ $shift->starts_at->format('H:i') }} · {{ $shift->site?->name }}</span>
-                                <span class="text-xs text-zinc-500">{{ $shift->assignments->count() }}/{{ $shift->required_guards }}</span>
-                            </div>
+                                <span class="text-xs text-zinc-500">{{ $shift->activeAssignmentsCount() }}/{{ $shift->required_guards }}</span>
+                            </a>
                         @endforeach
                     </div>
                 @endif
@@ -61,9 +62,9 @@
                 <div class="min-h-28 rounded-lg border border-zinc-200 p-2 {{ $inMonth ? 'bg-white' : 'bg-zinc-50 text-zinc-400' }}">
                     <div class="text-xs font-semibold">{{ $day->format('D j') }}</div>
                     @foreach ($dayShifts->take(3) as $shift)
-                        <div class="mt-1 truncate rounded bg-accent-600 px-1 py-0.5 text-[10px] text-white">
+                        <a href="{{ route('schedules.index', ['date' => $shift->starts_at->toDateString()]) }}" class="mt-1 block truncate rounded bg-accent-600 px-1 py-0.5 text-[10px] text-white hover:bg-accent-700">
                             {{ $shift->starts_at->format('H:i') }} {{ $shift->site?->name }}
-                        </div>
+                        </a>
                     @endforeach
                     @if ($dayShifts->count() > 3)
                         <div class="mt-1 text-[10px] text-zinc-500">+{{ $dayShifts->count() - 3 }} more</div>

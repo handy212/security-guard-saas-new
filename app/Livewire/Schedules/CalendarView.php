@@ -48,7 +48,7 @@ class CalendarView extends Component
             ->orderBy('starts_at')
             ->get();
 
-        $openShifts = $shifts->filter(fn ($shift) => $shift->assignments->count() < $shift->required_guards)->count();
+        $openShifts = $shifts->filter(fn ($shift) => $shift->activeAssignmentsCount() < $shift->required_guards)->count();
         $scheduledPosts = $shifts->whereNotNull('site_post_id')->count();
 
         return view('livewire.schedules.calendar-view', [

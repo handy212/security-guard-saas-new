@@ -1,11 +1,11 @@
 <div>
-    <x-page-shell title="Webhook Subscriptions" description="Deliver GuardOps events to external systems.">
+    <x-page-shell title="Webhook Subscriptions" description="Deliver GuardCore Pro events to external systems.">
         <x-settings-nav />
 
         <x-form-card title="Add webhook" description="Subscribe to an event and receive POST payloads at your URL.">
             <form wire:submit="create" class="grid gap-4 md:grid-cols-3">
                 <x-input wire:model="event" label="Event code" placeholder="incident.created" />
-                <x-input wire:model="targetUrl" label="Target URL" placeholder="https://example.com/webhooks/guardops" class="md:col-span-2" />
+                <x-input wire:model="targetUrl" label="Target URL" placeholder="https://example.com/webhooks/GuardCore Pro" class="md:col-span-2" />
                 <div class="md:col-span-3">
                     <x-button type="submit">Add webhook</x-button>
                 </div>

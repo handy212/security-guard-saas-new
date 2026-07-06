@@ -30,6 +30,8 @@ class SchedulingModuleTest extends TestCase
             '/schedules/open-shifts',
             '/schedules/shift-exchange',
             '/schedules/time-off',
+            '/schedules/calendar',
+            '/schedules/deployment-sheet',
         ];
 
         foreach ($routes as $route) {

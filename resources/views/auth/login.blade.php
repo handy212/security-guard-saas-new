@@ -15,7 +15,7 @@
     <div class="w-full max-w-sm">
         <div class="mb-6 text-center">
             <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white">G</div>
-            <h1 class="mt-3 text-lg font-semibold text-zinc-900">Sign in to GuardOps</h1>
+            <h1 class="mt-3 text-lg font-semibold text-zinc-900">Sign in to GuardCore Pro</h1>
             <p class="mt-1 text-sm text-zinc-500">Security operations platform</p>
         </div>
 
@@ -53,7 +53,7 @@
                 @if (config('app.debug'))
                 <div>
                     <div class="font-medium text-zinc-800">SaaS platform admin</div>
-                    <div class="mt-1 font-mono text-[11px]">platform@guardops.test / password</div>
+                    <div class="mt-1 font-mono text-[11px]">platform@GuardCore Pro.test / password</div>
                     <p class="mt-1 text-zinc-500">Opens tenant management after sign in.</p>
                 </div>
                 <div class="border-t border-zinc-200 pt-2">

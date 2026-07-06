@@ -1,7 +1,8 @@
 @props(['status', 'map' => []])
 
 @php
-    $tone = $map[$status] ?? match(strtolower((string) $status)) {
+    $statusValue = $status instanceof \BackedEnum ? $status->value : (string) $status;
+    $tone = $map[$statusValue] ?? match(strtolower($statusValue)) {
         'active', 'completed', 'approved', 'closed', 'on_time', 'valid', 'verified' => 'success',
         'open', 'assigned', 'in_progress', 'submitted', 'trial' => 'info',
         'late', 'pending', 'acknowledged', 'partial', 'unverified' => 'warning',
@@ -18,5 +19,5 @@
 @endphp
 
 <span {{ $attributes->merge(['class' => 'inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset '.($styles[$tone] ?? $styles['neutral'])]) }}>
-    {{ ucfirst(str_replace('_', ' ', (string) $status)) }}
+    {{ ucfirst(str_replace('_', ' ', $statusValue)) }}
 </span>

@@ -13,6 +13,7 @@ use App\Models\Site;
 use App\Models\SosAlert;
 use App\Services\DispatchService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -138,9 +139,15 @@ class DispatcherBoard extends Component
     public function assignGuard(DispatchService $service): void
     {
         $dispatch = $this->authorizeSelectedDispatch();
-        abort_unless($this->assignGuardId, 422);
+
+        $this->validate([
+            'assignGuardId' => ['required', TenantValidation::exists('guards')],
+        ], [
+            'assignGuardId.required' => 'Select a guard before assigning.',
+        ]);
 
         $service->assignGuard($dispatch, (int) $this->assignGuardId, TenantContext::userId());
+        session()->flash('status', 'Guard assigned to '.$dispatch->fresh()->dispatch_number.'.');
     }
 
     public function advanceStatus(DispatchService $service): void

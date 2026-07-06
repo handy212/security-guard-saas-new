@@ -421,6 +421,14 @@ return new class extends Migration
         }
 
         Schema::table('daily_activity_reports', function (Blueprint $table) {
+            if (! Schema::hasColumn('daily_activity_reports', 'title')) {
+                $table->string('title')->nullable();
+            }
+
+            if (! Schema::hasColumn('daily_activity_reports', 'report_date')) {
+                $table->date('report_date')->nullable();
+            }
+
             if (! Schema::hasColumn('daily_activity_reports', 'approved_by_user_id')) {
                 $table->foreignId('approved_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             }

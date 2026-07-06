@@ -79,7 +79,7 @@ class GuardHrRecords extends Component
             (int) $data['documentForm']['guard_id'],
             $data['documentForm']['type'],
             $data['documentFile'],
-            $data['documentForm']['expires_at'] ?? null
+            $data['documentForm']['expires_at'] ?: null
         );
 
         $this->reset('documentFile');

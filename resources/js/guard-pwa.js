@@ -1,7 +1,7 @@
 import { Html5Qrcode } from 'html5-qrcode';
 import { initPushNotifications } from './push-notifications';
 
-const DB_NAME = 'guardops-offline';
+const DB_NAME = 'GuardCore Pro-offline';
 const STORE_NAME = 'queue';
 const DB_VERSION = 1;
 

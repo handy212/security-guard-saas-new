@@ -22,6 +22,11 @@ Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->gr
     Route::post('/reports/custom/draft', [MobileAppController::class, 'saveReportDraft']);
     Route::post('/reports/custom/submit', [MobileAppController::class, 'submitCustomReport']);
     Route::post('/shifts/confirm', [MobileAppController::class, 'confirmShift']);
+    Route::get('/open-shifts', [MobileAppController::class, 'openShifts']);
+    Route::get('/my-bids', [MobileAppController::class, 'myBids']);
+    Route::post('/open-shifts/{shift}/bid', [MobileAppController::class, 'bidOnOpenShift']);
+    Route::get('/shift-swaps', [MobileAppController::class, 'myShiftSwaps']);
+    Route::post('/shift-swaps', [MobileAppController::class, 'requestShiftSwap']);
 });
 
 Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('enterprise')->group(function () {

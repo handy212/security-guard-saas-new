@@ -25,7 +25,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         try {
-            if (localStorage.getItem('guardops-sidebar-collapsed') === 'true') {
+            if (localStorage.getItem('GuardCore Pro-sidebar-collapsed') === 'true') {
                 document.documentElement.classList.add('sidebar-collapsed');
             }
         } catch (e) {}
@@ -43,7 +43,7 @@
         toggleSidebarCollapse() {
             this.sidebarCollapsed = !this.sidebarCollapsed;
             document.documentElement.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
-            localStorage.setItem('guardops-sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
+            localStorage.setItem('GuardCore Pro-sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
         }
     }"
     @keydown.window.cmd.k.prevent="commandOpen = true"

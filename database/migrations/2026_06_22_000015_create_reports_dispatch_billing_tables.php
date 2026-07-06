@@ -14,6 +14,8 @@ return new class extends Migration
             $table->foreignId('shift_assignment_id')->constrained()->cascadeOnDelete();
             $table->foreignId('site_id')->constrained()->cascadeOnDelete();
             $table->foreignId('guard_id')->constrained()->cascadeOnDelete();
+            $table->string('title')->nullable();
+            $table->date('report_date')->nullable();
             $table->longText('summary');
             $table->longText('handover_notes')->nullable();
             $table->string('status')->default('submitted');

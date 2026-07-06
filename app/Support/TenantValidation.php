@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use Illuminate\Validation\Rule;
-
 use Illuminate\Validation\Rules\Exists;
 
 class TenantValidation
