@@ -28,16 +28,16 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => 'group block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm ring-1 ring-inset '.$style['ring'].' transition hover:border-zinc-300 hover:shadow-md']) }}>
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => 'group block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm ring-1 ring-inset '.$style['ring'].' transition hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700']) }}>
 @else
-    <div {{ $attributes->merge(['class' => 'rounded-xl border border-zinc-200 bg-white p-4 shadow-sm ring-1 ring-inset '.$style['ring']]) }}>
+    <div {{ $attributes->merge(['class' => 'rounded-xl border border-zinc-200 bg-white p-4 shadow-sm ring-1 ring-inset '.$style['ring'].' dark:border-zinc-800 dark:bg-zinc-900']) }}>
 @endif
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">{{ $label }}</p>
-            <p class="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">{{ $value }}</p>
+            <p class="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ $label }}</p>
+            <p class="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{{ $value }}</p>
             @if ($hint)
-                <p class="mt-1 text-xs text-zinc-500">{{ $hint }}</p>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $hint }}</p>
             @endif
         </div>
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {{ $style['icon'] }}">

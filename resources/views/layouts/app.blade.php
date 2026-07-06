@@ -11,15 +11,7 @@
     @if (! empty($tenantBranding['color']))
         <style>:root { --tenant-brand: {{ $tenantBranding['color'] }}; }</style>
     @endif
-    <script>
-        (function () {
-            const stored = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (stored === 'dark' || (! stored && prefersDark)) {
-                document.documentElement.classList.add('dark');
-            }
-        })();
-    </script>
+    @include('partials.theme-init')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +69,7 @@
             <button
                 type="button"
                 @click="toggleSidebarCollapse()"
-                class="hidden rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 lg:inline-flex"
+                class="hidden rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 lg:inline-flex"
                 :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                 aria-label="Toggle sidebar"
             >
@@ -90,7 +82,7 @@
         <x-sidebar-nav />
 
         @auth
-            <div class="shrink-0 border-t border-zinc-100 p-2" x-show="sidebarCollapsed" x-cloak>
+            <div class="shrink-0 border-t border-zinc-100 p-2 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak>
                 <div class="flex justify-center">
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100 text-xs font-semibold text-accent-700" title="{{ auth()->user()->name }}">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}

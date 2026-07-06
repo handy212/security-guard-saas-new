@@ -4,10 +4,15 @@
         dark: document.documentElement.classList.contains('dark'),
         toggle() {
             this.dark = ! this.dark;
-            document.documentElement.classList.toggle('dark', this.dark);
-            localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+            if (window.setTheme) {
+                window.setTheme(this.dark ? 'dark' : 'light');
+            } else {
+                document.documentElement.classList.toggle('dark', this.dark);
+                localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+            }
         }
     }"
+    x-init="window.addEventListener('theme-changed', (e) => { dark = e.detail.dark })"
     @click="toggle()"
     class="rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
     :aria-label="dark ? 'Switch to light mode' : 'Switch to dark mode'"

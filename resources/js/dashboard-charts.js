@@ -61,8 +61,15 @@ function initDashboardCharts() {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f4f4f5' } },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: document.documentElement.classList.contains('dark') ? '#a1a1aa' : '#71717a' },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, color: document.documentElement.classList.contains('dark') ? '#a1a1aa' : '#71717a' },
+                            grid: { color: document.documentElement.classList.contains('dark') ? '#3f3f46' : '#f4f4f5' },
+                        },
                     },
                 },
             });
@@ -74,3 +81,11 @@ function initDashboardCharts() {
 
 document.addEventListener('DOMContentLoaded', initDashboardCharts);
 document.addEventListener('livewire:navigated', initDashboardCharts);
+window.addEventListener('theme-changed', () => {
+    document.querySelectorAll('[data-dashboard-chart][data-chart-ready]').forEach((canvas) => {
+        const chart = Chart.getChart(canvas);
+        chart?.destroy();
+        delete canvas.dataset.chartReady;
+    });
+    initDashboardCharts();
+});

@@ -34,8 +34,8 @@
             @while ($day <= $rangeEnd)
                 @php $dayShifts = $shifts->filter(fn ($s) => $s->starts_at->isSameDay($day)); @endphp
                 @if ($dayShifts->isNotEmpty())
-                    <div class="rounded-lg border border-zinc-200 bg-white p-3">
-                        <div class="text-xs font-semibold uppercase text-zinc-500">{{ $day->format('D, M j') }}</div>
+                    <div class="card-surface p-3">
+                        <div class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ $day->format('D, M j') }}</div>
                         @foreach ($dayShifts as $shift)
                             <a href="{{ route('schedules.index', ['date' => $shift->starts_at->toDateString()]) }}" class="mt-2 flex items-center justify-between text-sm hover:text-accent-700">
                                 <span class="font-medium">{{ $shift->starts_at->format('H:i') }} · {{ $shift->site?->name }}</span>
@@ -59,7 +59,7 @@
                     $dayShifts = $shifts->filter(fn ($s) => $s->starts_at->isSameDay($day));
                     $inMonth = $view === 'week' || $day->month === \Carbon\Carbon::parse($cursorDate)->month;
                 @endphp
-                <div class="min-h-28 rounded-lg border border-zinc-200 p-2 {{ $inMonth ? 'bg-white' : 'bg-zinc-50 text-zinc-400' }}">
+                <div class="min-h-28 rounded-lg border border-zinc-200 p-2 dark:border-zinc-800 {{ $inMonth ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-950' }}">
                     <div class="text-xs font-semibold">{{ $day->format('D j') }}</div>
                     @foreach ($dayShifts->take(3) as $shift)
                         <a href="{{ route('schedules.index', ['date' => $shift->starts_at->toDateString()]) }}" class="mt-1 block truncate rounded bg-accent-600 px-1 py-0.5 text-[10px] text-white hover:bg-accent-700">

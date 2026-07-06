@@ -8,15 +8,7 @@
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
     <title>{{ ($tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal') }} — {{ config('app.name') }}</title>
-    <script>
-        (function () {
-            const stored = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (stored === 'dark' || (! stored && prefersDark)) {
-                document.documentElement.classList.add('dark');
-            }
-        })();
-    </script>
+    @include('partials.theme-init')
     <link rel="manifest" href="/manifest-client.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -2,7 +2,7 @@
 
 <section class="card-surface overflow-hidden p-5">
     <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-zinc-900">{{ $title }}</h2>
+        <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $title }}</h2>
     </div>
 
     @if ($series->sum() > 0)

@@ -2,24 +2,24 @@
 
 <div class="flex min-h-full flex-col">
     @if ($showHeader)
-        <div class="border-b border-zinc-200 bg-white">
+        <div class="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <div class="page-content flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0">
                     @if (! empty($breadcrumbs))
-                        <nav class="mb-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                        <nav class="mb-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                             @foreach ($breadcrumbs as $crumb)
                                 @if (! empty($crumb['href']))
-                                    <a href="{{ $crumb['href'] }}" class="hover:text-zinc-800">{{ $crumb['label'] }}</a>
-                                    @if (! $loop->last)<span class="text-zinc-300">/</span>@endif
+                                    <a href="{{ $crumb['href'] }}" class="hover:text-zinc-800 dark:hover:text-zinc-200">{{ $crumb['label'] }}</a>
+                                    @if (! $loop->last)<span class="text-zinc-300 dark:text-zinc-600">/</span>@endif
                                 @else
-                                    <span class="text-zinc-600">{{ $crumb['label'] }}</span>
+                                    <span class="text-zinc-600 dark:text-zinc-300">{{ $crumb['label'] }}</span>
                                 @endif
                             @endforeach
                         </nav>
                     @endif
-                    <h1 class="truncate text-lg font-semibold text-zinc-900">{{ $title }}</h1>
+                    <h1 class="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ $title }}</h1>
                     @if ($description)
-                        <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">{{ $description }}</p>
+                        <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                     @endif
                 </div>
                 @if (isset($actions))
@@ -29,7 +29,7 @@
         </div>
     @endif
 
-    <div class="page-content flex-1 space-y-4 pb-8 pt-4">
+    <div class="page-content flex-1 space-y-3 pb-6 pt-3">
         {{ $slot }}
     </div>
 </div>

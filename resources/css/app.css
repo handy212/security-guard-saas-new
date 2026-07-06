@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (toggle sets .dark on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
 @source "../../storage/framework/views/*.php";
 @source "../**/*.blade.php";
@@ -30,7 +33,7 @@
 
 @layer base {
     body {
-        @apply antialiased text-zinc-900 bg-zinc-100;
+        @apply antialiased text-zinc-900 bg-zinc-100 dark:bg-zinc-950 dark:text-zinc-100;
     }
 
     [x-cloak] {
@@ -57,13 +60,14 @@
 
 @layer components {
     .form-input {
-        @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm shadow-sm transition
+        @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 shadow-sm transition
             placeholder:text-zinc-400 hover:border-zinc-400
-            focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600/20;
+            focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600/20
+            dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:hover:border-zinc-600;
     }
 
     .form-label {
-        @apply mb-0.5 block text-xs font-medium text-zinc-700;
+        @apply mb-0.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300;
     }
 
     .btn-primary {
@@ -74,7 +78,8 @@
 
     .btn-secondary {
         @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm
-            transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/50;
+            transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/50
+            dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800;
     }
 
     .btn-danger {
@@ -83,15 +88,15 @@
     }
 
     .btn-link {
-        @apply text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:underline;
+        @apply text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100;
     }
 
     .table-row-hover {
-        @apply border-t border-zinc-100 transition hover:bg-zinc-50/80;
+        @apply border-t border-zinc-100 transition hover:bg-zinc-50/80 dark:border-zinc-800 dark:hover:bg-zinc-800/60;
     }
 
     .page-content {
-        @apply mx-auto w-full max-w-7xl px-4 py-5 sm:px-6;
+        @apply mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8 2xl:max-w-[90rem];
     }
 
     .sidebar-width {
@@ -137,37 +142,59 @@
     }
 
     .nav-link {
-        @apply relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900;
+        @apply relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900
+            dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
     }
 
     .nav-link-active {
-        @apply bg-accent-50 text-accent-600 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:rounded-r before:bg-accent-500;
+        @apply bg-accent-50 text-accent-600 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-0.5 before:-translate-y-1/2 before:rounded-r before:bg-accent-500
+            dark:bg-accent-600/20 dark:text-accent-500;
     }
 
     .nav-link-highlight:not(.nav-link-active) {
-        @apply border border-accent-100 bg-accent-50/50 text-accent-700 hover:bg-accent-50;
+        @apply border border-accent-100 bg-accent-50/50 text-accent-700 hover:bg-accent-50
+            dark:border-accent-600/30 dark:bg-accent-600/10 dark:text-accent-500 dark:hover:bg-accent-600/20;
     }
 
     .nav-sublink {
-        @apply block rounded-md py-1.5 pl-2 pr-2 text-sm text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-800;
+        @apply block rounded-md py-1.5 pl-2 pr-2 text-sm text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-800
+            dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200;
     }
 
     .nav-sublink-active {
-        @apply font-medium text-accent-600;
+        @apply font-medium text-accent-600 dark:text-accent-500;
     }
 
     .card-surface {
         border-radius: var(--radius-card);
         box-shadow: var(--shadow-card-sm);
-        @apply border border-zinc-200 bg-white;
+        @apply border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900;
+    }
+
+    .panel-surface {
+        @apply rounded-xl border border-zinc-200 bg-white p-2.5 sm:p-3 dark:border-zinc-800 dark:bg-zinc-900;
+    }
+
+    .subnav-link {
+        @apply shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition
+            border-transparent text-zinc-500 hover:text-zinc-700
+            dark:text-zinc-400 dark:hover:text-zinc-200;
+    }
+
+    .subnav-link-active {
+        @apply border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100;
+    }
+
+    .subnav-bar {
+        @apply mb-3 flex gap-1 overflow-x-auto border-b border-zinc-200 pb-px dark:border-zinc-800;
     }
 
     .kpi-grid {
-        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6;
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 2xl:gap-3;
     }
 
     .stat-grid {
-        @apply grid grid-cols-2 gap-2 md:grid-cols-4;
+        @apply grid grid-cols-2 gap-2 md:grid-cols-4 2xl:gap-3;
     }
 
     .form-field {
@@ -175,15 +202,16 @@
     }
 
     .form-hint {
-        @apply text-xs text-zinc-500;
+        @apply text-xs text-zinc-500 dark:text-zinc-400;
     }
 
     .form-error {
-        @apply text-xs text-red-600;
+        @apply text-xs text-red-600 dark:text-red-400;
     }
 
     .filter-select {
-        @apply w-auto min-w-[8.5rem] cursor-pointer rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm shadow-sm transition hover:border-zinc-400 focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600/20;
+        @apply w-auto min-w-[8.5rem] cursor-pointer rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 shadow-sm transition hover:border-zinc-400 focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600/20
+            dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600;
     }
 
     .data-table {
@@ -191,7 +219,7 @@
     }
 
     .data-table thead {
-        @apply bg-zinc-50 text-left text-xs font-medium text-zinc-500;
+        @apply bg-zinc-50 text-left text-xs font-medium text-zinc-500 dark:bg-zinc-800/80 dark:text-zinc-400;
     }
 
     .data-table th {
@@ -199,15 +227,15 @@
     }
 
     .data-table td {
-        @apply px-3 py-2.5 align-middle;
+        @apply px-3 py-2.5 align-middle text-zinc-900 dark:text-zinc-100;
     }
 
     .table-caption {
-        @apply border-b border-zinc-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-500;
+        @apply border-b border-zinc-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:text-zinc-400;
     }
 
     .table-head {
-        @apply bg-zinc-50 text-left text-xs font-medium text-zinc-500;
+        @apply bg-zinc-50 text-left text-xs font-medium text-zinc-500 dark:bg-zinc-800/80 dark:text-zinc-400;
     }
 
     .table-th {
@@ -223,23 +251,23 @@
     }
 
     .table-row-menu-trigger {
-        @apply rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800;
+        @apply rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200;
     }
 
     .table-row-menu {
-        @apply absolute right-0 z-20 mt-1 min-w-[9rem] origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg;
+        @apply absolute right-0 z-20 mt-1 min-w-[9rem] origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900;
     }
 
     .table-row-menu-panel {
-        @apply min-w-[9rem] origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg;
+        @apply min-w-[9rem] origin-top-right rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900;
     }
 
     .table-row-menu-item {
-        @apply block px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50;
+        @apply block px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800;
     }
 
     .table-row-menu-item-danger {
-        @apply block w-full px-3 py-1.5 text-left text-sm text-red-600 transition hover:bg-red-50;
+        @apply block w-full px-3 py-1.5 text-left text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40;
     }
 
     .table-inline-actions {
@@ -263,11 +291,12 @@
     }
 
     .drawer-form-footer {
-        @apply flex shrink-0 items-center gap-2 border-t border-zinc-100 bg-white px-5 py-4;
+        @apply flex shrink-0 items-center gap-2 border-t border-zinc-100 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900;
     }
 
     .pagination-btn {
-        @apply rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50;
+        @apply rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50
+            dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800;
     }
 
     .pagination-btn-disabled {

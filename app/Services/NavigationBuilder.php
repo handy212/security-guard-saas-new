@@ -17,6 +17,11 @@ class NavigationBuilder
             return false;
         }
 
+        // Guard mobile PWA — office/admin users use the main console instead.
+        if (($link['href'] ?? '') === '/guard' && auth()->user()?->can('dashboard.view')) {
+            return false;
+        }
+
         $tenantId = TenantContext::current()?->id;
 
         if ($tenantId && ! empty($link['feature']) && ! $this->entitlements->tenantHasFeature($tenantId, $link['feature'])) {

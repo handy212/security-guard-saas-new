@@ -31,7 +31,6 @@ class DashboardMetricsService
         $activeGuards = Guard::where('tenant_id', $tenantId)->where('status', 'active')->count();
         $onDuty = AttendanceLog::where('tenant_id', $tenantId)
             ->whereNull('clock_out_at')
-            ->whereDate('clock_in_at', today())
             ->count();
         $todayShifts = Shift::where('tenant_id', $tenantId)->whereDate('starts_at', today())->count();
         $openIncidents = Incident::where('tenant_id', $tenantId)
@@ -84,9 +83,11 @@ class DashboardMetricsService
                 'key' => 'guards',
                 'label' => 'On duty',
                 'value' => $onDuty,
-                'hint' => "{$activeGuards} active guards",
-                'tone' => 'info',
-                'href' => '/guards',
+                'hint' => $onDuty > 0
+                    ? "{$onDuty} clocked in · {$activeGuards} on roster"
+                    : ($activeGuards ? "{$activeGuards} on roster · none clocked in" : 'No active guards'),
+                'tone' => $onDuty > 0 ? 'success' : 'info',
+                'href' => '/schedules/attendance',
             ],
             [
                 'key' => 'shifts',

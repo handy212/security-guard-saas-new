@@ -146,13 +146,13 @@ class DemoDataSeeder extends Seeder
                 ['name' => $cp[0], 'sequence' => $cp[2], 'status' => 'active']
             );
         }
-        Shift::firstOrCreate(
+        Shift::updateOrCreate(
             ['tenant_id' => $tenant->id, 'site_id' => $site->id, 'title' => 'Day Shift'],
             [
                 'client_account_id' => $client->id,
                 'site_post_id' => $post->id,
-                'starts_at' => now()->setHour(8),
-                'ends_at' => now()->setHour(18),
+                'starts_at' => now()->copy()->setTime(8, 0),
+                'ends_at' => now()->copy()->setTime(18, 0),
                 'required_guards' => 2,
                 'billing_rate' => 25,
                 'billable_hours' => 10,

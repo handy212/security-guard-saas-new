@@ -1,5 +1,9 @@
 import './dashboard-charts.js';
 import './map.js';
+import { initTheme, setTheme } from './theme.js';
+
+initTheme();
+window.setTheme = setTheme;
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { initPushNotifications } from './push-notifications';
