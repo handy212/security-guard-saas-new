@@ -151,8 +151,8 @@ class DemoDataSeeder extends Seeder
             [
                 'client_account_id' => $client->id,
                 'site_post_id' => $post->id,
-                'starts_at' => now()->copy()->setTime(8, 0),
-                'ends_at' => now()->copy()->setTime(18, 0),
+                'starts_at' => now()->subHours(2),
+                'ends_at' => now()->addHours(10),
                 'required_guards' => 2,
                 'billing_rate' => 25,
                 'billable_hours' => 10,

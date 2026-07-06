@@ -15,3 +15,4 @@ composer.phar
 !/storage/framework/views/.gitignore
 guard_saas
 database/database.sqlite
+storage/logs/laravel.log

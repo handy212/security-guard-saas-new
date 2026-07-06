@@ -45,7 +45,7 @@ class GuardVerificationTest extends TestCase
             ->assertSee($guard->full_name)
             ->assertSee('Demo Security Company')
             ->assertSee('Senior Officer')
-            ->assertSee('Verified by Demo Security Company')
+            ->assertSee('Verified officer')
             ->assertDontSee($guard->email)
             ->assertDontSee($guard->phone)
             ->assertDontSee('hourly');
@@ -477,7 +477,32 @@ class GuardVerificationTest extends TestCase
 
         $this->get('/g/'.$token->token)
             ->assertOk()
+            ->assertDontSee('Certifications')
             ->assertDontSee('Expired Training');
+    }
+
+    public function test_public_verification_page_shows_assignment_date_range(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+
+        $shift = $guard->assignments()->first()?->shift;
+        $this->assertNotNull($shift);
+        $shift->update([
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHours(6),
+        ]);
+
+        $assignment = app(GuardVerificationService::class)->currentAssignment($guard->fresh());
+        $this->assertNotNull($assignment);
+
+        $this->get($this->tenantVerifyPath($token))
+            ->assertOk()
+            ->assertSee('On assignment', false)
+            ->assertSee($assignment['site_name'], false)
+            ->assertSee($assignment['date_range'], false);
     }
 
     public function test_browser_pdf_view_data_embeds_qr_from_generated_file(): void

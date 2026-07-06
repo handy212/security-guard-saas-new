@@ -160,6 +160,16 @@ class GuardVerificationService
 
     public function currentAssignmentSiteName(Guard $guard): ?string
     {
+        return $this->currentAssignment($guard)['site_name'] ?? null;
+    }
+
+    /**
+     * Active shift assignment visible on the public verification page.
+     *
+     * @return array{site_name: string, starts_at: \Illuminate\Support\Carbon, ends_at: \Illuminate\Support\Carbon, date_range: string}|null
+     */
+    public function currentAssignment(Guard $guard): ?array
+    {
         if (! $guard->show_current_assignment || $guard->status !== 'active') {
             return null;
         }
@@ -170,7 +180,28 @@ class GuardVerificationService
             ->latest('assigned_at')
             ->first();
 
-        return $assignment?->shift?->site?->name;
+        $shift = $assignment?->shift;
+        $siteName = $shift?->site?->name;
+
+        if (! $shift || ! $siteName) {
+            return null;
+        }
+
+        return [
+            'site_name' => $siteName,
+            'starts_at' => $shift->starts_at,
+            'ends_at' => $shift->ends_at,
+            'date_range' => $this->formatAssignmentDateRange($shift->starts_at, $shift->ends_at),
+        ];
+    }
+
+    private function formatAssignmentDateRange(\Illuminate\Support\Carbon $startsAt, \Illuminate\Support\Carbon $endsAt): string
+    {
+        if ($startsAt->isSameDay($endsAt)) {
+            return $startsAt->format('M j, Y').' · '.$startsAt->format('g:i A').' – '.$endsAt->format('g:i A');
+        }
+
+        return $startsAt->format('M j, Y g:i A').' – '.$endsAt->format('M j, Y g:i A');
     }
 
     /**

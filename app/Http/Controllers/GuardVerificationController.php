@@ -32,21 +32,14 @@ class GuardVerificationController extends Controller
 
         $guard->loadMissing('tenant');
 
-        $currentSite = $verification->currentAssignmentSiteName($guard);
-
-        $certifications = $guard->certifications()
-            ->where(function ($query) {
-                $query->whereNull('expires_at')->orWhere('expires_at', '>=', now()->toDateString());
-            })
-            ->get();
+        $currentAssignment = $verification->currentAssignment($guard);
 
         return view('verify.guard', [
             'token' => $token,
             'guard' => $guard,
             'companyName' => $guard->tenant?->name ?? config('app.name'),
             'branchName' => $guard->branch?->name,
-            'currentSite' => $currentSite,
-            'certifications' => $certifications,
+            'currentAssignment' => $currentAssignment,
             'skills' => $guard->skills,
             'isVerified' => $guard->verification_status === 'verified',
             'verifiedAt' => $guard->verified_at,
