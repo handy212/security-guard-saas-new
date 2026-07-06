@@ -64,6 +64,7 @@
                     'card' => $card,
                     'photoSrc' => $photoSrc,
                     'logoSrc' => $logoSrc,
+                    'backLogoSrc' => $backLogoSrc,
                     'qrPng' => $qrPng,
                 ])
             </div>
@@ -79,6 +80,7 @@
                     'card' => $card,
                     'photoSrc' => $photoSrc,
                     'logoSrc' => $logoSrc,
+                    'backLogoSrc' => $backLogoSrc,
                     'qrPng' => $qrPng,
                 ])
             </div>

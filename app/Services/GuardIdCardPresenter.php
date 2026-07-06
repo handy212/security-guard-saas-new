@@ -10,9 +10,11 @@ use App\Models\TenantSetting;
 
 class GuardIdCardPresenter
 {
-    public const TEMPLATES = ['modern', 'minimal', 'creative'];
+    public const TEMPLATES = ['modern', 'minimal', 'creative', 'premium'];
 
     public const ORIENTATIONS = ['portrait', 'landscape'];
+
+    public const PREMIUM_ORIENTATION = 'landscape';
 
     /**
      * @return array{
@@ -30,6 +32,8 @@ class GuardIdCardPresenter
      *     address: ?string,
      *     logo_path: ?string,
      *     logo_url: ?string,
+     *     back_logo_path: ?string,
+     *     back_logo_url: ?string,
      * }
      */
     public function branding(Tenant $tenant, ?Branch $branch = null): array
@@ -53,6 +57,10 @@ class GuardIdCardPresenter
             $orientation = 'portrait';
         }
 
+        if ($template === 'premium') {
+            $orientation = self::PREMIUM_ORIENTATION;
+        }
+
         return [
             'company_name' => $companyName,
             'tagline' => $settings['tagline'] ?? 'Employee Identification',
@@ -70,6 +78,8 @@ class GuardIdCardPresenter
             'address' => $branch?->address ?: ($settings['address'] ?? null),
             'logo_path' => $settings['logo_path'] ?? null,
             'logo_url' => isset($settings['logo_path']) ? route('files.id-card-logo') : null,
+            'back_logo_path' => $settings['back_logo_path'] ?? null,
+            'back_logo_url' => isset($settings['back_logo_path']) ? route('files.id-card-back-logo') : null,
         ];
     }
 
@@ -135,7 +145,19 @@ class GuardIdCardPresenter
                 : null;
         }
 
-        return array_merge($brand, $overrides);
+        if (array_key_exists('back_logo_path', $overrides)) {
+            $overrides['back_logo_url'] = ! empty($overrides['back_logo_path'])
+                ? route('files.id-card-back-logo')
+                : null;
+        }
+
+        $merged = array_merge($brand, $overrides);
+
+        if (($merged['template'] ?? 'modern') === 'premium') {
+            $merged['orientation'] = self::PREMIUM_ORIENTATION;
+        }
+
+        return $merged;
     }
 
     public function previewScale(string $orientation = 'portrait'): float
@@ -144,19 +166,27 @@ class GuardIdCardPresenter
     }
 
     /**
-     * @return array<string, array{primary: string, dark: string}>
+     * @return array<string, array{primary: string, dark: string, label: string}>
      */
     public function colorPresets(): array
     {
         return [
-            'blue' => ['primary' => '#2563eb', 'dark' => '#1e40af'],
-            'green' => ['primary' => '#059669', 'dark' => '#065f46'],
-            'red' => ['primary' => '#dc2626', 'dark' => '#991b1b'],
-            'purple' => ['primary' => '#7c3aed', 'dark' => '#5b21b6'],
-            'orange' => ['primary' => '#ea580c', 'dark' => '#9a3412'],
-            'slate' => ['primary' => '#0f172a', 'dark' => '#020617'],
-            'pink' => ['primary' => '#ec4899', 'dark' => '#be185d'],
-            'cyan' => ['primary' => '#0891b2', 'dark' => '#155e75'],
+            'blue' => ['primary' => '#2563eb', 'dark' => '#1e40af', 'label' => 'Blue'],
+            'indigo' => ['primary' => '#4f46e5', 'dark' => '#3730a3', 'label' => 'Indigo'],
+            'navy' => ['primary' => '#1e3a8a', 'dark' => '#172554', 'label' => 'Navy'],
+            'cyan' => ['primary' => '#0891b2', 'dark' => '#155e75', 'label' => 'Cyan'],
+            'teal' => ['primary' => '#0d9488', 'dark' => '#115e59', 'label' => 'Teal'],
+            'green' => ['primary' => '#059669', 'dark' => '#065f46', 'label' => 'Green'],
+            'lime' => ['primary' => '#65a30d', 'dark' => '#3f6212', 'label' => 'Lime'],
+            'amber' => ['primary' => '#d97706', 'dark' => '#92400e', 'label' => 'Amber'],
+            'orange' => ['primary' => '#ea580c', 'dark' => '#9a3412', 'label' => 'Orange'],
+            'red' => ['primary' => '#dc2626', 'dark' => '#991b1b', 'label' => 'Red'],
+            'rose' => ['primary' => '#e11d48', 'dark' => '#9f1239', 'label' => 'Rose'],
+            'pink' => ['primary' => '#ec4899', 'dark' => '#be185d', 'label' => 'Pink'],
+            'purple' => ['primary' => '#7c3aed', 'dark' => '#5b21b6', 'label' => 'Purple'],
+            'violet' => ['primary' => '#6d28d9', 'dark' => '#4c1d95', 'label' => 'Violet'],
+            'slate' => ['primary' => '#334155', 'dark' => '#0f172a', 'label' => 'Slate'],
+            'charcoal' => ['primary' => '#18181b', 'dark' => '#09090b', 'label' => 'Charcoal'],
         ];
     }
 
@@ -202,7 +232,7 @@ class GuardIdCardPresenter
         return preg_match('/^#[0-9A-Fa-f]{6}$/', $color) ? $color : '#2563eb';
     }
 
-    private function darkenColor(string $hex): string
+    public function darkenColor(string $hex): string
     {
         $hex = ltrim($hex, '#');
         $r = max(0, hexdec(substr($hex, 0, 2)) - 30);

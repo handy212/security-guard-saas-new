@@ -119,6 +119,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/guards/{guard}/id-card/preview', [GuardIdCardPreviewController::class, 'guard'])->name('guards.id-card.preview');
     Route::get('/files/guards/{guard}/photo', [TenantFileController::class, 'guardPhoto'])->name('files.guard-photo');
     Route::get('/files/id-card-logo', [TenantFileController::class, 'idCardLogo'])->name('files.id-card-logo');
+    Route::get('/files/id-card-back-logo', [TenantFileController::class, 'idCardBackLogo'])->name('files.id-card-back-logo');
     Route::get('/files/guard-documents/{document}', [TenantFileController::class, 'guardDocument'])->name('files.guard-document');
     Route::get('/schedules', ScheduleIndex::class)->name('schedules.index');
     Route::get('/schedules/templates', ShiftTemplateIndex::class)->name('schedules.templates');

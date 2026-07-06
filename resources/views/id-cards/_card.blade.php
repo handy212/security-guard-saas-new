@@ -5,8 +5,11 @@
     $orientation = $brand['orientation'] ?? 'portrait';
     $forPdf = $forPdf ?? false;
     $logo = $forPdf ? ($logoSrc ?? null) : ($logoUrl ?? ($brand['logo_url'] ?? null));
+    $backLogo = $forPdf
+        ? ($backLogoSrc ?? $logoSrc ?? null)
+        : ($backLogoUrl ?? ($brand['back_logo_url'] ?? $logoUrl ?? ($brand['logo_url'] ?? null)));
     $photo = $forPdf ? ($photoSrc ?? null) : ($photoUrl ?? null);
-    $isLandscape = $orientation === 'landscape';
+    $isLandscape = $orientation === 'landscape' || $template === 'premium';
 @endphp
 
 <div
@@ -15,10 +18,46 @@
 >
     @if ($side === 'back')
         @if ($isLandscape)
+            @if ($template === 'premium')
+                <div class="ls-back ls-back--premium">
+                    <div class="ls-back-premium-stripe"></div>
+                    <div class="ls-back-premium-grid">
+                        <div class="ls-back-premium-brand">
+                            @if ($backLogo)
+                                <img src="{{ $backLogo }}" alt="" class="ls-back-premium-logo">
+                            @endif
+                            <div class="ls-back-premium-company">{{ $brand['company_name'] }}</div>
+                            <div class="ls-back-premium-tagline">{{ $brand['tagline'] }}</div>
+                        </div>
+                        <div class="ls-back-premium-panel">
+                            <div class="ls-back-premium-panel-title">Emergency contact</div>
+                            <div class="ls-back-premium-contacts">
+                                @if ($brand['phone'] ?? null)
+                                    <div class="ls-back-premium-contact-row"><span>Tel</span><strong>{{ $brand['phone'] }}</strong></div>
+                                @endif
+                                @if ($brand['phone_secondary'] ?? null)
+                                    <div class="ls-back-premium-contact-row"><span>Alt</span><strong>{{ $brand['phone_secondary'] }}</strong></div>
+                                @endif
+                                @if ($brand['email'] ?? null)
+                                    <div class="ls-back-premium-contact-row"><span>Email</span><strong>{{ $brand['email'] }}</strong></div>
+                                @endif
+                                @if ($brand['website'] ?? null)
+                                    <div class="ls-back-premium-contact-row"><span>Web</span><strong>{{ $brand['website'] }}</strong></div>
+                                @endif
+                                @if ($brand['address'] ?? null)
+                                    <div class="ls-back-premium-contact-row ls-back-premium-contact-row--stack"><span>Address</span><strong>{{ $brand['address'] }}</strong></div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ls-back-premium-notice">{{ $brand['emergency_text'] ?? 'In case of emergency, please contact the company.' }}</div>
+                    <div class="ls-back-premium-sig"><span>Authorized signature</span></div>
+                </div>
+            @else
             <div class="ls-back">
                 <div class="ls-back-left">
-                    @if ($logo)
-                        <img src="{{ $logo }}" alt="" class="ls-back-logo">
+                    @if ($backLogo)
+                        <img src="{{ $backLogo }}" alt="" class="ls-back-logo">
                     @endif
                     <div class="ls-back-company">{{ $brand['company_name'] }}</div>
                     <div class="ls-back-tagline">{{ $brand['tagline'] }}</div>
@@ -44,11 +83,44 @@
                     </div>
                 </div>
             </div>
+            @endif
+        @elseif ($template === 'premium')
+            <div class="premium-back">
+                <div class="premium-mag-stripe"></div>
+                <div class="premium-sig-strip"><span>Authorized signature</span></div>
+                <div class="premium-back-content">
+                    <div class="back-header">
+                        @if ($logo)
+                            <img src="{{ $logo }}" alt="" class="back-logo">
+                        @endif
+                        <div class="font-bold">{{ $brand['company_name'] }}</div>
+                        <div class="text-sm opacity-80">{{ $brand['tagline'] }}</div>
+                    </div>
+                    <div class="back-notice premium-back-notice">{{ $brand['emergency_text'] ?? 'In case of emergency, please contact the company.' }}</div>
+                    <div class="back-contacts premium-back-contacts">
+                        @if ($brand['phone'] ?? null)
+                            <div><strong>Tel:</strong> {{ $brand['phone'] }}</div>
+                        @endif
+                        @if ($brand['phone_secondary'] ?? null)
+                            <div>{{ $brand['phone_secondary'] }}</div>
+                        @endif
+                        @if ($brand['address'] ?? null)
+                            <div class="mt-2"><strong>Address:</strong> {{ $brand['address'] }}</div>
+                        @endif
+                        @if ($brand['website'] ?? null)
+                            <div><strong>Web:</strong> {{ $brand['website'] }}</div>
+                        @endif
+                        @if ($brand['email'] ?? null)
+                            <div><strong>Email:</strong> {{ $brand['email'] }}</div>
+                        @endif
+                    </div>
+                </div>
+            </div>
         @else
             <div class="card-back">
                 <div class="back-header">
-                    @if ($logo)
-                        <img src="{{ $logo }}" alt="" class="back-logo">
+                    @if ($backLogo)
+                        <img src="{{ $backLogo }}" alt="" class="back-logo">
                     @endif
                     <div class="font-bold">{{ $brand['company_name'] }}</div>
                     <div class="text-sm opacity-80">{{ $brand['tagline'] }}</div>
@@ -215,7 +287,58 @@
                 </div>
             </div>
         @endif
-    @else
+    @elseif ($template === 'premium')
+        <div class="ls-shell ls-shell--row">
+            <div class="ls-premium-brand">
+                <div class="ls-premium-brand-pattern"></div>
+                <div class="ls-premium-brand-lines"></div>
+                <div class="ls-premium-badge">SECURITY ID</div>
+                <div class="ls-premium-photo-frame">
+                    @if ($photo)
+                        <img src="{{ $photo }}" alt="" class="ls-premium-photo">
+                    @else
+                        <div class="ls-premium-photo initials">{{ $card['initial'] }}</div>
+                    @endif
+                </div>
+            </div>
+            <div class="ls-premium-main">
+                <div class="ls-premium-header-brand">
+                    @if ($logo)
+                        <img src="{{ $logo }}" alt="" class="ls-premium-header-logo">
+                    @endif
+                    <div class="ls-premium-header-brand-text">
+                        <div class="ls-premium-company">{{ $brand['company_name'] }}</div>
+                        <div class="ls-premium-tagline">{{ $brand['tagline'] }}</div>
+                    </div>
+                </div>
+                <div class="ls-premium-details">
+                    @if ($logo)
+                        <img src="{{ $logo }}" alt="" class="ls-premium-watermark-logo" aria-hidden="true">
+                    @endif
+                    <div class="ls-modern-name">{{ $card['name'] }}</div>
+                    <div class="ls-premium-role-pill">{{ $card['role'] }}</div>
+                    <div class="ls-premium-chips">
+                        <div class="ls-premium-chip">
+                            <div class="ls-premium-chip-label">Guard ID</div>
+                            <div class="ls-premium-chip-value">{{ $card['employee_id'] }}</div>
+                        </div>
+                        <div class="ls-premium-chip">
+                            <div class="ls-premium-chip-label">Issued</div>
+                            <div class="ls-premium-chip-value">{{ $card['issue_date'] }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ls-footer ls-footer--premium">
+                    <div class="ls-footer-meta">Scan to verify (KYG)</div>
+                    @if ($forPdf && ($qrPng ?? null))
+                        <div class="ls-qr qr-box"><img src="data:image/png;base64,{{ $qrPng }}" width="48" height="48" alt=""></div>
+                    @elseif ($qrSvg ?? null)
+                        <div class="ls-qr qr-box">{!! $qrSvg !!}</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @elseif ($template === 'creative')
         @if ($isLandscape)
             <div class="ls-shell ls-shell--col">
                 <div class="ls-creative-accent"></div>

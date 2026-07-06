@@ -42,10 +42,13 @@ apt-get upgrade -y
 echo "==> Installing base tools"
 apt-get install -y curl git unzip ufw fail2ban
 
-echo "==> Configuring firewall"
-ufw allow OpenSSH
-ufw allow 'Nginx Full'
-ufw --force enable
+configure_firewall() {
+    echo "==> Configuring firewall"
+    ufw allow OpenSSH
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    ufw --force enable
+}
 
 if [[ "$MODE" == "docker" ]]; then
     echo "==> Installing Docker"
@@ -57,6 +60,8 @@ if [[ "$MODE" == "docker" ]]; then
     echo "==> Installing host nginx + Certbot (TLS termination)"
     apt-get install -y nginx certbot python3-certbot-nginx
     systemctl enable nginx
+
+    configure_firewall
 
     echo ""
     echo "Docker bootstrap complete."
@@ -88,6 +93,8 @@ if ! command -v composer >/dev/null 2>&1; then
 fi
 
 systemctl enable nginx php8.3-fpm mysql redis-server supervisor
+
+configure_firewall
 
 mkdir -p "$APP_DIR"
 chown -R "$DEPLOY_USER:www-data" "$APP_DIR"

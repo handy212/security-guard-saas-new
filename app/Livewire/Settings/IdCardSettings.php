@@ -41,6 +41,10 @@ class IdCardSettings extends Component
 
     public $logoFile;
 
+    public ?string $existingBackLogoPath = null;
+
+    public $backLogoFile;
+
     public string $previewSide = 'front';
 
     public function mount(GuardIdCardPresenter $presenter): void
@@ -66,10 +70,19 @@ class IdCardSettings extends Component
         $this->website = $settings['website'] ?? null;
         $this->address = $settings['address'] ?? null;
         $this->existingLogoPath = $settings['logo_path'] ?? null;
+        $this->existingBackLogoPath = $settings['back_logo_path'] ?? null;
+
+        if ($this->template === 'premium') {
+            $this->orientation = GuardIdCardPresenter::PREMIUM_ORIENTATION;
+        }
     }
 
     public function setOrientation(string $orientation): void
     {
+        if ($this->template === 'premium') {
+            return;
+        }
+
         if (! in_array($orientation, GuardIdCardPresenter::ORIENTATIONS, true)) {
             return;
         }
@@ -84,12 +97,21 @@ class IdCardSettings extends Component
         }
 
         $this->template = $template;
+
+        if ($template === 'premium') {
+            $this->orientation = GuardIdCardPresenter::PREMIUM_ORIENTATION;
+        }
     }
 
     public function setColor(string $primary, string $dark): void
     {
         $this->brandColor = $primary;
         $this->brandColorDark = $dark;
+    }
+
+    public function syncDarkFromPrimary(GuardIdCardPresenter $presenter): void
+    {
+        $this->brandColorDark = $presenter->darkenColor($this->brandColor);
     }
 
     public function removeLogo(): void
@@ -101,15 +123,31 @@ class IdCardSettings extends Component
         $this->persistSettings($this->currentSettings(['logo_path' => null]));
         $this->existingLogoPath = null;
         $this->logoFile = null;
-        session()->flash('status', 'Logo removed.');
+        session()->flash('status', 'Front logo removed.');
+    }
+
+    public function removeBackLogo(): void
+    {
+        if ($this->existingBackLogoPath && Storage::disk('public')->exists($this->existingBackLogoPath)) {
+            Storage::disk('public')->delete($this->existingBackLogoPath);
+        }
+
+        $this->persistSettings($this->currentSettings(['back_logo_path' => null]));
+        $this->existingBackLogoPath = null;
+        $this->backLogoFile = null;
+        session()->flash('status', 'Back logo removed.');
     }
 
     public function save(FileUploadService $files): void
     {
         abort_unless(auth()->user()->can('settings.manage'), 403);
 
+        if ($this->template === 'premium') {
+            $this->orientation = GuardIdCardPresenter::PREMIUM_ORIENTATION;
+        }
+
         $data = $this->validate([
-            'template' => 'required|in:modern,minimal,creative',
+            'template' => 'required|in:modern,minimal,creative,premium',
             'orientation' => 'required|in:portrait,landscape',
             'tagline' => 'required|string|max:120',
             'brandColor' => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
@@ -121,9 +159,11 @@ class IdCardSettings extends Component
             'website' => 'nullable|string|max:120',
             'address' => 'nullable|string|max:255',
             'logoFile' => 'nullable|image|max:2048',
+            'backLogoFile' => 'nullable|image|max:2048',
         ]);
 
         $logoPath = $this->existingLogoPath;
+        $backLogoPath = $this->existingBackLogoPath;
 
         if ($this->logoFile) {
             if ($logoPath && Storage::disk('public')->exists($logoPath)) {
@@ -132,6 +172,15 @@ class IdCardSettings extends Component
             $logoPath = $files->storeIdCardLogo(TenantContext::id(), $this->logoFile);
             $this->existingLogoPath = $logoPath;
             $this->logoFile = null;
+        }
+
+        if ($this->backLogoFile) {
+            if ($backLogoPath && Storage::disk('public')->exists($backLogoPath)) {
+                Storage::disk('public')->delete($backLogoPath);
+            }
+            $backLogoPath = $files->storeIdCardLogo(TenantContext::id(), $this->backLogoFile);
+            $this->existingBackLogoPath = $backLogoPath;
+            $this->backLogoFile = null;
         }
 
         $this->persistSettings($this->currentSettings([
@@ -147,6 +196,7 @@ class IdCardSettings extends Component
             'website' => $data['website'] ?: null,
             'address' => $data['address'] ?: null,
             'logo_path' => $logoPath,
+            'back_logo_path' => $backLogoPath,
         ]));
 
         session()->flash('status', 'ID card settings saved.');
@@ -157,10 +207,14 @@ class IdCardSettings extends Component
         $tenant = TenantContext::current();
         abort_unless($tenant, 403);
 
+        $orientation = $this->template === 'premium'
+            ? GuardIdCardPresenter::PREMIUM_ORIENTATION
+            : $this->orientation;
+
         $sample = $renderer->forSample($tenant, [
             'tagline' => $this->tagline,
             'template' => $this->template,
-            'orientation' => $this->orientation,
+            'orientation' => $orientation,
             'brand_color' => $this->brandColor,
             'brand_color_dark' => $this->brandColorDark,
             'emergency_text' => $this->emergencyText ?: null,
@@ -170,16 +224,11 @@ class IdCardSettings extends Component
             'website' => $this->website,
             'address' => $this->address,
             'logo_path' => $this->existingLogoPath,
+            'back_logo_path' => $this->existingBackLogoPath,
         ]);
 
-        $logoUrl = $this->existingLogoPath ? route('files.id-card-logo') : null;
-        if ($this->logoFile) {
-            try {
-                $logoUrl = $this->logoFile->temporaryUrl();
-            } catch (\Throwable) {
-                // Preview falls back to saved logo when temporary URL is unavailable.
-            }
-        }
+        $logoUrl = $this->resolvePreviewUrl($this->existingLogoPath, $this->logoFile, 'files.id-card-logo');
+        $backLogoUrl = $this->resolvePreviewUrl($this->existingBackLogoPath, $this->backLogoFile, 'files.id-card-back-logo');
 
         return view('livewire.settings.id-card-settings', [
             'colorPresets' => $presenter->colorPresets(),
@@ -187,6 +236,7 @@ class IdCardSettings extends Component
             'previewCard' => $sample['card'],
             'previewQrSvg' => $sample['qrSvg'],
             'logoUrl' => $logoUrl,
+            'backLogoUrl' => $backLogoUrl,
         ])->layout('layouts.app');
     }
 
@@ -198,7 +248,7 @@ class IdCardSettings extends Component
     {
         return array_merge([
             'template' => $this->template,
-            'orientation' => $this->orientation,
+            'orientation' => $this->template === 'premium' ? GuardIdCardPresenter::PREMIUM_ORIENTATION : $this->orientation,
             'tagline' => $this->tagline,
             'brand_color' => $this->brandColor,
             'brand_color_dark' => $this->brandColorDark,
@@ -209,7 +259,21 @@ class IdCardSettings extends Component
             'website' => $this->website ?: null,
             'address' => $this->address ?: null,
             'logo_path' => $this->existingLogoPath,
+            'back_logo_path' => $this->existingBackLogoPath,
         ], $overrides);
+    }
+
+    private function resolvePreviewUrl(?string $savedPath, mixed $pendingFile, string $routeName): ?string
+    {
+        if ($pendingFile) {
+            try {
+                return $pendingFile->temporaryUrl();
+            } catch (\Throwable) {
+                // Fall back to saved file when temporary URL is unavailable.
+            }
+        }
+
+        return $savedPath ? route($routeName) : null;
     }
 
     private function persistSettings(array $value): void

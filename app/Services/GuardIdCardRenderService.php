@@ -38,11 +38,13 @@ class GuardIdCardRenderService
             abort(503, 'Could not generate the QR code for this ID card.');
         }
 
-        $photoPath = $this->photos->pngFile($guard->photo_path, 'circular')
-            ?? $this->photos->initialsFile($card['initial']);
+        $photoStyle = $this->photoStyle($brand);
+        $photoPath = $this->photos->pngFile($guard->photo_path, $photoStyle)
+            ?? $this->photos->initialsFile($card['initial'], $photoStyle);
         $logoPath = $this->logos->pngFile($brand['logo_path']);
+        $backLogoPath = $this->logos->pngFile($brand['back_logo_path'] ?? null);
 
-        $tempFiles = array_values(array_filter([$qrPath, $photoPath, $logoPath]));
+        $tempFiles = array_values(array_filter([$qrPath, $photoPath, $logoPath, $backLogoPath]));
 
         return [
             'viewData' => [
@@ -56,8 +58,8 @@ class GuardIdCardRenderService
                 'qrSize' => $qrSize,
                 'photoPath' => $photoPath,
                 'photoUrl' => $guard->photo_path ? route('files.guard-photo', $guard) : null,
-                'photoWidth' => $this->photos->widthPt('circular'),
-                'photoHeight' => $this->photos->heightPt('circular'),
+                'photoWidth' => $this->photos->widthPt($photoStyle),
+                'photoHeight' => $this->photos->heightPt($photoStyle),
                 'logoPath' => $logoPath,
                 'logoHeight' => $this->logos->heightPt(),
                 'logoUrl' => $brand['logo_url'],
@@ -103,12 +105,17 @@ class GuardIdCardRenderService
         $card = $viewData['card'];
         $brand = $viewData['brand'];
         $photoPath = $guard->photo_path ?? null;
+        $photoStyle = $this->photoStyle($brand);
 
-        $photoSrc = $this->photos->dataUri($photoPath, 'circular')
-            ?? $this->photos->initialsDataUri($card['initial']);
+        $photoSrc = $this->photos->dataUri($photoPath, $photoStyle)
+            ?? $this->photos->initialsDataUri($card['initial'], $photoStyle);
 
         $logoSrc = ! empty($brand['logo_path'])
             ? $this->logos->dataUri($brand['logo_path'])
+            : null;
+
+        $backLogoSrc = ! empty($brand['back_logo_path'])
+            ? $this->logos->dataUri($brand['back_logo_path'])
             : null;
 
         $qrPng = $this->qrPngPayload(
@@ -122,6 +129,7 @@ class GuardIdCardRenderService
             'forPdf' => true,
             'photoSrc' => $photoSrc,
             'logoSrc' => $logoSrc,
+            'backLogoSrc' => $backLogoSrc,
             'photoUrl' => null,
             'logoUrl' => null,
             'qrSvg' => null,
@@ -166,5 +174,13 @@ class GuardIdCardRenderService
         }
 
         return $host;
+    }
+
+    /**
+     * @param  array<string, mixed>  $brand
+     */
+    private function photoStyle(array $brand): string
+    {
+        return ($brand['template'] ?? 'modern') === 'premium' ? 'rectangular' : 'circular';
     }
 }

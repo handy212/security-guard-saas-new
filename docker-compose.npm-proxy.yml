@@ -1,0 +1,24 @@
+# Use when Nginx Proxy Manager (or another reverse proxy) runs on a DIFFERENT server.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.npm-proxy.yml up -d
+#
+# Exposes HTTP + Reverb on all interfaces. Lock down with UFW — allow ONLY your
+# NPM server IP on ports 8080 and 8081:
+#
+#   ufw allow from NPM_SERVER_IP to any port 8080 proto tcp
+#   ufw allow from NPM_SERVER_IP to any port 8081 proto tcp
+
+services:
+  nginx:
+    ports: !reset
+      - "8080:80"
+
+  reverb:
+    ports: !reset
+      - "8081:8081"
+
+  mysql:
+    ports: !reset []
+
+  redis:
+    ports: !reset []

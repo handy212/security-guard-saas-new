@@ -4,11 +4,15 @@
     'side' => 'front',
     'photoUrl' => null,
     'logoUrl' => null,
+    'backLogoUrl' => null,
     'qrSvg' => null,
 ])
 
 @php
     $orientation = $brand['orientation'] ?? 'portrait';
+    if (($brand['template'] ?? 'modern') === 'premium') {
+        $orientation = 'landscape';
+    }
     $isLandscape = $orientation === 'landscape';
     $previewScale = app(\App\Services\GuardIdCardPresenter::class)->previewScale($orientation);
     $previewClasses = 'id-card-preview'.($isLandscape ? ' id-card-preview--landscape' : '');
@@ -43,6 +47,7 @@
         'card' => $card,
         'photoUrl' => $photoUrl,
         'logoUrl' => $logoUrl ?? ($brand['logo_url'] ?? null),
+        'backLogoUrl' => $backLogoUrl ?? ($brand['back_logo_url'] ?? null),
         'qrSvg' => $qrSvg,
     ])
 </div>

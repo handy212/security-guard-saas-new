@@ -259,6 +259,36 @@ class GuardVerificationTest extends TestCase
         $this->assertStringContainsString('/Subtype /Image', $content);
     }
 
+    public function test_premium_template_forces_landscape_and_renders(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        TenantSetting::updateOrCreate(
+            ['tenant_id' => $guard->tenant_id, 'key' => 'id_card'],
+            ['value' => array_merge(
+                TenantSetting::query()
+                    ->where('tenant_id', $guard->tenant_id)
+                    ->where('key', 'id_card')
+                    ->value('value') ?? [],
+                ['template' => 'premium', 'orientation' => 'portrait']
+            )]
+        );
+
+        $brand = app(\App\Services\GuardIdCardPresenter::class)->branding($guard->tenant);
+        $this->assertSame('premium', $brand['template']);
+        $this->assertSame('landscape', $brand['orientation']);
+
+        $this->actingAs($admin)
+            ->get(route('guards.id-card.print', $guard))
+            ->assertOk()
+            ->assertSee('orientation-landscape', false)
+            ->assertSee('ls-premium-brand', false)
+            ->assertSee('Scan to verify (KYG)', false);
+    }
+
     public function test_qr_png_generation_for_pdf(): void
     {
         $png = app(QrCodeService::class)->pngBase64('https://example.test/g/TESTTOKEN', 96);

@@ -218,4 +218,57 @@
     }
 
     .contact-label { font-weight: bold; color: #334155; }
+
+    .premium-badge-pdf {
+        position: absolute;
+        top: 6pt;
+        left: 8pt;
+        background: #ffffff;
+        color: {{ $brand['brand_color_dark'] }};
+        font-size: 4.5pt;
+        font-weight: bold;
+        letter-spacing: 0.6pt;
+        text-transform: uppercase;
+        padding: 2pt 4pt;
+    }
+
+    .premium-role-pill-pdf {
+        display: inline-block;
+        background-color: {{ $brand['brand_color'] }};
+        color: #ffffff;
+        font-size: 5.5pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.4pt;
+        padding: 2pt 6pt;
+        margin-top: 3pt;
+        text-align: center;
+    }
+
+    .premium-chip-pdf {
+        background: #f8fafc;
+        border: 0.5pt solid #e2e8f0;
+        border-top: 1.5pt solid {{ $brand['brand_color'] }};
+        padding: 4pt 5pt;
+    }
+
+    .premium-chip-label-pdf {
+        font-size: 4.5pt;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.3pt;
+        font-weight: bold;
+    }
+
+    .premium-chip-value-pdf {
+        font-size: 6pt;
+        font-weight: bold;
+        color: #0f172a;
+        margin-top: 1pt;
+    }
+
+    .footer-premium {
+        background-color: #0f172a;
+        color: #94a3b8;
+    }
 </style>

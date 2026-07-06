@@ -22,6 +22,8 @@ Point these records at your VPS public IP:
 
 Set `TENANCY_BASE_DOMAIN=yourdomain.com` in `.env`.
 
+**Using Nginx Proxy Manager on a separate server?** See **[NPM-PROXY.md](./NPM-PROXY.md)** — DNS points at NPM, not this VPS.
+
 ---
 
 ## 2. One-time server bootstrap
@@ -279,6 +281,9 @@ Never run `migrate:fresh` in production.
 | WebSockets not connecting | Check `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` match public URL; verify nginx `/app` proxy |
 | Tenant subdomain 404 | Wildcard DNS `*.yourdomain.com` must point to this server |
 | Queue jobs stuck | `docker compose logs horizon` or `supervisorctl status` |
+| MySQL/Redis exposed on `0.0.0.0` | Recreate with prod override: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate` |
+| nginx on public `8080` instead of `127.0.0.1` | Same — prod file uses `!reset` so dev ports are not merged in |
+| `horizon` / `reverb` missing | `docker compose ps -a` then `docker compose logs horizon reverb` |
 
 Logs:
 

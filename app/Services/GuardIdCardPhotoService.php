@@ -19,6 +19,12 @@ class GuardIdCardPhotoService
 
     private const CIRCLE_BORDER = 4;
 
+    private const RECT_WIDTH = 140;
+
+    private const RECT_HEIGHT = 175;
+
+    private const RECT_RADIUS = 8;
+
     public function dataUri(?string $path, string $style = 'rounded'): ?string
     {
         $binary = $this->pngBinary($path, $style);
@@ -39,13 +45,15 @@ class GuardIdCardPhotoService
         return $this->writeTempPng($binary);
     }
 
-    public function initialsFile(string $initial): ?string
+    public function initialsFile(string $initial, string $style = 'circular'): ?string
     {
         if (! extension_loaded('gd')) {
             return null;
         }
 
-        $binary = $this->initialsPng(strtoupper(substr($initial, 0, 1)));
+        $binary = $style === 'rectangular'
+            ? $this->initialsRectangularPng(strtoupper(substr($initial, 0, 1)))
+            : $this->initialsPng(strtoupper(substr($initial, 0, 1)));
         if ($binary === null) {
             return null;
         }
@@ -53,13 +61,15 @@ class GuardIdCardPhotoService
         return $this->writeTempPng($binary);
     }
 
-    public function initialsDataUri(string $initial): ?string
+    public function initialsDataUri(string $initial, string $style = 'circular'): ?string
     {
         if (! extension_loaded('gd')) {
             return null;
         }
 
-        $binary = $this->initialsPng(strtoupper(substr($initial, 0, 1)));
+        $binary = $style === 'rectangular'
+            ? $this->initialsRectangularPng(strtoupper(substr($initial, 0, 1)))
+            : $this->initialsPng(strtoupper(substr($initial, 0, 1)));
 
         return $binary !== null ? 'data:image/png;base64,'.base64_encode($binary) : null;
     }
@@ -81,12 +91,20 @@ class GuardIdCardPhotoService
 
     public function widthPt(string $style = 'rounded'): int
     {
-        return $style === 'circular' ? 59 : 72;
+        return match ($style) {
+            'circular' => 59,
+            'rectangular' => 105,
+            default => 72,
+        };
     }
 
     public function heightPt(string $style = 'rounded'): int
     {
-        return $style === 'circular' ? 59 : 151;
+        return match ($style) {
+            'circular' => 59,
+            'rectangular' => 131,
+            default => 151,
+        };
     }
 
     private function pngBinary(?string $path, string $style = 'rounded'): ?string
@@ -108,9 +126,11 @@ class GuardIdCardPhotoService
             return is_readable($absolute) ? (string) file_get_contents($absolute) : null;
         }
 
-        $framed = $style === 'circular'
-            ? $this->frameCircular($source)
-            : $this->frameWithRoundedTop($source);
+        $framed = match ($style) {
+            'circular' => $this->frameCircular($source),
+            'rectangular' => $this->frameRectangular($source),
+            default => $this->frameWithRoundedTop($source),
+        };
         imagedestroy($source);
 
         if ($framed === null) {
@@ -211,6 +231,88 @@ class GuardIdCardPhotoService
 
         for ($y = 0; $y < $size; $y++) {
             for ($x = 0; $x < $size; $x++) {
+                if ((imagecolorat($mask, $x, $y) & 0xFF) > 127) {
+                    imagesetpixel($output, $x, $y, imagecolorat($image, $x, $y));
+                }
+            }
+        }
+
+        imagedestroy($mask);
+
+        return $output;
+    }
+
+    private function frameRectangular(\GdImage $source): ?\GdImage
+    {
+        $w = self::RECT_WIDTH;
+        $h = self::RECT_HEIGHT;
+        $radius = self::RECT_RADIUS;
+
+        $canvas = imagecreatetruecolor($w, $h);
+        if ($canvas === false) {
+            return null;
+        }
+
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+
+        $photo = imagecreatetruecolor($w, $h);
+        if ($photo === false) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        $this->copyCover($source, $photo, $w, $h);
+        $masked = $this->applyRoundedRectMask($photo, $w, $h, $radius);
+        imagedestroy($photo);
+
+        if ($masked === null) {
+            imagedestroy($canvas);
+
+            return null;
+        }
+
+        imagecopy($canvas, $masked, 0, 0, 0, 0, $w, $h);
+        imagedestroy($masked);
+        imagealphablending($canvas, true);
+
+        return $canvas;
+    }
+
+    private function applyRoundedRectMask(\GdImage $image, int $w, int $h, int $radius): ?\GdImage
+    {
+        $mask = imagecreatetruecolor($w, $h);
+        if ($mask === false) {
+            return null;
+        }
+
+        $black = imagecolorallocate($mask, 0, 0, 0);
+        $white = imagecolorallocate($mask, 255, 255, 255);
+        imagefill($mask, 0, 0, $black);
+        imagefilledrectangle($mask, $radius, 0, $w - $radius - 1, $h - 1, $white);
+        imagefilledrectangle($mask, 0, $radius, $w - 1, $h - $radius - 1, $white);
+        imagefilledellipse($mask, $radius, $radius, $radius * 2 - 1, $radius * 2 - 1, $white);
+        imagefilledellipse($mask, $w - $radius, $radius, $radius * 2 - 1, $radius * 2 - 1, $white);
+        imagefilledellipse($mask, $radius, $h - $radius, $radius * 2 - 1, $radius * 2 - 1, $white);
+        imagefilledellipse($mask, $w - $radius, $h - $radius, $radius * 2 - 1, $radius * 2 - 1, $white);
+
+        $output = imagecreatetruecolor($w, $h);
+        if ($output === false) {
+            imagedestroy($mask);
+
+            return null;
+        }
+
+        imagealphablending($output, false);
+        imagesavealpha($output, true);
+        $transparent = imagecolorallocatealpha($output, 0, 0, 0, 127);
+        imagefill($output, 0, 0, $transparent);
+
+        for ($y = 0; $y < $h; $y++) {
+            for ($x = 0; $x < $w; $x++) {
                 if ((imagecolorat($mask, $x, $y) & 0xFF) > 127) {
                     imagesetpixel($output, $x, $y, imagecolorat($image, $x, $y));
                 }
@@ -401,6 +503,32 @@ class GuardIdCardPhotoService
         imagecopy($canvas, $masked, $border, $border, 0, 0, $size, $size);
         imagedestroy($masked);
         imagealphablending($canvas, true);
+
+        ob_start();
+        imagepng($canvas);
+        $png = (string) ob_get_clean();
+        imagedestroy($canvas);
+
+        return $png !== '' ? $png : null;
+    }
+
+    private function initialsRectangularPng(string $initial): ?string
+    {
+        $w = self::RECT_WIDTH;
+        $h = self::RECT_HEIGHT;
+
+        $canvas = imagecreatetruecolor($w, $h);
+        if ($canvas === false) {
+            return null;
+        }
+
+        $bg = imagecolorallocate($canvas, 226, 232, 240);
+        imagefill($canvas, 0, 0, $bg);
+        $textColor = imagecolorallocate($canvas, 100, 116, 139);
+        $font = 5;
+        $tw = imagefontwidth($font) * strlen($initial);
+        $th = imagefontheight($font);
+        imagestring($canvas, $font, (int) (($w - $tw) / 2), (int) (($h - $th) / 2), $initial, $textColor);
 
         ob_start();
         imagepng($canvas);

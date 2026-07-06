@@ -48,4 +48,19 @@ class TenantFileController extends Controller
 
         return $this->storage->response($path);
     }
+
+    public function idCardBackLogo(): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('guards.manage') || auth()->user()->can('settings.manage'), 403);
+
+        $path = TenantSetting::query()
+            ->where('tenant_id', TenantContext::id())
+            ->where('key', 'id_card')
+            ->value('value')['back_logo_path'] ?? null;
+
+        abort_unless($path, 404);
+        abort_unless($this->storage->exists($path), 404);
+
+        return $this->storage->response($path);
+    }
 }

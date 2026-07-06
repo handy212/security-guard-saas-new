@@ -455,4 +455,364 @@
     {{ $scope }} .ls-back-contacts strong {
         color: #334155;
     }
+
+    /* —— Premium (landscape) —— */
+    {{ $scope }} .ls-premium-brand {
+        width: 44%;
+        flex-shrink: 0;
+        background: linear-gradient(160deg, var(--theme-color), var(--theme-color-dark));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: {{ $ls(8) }}px {{ $ls(8) }}px {{ $ls(10) }}px;
+        gap: {{ $ls(4) }}px;
+        position: relative;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    {{ $scope }} .ls-premium-brand-pattern {
+        position: absolute;
+        inset: 0;
+        opacity: 0.12;
+        background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0);
+        background-size: {{ $ls(14) }}px {{ $ls(14) }}px;
+    }
+
+    {{ $scope }} .ls-premium-brand-lines {
+        position: absolute;
+        inset: 0;
+        opacity: 0.08;
+        background: repeating-linear-gradient(
+            -35deg,
+            transparent,
+            transparent {{ $ls(6) }}px,
+            rgba(255, 255, 255, 0.5) {{ $ls(6) }}px,
+            rgba(255, 255, 255, 0.5) {{ $ls(7) }}px
+        );
+    }
+
+    {{ $scope }} .ls-premium-brand > *:not(.ls-premium-brand-pattern):not(.ls-premium-brand-lines) {
+        position: relative;
+        z-index: 1;
+    }
+
+    {{ $scope }} .ls-premium-badge {
+        align-self: flex-start;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--theme-color-dark);
+        font-size: 0.5em;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: {{ $ls(2) }}px {{ $ls(6) }}px;
+        border-radius: {{ $ls(3) }}px;
+        margin-bottom: {{ $ls(4) }}px;
+    }
+
+    {{ $scope }} .ls-premium-header-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: {{ $ls(4) }}px;
+        padding: {{ $ls(8) }}px {{ $ls(12) }}px {{ $ls(4) }}px;
+        text-align: center;
+        border-bottom: 1px solid #e2e8f0;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .ls-premium-header-brand-text {
+        min-width: 0;
+        width: 100%;
+    }
+
+    {{ $scope }} .ls-premium-header-logo {
+        height: {{ $ls(24) }}px;
+        width: auto;
+        max-width: {{ $ls(56) }}px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .ls-premium-company {
+        font-weight: 700;
+        font-size: 0.74em;
+        line-height: 1.15;
+        color: #0f172a;
+    }
+
+    {{ $scope }} .ls-premium-tagline {
+        font-size: 0.58em;
+        color: #64748b;
+        line-height: 1.25;
+        margin-top: {{ $ls(1) }}px;
+    }
+
+    {{ $scope }} .ls-premium-photo-frame {
+        flex: 1;
+        width: 90%;
+        min-height: 0;
+        margin-top: {{ $ls(4) }}px;
+        border: {{ $ls(2) }}px solid rgba(255, 255, 255, 0.85);
+        border-radius: {{ $ls(8) }}px;
+        overflow: hidden;
+        background: #e2e8f0;
+        box-shadow: 0 {{ $ls(4) }}px {{ $ls(12) }}px rgba(0, 0, 0, 0.18);
+    }
+
+    {{ $scope }} .ls-premium-photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 0;
+    }
+
+    {{ $scope }} .ls-premium-photo.initials {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2em;
+        font-weight: 700;
+        color: #94a3b8;
+        min-height: 100%;
+    }
+
+    {{ $scope }} .ls-premium-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #fff;
+    }
+
+    {{ $scope }} .ls-premium-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: {{ $ls(10) }}px {{ $ls(12) }}px {{ $ls(4) }}px;
+        min-width: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    {{ $scope }} .ls-premium-watermark-logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 82%;
+        max-height: 72%;
+        object-fit: contain;
+        opacity: 0.1;
+        pointer-events: none;
+        filter: grayscale(15%);
+    }
+
+    {{ $scope }} .ls-premium-role-pill {
+        display: inline-block;
+        align-self: center;
+        background: var(--theme-color);
+        color: #fff;
+        font-size: 0.62em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: {{ $ls(3) }}px {{ $ls(8) }}px;
+        border-radius: 999px;
+        margin-bottom: {{ $ls(8) }}px;
+    }
+
+    {{ $scope }} .ls-premium-chips {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: {{ $ls(6) }}px;
+        width: 100%;
+    }
+
+    {{ $scope }} .ls-premium-chip {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: {{ $ls(5) }}px;
+        padding: {{ $ls(6) }}px {{ $ls(8) }}px;
+        border-top: {{ $ls(2) }}px solid var(--theme-color);
+    }
+
+    {{ $scope }} .ls-premium-chip-label {
+        font-size: 0.55em;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 600;
+        margin-bottom: {{ $ls(1) }}px;
+    }
+
+    {{ $scope }} .ls-premium-chip-value {
+        font-size: 0.68em;
+        font-weight: 700;
+        color: #0f172a;
+        word-break: break-word;
+    }
+
+    {{ $scope }} .ls-footer--premium {
+        background: #0f172a;
+        border-top: {{ $ls(2) }}px solid var(--theme-color);
+        color: #94a3b8;
+        font-family: ui-monospace, monospace;
+    }
+
+    {{ $scope }} .ls-footer--premium .ls-footer-meta {
+        color: #94a3b8;
+        font-size: 0.68em;
+        font-family: inherit;
+    }
+
+    {{ $scope }} .ls-back--premium {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: linear-gradient(160deg, var(--theme-color), var(--theme-color-dark));
+        color: #fff;
+        overflow: hidden;
+    }
+
+    {{ $scope }} .ls-back-premium-stripe {
+        height: {{ $ls(22) }}px;
+        background: #111827;
+        flex-shrink: 0;
+        border-bottom: {{ $ls(2) }}px solid rgba(255, 255, 255, 0.12);
+    }
+
+    {{ $scope }} .ls-back-premium-grid {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        padding: {{ $ls(10) }}px {{ $ls(12) }}px {{ $ls(6) }}px;
+        gap: {{ $ls(10) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-brand {
+        width: 36%;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: {{ $ls(4) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-logo {
+        height: {{ $ls(34) }}px;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        margin-bottom: {{ $ls(6) }}px;
+        filter: brightness(0) invert(1);
+    }
+
+    {{ $scope }} .ls-back-premium-company {
+        font-weight: 700;
+        font-size: 0.72em;
+        line-height: 1.15;
+    }
+
+    {{ $scope }} .ls-back-premium-tagline {
+        font-size: 0.56em;
+        opacity: 0.85;
+        margin-top: {{ $ls(2) }}px;
+        line-height: 1.25;
+    }
+
+    {{ $scope }} .ls-back-premium-panel {
+        flex: 1;
+        background: #fff;
+        color: #0f172a;
+        border-radius: {{ $ls(8) }}px;
+        padding: {{ $ls(8) }}px {{ $ls(10) }}px;
+        box-shadow: 0 {{ $ls(4) }}px {{ $ls(14) }}px rgba(0, 0, 0, 0.14);
+        min-width: 0;
+    }
+
+    {{ $scope }} .ls-back-premium-panel-title {
+        font-size: 0.52em;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--theme-color-dark);
+        margin-bottom: {{ $ls(6) }}px;
+        padding-bottom: {{ $ls(4) }}px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    {{ $scope }} .ls-back-premium-contacts {
+        display: flex;
+        flex-direction: column;
+        gap: {{ $ls(4) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-contact-row {
+        display: flex;
+        justify-content: space-between;
+        gap: {{ $ls(6) }}px;
+        font-size: 0.56em;
+        line-height: 1.35;
+    }
+
+    {{ $scope }} .ls-back-premium-contact-row span {
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .ls-back-premium-contact-row strong {
+        color: #0f172a;
+        font-weight: 700;
+        text-align: right;
+        word-break: break-word;
+    }
+
+    {{ $scope }} .ls-back-premium-contact-row--stack {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    {{ $scope }} .ls-back-premium-contact-row--stack strong {
+        text-align: left;
+        margin-top: {{ $ls(1) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-notice {
+        margin: 0 {{ $ls(12) }}px {{ $ls(6) }}px;
+        background: rgba(0, 0, 0, 0.22);
+        border-radius: {{ $ls(6) }}px;
+        padding: {{ $ls(6) }}px {{ $ls(8) }}px;
+        font-size: 0.54em;
+        line-height: 1.4;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .ls-back-premium-sig {
+        height: {{ $ls(20) }}px;
+        margin: 0 {{ $ls(12) }}px {{ $ls(8) }}px;
+        background: #f8fafc;
+        border-radius: {{ $ls(4) }}px;
+        display: flex;
+        align-items: center;
+        padding: 0 {{ $ls(8) }}px;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .ls-back-premium-sig span {
+        font-size: 0.5em;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
 </style>

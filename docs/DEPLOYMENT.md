@@ -39,7 +39,15 @@ php artisan view:cache
 php artisan queue:work
 ```
 
-## Docker production
+## External Nginx Proxy Manager
+
+If NPM runs on a **different server**, see **[NPM-PROXY.md](./NPM-PROXY.md)**.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.npm-proxy.yml up -d --build
+```
+
+## Docker production (TLS on same VPS)
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
