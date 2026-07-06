@@ -66,16 +66,23 @@ See `docs/PHASED-ROADMAP.md` for full status. Highlights:
 - **Client portal:** Isolated layout with client-scoped data
 - **Enterprise:** Audit logs, 2FA setup, webhook subscriptions, OpenAPI stub
 
-## Production deployment
+## Production deployment (Ubuntu VPS)
+
+See **`docs/VPS-DEPLOYMENT.md`** for the full guide. Quick start:
 
 ```bash
-cp .env.production.example .env
-docker compose up -d
-php artisan migrate --force
-php artisan db:seed --class=RolePermissionSeeder --force
+sudo bash deploy/bootstrap-server.sh --docker
+cp .env.production.example .env   # edit DB, domain, Reverb secrets
+npm ci && npm run build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --class=RolePermissionSeeder --force
 ```
 
-Schedule runner (cron): `* * * * * php artisan schedule:run`
+Updates: `./deploy/deploy.sh`
+
+Schedule runner (host cron): `* * * * * cd /var/www/guardops && docker compose exec -T app php artisan schedule:run`
 
 ## Security hardening included
 
@@ -101,6 +108,7 @@ Run `composer install` on your development machine or server if `vendor/` is not
 
 ## Documentation
 
+- `docs/VPS-DEPLOYMENT.md` — Ubuntu VPS deploy guide
 - `docs/PHASED-ROADMAP.md` — phased delivery status
 - `docs/ENTERPRISE-GAP-REVIEW.md` — gap analysis
 - `docs/FULL-ENTERPRISE-COMPLETION.md` — module inventory

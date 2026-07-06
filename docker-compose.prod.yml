@@ -1,0 +1,19 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Binds app ports to localhost only so a host nginx + Certbot can terminate TLS.
+
+services:
+  nginx:
+    ports:
+      - "127.0.0.1:8080:80"
+
+  reverb:
+    ports:
+      - "127.0.0.1:8081:8081"
+
+  mysql:
+    ports: []
+
+  redis:
+    ports: []
