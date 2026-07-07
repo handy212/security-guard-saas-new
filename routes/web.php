@@ -6,6 +6,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardIdCardPreviewController;
 use App\Http\Controllers\GuardIdCardPrintController;
+use App\Http\Controllers\GuardVerificationLogoController;
 use App\Http\Controllers\GuardVerificationController;
 use App\Http\Controllers\GuardVerificationPhotoController;
 use App\Http\Controllers\PaystackCallbackController;
@@ -56,6 +57,7 @@ use App\Livewire\Scheduling\ShiftStatusIndex;
 use App\Livewire\Scheduling\ShiftTemplateIndex;
 use App\Livewire\Scheduling\TimeOffIndex;
 use App\Livewire\Settings\IdCardSettings;
+use App\Livewire\Settings\KygPageSettings;
 use App\Livewire\Settings\SettingsHub;
 use App\Livewire\Settings\AuditLogIndex;
 use App\Livewire\Settings\RolePermissionManager;
@@ -84,6 +86,11 @@ Route::get('/g/{tenant}/{token}/photo', GuardVerificationPhotoController::class)
     ->where(['tenant' => '[a-z0-9-]+', 'token' => '[A-Z0-9]{8,32}'])
     ->name('guard.verify.photo');
 
+Route::get('/g/{tenant}/{token}/logo', GuardVerificationLogoController::class)
+    ->middleware('throttle:120,1')
+    ->where(['tenant' => '[a-z0-9-]+', 'token' => '[A-Z0-9]{8,32}'])
+    ->name('guard.verify.logo');
+
 Route::get('/g/{token}', GuardVerificationController::class)
     ->middleware('throttle:60,1')
     ->where('token', '[A-Z0-9]{8,32}')
@@ -93,6 +100,11 @@ Route::get('/g/{token}/photo', GuardVerificationPhotoController::class)
     ->middleware('throttle:120,1')
     ->where('token', '[A-Z0-9]{8,32}')
     ->name('guard.verify.photo.legacy');
+
+Route::get('/g/{token}/logo', GuardVerificationLogoController::class)
+    ->middleware('throttle:120,1')
+    ->where('token', '[A-Z0-9]{8,32}')
+    ->name('guard.verify.logo.legacy');
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -147,6 +159,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/billing/subscription/callback', PaystackCallbackController::class)->name('billing.paystack.callback');
     Route::get('/settings', SettingsHub::class)->name('settings.index');
     Route::get('/settings/id-card', IdCardSettings::class)->name('settings.id-card');
+    Route::get('/settings/know-your-guard', KygPageSettings::class)->name('settings.kyg');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');
     Route::get('/settings/two-factor', TwoFactorSetup::class)->name('settings.two-factor');
     Route::get('/settings/webhooks', WebhookManager::class)->name('settings.webhooks');

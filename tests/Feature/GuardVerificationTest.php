@@ -45,7 +45,10 @@ class GuardVerificationTest extends TestCase
             ->assertSee($guard->full_name)
             ->assertSee('Demo Security Company')
             ->assertSee('Senior Officer')
-            ->assertSee('Verified officer')
+            ->assertSee('Verified & authorised today')
+            ->assertSee('Client access guidance')
+            ->assertSee('Call control room')
+            ->assertSee('Security notice')
             ->assertDontSee($guard->email)
             ->assertDontSee($guard->phone)
             ->assertDontSee('hourly');
@@ -500,7 +503,8 @@ class GuardVerificationTest extends TestCase
 
         $this->get($this->tenantVerifyPath($token))
             ->assertOk()
-            ->assertSee('On assignment', false)
+            ->assertSee('Current assignment', false)
+            ->assertSee('Authorised period', false)
             ->assertSee($assignment['site_name'], false)
             ->assertSee($assignment['date_range'], false);
     }

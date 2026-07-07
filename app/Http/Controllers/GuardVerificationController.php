@@ -3,13 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guard;
+use App\Services\GuardVerificationPagePresenter;
 use App\Services\GuardVerificationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class GuardVerificationController extends Controller
 {
-    public function __invoke(Request $request, GuardVerificationService $verification, ?string $tenant = null, ?string $token = null): View
+    public function __invoke(
+        Request $request,
+        GuardVerificationService $verification,
+        GuardVerificationPagePresenter $pagePresenter,
+        ?string $tenant = null,
+        ?string $token = null,
+    ): View
     {
         if ($token === null) {
             $token = $tenant;
@@ -34,18 +41,16 @@ class GuardVerificationController extends Controller
 
         $currentAssignment = $verification->currentAssignment($guard);
 
-        return view('verify.guard', [
-            'token' => $token,
-            'guard' => $guard,
-            'companyName' => $guard->tenant?->name ?? config('app.name'),
-            'branchName' => $guard->branch?->name,
-            'currentAssignment' => $currentAssignment,
-            'skills' => $guard->skills,
-            'isVerified' => $guard->verification_status === 'verified',
-            'verifiedAt' => $guard->verified_at,
-            'scannedAt' => now(),
-            'photoUrl' => $this->verificationPhotoUrl($guard, $token),
-        ]);
+        return view('verify.guard', $pagePresenter->present(
+            $guard,
+            $token,
+            $currentAssignment,
+            $guard->skills,
+            $guard->verification_status === 'verified',
+            $guard->verified_at,
+            now(),
+            $this->verificationPhotoUrl($guard, $token),
+        ));
     }
 
     private function verificationPhotoUrl(Guard $guard, string $token): ?string

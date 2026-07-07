@@ -198,10 +198,10 @@ class GuardVerificationService
     private function formatAssignmentDateRange(\Illuminate\Support\Carbon $startsAt, \Illuminate\Support\Carbon $endsAt): string
     {
         if ($startsAt->isSameDay($endsAt)) {
-            return $startsAt->format('M j, Y').' · '.$startsAt->format('g:i A').' – '.$endsAt->format('g:i A');
+            return $startsAt->format('M j, Y').', '.$startsAt->format('g:i A').' – '.$endsAt->format('g:i A');
         }
 
-        return $startsAt->format('M j, Y g:i A').' – '.$endsAt->format('M j, Y g:i A');
+        return $startsAt->format('M j, Y, g:i A').' – '.$endsAt->format('M j, Y, g:i A');
     }
 
     /**

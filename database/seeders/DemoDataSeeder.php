@@ -125,7 +125,7 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'key' => 'id_card'],
             ['value' => [
                 'template' => 'modern',
-                'tagline' => 'Employee Identification',
+                'tagline' => 'Stay connected. Stay protected.',
                 'brand_color' => '#2563eb',
                 'brand_color_dark' => '#1e40af',
                 'phone' => '+233 302 770 0205',
@@ -133,6 +133,15 @@ class DemoDataSeeder extends Seeder
                 'email' => 'info@demosecurity.test',
                 'website' => 'www.demosecurity.test',
                 'address' => 'Ringway Estates, Accra, Ghana',
+            ]]
+        );
+
+        \App\Models\TenantSetting::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'key' => 'verification'],
+            ['value' => [
+                'page' => [
+                    'verified_by_label' => 'Verified by Control Room',
+                ],
             ]]
         );
 

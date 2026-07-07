@@ -83,6 +83,7 @@ return [
 
     'settings' => [
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
+        ['href' => '/settings/know-your-guard', 'label' => 'Know Your Guard', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],
         ['href' => '/settings/audit-log', 'label' => 'Audit trail', 'permission' => 'audit.view'],
         ['href' => '/settings/team', 'label' => 'Team passwords', 'permission' => 'settings.manage'],
