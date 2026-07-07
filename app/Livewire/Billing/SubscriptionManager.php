@@ -6,7 +6,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\TenantSubscription;
 use App\Services\PaystackBillingService;
 use App\Services\PlanEntitlementService;
-use App\Services\PlanLimitService;
 use App\Support\TenantContext;
 use Livewire\Component;
 
@@ -28,7 +27,7 @@ class SubscriptionManager extends Component
         if ($url) {
             $this->redirect($url);
         } else {
-            session()->flash('status', 'Paystack is not configured. Set PAYSTACK_SECRET_KEY and PAYSTACK_PUBLIC_KEY in your environment.');
+            session()->flash('status', 'Online checkout is not available right now. Please contact support to upgrade your plan.');
         }
     }
 
@@ -46,14 +45,19 @@ class SubscriptionManager extends Component
     public function render()
     {
         $tenantId = TenantContext::id();
+        $entitlements = app(PlanEntitlementService::class);
+        $activeSubscription = TenantSubscription::with('plan')->where('tenant_id', $tenantId)->first();
+        $currentPlan = $activeSubscription?->plan ?? $entitlements->planForTenant($tenantId);
 
         return view('livewire.billing.subscription-manager', [
             'plans' => SubscriptionPlan::where('status', 'active')->orderBy('monthly_price')->get(),
-            'usage' => app(PlanLimitService::class)->usageSummary($tenantId),
+            'usage' => $entitlements->usageSummary($tenantId),
             'paystackConfigured' => app(PaystackBillingService::class)->isConfigured(),
             'currency' => config('paystack.currency', 'NGN'),
-            'activeSubscription' => TenantSubscription::with('plan')->where('tenant_id', $tenantId)->first(),
-            'entitlements' => app(PlanEntitlementService::class),
+            'activeSubscription' => $activeSubscription,
+            'currentPlan' => $currentPlan,
+            'currentPlanId' => $currentPlan?->id,
+            'entitlements' => $entitlements,
         ])->layout('layouts.app');
     }
 }

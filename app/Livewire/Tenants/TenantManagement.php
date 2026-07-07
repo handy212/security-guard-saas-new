@@ -10,6 +10,7 @@ use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\PlanEntitlementService;
+use App\Services\TenantRoleProvisioner;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
@@ -226,7 +227,7 @@ class TenantManagement extends Component
                     'password' => Hash::make($data['admin_password']),
                     'status' => 'active',
                 ]);
-                $user->assignRole('company-admin');
+                app(TenantRoleProvisioner::class)->assignRole($user, 'company-admin');
                 $audit->recordPlatform('platform.tenant.admin_invited', $tenant, ['email' => $user->email], $tenant->id);
             }
 
@@ -257,7 +258,7 @@ class TenantManagement extends Component
             'password' => Hash::make($data['password']),
             'status' => 'active',
         ]);
-        $user->assignRole('company-admin');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'company-admin');
 
         $audit->recordPlatform('platform.tenant.admin_invited', $tenant, ['email' => $user->email], $tenant->id);
 
@@ -430,14 +431,19 @@ class TenantManagement extends Component
         $tenants = $this->sortedTenantsQuery()->paginate(25);
 
         $viewingTenant = $this->viewingTenantId
-            ? Tenant::with(['subscription.plan', 'users' => fn ($q) => $q->select('id', 'tenant_id', 'name', 'email', 'status')->latest()->limit(5)])
-                ->withCount(['users', 'guards'])
+            ? Tenant::with(['subscription.plan', 'users' => fn ($q) => $q->select('id', 'tenant_id', 'name', 'email', 'status')->latest()])
+                ->withCount(['users', 'guards', 'sites'])
                 ->find($this->viewingTenantId)
+            : null;
+
+        $detailUsage = $viewingTenant
+            ? app(PlanEntitlementService::class)->usageSummary($viewingTenant->id)
             : null;
 
         return view('livewire.tenants.tenant-management', [
             'tenants' => $tenants,
             'viewingTenant' => $viewingTenant,
+            'detailUsage' => $detailUsage,
             'tenantStats' => $this->tenantStats(),
             'plans' => SubscriptionPlan::where('status', 'active')->orderBy('name')->get(),
             'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->planFilter !== 'all',

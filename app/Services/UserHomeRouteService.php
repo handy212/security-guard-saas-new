@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\TenantRoleProvisioner;
 use App\Support\TenantContext;
 
 class UserHomeRouteService
@@ -13,6 +14,18 @@ class UserHomeRouteService
             return route('login');
         }
 
+        $previousTeamId = getPermissionsTeamId();
+        setPermissionsTeamId($user->tenant_id ?? TenantRoleProvisioner::PLATFORM_TENANT_ID);
+
+        try {
+            return $this->resolveForUser($user);
+        } finally {
+            setPermissionsTeamId($previousTeamId);
+        }
+    }
+
+    private function resolveForUser(User $user): string
+    {
         if (TenantContext::isPlatformAdmin() && $user->can('tenants.manage')) {
             return route('saas.tenants');
         }

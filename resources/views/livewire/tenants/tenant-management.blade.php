@@ -158,144 +158,231 @@
     </x-page-shell>
 
     @if ($showDetail && $viewingTenant)
-        <x-drawer title="{{ $viewingTenant->name }}" description="Manage tenant settings and access." width="lg" closeMethod="closeDetail">
-            <div class="space-y-4">
-                @php
-                    $billingStatus = $viewingTenant->subscription?->status;
-                    $billingValue = $billingStatus ? ucfirst(str_replace('_', ' ', $billingStatus)) : 'None';
-                    $billingTone = match ($billingStatus) {
-                        'active' => 'success',
-                        'trial' => 'info',
-                        'past_due', 'cancelled' => 'warning',
-                        default => 'default',
-                    };
-                    $trialEndingSoon = $viewingTenant->trial_ends_at
-                        && $viewingTenant->trial_ends_at->isFuture()
-                        && $viewingTenant->trial_ends_at->lte(now()->addDays(14));
-                @endphp
+        @php
+            $currentPlanId = $viewingTenant->plan_id ?? $viewingTenant->subscription?->subscription_plan_id;
+            $planName = $plans->firstWhere('id', $currentPlanId)?->name ?? 'No plan';
+            $billingStatus = $viewingTenant->subscription?->status;
+            $trialEndingSoon = $viewingTenant->trial_ends_at
+                && $viewingTenant->trial_ends_at->isFuture()
+                && $viewingTenant->trial_ends_at->lte(now()->addDays(14));
+            $tenantHost = $viewingTenant->subdomain
+                ? $viewingTenant->subdomain.'.'.config('tenancy.base_domain')
+                : null;
+        @endphp
 
-                @if ($trialEndingSoon)
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                        Trial ends {{ $viewingTenant->trial_ends_at->format('M j, Y') }} ({{ $viewingTenant->trial_ends_at->diffForHumans() }})
-                    </div>
-                @endif
+        <x-drawer
+            :title="$viewingTenant->name"
+            :description="'Tenant · '.($viewingTenant->slug)"
+            width="xl"
+            closeMethod="closeDetail"
+        >
+            <div class="flex h-full min-h-0 flex-col">
+                <div class="drawer-form-body space-y-5">
+                    <x-flash-status type="success" />
 
-                <div class="grid grid-cols-3 gap-2">
-                    <x-stat-card stacked label="Users" :value="$viewingTenant->users_count" icon="users" class="h-full" />
-                    <x-stat-card stacked label="Guards" :value="$viewingTenant->guards_count" icon="guards" tone="info" class="h-full" />
-                    <x-stat-card stacked label="Billing" :value="$billingValue" icon="billing" :tone="$billingTone" class="h-full" />
-                </div>
-
-                <div class="flex flex-wrap gap-2">
-                    <x-button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        x-data="{ copied: false }"
-                        @click="navigator.clipboard.writeText(@js($viewingTenant->slug)); copied = true; setTimeout(() => copied = false, 1500)"
-                        x-text="copied ? 'Copied!' : 'Copy slug'"
-                    />
-                    @if ($viewingTenant->subdomain)
-                        <x-button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            x-data="{ copied: false }"
-                            @click="navigator.clipboard.writeText(@js($viewingTenant->subdomain)); copied = true; setTimeout(() => copied = false, 1500)"
-                            x-text="copied ? 'Copied!' : 'Copy subdomain'"
-                        />
-                    @endif
-                    @if ($viewingTenant->subscription)
-                        <x-button size="sm" variant="secondary" :href="route('saas.subscriptions', ['search' => $viewingTenant->slug])">View subscription</x-button>
-                    @endif
-                </div>
-
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-zinc-700">Subscription plan</label>
-                    <select
-                        class="form-input w-full"
-                        wire:change="assignTenantPlan({{ $viewingTenant->id }}, $event.target.value)"
-                    >
-                        @php $currentPlanId = $viewingTenant->plan_id ?? $viewingTenant->subscription?->subscription_plan_id; @endphp
-                        <option value="0" @selected(! $currentPlanId)>No plan</option>
-                        @foreach ($plans as $plan)
-                            <option value="{{ $plan->id }}" @selected($currentPlanId === $plan->id)>{{ $plan->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <dl class="grid gap-2 text-sm">
-                    <div class="flex justify-between gap-4 border-b border-zinc-100 py-2"><dt class="text-zinc-500">Slug</dt><dd class="font-mono text-zinc-900">{{ $viewingTenant->slug }}</dd></div>
-                    <div class="flex justify-between gap-4 border-b border-zinc-100 py-2"><dt class="text-zinc-500">Subdomain</dt><dd class="text-zinc-900">{{ $viewingTenant->subdomain ?: '—' }}</dd></div>
-                    <div class="flex justify-between gap-4 border-b border-zinc-100 py-2"><dt class="text-zinc-500">Domain</dt><dd class="text-zinc-900">{{ $viewingTenant->domain ?: '—' }}</dd></div>
-                    <div class="flex justify-between gap-4 border-b border-zinc-100 py-2"><dt class="text-zinc-500">Trial ends</dt><dd class="text-zinc-900">{{ $viewingTenant->trial_ends_at?->format('M j, Y') ?? '—' }}</dd></div>
-                    <div class="flex justify-between gap-4 py-2"><dt class="text-zinc-500">Created</dt><dd class="text-zinc-900">{{ $viewingTenant->created_at?->format('M j, Y') }}</dd></div>
-                </dl>
-
-                @if ($viewingTenant->users->isNotEmpty())
-                    <div>
-                        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">Users</p>
-                        <ul class="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
-                            @foreach ($viewingTenant->users as $user)
-                                <li class="px-3 py-2 text-sm" wire:key="tenant-user-{{ $user->id }}">
-                                    @if ($resettingUserId === $user->id)
-                                        <form wire:submit="resetAdminPassword({{ $viewingTenant->id }})" class="space-y-2">
-                                            <p class="font-medium text-zinc-900">Reset password · {{ $user->name }}</p>
-                                            <p class="text-xs text-zinc-500">{{ $user->email }}</p>
-                                            <x-input wire:model="resetPassword" label="New password" type="password" hint="Min. 12 characters." />
-                                            <div class="flex gap-2">
-                                                <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="resetAdminPassword">Save</x-button>
-                                                <x-button type="button" size="sm" variant="secondary" wire:click="cancelResetPassword">Cancel</x-button>
-                                            </div>
-                                        </form>
-                                    @else
-                                        <div class="flex items-center justify-between gap-2">
-                                            <div>
-                                                <span class="font-medium text-zinc-900">{{ $user->name }}</span>
-                                                <span class="text-zinc-500"> · {{ $user->email }}</span>
-                                            </div>
-                                            <button type="button" wire:click="startResetPassword({{ $user->id }})" class="text-xs font-medium text-zinc-600 hover:text-zinc-900">Reset password</button>
-                                        </div>
+                    <div class="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4">
+                        <div class="flex min-w-0 items-start gap-3">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-zinc-700 shadow-sm ring-1 ring-zinc-200">
+                                {{ strtoupper(substr($viewingTenant->name, 0, 2)) }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <x-badge :status="$viewingTenant->status ?? 'active'" />
+                                    @if ($billingStatus)
+                                        <x-badge :status="$billingStatus" />
                                     @endif
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @else
-                    <div class="rounded-lg border border-dashed border-zinc-200 p-3">
-                        <p class="text-sm text-zinc-600">No company admin yet.</p>
-                        @if (! $showInviteForm)
-                            <button type="button" wire:click="$set('showInviteForm', true)" class="btn-link mt-1 text-sm">Invite admin</button>
-                        @endif
-                    </div>
-                @endif
-
-                @if ($showInviteForm)
-                    <form wire:submit="inviteAdmin({{ $viewingTenant->id }})" class="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                        <p class="text-sm font-medium text-zinc-900">Invite company admin</p>
-                        <x-input wire:model="inviteForm.name" label="Name" placeholder="Jane Admin" />
-                        <x-input wire:model="inviteForm.email" label="Email" type="email" placeholder="admin@acme.test" />
-                        <x-input wire:model="inviteForm.password" label="Password" type="password" hint="Min. 12 characters." />
-                        <div class="flex gap-2">
-                            <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="inviteAdmin">Send invite</x-button>
-                            <x-button type="button" size="sm" variant="secondary" wire:click="$set('showInviteForm', false)">Cancel</x-button>
+                                </div>
+                                <p class="mt-1 font-mono text-xs text-zinc-500">{{ $viewingTenant->slug }}</p>
+                                @if ($tenantHost)
+                                    <p class="mt-0.5 truncate text-xs text-zinc-500">{{ $tenantHost }}</p>
+                                @endif
+                            </div>
                         </div>
-                    </form>
-                @endif
+                        <div class="flex flex-wrap gap-2">
+                            @if ($viewingTenant->status === 'active')
+                                <x-button size="sm" wire:click="enterTenant({{ $viewingTenant->id }})">Open app</x-button>
+                            @endif
+                            <x-button size="sm" variant="secondary" wire:click="openEditTenant({{ $viewingTenant->id }})">Edit</x-button>
+                        </div>
+                    </div>
 
-                <div class="flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
-                    @if ($viewingTenant->status === 'active')
-                        <x-button wire:click="enterTenant({{ $viewingTenant->id }})">Open tenant app</x-button>
+                    @if ($trialEndingSoon)
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Trial ends {{ $viewingTenant->trial_ends_at->format('M j, Y') }} ({{ $viewingTenant->trial_ends_at->diffForHumans() }})
+                        </div>
                     @endif
-                    <x-button wire:click="openEditTenant({{ $viewingTenant->id }})" variant="secondary">Edit</x-button>
+
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <x-stat-card stacked label="Users" :value="number_format($viewingTenant->users_count)" icon="users" class="h-full" />
+                        <x-stat-card stacked label="Guards" :value="number_format($viewingTenant->guards_count)" icon="guards" tone="info" class="h-full" />
+                        <x-stat-card stacked label="Sites" :value="number_format($viewingTenant->sites_count)" icon="sites" class="h-full" />
+                        <x-stat-card stacked label="Plan" :value="$planName" icon="plan" class="h-full" />
+                    </div>
+
+                    @if ($detailUsage && $currentPlanId)
+                        <x-section-card title="Plan usage" description="Guard and site limits for the assigned plan.">
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                @foreach (['guards' => 'Guards', 'sites' => 'Sites'] as $key => $label)
+                                    @php
+                                        $row = $detailUsage[$key];
+                                        $pct = min(100, (float) ($row['pct'] ?? 0));
+                                        $barTone = $pct >= 100 ? 'bg-red-500' : ($pct >= 80 ? 'bg-amber-500' : 'bg-accent-600');
+                                    @endphp
+                                    <div>
+                                        <div class="mb-1 flex items-center justify-between text-sm">
+                                            <span class="font-medium text-zinc-700">{{ $label }}</span>
+                                            <span class="tabular-nums text-zinc-600">{{ $row['used'] }} / {{ $row['max'] }}</span>
+                                        </div>
+                                        <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
+                                            <div class="{{ $barTone }} h-full rounded-full" style="width: {{ $pct }}%"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </x-section-card>
+                    @endif
+
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        <x-section-card title="Subscription" description="Assign or change the tenant plan.">
+                            <x-select
+                                wire:change="assignTenantPlan({{ $viewingTenant->id }}, $event.target.value)"
+                                label="Plan"
+                            >
+                                <option value="0" @selected(! $currentPlanId)>No plan</option>
+                                @foreach ($plans as $plan)
+                                    <option value="{{ $plan->id }}" @selected($currentPlanId === $plan->id)>{{ $plan->name }}</option>
+                                @endforeach
+                            </x-select>
+                            @if ($viewingTenant->subscription)
+                                <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+                                    <span>Billing: <strong class="text-zinc-900">{{ ucfirst(str_replace('_', ' ', $billingStatus ?? 'unknown')) }}</strong></span>
+                                    <a href="{{ route('saas.subscriptions', ['search' => $viewingTenant->slug]) }}" class="text-xs font-medium text-accent-600 hover:underline">View in subscriptions</a>
+                                </div>
+                            @endif
+                        </x-section-card>
+
+                        <x-section-card title="Access & domains" description="Identifiers used for login and tenant routing.">
+                            <dl class="space-y-3 text-sm">
+                                @foreach ([
+                                    ['label' => 'Slug', 'value' => $viewingTenant->slug, 'mono' => true, 'copy' => $viewingTenant->slug],
+                                    ['label' => 'Subdomain', 'value' => $viewingTenant->subdomain ?: '—', 'mono' => true, 'copy' => $viewingTenant->subdomain],
+                                    ['label' => 'Custom domain', 'value' => $viewingTenant->domain ?: '—'],
+                                    ['label' => 'Tenant URL', 'value' => $tenantHost ?: '—', 'mono' => true, 'copy' => $tenantHost],
+                                ] as $row)
+                                    <div class="flex items-start justify-between gap-3">
+                                        <dt class="shrink-0 text-zinc-500">{{ $row['label'] }}</dt>
+                                        <dd class="min-w-0 text-right">
+                                            <span @class(['text-zinc-900', 'font-mono text-xs' => $row['mono'] ?? false])>{{ $row['value'] }}</span>
+                                            @if (! empty($row['copy']))
+                                                <button
+                                                    type="button"
+                                                    class="ml-2 text-[11px] font-medium text-accent-600 hover:underline"
+                                                    x-data="{ copied: false }"
+                                                    @click="navigator.clipboard.writeText(@js($row['copy'])); copied = true; setTimeout(() => copied = false, 1500)"
+                                                    x-text="copied ? 'Copied' : 'Copy'"
+                                                ></button>
+                                            @endif
+                                        </dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                        </x-section-card>
+                    </div>
+
+                    <x-section-card title="Timeline">
+                        <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                            <div>
+                                <dt class="text-zinc-500">Created</dt>
+                                <dd class="font-medium text-zinc-900">{{ $viewingTenant->created_at?->format('M j, Y g:i A') ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Trial ends</dt>
+                                <dd class="font-medium text-zinc-900">{{ $viewingTenant->trial_ends_at?->format('M j, Y') ?? '—' }}</dd>
+                            </div>
+                            @if ($viewingTenant->subscription?->starts_at)
+                                <div>
+                                    <dt class="text-zinc-500">Subscription started</dt>
+                                    <dd class="font-medium text-zinc-900">{{ $viewingTenant->subscription->starts_at->format('M j, Y') }}</dd>
+                                </div>
+                            @endif
+                            @if ($viewingTenant->subscription?->ends_at)
+                                <div>
+                                    <dt class="text-zinc-500">Renews / ends</dt>
+                                    <dd class="font-medium text-zinc-900">{{ $viewingTenant->subscription->ends_at->format('M j, Y') }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </x-section-card>
+
+                    <x-section-card title="Company admins" description="Users with access to this tenant account.">
+                        @if ($viewingTenant->users->isNotEmpty())
+                            <ul class="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+                                @foreach ($viewingTenant->users as $user)
+                                    <li class="px-3 py-3" wire:key="tenant-user-{{ $user->id }}">
+                                        @if ($resettingUserId === $user->id)
+                                            <form wire:submit="resetAdminPassword({{ $viewingTenant->id }})" class="space-y-3">
+                                                <div>
+                                                    <p class="text-sm font-medium text-zinc-900">Reset password</p>
+                                                    <p class="text-xs text-zinc-500">{{ $user->name }} · {{ $user->email }}</p>
+                                                </div>
+                                                <x-input wire:model="resetPassword" label="New password" type="password" hint="Min. 12 characters." />
+                                                <div class="flex gap-2">
+                                                    <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="resetAdminPassword">Save</x-button>
+                                                    <x-button type="button" size="sm" variant="secondary" wire:click="cancelResetPassword">Cancel</x-button>
+                                                </div>
+                                            </form>
+                                        @else
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="font-medium text-zinc-900">{{ $user->name }}</span>
+                                                        <x-badge :status="$user->status ?? 'active'" />
+                                                    </div>
+                                                    <p class="truncate text-xs text-zinc-500">{{ $user->email }}</p>
+                                                </div>
+                                                <button type="button" wire:click="startResetPassword({{ $user->id }})" class="shrink-0 text-xs font-medium text-zinc-600 hover:text-zinc-900">Reset password</button>
+                                            </div>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <x-empty-state compact title="No admins yet" description="Invite a company admin to manage this tenant." />
+                        @endif
+
+                        @if (! $showInviteForm && $viewingTenant->users->isEmpty())
+                            <x-button type="button" size="sm" variant="secondary" class="mt-3" wire:click="$set('showInviteForm', true)">Invite admin</x-button>
+                        @endif
+
+                        @if ($showInviteForm)
+                            <form wire:submit="inviteAdmin({{ $viewingTenant->id }})" class="mt-4 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                                <p class="text-sm font-semibold text-zinc-900">Invite company admin</p>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <x-input wire:model="inviteForm.name" label="Name" placeholder="Jane Admin" />
+                                    <x-input wire:model="inviteForm.email" label="Email" type="email" placeholder="admin@acme.test" />
+                                </div>
+                                <x-input wire:model="inviteForm.password" label="Password" type="password" hint="Min. 12 characters." />
+                                <div class="flex gap-2">
+                                    <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="inviteAdmin">Send invite</x-button>
+                                    <x-button type="button" size="sm" variant="secondary" wire:click="$set('showInviteForm', false)">Cancel</x-button>
+                                </div>
+                            </form>
+                        @elseif ($viewingTenant->users->isNotEmpty())
+                            <x-button type="button" size="sm" variant="secondary" class="mt-3" wire:click="$set('showInviteForm', true)">Invite another admin</x-button>
+                        @endif
+                    </x-section-card>
+                </div>
+
+                <div class="drawer-form-footer">
                     @if ($viewingTenant->status === 'active')
                         <x-button wire:click="updateTenantStatus({{ $viewingTenant->id }}, 'suspended')" wire:confirm="Suspend this tenant?" variant="secondary">Suspend</x-button>
                     @else
                         <x-button wire:click="updateTenantStatus({{ $viewingTenant->id }}, 'active')" wire:confirm="Activate this tenant?">Activate</x-button>
                     @endif
                     @if ($viewingTenant->users_count === 0 && $viewingTenant->guards_count === 0)
-                        <x-button wire:click="deleteTenant({{ $viewingTenant->id }})" wire:confirm="Permanently delete this tenant?" variant="danger">Delete</x-button>
+                        <x-button wire:click="deleteTenant({{ $viewingTenant->id }})" wire:confirm="Permanently delete this tenant?" variant="danger">Delete tenant</x-button>
                     @endif
+                    <x-button type="button" variant="secondary" class="ml-auto" wire:click="closeDetail">Close</x-button>
                 </div>
             </div>
         </x-drawer>

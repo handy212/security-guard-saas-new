@@ -52,13 +52,13 @@
             @endforeach
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-2">
+        <div class="page-grid-2">
             <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
             <x-dashboard.incident-bar-chart :series="$incidentTrend" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-3 2xl:gap-5">
-            <div class="space-y-4 lg:col-span-2 2xl:col-span-2">
+        <div class="page-dashboard">
+            <div class="space-y-4">
                 <section class="card-surface overflow-hidden">
                     <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
                         <div>

@@ -31,4 +31,17 @@ class RolePermissionTest extends TestCase
             ->get('/dashboard')
             ->assertOk();
     }
+
+    public function test_company_admin_cannot_see_platform_roles_in_settings(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+
+        $this->actingAs($admin)
+            ->get('/settings/roles')
+            ->assertOk()
+            ->assertDontSee('super-admin')
+            ->assertDontSee('tenants.manage');
+    }
 }

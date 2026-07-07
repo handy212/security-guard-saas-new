@@ -216,7 +216,7 @@ class GuardVerificationTest extends TestCase
         $this->actingAs($admin);
 
         \Livewire\Livewire::test(\App\Livewire\Guards\GuardProfile::class, ['guard' => $guard])
-            ->set('activeTab', 'certifications')
+            ->set('activeTab', 'licenses')
             ->set('certForm.name', 'Fire Safety')
             ->set('certForm.issuer', 'NFPA')
             ->call('saveCertification')

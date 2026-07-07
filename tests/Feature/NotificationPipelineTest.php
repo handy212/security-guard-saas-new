@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DispatchService;
 use App\Services\IncidentService;
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -36,7 +37,7 @@ class NotificationPipelineTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $admin->assignRole('company-admin');
+        app(TenantRoleProvisioner::class)->assignRole($admin, 'company-admin');
         $this->actingAs($admin);
 
         $site = Site::create([

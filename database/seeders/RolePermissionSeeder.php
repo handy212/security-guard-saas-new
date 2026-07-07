@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -22,26 +22,6 @@ class RolePermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        $roles = [
-            'super-admin' => $permissions,
-            'company-admin' => array_diff($permissions, ['tenants.manage']),
-            'operations-manager' => [
-                'dashboard.view', 'clients.manage', 'sites.manage', 'guards.manage', 'schedules.manage',
-                'attendance.manage', 'patrols.manage', 'incidents.manage', 'reports.approve', 'dispatch.manage',
-                'analytics.view', 'compliance.manage', 'equipment.manage', 'visitors.manage', 'audit.view',
-            ],
-            'supervisor' => [
-                'dashboard.view', 'attendance.manage', 'patrols.manage', 'incidents.manage',
-                'reports.approve', 'dispatch.manage', 'audit.view',
-            ],
-            'guard' => ['mobile.use'],
-            'client' => ['client_portal.view'],
-            'finance' => ['dashboard.view', 'billing.manage', 'payroll.manage', 'exports.manage', 'analytics.view'],
-        ];
-
-        foreach ($roles as $name => $perms) {
-            $role = Role::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
-            $role->syncPermissions($perms);
-        }
+        app(TenantRoleProvisioner::class)->ensurePlatformRoles();
     }
 }

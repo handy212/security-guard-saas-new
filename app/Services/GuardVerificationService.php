@@ -145,11 +145,11 @@ class GuardVerificationService
             ->exists();
 
         $items = [
-            ['label' => 'Photo uploaded', 'passed' => $hasPhoto, 'tab' => 'overview'],
-            ['label' => 'ID document on file', 'passed' => $hasIdDocument, 'tab' => 'documents'],
-            ['label' => 'Police clearance on file', 'passed' => $hasPoliceClearance, 'tab' => 'documents'],
-            ['label' => 'License valid', 'passed' => $licenseValid, 'tab' => 'overview'],
-            ['label' => 'At least one current certification', 'passed' => $certsCurrent, 'tab' => 'certifications'],
+            ['label' => 'Photo uploaded', 'passed' => $hasPhoto, 'tab' => 'profile'],
+            ['label' => 'ID document on file', 'passed' => $hasIdDocument, 'tab' => 'files'],
+            ['label' => 'Police clearance on file', 'passed' => $hasPoliceClearance, 'tab' => 'files'],
+            ['label' => 'License valid', 'passed' => $licenseValid, 'tab' => 'licenses'],
+            ['label' => 'At least one current certification', 'passed' => $certsCurrent, 'tab' => 'licenses'],
         ];
 
         return [

@@ -1,6 +1,8 @@
 <div>
     <x-page-shell title="Shift Exchange" description="Approve guard shift swap requests.">
-        <x-schedules-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
         <x-flash-status />
 
         <x-page-toolbar class="mb-4">
@@ -45,5 +47,6 @@
                 @endforelse
             </tbody>
         </x-data-table>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

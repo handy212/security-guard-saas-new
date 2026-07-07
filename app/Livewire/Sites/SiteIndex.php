@@ -78,7 +78,14 @@ class SiteIndex extends Component
             $this->authorize('update', $site);
             $site->update($data);
         } else {
-            Site::create($data + ['tenant_id' => TenantContext::id()]);
+            $site = Site::create($data + ['tenant_id' => TenantContext::id()]);
+            $this->closeDrawer();
+            $this->reset(['editingId']);
+            $this->form = ['client_account_id' => '', 'name' => '', 'address' => '', 'latitude' => '', 'longitude' => '', 'geofence_radius_meters' => 150, 'status' => 'active'];
+
+            $this->redirect(route('sites.show', $site), navigate: true);
+
+            return;
         }
         $this->closeDrawer();
         $this->reset(['editingId']);

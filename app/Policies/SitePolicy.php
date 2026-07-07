@@ -12,6 +12,11 @@ class SitePolicy
         return $user->can('sites.manage');
     }
 
+    public function view(User $user, Site $site): bool
+    {
+        return $user->can('sites.manage') && $user->tenant_id === $site->tenant_id;
+    }
+
     public function create(User $user): bool
     {
         return $user->can('sites.manage');

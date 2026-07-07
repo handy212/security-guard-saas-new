@@ -23,4 +23,9 @@ class PostOrder extends Model
     {
         return $this->belongsTo(Site::class);
     }
+
+    public function sitePost(): BelongsTo
+    {
+        return $this->belongsTo(SitePost::class);
+    }
 }

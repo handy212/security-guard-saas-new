@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Two-Factor Authentication" description="Protect admin accounts with an additional verification step.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <x-form-card title="Authenticator setup" description="Use Google Authenticator, Authy, or any TOTP app." class="mx-auto max-w-lg">
             @if(auth()->user()->two_factor_confirmed_at)
@@ -20,5 +21,6 @@
                 </form>
             @endif
         </x-form-card>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

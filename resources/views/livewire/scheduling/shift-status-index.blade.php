@@ -1,9 +1,11 @@
 <div>
     <x-page-shell title="Shift Status" description="Track assignment status and guard shift confirmations.">
-        <x-schedules-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
         <x-flash-status />
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <div>
                 <x-page-toolbar>
                     <x-slot:tabs>
@@ -59,5 +61,6 @@
                 </x-section-card>
             </div>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

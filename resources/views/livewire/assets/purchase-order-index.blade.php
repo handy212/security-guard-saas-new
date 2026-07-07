@@ -4,7 +4,11 @@
             <x-button wire:click="$set('showForm', true)">New purchase order</x-button>
         </x-slot:actions>
 
-        <x-assets-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <div class="grid gap-4 lg:grid-cols-5">
@@ -97,6 +101,7 @@
                 @endif
             </div>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showForm)

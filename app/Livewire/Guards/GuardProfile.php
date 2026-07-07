@@ -4,14 +4,19 @@ namespace App\Livewire\Guards;
 
 use App\Enums\GuardDocumentType;
 use App\Models\Branch;
-use App\Models\DisciplinaryRecord;
 use App\Models\Guard;
+use App\Models\GuardAvailability;
 use App\Models\GuardCertification;
+use App\Models\GuardNote;
+use App\Models\GuardReminder;
+use App\Models\GuardSiteAssignment;
 use App\Models\GuardSkill;
+use App\Models\Site;
 use App\Models\TrainingRecord;
 use App\Models\User;
 use App\Services\FileUploadService;
 use App\Services\GuardIdCardPresenter;
+use App\Services\GuardOverviewService;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
 use App\Support\TenantContext;
@@ -25,6 +30,11 @@ class GuardProfile extends Component
 {
     use WithFileUploads;
 
+    private const TABS = [
+        'overview', 'profile', 'availability', 'kpis', 'licenses', 'notes', 'reminders',
+        'files', 'sites', 'skills', 'department', 'settings',
+    ];
+
     #[Locked]
     public Guard $guard;
 
@@ -33,7 +43,11 @@ class GuardProfile extends Component
 
     public string $idCardPreviewSide = 'front';
 
-    public array $overviewForm = [];
+    public array $profileForm = [];
+
+    public array $licenseForm = [];
+
+    public array $availabilityForm = ['weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];
 
     public array $certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
 
@@ -41,7 +55,15 @@ class GuardProfile extends Component
 
     public array $trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
 
-    public array $disciplinaryForm = ['occurred_on' => '', 'type' => 'warning', 'description' => '', 'action_taken' => ''];
+    public array $noteForm = ['body' => '', 'is_internal' => true];
+
+    public array $reminderForm = ['title' => '', 'due_at' => ''];
+
+    public array $siteAssignForm = ['site_id' => '', 'is_primary' => false, 'notes' => ''];
+
+    public array $departmentForm = [];
+
+    public array $settingsForm = [];
 
     public array $documentForm = ['type' => 'id', 'expires_at' => ''];
 
@@ -51,18 +73,29 @@ class GuardProfile extends Component
 
     public ?int $previewDocumentId = null;
 
+    public ?int $editingAvailabilityId = null;
+
     public function mount(Guard $guard): void
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $guard->tenant_id === (int) TenantContext::id(), 404);
 
-        $this->guard = $guard->load(['branch', 'user', 'documents', 'certifications', 'skills', 'trainingRecords', 'disciplinaryRecords']);
-        $this->loadOverviewForm();
+        $this->guard = $guard;
+        $this->loadProfileForm();
+        $this->loadLicenseForm();
+        $this->loadDepartmentForm();
+        $this->loadSettingsForm();
+
+        if (! in_array($this->activeTab, self::TABS, true)) {
+            $this->activeTab = 'overview';
+        }
     }
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = $tab;
+        if (in_array($tab, self::TABS, true)) {
+            $this->activeTab = $tab;
+        }
     }
 
     public function setIdCardPreviewSide(string $side): void
@@ -70,35 +103,85 @@ class GuardProfile extends Component
         $this->idCardPreviewSide = in_array($side, ['front', 'back'], true) ? $side : 'front';
     }
 
-    public function saveOverview(): void
+    public function saveProfile(): void
     {
         $this->authorize('update', $this->guard);
 
         $data = $this->validate([
-            'overviewForm.employee_number' => 'nullable',
-            'overviewForm.first_name' => 'required',
-            'overviewForm.last_name' => 'required',
-            'overviewForm.phone' => 'nullable',
-            'overviewForm.email' => 'nullable|email',
-            'overviewForm.status' => 'required',
-            'overviewForm.hourly_rate' => 'numeric',
-            'overviewForm.license_number' => 'nullable',
-            'overviewForm.license_expires_at' => 'nullable|date',
-            'overviewForm.rank' => 'nullable',
-            'overviewForm.branch_id' => 'nullable',
-            'overviewForm.user_id' => 'nullable',
-            'overviewForm.emergency_contact_name' => 'nullable',
-            'overviewForm.emergency_contact_phone' => 'nullable',
-            'overviewForm.show_current_assignment' => 'boolean',
-        ])['overviewForm'];
+            'profileForm.employee_number' => 'nullable',
+            'profileForm.first_name' => 'required',
+            'profileForm.last_name' => 'required',
+            'profileForm.phone' => 'nullable',
+            'profileForm.email' => 'nullable|email',
+            'profileForm.status' => 'required',
+            'profileForm.hourly_rate' => 'numeric',
+            'profileForm.user_id' => 'nullable',
+            'profileForm.emergency_contact_name' => 'nullable',
+            'profileForm.emergency_contact_phone' => 'nullable',
+            'profileForm.hire_date' => 'nullable|date',
+        ])['profileForm'];
 
-        $data['branch_id'] = $data['branch_id'] ?: null;
         $data['user_id'] = $data['user_id'] ?: null;
+        $data['hire_date'] = $data['hire_date'] ?: null;
+
+        $this->guard->update($data);
+        $this->guard->refresh();
+        $this->loadProfileForm();
+        session()->flash('status', 'Profile updated.');
+    }
+
+    public function saveLicense(): void
+    {
+        $this->authorize('update', $this->guard);
+
+        $data = $this->validate([
+            'licenseForm.license_number' => 'nullable|string|max:120',
+            'licenseForm.license_expires_at' => 'nullable|date',
+        ])['licenseForm'];
+
         $data['license_expires_at'] = $data['license_expires_at'] ?: null;
 
         $this->guard->update($data);
         $this->guard->refresh();
-        $this->loadOverviewForm();
+        $this->loadLicenseForm();
+        session()->flash('status', 'License details saved.');
+    }
+
+    public function saveDepartment(): void
+    {
+        $this->authorize('update', $this->guard);
+
+        $data = $this->validate([
+            'departmentForm.branch_id' => 'nullable',
+            'departmentForm.rank' => 'nullable|string|max:120',
+        ])['departmentForm'];
+
+        $data['branch_id'] = $data['branch_id'] ?: null;
+
+        $this->guard->update($data);
+        $this->guard->refresh()->load('branch');
+        $this->loadDepartmentForm();
+        session()->flash('status', 'Department updated.');
+    }
+
+    public function saveSettings(): void
+    {
+        $this->authorize('update', $this->guard);
+
+        $data = $this->validate([
+            'settingsForm.show_current_assignment' => 'boolean',
+            'settingsForm.notify_on_shift_change' => 'boolean',
+            'settingsForm.allow_open_shift_bids' => 'boolean',
+            'settingsForm.preferred_contact_method' => 'required|in:phone,email,sms',
+        ])['settingsForm'];
+
+        $this->guard->update([
+            'settings' => $data,
+            'show_current_assignment' => (bool) $data['show_current_assignment'],
+        ]);
+        $this->guard->refresh();
+        $this->loadSettingsForm();
+        session()->flash('status', 'Settings saved.');
     }
 
     public function uploadPhoto(FileUploadService $uploads): void
@@ -109,6 +192,142 @@ class GuardProfile extends Component
         $this->guard->update(['photo_path' => $path]);
         $this->reset('photoFile');
         $this->guard->refresh();
+        session()->flash('status', 'Photo uploaded.');
+    }
+
+    public function saveAvailability(): void
+    {
+        $this->authorize('update', $this->guard);
+
+        $data = $this->validate([
+            'availabilityForm.weekday' => 'required|integer|min:0|max:6',
+            'availabilityForm.starts_at' => 'required|date_format:H:i',
+            'availabilityForm.ends_at' => 'required|date_format:H:i',
+            'availabilityForm.is_available' => 'boolean',
+        ])['availabilityForm'];
+
+        $payload = $data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id];
+
+        if ($this->editingAvailabilityId) {
+            GuardAvailability::query()
+                ->where('guard_id', $this->guard->id)
+                ->findOrFail($this->editingAvailabilityId)
+                ->update($payload);
+        } else {
+            GuardAvailability::create($payload);
+        }
+
+        $this->resetAvailabilityForm();
+        $this->reloadGuard();
+        session()->flash('status', 'Availability saved.');
+    }
+
+    public function editAvailability(int $id): void
+    {
+        $availability = GuardAvailability::query()->where('guard_id', $this->guard->id)->findOrFail($id);
+        $this->editingAvailabilityId = $availability->id;
+        $this->availabilityForm = [
+            'weekday' => (int) $availability->weekday,
+            'starts_at' => substr((string) $availability->starts_at, 0, 5),
+            'ends_at' => substr((string) $availability->ends_at, 0, 5),
+            'is_available' => (bool) $availability->is_available,
+        ];
+    }
+
+    public function deleteAvailability(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardAvailability::query()->where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
+    }
+
+    public function addNote(): void
+    {
+        $this->authorize('update', $this->guard);
+        $data = $this->validate(['noteForm.body' => 'required|string|max:5000', 'noteForm.is_internal' => 'boolean'])['noteForm'];
+        GuardNote::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'user_id' => auth()->id()]);
+        $this->noteForm = ['body' => '', 'is_internal' => true];
+        $this->reloadGuard();
+        session()->flash('status', 'Note added.');
+    }
+
+    public function deleteNote(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardNote::query()->where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
+    }
+
+    public function addReminder(): void
+    {
+        $this->authorize('update', $this->guard);
+        $data = $this->validate([
+            'reminderForm.title' => 'required|string|max:255',
+            'reminderForm.due_at' => 'required|date',
+        ])['reminderForm'];
+
+        GuardReminder::create($data + [
+            'tenant_id' => TenantContext::id(),
+            'guard_id' => $this->guard->id,
+            'user_id' => auth()->id(),
+        ]);
+
+        $this->reminderForm = ['title' => '', 'due_at' => ''];
+        $this->reloadGuard();
+        session()->flash('status', 'Reminder added.');
+    }
+
+    public function completeReminder(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardReminder::query()->where('guard_id', $this->guard->id)->whereKey($id)->update([
+            'is_completed' => true,
+            'completed_at' => now(),
+        ]);
+        $this->reloadGuard();
+    }
+
+    public function deleteReminder(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardReminder::query()->where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
+    }
+
+    public function assignSite(): void
+    {
+        $this->authorize('update', $this->guard);
+        $data = $this->validate([
+            'siteAssignForm.site_id' => 'required|exists:sites,id',
+            'siteAssignForm.is_primary' => 'boolean',
+            'siteAssignForm.notes' => 'nullable|string|max:500',
+        ])['siteAssignForm'];
+
+        if ($data['is_primary']) {
+            GuardSiteAssignment::query()
+                ->where('guard_id', $this->guard->id)
+                ->update(['is_primary' => false]);
+        }
+
+        GuardSiteAssignment::updateOrCreate(
+            ['guard_id' => $this->guard->id, 'site_id' => $data['site_id']],
+            [
+                'tenant_id' => TenantContext::id(),
+                'is_primary' => (bool) $data['is_primary'],
+                'notes' => $data['notes'] ?: null,
+            ]
+        );
+
+        $this->siteAssignForm = ['site_id' => '', 'is_primary' => false, 'notes' => ''];
+        $this->reloadGuard();
+        session()->flash('status', 'Site assigned.');
+    }
+
+    public function removeSiteAssignment(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardSiteAssignment::query()->where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
     }
 
     public function uploadDocument(FileUploadService $uploads): void
@@ -129,7 +348,8 @@ class GuardProfile extends Component
         );
 
         $this->reset('documentFile');
-        $this->guard->load('documents');
+        $this->reloadGuard();
+        session()->flash('status', 'Document uploaded.');
     }
 
     public function openDocumentPreview(int $documentId): void
@@ -158,14 +378,15 @@ class GuardProfile extends Component
 
         GuardCertification::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'valid']);
         $this->certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
-        $this->guard->load('certifications');
+        $this->reloadGuard();
+        session()->flash('status', 'Certification added.');
     }
 
     public function deleteCertification(int $id): void
     {
         $this->authorize('update', $this->guard);
         GuardCertification::where('guard_id', $this->guard->id)->whereKey($id)->delete();
-        $this->guard->load('certifications');
+        $this->reloadGuard();
     }
 
     public function saveSkill(): void
@@ -184,7 +405,15 @@ class GuardProfile extends Component
             'guard_id' => $this->guard->id,
         ]);
         $this->skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
-        $this->guard->load('skills');
+        $this->reloadGuard();
+        session()->flash('status', 'Skill added.');
+    }
+
+    public function deleteSkill(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        GuardSkill::where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
     }
 
     public function saveTraining(): void
@@ -204,24 +433,8 @@ class GuardProfile extends Component
 
         TrainingRecord::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'completed']);
         $this->trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
-        $this->guard->load('trainingRecords');
-    }
-
-    public function saveDisciplinary(): void
-    {
-        $this->authorize('update', $this->guard);
-        DisciplinaryRecord::create($this->validate([
-            'disciplinaryForm.occurred_on' => 'required|date',
-            'disciplinaryForm.type' => 'required',
-            'disciplinaryForm.description' => 'required',
-            'disciplinaryForm.action_taken' => 'required',
-        ])['disciplinaryForm'] + [
-            'tenant_id' => TenantContext::id(),
-            'guard_id' => $this->guard->id,
-            'recorded_by' => auth()->id(),
-        ]);
-        $this->disciplinaryForm = ['occurred_on' => '', 'type' => 'warning', 'description' => '', 'action_taken' => ''];
-        $this->guard->load('disciplinaryRecords');
+        $this->reloadGuard();
+        session()->flash('status', 'Training record added.');
     }
 
     public function submitForReview(GuardVerificationService $verification): void
@@ -294,9 +507,16 @@ class GuardProfile extends Component
         session()->flash('status', 'QR code rotated. Previously printed ID cards will no longer verify until reprinted.');
     }
 
-    public function render(GuardVerificationService $verification, QrCodeService $qr, GuardIdCardPresenter $presenter)
-    {
-        $this->guard->load(['branch', 'user', 'documents', 'certifications', 'skills', 'trainingRecords', 'disciplinaryRecords', 'tenant']);
+    public function render(
+        GuardVerificationService $verification,
+        QrCodeService $qr,
+        GuardIdCardPresenter $presenter,
+        GuardOverviewService $overview,
+    ) {
+        $this->reloadGuard();
+        $tenantId = TenantContext::id();
+        $stats = $overview->stats($this->guard, $tenantId);
+        $kpiMetrics = $overview->kpiMetrics($this->guard, $tenantId);
 
         $token = $this->guard->verification_status === 'verified'
             ? $this->guard->activeVerificationToken()
@@ -314,23 +534,32 @@ class GuardProfile extends Component
             : null;
 
         $profileTabs = [
-            'overview' => ['label' => 'Profile', 'hint' => 'Photo and personal details'],
-            'documents' => ['label' => 'Documents', 'hint' => 'ID, police clearance, and contracts'],
-            'certifications' => ['label' => 'Certifications', 'hint' => 'Training certificates'],
-            'training' => ['label' => 'Skills & Training', 'hint' => 'Skills and course history'],
-            'disciplinary' => ['label' => 'Disciplinary', 'hint' => 'Warnings and actions'],
-            'verification' => [
-                'label' => 'ID & Verification',
-                'hint' => 'Vetting, QR code, and ID card',
-                'badge' => $checklistIncomplete > 0 ? (string) $checklistIncomplete : null,
-            ],
+            'overview' => ['label' => 'Overview', 'hint' => 'Summary and KYG', 'group' => 'Summary'],
+            'profile' => ['label' => 'Profile', 'hint' => 'Photo and personal details', 'group' => 'Summary'],
+            'department' => ['label' => 'Department', 'hint' => 'Branch and rank', 'group' => 'Summary'],
+            'settings' => ['label' => 'Settings', 'hint' => 'Guard preferences', 'group' => 'Summary'],
+            'availability' => ['label' => 'Availability', 'hint' => 'Weekly schedule', 'group' => 'Work', 'badge' => $this->badge($this->guard->availabilities->count())],
+            'sites' => ['label' => 'Assign Sites', 'hint' => 'Site assignments', 'group' => 'Work', 'badge' => $this->badge($this->guard->siteAssignments->count())],
+            'kpis' => ['label' => 'KPIs', 'hint' => 'Performance metrics', 'group' => 'Work'],
+            'licenses' => ['label' => 'Licenses', 'hint' => 'License and certifications', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->certifications->count())],
+            'skills' => ['label' => 'Skill Set', 'hint' => 'Skills and competencies', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->skills->count())],
+            'files' => ['label' => 'Files', 'hint' => 'ID and clearance docs', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->documents->count())],
+            'notes' => ['label' => 'Notes', 'hint' => 'Internal notes', 'group' => 'HR', 'badge' => $this->badge($this->guard->notes->count())],
+            'reminders' => ['label' => 'Reminders', 'hint' => 'Follow-ups', 'group' => 'HR', 'badge' => $this->badge($this->guard->reminders->where('is_completed', false)->count())],
         ];
+
+        if ($checklistIncomplete > 0) {
+            $profileTabs['overview']['badge'] = (string) $checklistIncomplete;
+        }
 
         return view('livewire.guards.guard-profile', [
             'branches' => Branch::orderBy('name')->get(),
-            'users' => User::where('tenant_id', TenantContext::id())->orderBy('name')->get(),
+            'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(),
+            'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'checklist' => $checklist,
             'profileTabs' => $profileTabs,
+            'stats' => $stats,
+            'kpiMetrics' => $kpiMetrics,
             'verifyUrl' => $verifyUrl,
             'qrSvg' => $qrSvg,
             'lastScannedAt' => $token?->last_scanned_at,
@@ -343,20 +572,68 @@ class GuardProfile extends Component
             'skillOptions' => config('guard_hr.skills'),
             'trainingCourses' => config('guard_hr.training_courses'),
             'skillLevels' => config('guard_hr.skill_levels'),
+            'weekdays' => config('guard_profile.weekdays'),
             'previewDocument' => $previewDocument,
         ])->layout('layouts.app');
     }
 
-    private function loadOverviewForm(): void
+    private function reloadGuard(): void
     {
-        $this->overviewForm = $this->guard->only([
-            'employee_number', 'first_name', 'last_name', 'phone', 'email', 'status',
-            'hourly_rate', 'license_number', 'rank', 'branch_id', 'user_id',
-            'emergency_contact_name', 'emergency_contact_phone', 'show_current_assignment',
+        $this->guard->load([
+            'branch',
+            'user',
+            'tenant',
+            'documents',
+            'certifications',
+            'skills',
+            'trainingRecords',
+            'availabilities' => fn ($q) => $q->orderBy('weekday')->orderBy('starts_at'),
+            'notes' => fn ($q) => $q->latest(),
+            'notes.author',
+            'reminders' => fn ($q) => $q->orderBy('due_at'),
+            'siteAssignments.site.clientAccount',
         ]);
-        $this->overviewForm['license_expires_at'] = $this->guard->license_expires_at?->format('Y-m-d') ?? '';
-        $this->overviewForm['branch_id'] = $this->guard->branch_id ?? '';
-        $this->overviewForm['user_id'] = $this->guard->user_id ?? '';
-        $this->overviewForm['show_current_assignment'] = (bool) $this->guard->show_current_assignment;
+    }
+
+    private function loadProfileForm(): void
+    {
+        $this->profileForm = $this->guard->only([
+            'employee_number', 'first_name', 'last_name', 'phone', 'email', 'status',
+            'hourly_rate', 'user_id', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date',
+        ]);
+        $this->profileForm['user_id'] = $this->guard->user_id ?? '';
+        $this->profileForm['hire_date'] = $this->guard->hire_date?->format('Y-m-d') ?? '';
+    }
+
+    private function loadLicenseForm(): void
+    {
+        $this->licenseForm = [
+            'license_number' => $this->guard->license_number ?? '',
+            'license_expires_at' => $this->guard->license_expires_at?->format('Y-m-d') ?? '',
+        ];
+    }
+
+    private function loadDepartmentForm(): void
+    {
+        $this->departmentForm = [
+            'branch_id' => $this->guard->branch_id ?? '',
+            'rank' => $this->guard->rank ?? '',
+        ];
+    }
+
+    private function loadSettingsForm(): void
+    {
+        $this->settingsForm = $this->guard->resolvedSettings();
+    }
+
+    private function resetAvailabilityForm(): void
+    {
+        $this->editingAvailabilityId = null;
+        $this->availabilityForm = ['weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];
+    }
+
+    private function badge(int $count): ?string
+    {
+        return $count > 0 ? (string) $count : null;
     }
 }

@@ -1,30 +1,48 @@
 <div>
-    <x-page-shell title="Billing & Invoices" description="Generate client invoices and export PDFs.">
+    <x-page-shell title="Invoices" description="Generate client invoices, record payments, and export accounting data.">
+        <x-flash-status type="success" />
+
         <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$stats['total']" icon="billing" />
             <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
             <x-stat-card compact label="Sent" :value="$stats['sent']" icon="check" tone="info" />
-            <x-stat-card compact label="Paid" :value="$stats['paid']" icon="check" tone="success" />
+            <x-stat-card compact label="Paid" :value="$stats['paid'] + $stats['partial']" icon="check" tone="success" />
         </div>
 
-        <x-form-card title="Generate monthly invoice">
-            <form wire:submit="generate" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-                <x-select wire:model="clientId" label="Client" class="sm:col-span-2 lg:col-span-1">
-                    <option value="">Select client</option>
-                    @foreach($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-input wire:model="month" label="Month" type="month" />
-                <div class="sm:col-span-2 lg:col-span-1">
-                    <x-button type="submit" class="w-full sm:w-auto">Generate invoice</x-button>
-                </div>
-            </form>
-        </x-form-card>
+        <div class="page-grid-2">
+            <x-form-card title="Generate monthly invoice">
+                <form wire:submit="generate" class="space-y-3">
+                    <x-select wire:model="clientId" label="Client">
+                        <option value="">Select client</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}">{{ $client->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="month" label="Month" type="month" />
+                    <x-button type="submit" size="sm">Generate invoice</x-button>
+                </form>
+            </x-form-card>
+
+            @if ($canExport)
+                <x-form-card title="Accounting export" description="CSV export for QuickBooks, Xero, or spreadsheets.">
+                    <x-button wire:click="exportInvoicesCsv" size="sm">Export invoices CSV</x-button>
+                    @if ($exports->isNotEmpty())
+                        <div class="mt-4 space-y-2">
+                            @foreach ($exports as $export)
+                                <div class="flex items-center justify-between gap-2 text-sm" wire:key="export-{{ $export->id }}">
+                                    <span class="truncate text-zinc-600">{{ $export->created_at?->format('M j, H:i') }} · {{ strtoupper($export->export_type ?? 'csv') }}</span>
+                                    <button type="button" wire:click="downloadExport({{ $export->id }})" class="shrink-0 text-xs font-medium text-accent-600 hover:underline">Download</button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </x-form-card>
+            @endif
+        </div>
 
         <x-page-toolbar search="search" searchPlaceholder="Search invoices…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'paid' => 'Paid']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'partial' => 'Partial', 'paid' => 'Paid']" />
             </x-slot:tabs>
         </x-page-toolbar>
 
@@ -44,8 +62,8 @@
                     <tr class="table-row-hover" wire:key="inv-{{ $invoice->id }}">
                         <x-table.td class="font-mono font-medium">{{ $invoice->invoice_number }}</x-table.td>
                         <x-table.td>{{ $invoice->clientAccount?->name }}</x-table.td>
-                        <x-table.td responsive="md" muted>{{ $invoice->invoice_date }}</x-table.td>
-                        <x-table.td class="font-semibold">{{ number_format($invoice->grand_total, 2) }}</x-table.td>
+                        <x-table.td responsive="md" muted>{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
+                        <x-table.td class="font-semibold">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
                         <x-table.td><x-badge :status="$invoice->status" /></x-table.td>
                         <x-table.td align="right">
                             <div class="table-inline-actions">

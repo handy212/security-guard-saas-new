@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Webhook Subscriptions" description="Deliver GuardCore Pro events to external systems.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <x-form-card title="Add webhook" description="Subscribe to an event and receive POST payloads at your URL.">
             <form wire:submit="create" class="grid gap-4 md:grid-cols-3">
@@ -42,5 +43,6 @@
                 @endforelse
             </tbody>
         </x-data-table>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

@@ -4,7 +4,11 @@
             <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day list</x-button>
         </x-slot:actions>
 
-        <x-schedules-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
+
         <div class="stat-grid">
             <x-stat-card compact label="In range" :value="$stats['total']" icon="schedules" />
             <x-stat-card compact label="Open" :value="$stats['open']" icon="pause" :tone="$stats['open'] > 0 ? 'warning' : 'default'" />
@@ -73,5 +77,6 @@
                 @php $day->addDay(); @endphp
             @endwhile
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

@@ -36,14 +36,17 @@
             <tbody>
                 @forelse($clients as $client)
                     <tr class="table-row-hover" wire:key="client-{{ $client->id }}">
-                        <x-table.td class="font-medium">{{ $client->name }}</x-table.td>
+                        <x-table.td class="font-medium">
+                            <a href="{{ route('clients.show', $client) }}" class="font-medium text-accent-700 hover:underline">{{ $client->name }}</a>
+                        </x-table.td>
                         <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>
                         <x-table.td muted>{{ $client->default_hourly_rate ? number_format($client->default_hourly_rate, 2) : '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$client->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
-                                <x-row-menu-item wire:click="edit({{ $client->id }})">Edit</x-row-menu-item>
+                                <x-row-menu-item :href="route('clients.show', $client)">Open profile</x-row-menu-item>
+                                <x-row-menu-item wire:click="edit({{ $client->id }})">Quick edit</x-row-menu-item>
                                 <x-row-menu-item wire:click="delete({{ $client->id }})" wire:confirm="Delete this client?" danger>Delete</x-row-menu-item>
                             </x-row-menu>
                         </x-table.td>

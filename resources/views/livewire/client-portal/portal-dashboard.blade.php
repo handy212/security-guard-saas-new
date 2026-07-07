@@ -3,7 +3,7 @@
 
         <x-portal-page-header
             title="Service overview"
-            description="Live visibility into guard coverage, patrols, incidents, and approved reports."
+            :description="$clientAccount?->portal_welcome_message ?: 'Live visibility into guard coverage, patrols, incidents, and approved reports.'"
         />
 
         <div class="kpi-grid">
@@ -14,7 +14,7 @@
             <x-stat-card compact label="Custom reports" :value="$stats['custom_reports']" icon="plan" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-section-card title="Recent shifts" description="Guard deployments at your sites">
                 @forelse($shifts as $shift)
                     <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-t-0">

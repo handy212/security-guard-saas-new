@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Billing;
 
+use App\Models\AccountingExport;
 use App\Models\ClientAccount;
 use App\Models\Invoice;
+use App\Services\AccountingExportService;
 use App\Services\BillingService;
 use App\Services\EstimateService;
 use App\Services\PdfExportService;
@@ -76,6 +78,23 @@ class InvoiceIndex extends Component
         }
     }
 
+    public function exportInvoicesCsv(AccountingExportService $exports): void
+    {
+        abort_unless(auth()->user()->can('exports.manage'), 403);
+        $exports->exportInvoicesCsv(TenantContext::id());
+        session()->flash('status', 'Invoice CSV export generated.');
+    }
+
+    public function downloadExport(int $exportId): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('exports.manage'), 403);
+        $export = AccountingExport::where('tenant_id', TenantContext::id())->findOrFail($exportId);
+
+        abort_unless($export->file_path && Storage::exists($export->file_path), 404);
+
+        return Storage::download($export->file_path);
+    }
+
     public function render()
     {
         abort_unless(auth()->user()->can('billing.manage'), 403);
@@ -97,11 +116,14 @@ class InvoiceIndex extends Component
         return view('livewire.billing.invoice-index', [
             'invoices' => $query->paginate(25),
             'clients' => ClientAccount::orderBy('name')->get(),
+            'exports' => AccountingExport::where('tenant_id', $tenantId)->latest()->limit(10)->get(),
+            'canExport' => auth()->user()->can('exports.manage'),
             'stats' => [
                 'total' => $all->count(),
                 'draft' => (clone $all)->where('status', 'draft')->count(),
                 'sent' => (clone $all)->where('status', 'sent')->count(),
                 'paid' => (clone $all)->where('status', 'paid')->count(),
+                'partial' => (clone $all)->where('status', 'partial')->count(),
             ],
         ])->layout('layouts.app');
     }

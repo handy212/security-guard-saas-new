@@ -281,9 +281,9 @@ class AdminCrudTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(GuardProfile::class, ['guard' => $guard])
             ->assertSet('activeTab', 'overview')
-            ->call('setTab', 'verification')
-            ->assertSet('activeTab', 'verification')
-            ->assertSee('Vetting checklist');
+            ->call('setTab', 'overview')
+            ->assertSet('activeTab', 'overview')
+            ->assertSee('Know Your Guard');
     }
 
     public function test_settings_hub_loads(): void

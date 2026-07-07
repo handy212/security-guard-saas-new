@@ -7,9 +7,10 @@
             ['label' => 'Know Your Guard'],
         ]"
     >
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
-        <x-form-card title="Public page content">
+            <x-form-card title="Public page content">
             <form wire:submit="save" class="space-y-5">
                 <div>
                     <label class="form-label" for="subtitle">Page subtitle</label>
@@ -67,6 +68,7 @@
                     @endif
                 </div>
             </form>
-        </x-form-card>
+            </x-form-card>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

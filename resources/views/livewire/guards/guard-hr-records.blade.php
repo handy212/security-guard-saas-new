@@ -7,7 +7,7 @@
             <x-stat-card compact label="Disciplinary" :value="$disciplinary->count()" icon="incidents" :tone="$disciplinary->count() ? 'warning' : 'default'" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-form-card title="Add skill" description="Record guard competencies and levels.">
                 <form wire:submit="saveSkill" class="space-y-3">
                     <x-select wire:model="skillForm.guard_id" label="Guard">

@@ -59,4 +59,17 @@ class TenantFileStorageService
 
         return $this->disk()->temporaryUrl($path, $expiresAt);
     }
+
+    public function delete(string $path): void
+    {
+        if ($this->disk()->exists($path)) {
+            $this->disk()->delete($path);
+
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
 }

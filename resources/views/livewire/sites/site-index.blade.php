@@ -36,14 +36,17 @@
             <tbody>
                 @forelse($sites as $site)
                     <tr class="table-row-hover" wire:key="site-{{ $site->id }}">
-                        <x-table.td class="font-medium">{{ $site->name }}</x-table.td>
+                        <x-table.td class="font-medium">
+                            <a href="{{ route('sites.show', $site) }}" class="font-medium text-accent-700 hover:underline">{{ $site->name }}</a>
+                        </x-table.td>
                         <x-table.td responsive="md" muted>{{ $site->clientAccount?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $site->address ?: '—' }}</x-table.td>
                         <x-table.td><span class="text-xs text-zinc-500">{{ $site->geofence_radius_meters }}m</span></x-table.td>
                         <x-table.td><x-badge :status="$site->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
-                                <x-row-menu-item wire:click="edit({{ $site->id }})">Edit</x-row-menu-item>
+                                <x-row-menu-item :href="route('sites.show', $site)">Open profile</x-row-menu-item>
+                                <x-row-menu-item wire:click="edit({{ $site->id }})">Quick edit</x-row-menu-item>
                                 <x-row-menu-item wire:click="delete({{ $site->id }})" wire:confirm="Delete this site?" danger>Delete</x-row-menu-item>
                             </x-row-menu>
                         </x-table.td>

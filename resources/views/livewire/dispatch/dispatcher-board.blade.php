@@ -48,8 +48,8 @@
             </x-section-card>
         @endif
 
-        <div class="grid gap-4 lg:grid-cols-5 lg:items-stretch">
-            <x-section-card title="Dispatch queue" class="flex min-h-[28rem] flex-col lg:col-span-2">
+        <div class="page-board min-h-[28rem]">
+            <x-section-card title="Dispatch queue" class="flex flex-col">
                 <div class="-mx-1 flex-1 overflow-y-auto px-1">
                     @forelse($dispatches as $dispatch)
                         <button
@@ -78,7 +78,7 @@
 
             <x-section-card
                 :title="$selected ? ($selected->dispatch_number ?? 'Dispatch #'.$selected->id) : 'Dispatch detail'"
-                class="flex min-h-[28rem] flex-col lg:col-span-3"
+                class="flex flex-col"
             >
                 @if($selected)
                     <div class="flex-1 overflow-y-auto">

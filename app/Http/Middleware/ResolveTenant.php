@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use App\Services\TenantDomainResolver;
+use App\Services\TenantRoleProvisioner;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -44,6 +45,7 @@ class ResolveTenant
                     ->first();
                 if ($tenant) {
                     app()->instance('currentTenant', $tenant);
+                    setPermissionsTeamId($tenant->id);
 
                     return $next($request);
                 }
@@ -56,11 +58,15 @@ class ResolveTenant
             }
 
             if (TenantContext::isSaasRequest($request)) {
+                setPermissionsTeamId(TenantRoleProvisioner::PLATFORM_TENANT_ID);
+
                 return $next($request);
             }
         }
 
         if (! $tenant && TenantContext::isSaasRequest($request) && $user?->hasRole('super-admin')) {
+            setPermissionsTeamId(TenantRoleProvisioner::PLATFORM_TENANT_ID);
+
             return $next($request);
         }
 
@@ -69,6 +75,7 @@ class ResolveTenant
         }
 
         app()->instance('currentTenant', $tenant);
+        setPermissionsTeamId($tenant->id);
 
         return $next($request);
     }

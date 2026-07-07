@@ -53,7 +53,7 @@
                 @if (config('app.debug'))
                 <div>
                     <div class="font-medium text-zinc-800">SaaS platform admin</div>
-                    <div class="mt-1 font-mono text-[11px]">platform@GuardCore Pro.test / password</div>
+                    <div class="mt-1 font-mono text-[11px]">platform@guardops.test / password</div>
                     <p class="mt-1 text-zinc-500">Opens tenant management after sign in.</p>
                 </div>
                 <div class="border-t border-zinc-200 pt-2">

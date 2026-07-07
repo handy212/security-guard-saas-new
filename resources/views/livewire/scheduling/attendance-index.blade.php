@@ -7,7 +7,11 @@
         <x-slot:actions>
             <x-button variant="secondary" href="{{ route('attendance.reconciliation') }}">Reconciliation</x-button>
         </x-slot:actions>
-        <x-schedules-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -50,7 +54,7 @@
             </form>
         </x-form-card>
 
-        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2 mt-4">
             <x-section-card title="Clock events" description="Geofence shows whether the guard was inside the site boundary at clock-in.">
                 <x-data-table>
                 <x-table.head><tr><x-table.th>Guard</x-table.th><x-table.th>Site</x-table.th><x-table.th>Clock in</x-table.th><x-table.th>Clock out</x-table.th><x-table.th>Geofence</x-table.th><x-table.th>Status</x-table.th></tr></x-table.head>
@@ -98,5 +102,6 @@
             </x-data-table>
             </x-section-card>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

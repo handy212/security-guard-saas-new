@@ -29,7 +29,7 @@ class AnalyticsService
                 'late_shifts' => ShiftAssignment::where('tenant_id', $tenantId)->where('status', 'late')->count(),
                 'no_show_shifts' => ShiftAssignment::where('tenant_id', $tenantId)->where('status', 'no_show')->count(),
                 'patrol_completion_rate' => $total ? round(($completed / $total) * 100, 2) : 0,
-                'client_sla_performance' => 0,
+                'client_sla_performance' => app(CompliancePolicyService::class)->tenantSlaCoverage($tenantId),
                 'revenue_total' => Invoice::where('tenant_id', $tenantId)->whereDate('created_at', $date)->sum('grand_total'),
                 'guard_scores' => [],
             ]

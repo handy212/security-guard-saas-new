@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Audit trail" description="Immutable log of security-sensitive actions across your organization.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Total events" :value="$total" icon="billing" />
@@ -55,5 +56,6 @@
         </x-data-table>
 
         <x-pagination :paginator="$logs" />
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

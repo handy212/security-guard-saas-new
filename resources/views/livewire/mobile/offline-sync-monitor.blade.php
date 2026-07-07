@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Offline Sync Monitor" description="Review and process guard mobile offline sync batches.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Batches" :value="$items->count()" icon="plan" />
@@ -49,5 +50,6 @@
                 @endforelse
             </tbody>
         </x-data-table>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

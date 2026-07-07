@@ -29,7 +29,7 @@
         </div>
     @endif
 
-    <div class="page-content flex-1 space-y-3 pb-6 pt-3">
+    <div class="page-content flex-1 space-y-4 pb-6 pt-3">
         {{ $slot }}
     </div>
 </div>

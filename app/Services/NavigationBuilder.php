@@ -31,6 +31,13 @@ class NavigationBuilder
         return true;
     }
 
+    public function settingsLinks(): Collection
+    {
+        return collect(config('navigation.settings', []))
+            ->filter(fn (array $link) => $this->linkVisible($link))
+            ->values();
+    }
+
     public function isPlatformConsole(): bool
     {
         return TenantContext::isPlatformAdmin() && ! TenantContext::isViewingAsTenant();

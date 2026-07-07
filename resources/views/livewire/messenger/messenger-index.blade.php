@@ -7,8 +7,8 @@
             <x-stat-card compact label="Active" :value="$activeThread ? 'Selected' : 'None'" icon="check" :tone="$activeThread ? 'success' : 'default'" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-3">
-            <x-section-card title="Threads" class="lg:col-span-1">
+        <div class="page-board">
+            <x-section-card title="Threads" class="flex min-h-[24rem] flex-col">
                 <div class="mb-3 space-y-2">
                     <x-input wire:model="newSubject" label="New thread subject" />
                     <x-select wire:model="newSiteId" label="Site">
@@ -25,7 +25,7 @@
                 @endforeach
             </x-section-card>
 
-            <x-section-card title="Messages" class="lg:col-span-2">
+            <x-section-card title="Messages" class="flex min-h-[24rem] flex-col">
                 @if($activeThread)
                     <div class="mb-4 max-h-80 space-y-2 overflow-y-auto">
                         @foreach($activeThread->messages as $message)

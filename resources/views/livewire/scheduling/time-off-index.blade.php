@@ -1,6 +1,8 @@
 <div>
     <x-page-shell title="Time Off" description="Manage leave requests and weekly guard availability.">
-        <x-schedules-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
         <x-flash-status />
 
         <div class="stat-grid">
@@ -9,7 +11,7 @@
             <x-stat-card compact label="Availability rows" :value="$availabilities->count()" icon="schedules" tone="info" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-form-card :title="$editingLeaveId ? 'Edit time off request' : 'Submit time off request'">
                 <div class="grid gap-3 sm:grid-cols-2">
                     <x-select wire:model="leaveForm.guard_id" label="Guard *">
@@ -176,5 +178,6 @@
                 </tbody>
             </x-data-table>
         </x-section-card>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

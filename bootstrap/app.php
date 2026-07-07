@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        $middleware->web(append: [
+            \App\Http\Middleware\SyncPermissionsTeamId::class,
+        ]);
+
         $middleware->alias([
             'tenant' => \App\Http\Middleware\ResolveTenant::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

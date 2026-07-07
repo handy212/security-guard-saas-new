@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -62,9 +63,13 @@ class TenantContext
     {
         $user = Auth::user();
 
-        return $user
-            && $user->tenant_id === null
-            && $user->hasRole('super-admin');
+        if (! $user || $user->tenant_id !== null) {
+            return false;
+        }
+
+        setPermissionsTeamId(TenantRoleProvisioner::PLATFORM_TENANT_ID);
+
+        return $user->hasRole('super-admin');
     }
 
     public static function switchedTenantSlug(): ?string

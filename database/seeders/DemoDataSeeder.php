@@ -16,6 +16,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -67,27 +68,45 @@ class DemoDataSeeder extends Seeder
             ['subscription_plan_id' => $plan->id, 'status' => 'trial', 'trial_ends_at' => now()->addDays(14)]
         );
 
+        $provisioner = app(TenantRoleProvisioner::class);
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@demo.test'],
             ['tenant_id' => $tenant->id, 'name' => 'Demo Admin', 'password' => Hash::make('password'), 'status' => 'active']
         );
-        $admin->assignRole('company-admin');
+        $provisioner->assignRole($admin, 'company-admin');
 
         $platformAdmin = User::firstOrCreate(
             ['email' => 'platform@guardops.test'],
             ['tenant_id' => null, 'name' => 'Platform Admin', 'password' => Hash::make('password'), 'status' => 'active']
         );
-        $platformAdmin->assignRole('super-admin');
+        $provisioner->assignRole($platformAdmin, 'super-admin');
 
         $guardUser = User::firstOrCreate(
             ['email' => 'john.guard@test'],
             ['tenant_id' => $tenant->id, 'name' => 'John Mensah', 'password' => Hash::make('password'), 'status' => 'active']
         );
-        $guardUser->assignRole('guard');
+        $provisioner->assignRole($guardUser, 'guard');
 
         $client = ClientAccount::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Gold Mine Ltd'],
-            ['industry' => 'Mining', 'email' => 'security@goldmine.test', 'phone' => '000-000', 'status' => 'active', 'default_hourly_rate' => 25]
+            [
+                'industry' => 'Mining',
+                'email' => 'security@goldmine.test',
+                'phone' => '+233 20 000 0000',
+                'address' => 'Obuasi Mine Site, Ashanti Region',
+                'latitude' => 6.202,
+                'longitude' => -1.668,
+                'status' => 'active',
+                'default_hourly_rate' => 25,
+                'portal_enabled' => true,
+                'portal_welcome_message' => 'Welcome to your Gold Mine Ltd security portal. Review live guard activity, patrols, and approved reports here.',
+            ]
+        );
+
+        \App\Models\ClientContact::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'email' => 'ops@goldmine.test'],
+            ['name' => 'Kwame Asante', 'phone' => '+233 24 111 2222', 'role' => 'Security Manager']
         );
         $site = Site::firstOrCreate(
             ['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'name' => 'Main Gate'],

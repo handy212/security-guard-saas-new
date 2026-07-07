@@ -25,18 +25,35 @@ class EstimateIndex extends Component
         $this->form['valid_until'] = now()->addDays(30)->toDateString();
     }
 
+    public function addLineItem(): void
+    {
+        $this->items[] = ['description' => '', 'quantity' => 1, 'unit_price' => 0, 'is_taxable' => true];
+    }
+
+    public function removeLineItem(int $index): void
+    {
+        if (count($this->items) <= 1) {
+            return;
+        }
+
+        unset($this->items[$index]);
+        $this->items = array_values($this->items);
+    }
+
     public function save(EstimateService $service): void
     {
         $data = $this->validate([
             'form.client_account_id' => 'required',
+            'form.valid_until' => 'nullable|date',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required',
+            'items.*.description' => 'required|string|max:255',
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
         $service->create($data['form'], $data['items']);
         $this->showForm = false;
+        $this->items = [['description' => '', 'quantity' => 1, 'unit_price' => 0, 'is_taxable' => true]];
         session()->flash('status', 'Estimate created.');
     }
 
@@ -54,9 +71,17 @@ class EstimateIndex extends Component
 
     public function render()
     {
+        $tenantId = TenantContext::id();
+        $all = Estimate::where('tenant_id', $tenantId);
+
         return view('livewire.billing.estimate-index', [
-            'estimates' => Estimate::with('clientAccount')->where('tenant_id', TenantContext::id())->latest()->paginate(20),
+            'estimates' => Estimate::with('clientAccount')->where('tenant_id', $tenantId)->latest()->paginate(20),
             'clients' => ClientAccount::orderBy('name')->get(),
+            'stats' => [
+                'total' => $all->count(),
+                'open' => (clone $all)->whereIn('status', ['draft', 'sent'])->count(),
+                'accepted' => (clone $all)->where('status', 'accepted')->count(),
+            ],
         ])->layout('layouts.app');
     }
 }

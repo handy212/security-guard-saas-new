@@ -2,12 +2,20 @@
 
 namespace App\Models;
 
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Tenant extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::created(function (Tenant $tenant): void {
+            app(TenantRoleProvisioner::class)->provision($tenant);
+        });
+    }
 
     protected $fillable = [
         'name', 'slug', 'domain', 'subdomain', 'status', 'plan_id', 'trial_ends_at',
@@ -22,6 +30,11 @@ class Tenant extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function sites()
+    {
+        return $this->hasMany(Site::class);
     }
 
     public function guards()

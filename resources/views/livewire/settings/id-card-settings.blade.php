@@ -7,9 +7,10 @@
             ['label' => 'ID Card'],
         ]"
     >
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
-        <div class="grid gap-8 xl:grid-cols-[minmax(0,400px)_minmax(300px,360px)] xl:items-start">
+            <div class="grid gap-8 xl:grid-cols-[minmax(0,400px)_minmax(300px,360px)] xl:items-start">
             <div class="space-y-4">
                 <x-form-card title="Template & colors">
                     <form wire:submit="save" class="space-y-5">
@@ -179,6 +180,6 @@
                     </p>
                 </x-section-card>
             </div>
-        </div>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

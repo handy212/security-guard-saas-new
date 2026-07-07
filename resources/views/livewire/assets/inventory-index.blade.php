@@ -1,6 +1,10 @@
 <div>
     <x-page-shell title="Asset inventory" description="Stock levels and availability by category.">
-        <x-assets-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <div class="stat-grid">
@@ -49,5 +53,6 @@
                 @endforelse
             </tbody>
         </x-data-table>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

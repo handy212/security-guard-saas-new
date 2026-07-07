@@ -2,15 +2,15 @@
 
 namespace App\Livewire\Billing;
 
-use App\Models\AccountingExport;
 use App\Models\Guard;
 use App\Models\PayrollExport;
 use App\Models\Timesheet;
-use App\Services\AccountingExportService;
 use App\Services\PayrollExportService;
 use App\Services\PayrollService;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollBoard extends Component
 {
@@ -34,30 +34,36 @@ class PayrollBoard extends Component
             $this->periodStart,
             $this->periodEnd
         );
-    }
-
-    public function exportInvoices(AccountingExportService $exports): void
-    {
-        abort_unless(auth()->user()->can('exports.manage'), 403);
-        $exports->exportInvoicesCsv(TenantContext::id());
+        session()->flash('status', 'Timesheet generated.');
     }
 
     public function exportQuickBooks(PayrollExportService $exports): void
     {
         abort_unless(auth()->user()->can('exports.manage'), 403);
         $exports->exportQuickBooks($this->periodStart, $this->periodEnd, auth()->id());
-        session()->flash('status', 'QuickBooks payroll export generated.');
+        session()->flash('status', 'Payroll CSV export generated.');
+    }
+
+    public function downloadPayrollExport(int $exportId): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('exports.manage'), 403);
+        $export = PayrollExport::where('tenant_id', TenantContext::id())->findOrFail($exportId);
+        abort_unless($export->file_path && Storage::exists($export->file_path), 404);
+
+        return Storage::download($export->file_path);
     }
 
     public function render()
     {
         abort_unless(auth()->user()->can('payroll.manage'), 403);
 
+        $tenantId = TenantContext::id();
+
         return view('livewire.billing.payroll-board', [
-            'timesheets' => Timesheet::with('assignedGuard')->latest()->limit(80)->get(),
-            'exports' => AccountingExport::latest()->limit(20)->get(),
-            'payrollExports' => PayrollExport::where('tenant_id', TenantContext::id())->latest()->limit(10)->get(),
+            'timesheets' => Timesheet::with('assignedGuard')->where('tenant_id', $tenantId)->latest()->limit(80)->get(),
+            'payrollExports' => PayrollExport::where('tenant_id', $tenantId)->latest()->limit(15)->get(),
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
+            'canExport' => auth()->user()->can('exports.manage'),
         ])->layout('layouts.app');
     }
 }

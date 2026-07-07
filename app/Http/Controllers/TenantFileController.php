@@ -2,20 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Guard;
-use App\Models\GuardDocument;
-use App\Models\TenantSetting;
-use App\Services\TenantFileStorageService;
+use App\Models\SiteDocument;
 use App\Support\TenantContext;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TenantFileController extends Controller
 {
-    public function __construct(private TenantFileStorageService $storage)
+    public function __construct(private \App\Services\TenantFileStorageService $storage)
     {
     }
 
-    public function guardPhoto(Guard $guard): StreamedResponse
+    public function guardPhoto(\App\Models\Guard $guard): StreamedResponse
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $guard->tenant_id === (int) TenantContext::id(), 404);
@@ -25,7 +22,7 @@ class TenantFileController extends Controller
         return $this->storage->response($guard->photo_path);
     }
 
-    public function guardDocument(GuardDocument $document): StreamedResponse
+    public function guardDocument(\App\Models\GuardDocument $document): StreamedResponse
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $document->tenant_id === (int) TenantContext::id(), 404);
@@ -38,7 +35,7 @@ class TenantFileController extends Controller
     {
         abort_unless(auth()->user()->can('guards.manage') || auth()->user()->can('settings.manage'), 403);
 
-        $path = TenantSetting::query()
+        $path = \App\Models\TenantSetting::query()
             ->where('tenant_id', TenantContext::id())
             ->where('key', 'id_card')
             ->value('value')['logo_path'] ?? null;
@@ -53,7 +50,7 @@ class TenantFileController extends Controller
     {
         abort_unless(auth()->user()->can('guards.manage') || auth()->user()->can('settings.manage'), 403);
 
-        $path = TenantSetting::query()
+        $path = \App\Models\TenantSetting::query()
             ->where('tenant_id', TenantContext::id())
             ->where('key', 'id_card')
             ->value('value')['back_logo_path'] ?? null;
@@ -62,5 +59,23 @@ class TenantFileController extends Controller
         abort_unless($this->storage->exists($path), 404);
 
         return $this->storage->response($path);
+    }
+
+    public function clientDocument(\App\Models\ClientDocument $document): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('clients.manage'), 403);
+        abort_unless((int) $document->tenant_id === (int) TenantContext::id(), 404);
+        abort_unless($this->storage->exists($document->file_path), 404);
+
+        return $this->storage->response($document->file_path);
+    }
+
+    public function siteDocument(SiteDocument $document): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('sites.manage'), 403);
+        abort_unless((int) $document->tenant_id === (int) TenantContext::id(), 404);
+        abort_unless($this->storage->exists($document->file_path), 404);
+
+        return $this->storage->response($document->file_path);
     }
 }

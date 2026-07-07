@@ -1,7 +1,11 @@
 <div>
     <x-page-shell title="Shift Templates" description="Reusable scheduling patterns across sites.">
         <x-slot:actions><x-button wire:click="openForm">New template</x-button></x-slot:actions>
-        <x-schedules-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         @if($showForm)
@@ -95,5 +99,6 @@
                 <x-empty-state title="No templates" description="Create a template to quickly generate weekly shifts." />
             @endforelse
         </x-section-card>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

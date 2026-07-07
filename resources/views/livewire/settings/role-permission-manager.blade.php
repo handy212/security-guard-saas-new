@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Roles & Permissions" description="Define roles and assign granular access controls.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Roles" :value="$roles->count()" icon="users" />
@@ -33,5 +34,6 @@
                 </x-section-card>
             @endforeach
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

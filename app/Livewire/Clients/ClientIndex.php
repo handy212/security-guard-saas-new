@@ -71,7 +71,14 @@ class ClientIndex extends Component
             $this->authorize('update', $client);
             $client->update($data);
         } else {
-            ClientAccount::create($data + ['tenant_id' => TenantContext::id()]);
+            $client = ClientAccount::create($data + ['tenant_id' => TenantContext::id()]);
+            $this->closeDrawer();
+            $this->reset(['editingId']);
+            $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_hourly_rate' => 0];
+
+            $this->redirect(route('clients.show', $client), navigate: true);
+
+            return;
         }
         $this->closeDrawer();
         $this->reset(['editingId']);

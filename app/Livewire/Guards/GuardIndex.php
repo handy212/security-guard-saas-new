@@ -104,7 +104,18 @@ class GuardIndex extends Component
         } else {
             $tenant = Tenant::findOrFail(TenantContext::id());
             abort_unless($limits->canCreateGuard($tenant), 403, 'Guard limit reached for your plan.');
-            Guard::create($data + ['tenant_id' => TenantContext::id()]);
+            $guard = Guard::create($data + ['tenant_id' => TenantContext::id()]);
+            $this->closeDrawer();
+            $this->reset(['editingId']);
+            $this->form = [
+                'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
+                'status' => 'active', 'hourly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
+                'rank' => '', 'branch_id' => '',
+            ];
+
+            $this->redirect(route('guards.show', $guard), navigate: true);
+
+            return;
         }
 
         $this->closeDrawer();

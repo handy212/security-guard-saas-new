@@ -7,7 +7,7 @@
             <x-stat-card compact label="Completed today" :value="$stats['completed_today']" icon="check" tone="success" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-form-card title="Create route">
                 <form wire:submit="saveRoute" class="space-y-3">
                     <x-select wire:model="routeForm.site_id" label="Site">

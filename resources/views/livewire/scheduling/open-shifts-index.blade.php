@@ -1,9 +1,11 @@
 <div>
     <x-page-shell title="Open Shifts" description="Unfilled shifts and guard bids.">
-        <x-schedules-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
         <x-flash-status />
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-section-card title="Shifts needing guards" :description="$openShifts->isEmpty() ? 'All upcoming shifts are fully staffed.' : null">
                 @forelse($openShifts as $shift)
                     <div class="border-t border-zinc-100 py-2 text-sm first:border-0" wire:key="open-{{ $shift->id }}">
@@ -51,5 +53,6 @@
                 </x-data-table>
             </x-section-card>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

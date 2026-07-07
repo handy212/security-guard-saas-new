@@ -33,7 +33,7 @@
             height="400px"
         />
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-section-card title="Live guards">
                 @forelse($liveGuards as $log)
                     <div class="border-t border-zinc-100 py-2 text-sm first:border-0">

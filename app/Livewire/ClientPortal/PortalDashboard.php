@@ -21,6 +21,7 @@ class PortalDashboard extends Component
     {
         $tenantId = TenantContext::id();
         $clientId = auth()->user()->client_account_id;
+        $clientAccount = auth()->user()->clientAccount;
 
         $shiftQuery = Shift::with(['site', 'assignments.assignedGuard'])->where('tenant_id', $tenantId);
         $reportQuery = DailyActivityReport::with('site')->where('tenant_id', $tenantId)->where('status', 'approved');
@@ -41,6 +42,7 @@ class PortalDashboard extends Component
             ->count();
 
         return view('livewire.client-portal.portal-dashboard', [
+            'clientAccount' => $clientAccount,
             'shifts' => $shiftQuery->latest()->limit(10)->get(),
             'reports' => $reportQuery->latest()->limit(10)->get(),
             'incidents' => $incidentQuery->latest()->limit(10)->get(),

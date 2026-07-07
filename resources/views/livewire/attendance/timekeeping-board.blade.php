@@ -24,7 +24,7 @@
             </form>
         </x-form-card>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-data-table title="Recent attendance">
                 <x-table.head>
                     <tr>

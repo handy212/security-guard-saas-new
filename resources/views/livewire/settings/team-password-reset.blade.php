@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Team passwords" description="Reset passwords when a team member forgets their login.">
-        <x-settings-nav />
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Team members" :value="$users->count()" icon="users" />
@@ -38,5 +39,6 @@
                 @endforelse
             </ul>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

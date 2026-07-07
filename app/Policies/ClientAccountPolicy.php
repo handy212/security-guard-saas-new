@@ -12,6 +12,11 @@ class ClientAccountPolicy
         return $user->can('clients.manage');
     }
 
+    public function view(User $user, ClientAccount $clientAccount): bool
+    {
+        return $user->can('clients.manage') && $user->tenant_id === $clientAccount->tenant_id;
+    }
+
     public function create(User $user): bool
     {
         return $user->can('clients.manage');

@@ -15,7 +15,7 @@ class Guard extends Model
         'tenant_id', 'user_id', 'employee_number', 'first_name', 'last_name', 'phone', 'email',
         'photo_path', 'rank', 'branch_id', 'status', 'verification_status', 'verified_at',
         'verified_by_user_id', 'show_current_assignment', 'hourly_rate', 'license_number',
-        'license_expires_at', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date',
+        'license_expires_at', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date', 'settings',
     ];
 
     protected $appends = ['full_name'];
@@ -27,6 +27,7 @@ class Guard extends Model
             'verified_at' => 'datetime',
             'show_current_assignment' => 'boolean',
             'hire_date' => 'date',
+            'settings' => 'array',
         ];
     }
 
@@ -88,6 +89,29 @@ class Guard extends Model
     public function availabilities(): HasMany
     {
         return $this->hasMany(GuardAvailability::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(GuardNote::class);
+    }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(GuardReminder::class);
+    }
+
+    public function siteAssignments(): HasMany
+    {
+        return $this->hasMany(GuardSiteAssignment::class);
+    }
+
+    public function resolvedSettings(): array
+    {
+        return array_merge(
+            config('guard_profile.default_settings', []),
+            $this->settings ?? [],
+        );
     }
 
     public function leaveRequests(): HasMany

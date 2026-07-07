@@ -6,7 +6,11 @@
             <x-button wire:click="openForm">Create shift</x-button>
         </x-slot:actions>
 
-        <x-schedules-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <div class="stat-grid">
@@ -124,6 +128,7 @@
                 <x-empty-state title="No shifts" description="Create a shift or pick another date." />
             @endforelse
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showForm)

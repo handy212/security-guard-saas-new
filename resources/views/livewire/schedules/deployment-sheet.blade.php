@@ -9,7 +9,10 @@
             <x-button variant="secondary" type="button" onclick="window.print()">Print</x-button>
         </x-slot:actions>
 
-        <x-schedules-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+
 
         <div class="stat-grid">
             <x-stat-card compact label="Assignments" :value="$stats['assignments']" icon="schedules" />
@@ -42,5 +45,6 @@
                 @endforelse
             </tbody>
         </x-data-table>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

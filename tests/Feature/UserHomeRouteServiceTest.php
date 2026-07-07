@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\TenantRoleProvisioner;
 use App\Services\UserHomeRouteService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,7 +29,7 @@ class UserHomeRouteServiceTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $user->assignRole('guard');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'guard');
 
         $this->assertSame(route('guard.mobile'), app(UserHomeRouteService::class)->resolve($user));
     }
@@ -43,7 +44,7 @@ class UserHomeRouteServiceTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $user->assignRole('client');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'client');
 
         $this->assertSame(route('client-portal.dashboard'), app(UserHomeRouteService::class)->resolve($user));
     }
@@ -58,7 +59,7 @@ class UserHomeRouteServiceTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $user->assignRole('supervisor');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'supervisor');
 
         $this->assertSame(route('dispatch.control-room'), app(UserHomeRouteService::class)->resolve($user));
     }
@@ -72,7 +73,7 @@ class UserHomeRouteServiceTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $user->assignRole('super-admin');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'super-admin');
         $this->actingAs($user);
 
         $this->assertSame(route('saas.tenants'), app(UserHomeRouteService::class)->resolve($user));
@@ -88,7 +89,7 @@ class UserHomeRouteServiceTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        $user->assignRole('guard');
+        app(TenantRoleProvisioner::class)->assignRole($user, 'guard');
 
         $this->actingAs($user)
             ->get('/')

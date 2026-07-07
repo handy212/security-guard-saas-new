@@ -11,7 +11,7 @@
             <x-stat-card compact label="Total bids" :value="$bids->count()" icon="plan" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="page-grid-2">
             <x-section-card title="Open shift bids" description="Guards bidding for unfilled shifts.">
                 <x-data-table>
                     <x-table.head>

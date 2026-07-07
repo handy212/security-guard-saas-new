@@ -72,6 +72,7 @@ use App\Models\User;
 use App\Models\VehiclePatrol;
 use App\Models\VisitorLog;
 use App\Models\WebhookSubscription;
+use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -110,12 +111,15 @@ class ModuleDemoSeeder extends Seeder
             ]
         );
 
+        $provisioner = app(TenantRoleProvisioner::class);
+
         $guard2User = User::firstOrCreate(
             ['email' => 'sam.adeyemi@test'],
             ['tenant_id' => $tenant->id, 'name' => 'Sam Adeyemi', 'password' => Hash::make('password'), 'status' => 'active']
         );
+        setPermissionsTeamId($tenant->id);
         if (! $guard2User->hasRole('guard')) {
-            $guard2User->assignRole('guard');
+            $provisioner->assignRole($guard2User, 'guard');
         }
 
         $guard2 = Guard::updateOrCreate(
@@ -143,7 +147,7 @@ class ModuleDemoSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'name' => 'Grace Okafor', 'password' => Hash::make('password'), 'status' => 'active']
         );
         if (! $guard3User->hasRole('guard')) {
-            $guard3User->assignRole('guard');
+            $provisioner->assignRole($guard3User, 'guard');
         }
 
         $guard3 = Guard::updateOrCreate(

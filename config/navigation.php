@@ -11,10 +11,11 @@ return [
     ],
 
     'schedules' => [
-        ['href' => '/schedules', 'label' => 'Schedule', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules', 'label' => 'Overview', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/templates', 'label' => 'Shift Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/attendance', 'label' => 'Attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
+        ['href' => '/attendance/reconciliation', 'label' => 'Reconciliation', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
         ['href' => '/schedules/shift-status', 'label' => 'Shift Status', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/open-shifts', 'label' => 'Open Shifts', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
         ['href' => '/schedules/shift-exchange', 'label' => 'Shift Exchange', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
@@ -26,7 +27,7 @@ return [
         ['href' => '/dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'permission' => 'dashboard.view'],
         ['href' => '/guard', 'label' => 'Field app', 'icon' => 'mobile', 'permission' => 'mobile.use', 'feature' => 'guards', 'highlight' => true],
         ['href' => '/dispatch', 'label' => 'Dispatch', 'icon' => 'dispatch', 'permission' => 'dispatch.manage', 'feature' => 'dispatch'],
-        ['href' => '/schedules', 'label' => 'Schedule', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules', 'label' => 'Scheduler', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/incidents', 'label' => 'Incidents', 'icon' => 'incidents', 'permission' => 'incidents.manage', 'feature' => 'incidents'],
         ['href' => '/tracking', 'label' => 'Live Tracker', 'icon' => 'gps', 'permission' => 'dispatch.manage', 'feature' => 'gps'],
         ['href' => '/messenger', 'label' => 'Messenger', 'icon' => 'messenger', 'permission' => 'dispatch.manage', 'feature' => 'messenger'],
@@ -34,11 +35,6 @@ return [
     ],
 
     'groups' => [
-        'Schedule' => [
-            ['href' => '/schedules/calendar', 'label' => 'Calendar', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-            ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment Sheet', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-            ['href' => '/attendance/reconciliation', 'label' => 'Reconciliation', 'icon' => 'attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
-        ],
         'Patrols & Reports' => [
             ['href' => '/patrols', 'label' => 'Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
             ['href' => '/passdown', 'label' => 'Passdown', 'icon' => 'reports', 'permission' => 'patrols.manage', 'feature' => 'passdown'],
@@ -61,12 +57,10 @@ return [
             ['href' => '/billing/invoices', 'label' => 'Invoices', 'icon' => 'billing', 'permission' => 'billing.manage', 'feature' => 'billing'],
             ['href' => '/billing/estimates', 'label' => 'Estimates', 'icon' => 'billing', 'permission' => 'billing.manage', 'feature' => 'estimates'],
             ['href' => '/billing/payroll', 'label' => 'Payroll', 'icon' => 'billing', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
-            ['href' => '/billing/subscription', 'label' => 'Subscription', 'icon' => 'billing', 'permission' => 'billing.manage'],
         ],
         'Compliance & Insights' => [
             ['href' => '/compliance', 'label' => 'Overview', 'icon' => 'compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
             ['href' => '/compliance/policies', 'label' => 'Policies', 'icon' => 'compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
-            ['href' => '/sites/compliance', 'label' => 'Site SLA', 'icon' => 'sites', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
             ['href' => '/analytics', 'label' => 'Analytics', 'icon' => 'analytics', 'permission' => 'analytics.view', 'feature' => 'analytics'],
         ],
     ],
@@ -82,6 +76,7 @@ return [
     ],
 
     'settings' => [
+        ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
         ['href' => '/settings/know-your-guard', 'label' => 'Know Your Guard', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],

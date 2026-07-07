@@ -4,7 +4,11 @@
             <x-button wire:click="openCreate">Add category</x-button>
         </x-slot:actions>
 
-        <x-assets-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <x-page-toolbar search="search" searchPlaceholder="Search categories…" />
@@ -47,6 +51,7 @@
         </x-data-table>
 
         <x-pagination :paginator="$categories" />
+            </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showForm)

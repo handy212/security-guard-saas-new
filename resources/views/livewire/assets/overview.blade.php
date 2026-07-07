@@ -1,6 +1,10 @@
 <div>
     <x-page-shell title="Assets" description="Overview of company assets, inventory, and procurement.">
-        <x-assets-nav />
+        
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+
+
         <x-flash-status />
 
         <div class="stat-grid">
@@ -67,5 +71,6 @@
                 @endif
             </x-section-card>
         </div>
+            </x-sub-sidebar-layout>
     </x-page-shell>
 </div>
