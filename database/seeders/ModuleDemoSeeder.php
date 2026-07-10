@@ -132,7 +132,7 @@ class ModuleDemoSeeder extends Seeder
                 'phone' => '0241111111',
                 'email' => 'sam.adeyemi@test',
                 'status' => 'active',
-                'hourly_rate' => 9.5,
+                'monthly_rate' => 9.5,
                 'license_number' => 'SEC-002',
                 'rank' => 'Officer',
                 'verification_status' => 'verified',
@@ -160,7 +160,7 @@ class ModuleDemoSeeder extends Seeder
                 'phone' => '0242222222',
                 'email' => 'grace.okafor@test',
                 'status' => 'active',
-                'hourly_rate' => 10,
+                'monthly_rate' => 10,
                 'license_number' => 'SEC-003',
                 'rank' => 'Officer',
                 'verification_status' => 'pending',
@@ -175,7 +175,7 @@ class ModuleDemoSeeder extends Seeder
                 'email' => 'ops@harborlogistics.test',
                 'phone' => '+233 30 200 1234',
                 'status' => 'active',
-                'default_hourly_rate' => 22,
+                'default_monthly_rate' => 22,
             ]
         );
 

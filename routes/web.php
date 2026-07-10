@@ -35,9 +35,12 @@ use App\Livewire\Assets\PurchaseOrderIndex;
 use App\Livewire\Assets\VendorIndex;
 use App\Livewire\Dispatch\DispatcherBoard;
 use App\Livewire\Guards\GuardHrRecords;
+use App\Livewire\Guards\GuardApplicationQueue;
 use App\Livewire\Guards\GuardIndex;
 use App\Livewire\Guards\GuardProfile;
 use App\Livewire\Guards\KnowYourGuardQueue;
+use App\Livewire\Public\GuardApplicationForm;
+use App\Livewire\Settings\BranchIndex;
 use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Messenger\MessengerIndex;
@@ -107,6 +110,11 @@ Route::get('/g/{token}/logo', GuardVerificationLogoController::class)
     ->where('token', '[A-Z0-9]{8,32}')
     ->name('guard.verify.logo.legacy');
 
+Route::get('/apply/{tenant}', GuardApplicationForm::class)
+    ->middleware('throttle:30,1')
+    ->where('tenant', '[A-Za-z0-9\-]+')
+    ->name('guards.apply');
+
 Route::get('/', HomeController::class)->name('home');
 
 Route::middleware('guest')->group(function () {
@@ -130,6 +138,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/sites/{site}', SiteProfile::class)->name('sites.show');
     Route::get('/guards', GuardIndex::class)->name('guards.index');
     Route::get('/guards/know-your-guard', KnowYourGuardQueue::class)->name('guards.kyg');
+    Route::get('/guards/applications', GuardApplicationQueue::class)->name('guards.applications');
     Route::get('/guards/{guard}', GuardProfile::class)->name('guards.show');
     Route::get('/guards/{guard}/id-card', GuardIdCardController::class)->name('guards.id-card');
     Route::get('/guards/{guard}/id-card/print', GuardIdCardPrintController::class)->name('guards.id-card.print');
@@ -165,6 +174,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/billing/subscription', SubscriptionManager::class)->name('billing.subscription');
     Route::get('/billing/subscription/callback', PaystackCallbackController::class)->name('billing.paystack.callback');
     Route::get('/settings', SettingsHub::class)->name('settings.index');
+    Route::get('/settings/branches', BranchIndex::class)->name('settings.branches');
     Route::get('/settings/id-card', IdCardSettings::class)->name('settings.id-card');
     Route::get('/settings/know-your-guard', KygPageSettings::class)->name('settings.kyg');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');

@@ -9,12 +9,14 @@ use Livewire\Component;
 
 class DeploymentSheet extends Component
 {
-    public string $date;
+    public string $date = '';
+
+    protected $queryString = ['date'];
 
     public function mount(): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $this->date = today()->toDateString();
+        $this->date = $this->date ?: today()->toDateString();
     }
 
     public function previousDay(): void

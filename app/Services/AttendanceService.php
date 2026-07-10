@@ -38,6 +38,7 @@ class AttendanceService
         ]);
 
         $assignment->update(['status' => 'in_progress']);
+        app(ScheduleService::class)->refreshShiftStaffingStatus($assignment->shift);
 
         return $log;
     }
@@ -56,6 +57,10 @@ class AttendanceService
             'worked_minutes' => Carbon::parse($log->clock_in_at)->diffInMinutes(now()),
         ]);
         $log->shiftAssignment?->update(['status' => 'completed']);
+
+        if ($log->shiftAssignment?->shift) {
+            app(ScheduleService::class)->refreshShiftStaffingStatus($log->shiftAssignment->shift);
+        }
 
         return $log->fresh();
     }

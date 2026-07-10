@@ -3,15 +3,16 @@
         :title="$greeting.', '.auth()->user()->name"
         :description="now()->format('l, F j').' · Operations overview'"
     >
-        <x-slot:actions>
-            <x-button variant="secondary" :href="route('schedules.index')">Schedules</x-button>
-            <x-button :href="route('incidents.index')">Report incident</x-button>
-        </x-slot:actions>
-
         @php
             $sosKpi = collect($kpis)->firstWhere('key', 'sos');
             $hasUrgent = ($sosKpi['value'] ?? 0) > 0;
             $displayKpis = collect($kpis)->whereIn('key', ['reports', 'incidents', 'patrols', 'guards', 'shifts', 'alerts']);
+            $quickActions = array_filter([
+                ['label' => 'Add guard', 'href' => route('guards.index'), 'icon' => 'guards', 'permission' => 'guards.manage'],
+                ['label' => 'Schedules', 'href' => route('schedules.index'), 'icon' => 'schedules', 'permission' => 'schedules.manage'],
+                ['label' => 'Report incident', 'href' => route('incidents.index'), 'icon' => 'incidents', 'permission' => 'incidents.manage'],
+                ['label' => 'Dispatch', 'href' => route('dispatch.control-room'), 'icon' => 'dispatch', 'permission' => 'dispatch.manage'],
+            ], fn ($action) => empty($action['permission']) || auth()->user()?->can($action['permission']));
         @endphp
 
         @if ($hasUrgent)
@@ -51,6 +52,23 @@
                 />
             @endforeach
         </div>
+
+        <section class="card-surface p-4">
+            <div class="mb-3">
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Quick actions</h2>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Jump into the work you do most often</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                @foreach ($quickActions as $action)
+                    <a href="{{ $action['href'] }}" class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 px-3 py-3 text-center transition hover:border-accent-300 hover:bg-accent-50/50 dark:border-zinc-700 dark:hover:bg-zinc-800/60">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                            <x-nav-icon :name="$action['icon']" class="h-5 w-5" />
+                        </span>
+                        <span class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $action['label'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </section>
 
         <div class="page-grid-2">
             <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
@@ -157,16 +175,6 @@
                             <a href="{{ route('schedules.attendance') }}" class="mt-2 inline-block text-xs font-medium text-accent-600 hover:underline">Attendance</a>
                         </div>
                     @endforelse
-                </section>
-
-                <section class="card-surface p-4">
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Quick actions</h2>
-                    <div class="mt-3 grid grid-cols-2 gap-2">
-                        <a href="{{ route('guards.index') }}" class="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">Guards</a>
-                        <a href="{{ route('patrols.index') }}" class="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">Patrols</a>
-                        <a href="{{ route('dispatch.control-room') }}" class="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">Dispatch</a>
-                        <a href="{{ route('guards.kyg') }}" class="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">Know Your Guard</a>
-                    </div>
                 </section>
 
                 <section class="card-surface p-4">

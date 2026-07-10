@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\GuardDutyType;
 use App\Models\Guard;
 use App\Models\GuardVerificationToken;
 use Illuminate\Support\Str;
@@ -87,7 +88,7 @@ class GuardVerificationService
 
         $guard = $record->assignedGuard;
 
-        if (! $guard || $guard->verification_status !== 'verified') {
+        if (! $guard || ! in_array($guard->verification_status, ['verified', 'suspended'], true)) {
             return null;
         }
 
@@ -114,12 +115,13 @@ class GuardVerificationService
 
     public function suspend(Guard $guard): void
     {
+        // Keep active QR tokens so printed ID cards still scan and show suspended status.
         $guard->update(['verification_status' => 'suspended']);
+    }
 
-        GuardVerificationToken::query()
-            ->where('guard_id', $guard->id)
-            ->whereNull('revoked_at')
-            ->update(['revoked_at' => now()]);
+    public function reinstate(Guard $guard): void
+    {
+        $guard->update(['verification_status' => 'verified']);
     }
 
     public function submitForReview(Guard $guard): void
@@ -209,15 +211,7 @@ class GuardVerificationService
      */
     public function idCardEligibility(Guard $guard): array
     {
-        if ($guard->verification_status === 'suspended') {
-            return [
-                'can_download' => false,
-                'message' => 'Verification is suspended. Reinstate this guard before issuing an ID card.',
-                'action' => null,
-            ];
-        }
-
-        if ($guard->verification_status !== 'verified') {
+        if (! in_array($guard->verification_status, ['verified', 'suspended'], true)) {
             return [
                 'can_download' => false,
                 'message' => 'Complete the verification checklist and mark this guard as verified.',
@@ -228,16 +222,27 @@ class GuardVerificationService
         if (! $guard->activeVerificationToken()) {
             return [
                 'can_download' => false,
-                'message' => 'An active QR verification token is required. Rotate the QR code below if needed.',
+                'message' => 'An active QR verification token is required. Issue or rotate the QR code below if needed.',
                 'action' => 'regenerate',
             ];
         }
 
         return [
             'can_download' => true,
-            'message' => null,
+            'message' => $guard->verification_status === 'suspended'
+                ? 'Verification is suspended. The card QR still works and shows suspended status when scanned.'
+                : null,
             'action' => null,
         ];
+    }
+
+    public function dutyTypeSuspendedMessage(Guard $guard): string
+    {
+        $type = $guard->duty_type instanceof GuardDutyType
+            ? $guard->duty_type
+            : GuardDutyType::tryFrom((string) $guard->duty_type) ?? GuardDutyType::Guardian;
+
+        return $type->suspendedMessage();
     }
 
     private function generateUniqueToken(): string

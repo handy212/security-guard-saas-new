@@ -1,6 +1,7 @@
 <div>
     <x-page-shell title="Guards & Officers" description="Roster, profiles, and Know Your Guard verification.">
         <x-slot:actions>
+            <x-button variant="secondary" :href="route('guards.applications')">Applications</x-button>
             <x-button variant="secondary" :href="route('guards.kyg')">KYG queue</x-button>
             <x-button wire:click="openCreate">Add guard</x-button>
         </x-slot:actions>
@@ -33,6 +34,7 @@
                 <tr>
                     <x-table.th>Guard</x-table.th>
                     <x-table.th responsive="md">ID</x-table.th>
+                    <x-table.th responsive="lg">Type</x-table.th>
                     <x-table.th responsive="lg">Branch</x-table.th>
                     <x-table.th>KYG</x-table.th>
                     <x-table.th>Status</x-table.th>
@@ -55,6 +57,7 @@
                             </a>
                         </x-table.td>
                         <x-table.td responsive="md" mono>{{ $guard->employee_number ?: '—' }}</x-table.td>
+                        <x-table.td responsive="lg" muted>{{ $guard->dutyTypeLabel() }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $guard->branch?->name ?? '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$guard->verification_status" /></x-table.td>
                         <x-table.td><x-badge :status="$guard->status" /></x-table.td>
@@ -67,7 +70,7 @@
                         </x-table.td>
                     </tr>
                 @empty
-                    <x-table.empty colspan="6">
+                    <x-table.empty colspan="7">
                         <x-empty-state
                             compact
                             :title="$hasActiveFilters ? 'No matching guards' : 'No guards'"
@@ -102,13 +105,21 @@
                 <x-input wire:model="form.license_number" label="License #" />
                 <x-input wire:model="form.license_expires_at" label="License expires" type="date" />
                 <x-input wire:model="form.rank" label="Rank / position" />
-                <x-select wire:model="form.branch_id" label="Branch">
-                    <option value="">None</option>
-                    @foreach($branches as $branch)
-                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                <x-select wire:model="form.duty_type" label="Duty type">
+                    @foreach($dutyTypes as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </x-select>
-                <x-input wire:model="form.hourly_rate" label="Hourly rate" type="number" step="0.01" class="sm:col-span-2" />
+                <div>
+                    <x-select wire:model="form.branch_id" label="Branch">
+                        <option value="">None</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <a href="{{ route('settings.branches') }}" class="mt-1 inline-block text-xs font-medium text-accent-600 hover:underline">Manage branches</a>
+                </div>
+                <x-input wire:model="form.monthly_rate" label="Monthly rate" type="number" step="0.01" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
     @endif

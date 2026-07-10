@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GuardDutyType;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,8 +14,8 @@ class Guard extends Model
 
     protected $fillable = [
         'tenant_id', 'user_id', 'employee_number', 'first_name', 'last_name', 'phone', 'email',
-        'photo_path', 'rank', 'branch_id', 'status', 'verification_status', 'verified_at',
-        'verified_by_user_id', 'show_current_assignment', 'hourly_rate', 'license_number',
+        'photo_path', 'rank', 'duty_type', 'branch_id', 'status', 'verification_status', 'verified_at',
+        'verified_by_user_id', 'show_current_assignment', 'monthly_rate', 'license_number',
         'license_expires_at', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date', 'settings',
     ];
 
@@ -28,6 +29,8 @@ class Guard extends Model
             'show_current_assignment' => 'boolean',
             'hire_date' => 'date',
             'settings' => 'array',
+            'duty_type' => GuardDutyType::class,
+            'monthly_rate' => 'decimal:2',
         ];
     }
 
@@ -54,6 +57,15 @@ class Guard extends Model
     public function getFullNameAttribute(): string
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    public function dutyTypeLabel(): string
+    {
+        $type = $this->duty_type instanceof GuardDutyType
+            ? $this->duty_type
+            : GuardDutyType::tryFrom((string) $this->duty_type) ?? GuardDutyType::Guardian;
+
+        return $type->label();
     }
 
     public function documents(): HasMany

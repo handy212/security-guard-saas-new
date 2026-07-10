@@ -1,7 +1,8 @@
 <div>
-    <x-page-shell title="Schedule Calendar" description="Monthly and weekly shift planning view.">
+    <x-page-shell title="Calendar" description="Plan shifts by week or month, then open a day to staff them.">
         <x-slot:actions>
-            <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day list</x-button>
+            <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day roster</x-button>
+            <x-button size="sm" :href="route('schedules.index', ['date' => today()->toDateString()])">Create for today</x-button>
         </x-slot:actions>
 
         

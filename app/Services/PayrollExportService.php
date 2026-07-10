@@ -20,17 +20,17 @@ class PayrollExportService
             ->whereHas('shift', fn ($q) => $q->whereBetween('starts_at', [$periodStart, $periodEnd]))
             ->get();
 
-        $rows = [['Employee', 'Date', 'Hours', 'Rate', 'Site', 'Amount']];
+        $rows = [['Employee', 'Date', 'Hours', 'Monthly rate', 'Site', 'Amount']];
         foreach ($assignments as $assignment) {
             $hours = max(1, $assignment->shift->billable_hours ?? 8);
-            $rate = $assignment->assignedGuard?->hourly_rate ?? 0;
+            $rate = $assignment->assignedGuard?->monthly_rate ?? 0;
             $rows[] = [
                 $assignment->assignedGuard?->full_name ?? 'Guard',
                 $assignment->shift->starts_at?->toDateString() ?? '',
                 $hours,
                 $rate,
                 $assignment->shift->site?->name ?? '',
-                $hours * $rate,
+                $rate,
             ];
         }
 

@@ -31,7 +31,7 @@
                         </x-select>
                         <x-input wire:model="items.{{ $i }}.required_guards" type="number" min="1" label="Guards" />
                         <div class="flex items-end gap-2">
-                            <x-input wire:model="items.{{ $i }}.billing_rate" type="number" step="0.01" label="Rate" />
+                            <x-input wire:model="items.{{ $i }}.billing_rate" type="number" step="0.01" label="Shift charge" />
                             @if (count($items) > 1)
                                 <button type="button" wire:click="removeItem({{ $i }})" class="mb-1 text-xs text-red-600 hover:underline">Remove</button>
                             @endif

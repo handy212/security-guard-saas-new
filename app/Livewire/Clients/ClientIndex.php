@@ -19,7 +19,7 @@ class ClientIndex extends Component
 
     public ?int $editingId = null;
 
-    public array $form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_hourly_rate' => 0];
+    public array $form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -39,7 +39,7 @@ class ClientIndex extends Component
             'form.email' => 'nullable|email',
             'form.phone' => 'nullable',
             'form.status' => 'required',
-            'form.default_hourly_rate' => 'numeric',
+            'form.default_monthly_rate' => 'numeric',
         ];
     }
 
@@ -74,7 +74,7 @@ class ClientIndex extends Component
             $client = ClientAccount::create($data + ['tenant_id' => TenantContext::id()]);
             $this->closeDrawer();
             $this->reset(['editingId']);
-            $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_hourly_rate' => 0];
+            $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
 
             $this->redirect(route('clients.show', $client), navigate: true);
 
@@ -82,13 +82,13 @@ class ClientIndex extends Component
         }
         $this->closeDrawer();
         $this->reset(['editingId']);
-        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_hourly_rate' => 0];
+        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
     }
 
     public function openCreate(): void
     {
         $this->reset(['editingId']);
-        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_hourly_rate' => 0];
+        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
         $this->openForm();
     }
 

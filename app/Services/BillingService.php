@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\{ClientAccount, Invoice, InvoiceItem, ShiftAssignment};
+use App\Models\ClientAccount;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\ShiftAssignment;
+use Illuminate\Support\Carbon;
 
 class BillingService
 {
@@ -20,26 +24,55 @@ class BillingService
             'grand_total' => 0,
         ]);
 
-        $assignments = ShiftAssignment::whereHas('shift', fn($q) => $q->where('client_account_id', $client->id)->whereMonth('starts_at', substr($month,5,2))->whereYear('starts_at', substr($month,0,4)))
-            ->where('status','completed')->with('shift')->get();
+        $period = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+
+        $assignments = ShiftAssignment::whereHas('shift', fn ($q) => $q
+            ->where('client_account_id', $client->id)
+            ->whereMonth('starts_at', $period->month)
+            ->whereYear('starts_at', $period->year))
+            ->where('status', 'completed')
+            ->with('shift')
+            ->get();
 
         $subtotal = 0;
+        $billedShiftIds = [];
+
         foreach ($assignments as $assignment) {
-            $hours = max(1, $assignment->shift->billable_hours ?? 8);
-            $rate = $assignment->shift->billing_rate ?? $client->default_hourly_rate ?? 0;
-            $amount = $hours * $rate;
+            $shiftId = $assignment->shift_id;
+            if (isset($billedShiftIds[$shiftId])) {
+                continue;
+            }
+            $billedShiftIds[$shiftId] = true;
+
+            $rate = $assignment->shift->billing_rate ?? $client->default_monthly_rate ?? 0;
+            $amount = (float) $rate;
             $subtotal += $amount;
+
             InvoiceItem::create([
                 'tenant_id' => $client->tenant_id,
                 'invoice_id' => $invoice->id,
-                'description' => 'Security services - '.$assignment->shift->starts_at,
-                'quantity' => $hours,
+                'description' => 'Shift charge - '.$assignment->shift->starts_at->format('M j, Y'),
+                'quantity' => 1,
                 'unit_price' => $rate,
                 'line_total' => $amount,
             ]);
         }
 
-        $invoice->update(['subtotal'=>$subtotal, 'tax_total'=>0, 'grand_total'=>$subtotal]);
+        if ($subtotal <= 0 && (float) ($client->default_monthly_rate ?? 0) > 0) {
+            $rate = (float) $client->default_monthly_rate;
+            $subtotal = $rate;
+            InvoiceItem::create([
+                'tenant_id' => $client->tenant_id,
+                'invoice_id' => $invoice->id,
+                'description' => 'Monthly security retainer - '.$period->format('F Y'),
+                'quantity' => 1,
+                'unit_price' => $rate,
+                'line_total' => $rate,
+            ]);
+        }
+
+        $invoice->update(['subtotal' => $subtotal, 'tax_total' => 0, 'grand_total' => $subtotal]);
+
         return $invoice->fresh('items');
     }
 }

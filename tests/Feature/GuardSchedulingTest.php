@@ -414,6 +414,49 @@ class GuardSchedulingTest extends TestCase
         ]);
     }
 
+    public function test_cannot_assign_guard_outside_availability_window(): void
+    {
+        $shift = $this->createOpenShift();
+
+        \App\Models\GuardAvailability::create([
+            'tenant_id' => $this->tenant->id,
+            'guard_id' => $this->guard->id,
+            'weekday' => $shift->starts_at->dayOfWeek,
+            'starts_at' => '06:00',
+            'ends_at' => '07:00',
+            'is_available' => true,
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('not available');
+        app(ScheduleService::class)->assignGuard($shift, $this->guard);
+    }
+
+    public function test_clock_in_and_out_advance_shift_status(): void
+    {
+        $starts = now()->next(Carbon::MONDAY)->setTime(8, 0);
+        $shift = Shift::create([
+            'tenant_id' => $this->tenant->id,
+            'client_account_id' => $this->client->id,
+            'site_id' => $this->site->id,
+            'title' => 'Status flow shift',
+            'starts_at' => $starts,
+            'ends_at' => $starts->copy()->setTime(16, 0),
+            'required_guards' => 1,
+            'status' => 'open',
+        ]);
+
+        $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
+        $attendance = app(\App\Services\AttendanceService::class);
+
+        $attendance->clockIn($assignment->id, 5.6, -0.2, enforceGeofence: false);
+        $this->assertSame('in_progress', $shift->fresh()->status->value);
+
+        $log = \App\Models\AttendanceLog::where('shift_assignment_id', $assignment->id)->first();
+        $attendance->clockOut($log->id, 5.6, -0.2);
+        $this->assertSame('completed', $shift->fresh()->status->value);
+    }
+
     public function test_time_off_page_renders_filters_and_table(): void
     {
         Livewire::actingAs($this->admin)

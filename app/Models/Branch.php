@@ -4,9 +4,25 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
 {
     use BelongsToTenant;
-    protected $fillable=['tenant_id','name','code','phone','email','address','city','country','is_active']; protected $casts=['is_active'=>'boolean'];
+
+    protected $fillable = [
+        'tenant_id', 'name', 'code', 'phone', 'email', 'address', 'city', 'country', 'is_active',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function guards(): HasMany
+    {
+        return $this->hasMany(Guard::class);
+    }
 }

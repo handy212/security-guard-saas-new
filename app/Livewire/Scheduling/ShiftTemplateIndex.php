@@ -141,8 +141,11 @@ class ShiftTemplateIndex extends Component
         abort_if($template->items->isEmpty(), 422, 'Template has no shift patterns.');
         abort_unless($template->is_active, 422, 'This template is inactive. Activate it before applying.');
 
-        $count = $service->applyTemplate($template, Carbon::parse($data['weekStart']));
+        $weekStart = Carbon::parse($data['weekStart'])->startOfWeek(Carbon::SUNDAY);
+        $count = $service->applyTemplate($template, $weekStart);
         session()->flash('status', "{$count} shifts created from template.");
+
+        $this->redirect(route('schedules.index', ['date' => $weekStart->toDateString()]), navigate: true);
     }
 
     public function render()

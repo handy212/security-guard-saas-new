@@ -65,15 +65,29 @@ class GuardVerificationTest extends TestCase
         $this->get('/g/'.$token->token)->assertNotFound();
     }
 
-    public function test_suspended_guard_returns_not_found(): void
+    public function test_suspended_guard_keeps_token_and_shows_suspended_page(): void
     {
         $this->seed();
 
         $guard = Guard::where('employee_number', 'G-001')->first();
         $token = $guard->activeVerificationToken();
-        $guard->update(['verification_status' => 'suspended']);
+        $originalToken = $token->token;
 
-        $this->get('/g/'.$token->token)->assertNotFound();
+        app(GuardVerificationService::class)->suspend($guard);
+
+        $guard->refresh();
+        $this->assertSame('suspended', $guard->verification_status);
+        $this->assertSame($originalToken, $guard->activeVerificationToken()->token);
+
+        $this->get($this->tenantVerifyPath($token->fresh()))
+            ->assertOk()
+            ->assertSee('This Guardian is suspended')
+            ->assertSee($guard->full_name);
+
+        app(GuardVerificationService::class)->reinstate($guard);
+        $guard->refresh();
+        $this->assertSame('verified', $guard->verification_status);
+        $this->assertSame($originalToken, $guard->activeVerificationToken()->token);
     }
 
     public function test_regenerating_token_invalidates_previous_url(): void

@@ -41,7 +41,7 @@
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>
-                        <x-table.td muted>{{ $client->default_hourly_rate ? number_format($client->default_hourly_rate, 2) : '—' }}</x-table.td>
+                        <x-table.td muted>{{ $client->default_monthly_rate ? number_format($client->default_monthly_rate, 2) : '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$client->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
@@ -75,7 +75,7 @@
                 <x-input wire:model="form.industry" label="Industry" />
                 <x-input wire:model="form.email" label="Email" type="email" />
                 <x-input wire:model="form.phone" label="Phone" />
-                <x-input wire:model="form.default_hourly_rate" label="Default hourly rate" type="number" step="0.01" />
+                <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
             </x-drawer-form>
         </x-drawer>
     @endif

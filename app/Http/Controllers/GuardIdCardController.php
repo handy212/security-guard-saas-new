@@ -16,7 +16,7 @@ class GuardIdCardController extends Controller
     ): Response {
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $guard->tenant_id === (int) auth()->user()->tenant_id, 404);
-        abort_unless($guard->verification_status === 'verified', 403, 'Guard must be verified before downloading an ID card.');
+        abort_unless(in_array($guard->verification_status, ['verified', 'suspended'], true), 403, 'Guard must be verified before downloading an ID card.');
 
         $built = $renderer->forGuard($guard);
 

@@ -15,7 +15,7 @@ class GuardIdCardPreviewController extends Controller
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $guard->tenant_id === (int) auth()->user()->tenant_id, 404);
 
-        if ($guard->verification_status !== 'verified' || ! $guard->activeVerificationToken()) {
+        if (! in_array($guard->verification_status, ['verified', 'suspended'], true) || ! $guard->activeVerificationToken()) {
             return view('id-cards.preview-unavailable', [
                 'message' => 'Verify this guard and activate a QR token to preview the ID card.',
             ]);

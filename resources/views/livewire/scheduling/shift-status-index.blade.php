@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell title="Shift Status" description="Track assignment status and guard shift confirmations.">
+    <x-page-shell title="Confirmations" description="Track assignment status and guard shift confirmations.">
         <x-sub-sidebar-layout>
             <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
 

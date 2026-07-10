@@ -14,7 +14,7 @@
                         <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
                             <span class="text-amber-700">{{ $shift->activeAssignmentsCount() }}/{{ $shift->required_guards }} filled</span>
                             <x-badge :status="$shift->status" />
-                            <a href="{{ route('schedules.index') }}" class="font-medium text-zinc-600 hover:underline">Assign from schedule</a>
+                            <a href="{{ route('schedules.index', ['date' => $shift->starts_at?->toDateString()]) }}" class="font-medium text-accent-600 hover:underline">Assign on day roster</a>
                         </div>
                     </div>
                 @empty

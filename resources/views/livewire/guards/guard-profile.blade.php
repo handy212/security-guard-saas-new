@@ -27,6 +27,7 @@
         <x-profile-meta :items="array_filter([
             ['type' => 'badge', 'value' => $guard->status],
             ['type' => 'badge', 'value' => $guard->verification_status],
+            ['type' => 'text', 'value' => $guard->dutyTypeLabel()],
             $guard->branch ? ['type' => 'text', 'value' => $guard->branch->name] : null,
             $guard->rank ? ['type' => 'text', 'value' => $guard->rank] : null,
         ])" />
@@ -69,18 +70,21 @@
                         </ul>
 
                         <div class="mt-4 flex flex-wrap gap-2">
-                            @if ($guard->verification_status !== 'verified')
+                            @if ($guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
                                 <x-button wire:click="submitForReview" variant="secondary" size="sm">Submit for review</x-button>
                             @endif
-                            @if ($checklist['ready'] && $guard->verification_status !== 'verified')
+                            @if ($checklist['ready'] && $guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
                                 <x-button wire:click="markVerified" size="sm">Mark verified</x-button>
                             @endif
                             @if ($guard->verification_status === 'verified')
-                                <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend verification?">Suspend</x-button>
+                                <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend verification? The QR code will stay the same and show suspended when scanned.">Suspend</x-button>
+                            @endif
+                            @if ($guard->verification_status === 'suspended')
+                                <x-button wire:click="reinstate" size="sm" wire:confirm="Reinstate verification? The existing QR code will keep working.">Reinstate</x-button>
                             @endif
                         </div>
 
-                        @if ($guard->verification_status === 'verified' && $verifyUrl && $qrSvg)
+                        @if (in_array($guard->verification_status, ['verified', 'suspended'], true) && $verifyUrl && $qrSvg)
                             <div class="mt-4 flex items-start gap-4 border-t border-zinc-100 pt-4">
                                 <div class="rounded-lg border border-zinc-200 bg-white p-2">{!! $qrSvg !!}</div>
                                 <div class="text-xs text-zinc-500">
@@ -88,7 +92,11 @@
                                     @if ($lastScannedAt)
                                         <p class="mt-1">Last scanned {{ $lastScannedAt->format('M j, Y g:i A') }}</p>
                                     @endif
-                                    <x-button wire:click="rotateQrToken" variant="secondary" size="sm" class="mt-2" wire:confirm="Rotate QR code? Printed cards will need reprinting.">Rotate QR</x-button>
+                                    @if ($guard->verification_status === 'verified')
+                                        <x-button wire:click="rotateQrToken" variant="secondary" size="sm" class="mt-2" wire:confirm="Rotate QR code? Printed cards will need reprinting.">Rotate QR</x-button>
+                                    @elseif ($guard->verification_status === 'suspended')
+                                        <p class="mt-2 font-medium text-red-600">Suspended — scans show suspended status. Reinstate to restore normal verification.</p>
+                                    @endif
                                 </div>
                             </div>
                         @elseif ($guard->verification_status === 'verified')
@@ -117,10 +125,10 @@
             <div class="grid gap-4 lg:grid-cols-3">
                 <x-section-card title="Photo">
                     @if ($guard->photo_path)
-                        <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="mx-auto h-32 w-32 rounded-full object-cover">
+                        <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="mx-auto h-36 w-28 rounded-xl border border-zinc-200 object-cover shadow-sm">
                     @else
-                        <div class="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-zinc-100 text-2xl font-semibold text-zinc-500">
-                            {{ strtoupper(substr($guard->first_name, 0, 1)) }}
+                        <div class="mx-auto flex h-36 w-28 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 text-2xl font-semibold text-zinc-500">
+                            {{ strtoupper(substr($guard->first_name, 0, 1).substr($guard->last_name, 0, 1)) }}
                         </div>
                     @endif
                     <form wire:submit="uploadPhoto" class="mt-3 space-y-2">
@@ -142,7 +150,7 @@
                             <x-input wire:model="profileForm.last_name" label="Last name" />
                             <x-input wire:model="profileForm.phone" label="Phone" />
                             <x-input wire:model="profileForm.email" label="Email" type="email" />
-                            <x-input wire:model="profileForm.hourly_rate" label="Hourly rate" type="number" step="0.01" />
+                            <x-input wire:model="profileForm.monthly_rate" label="Monthly rate" type="number" step="0.01" />
                             <x-input wire:model="profileForm.hire_date" label="Hire date" type="date" />
                             <x-select wire:model="profileForm.user_id" label="Linked user account" class="sm:col-span-2">
                                 <option value="">None</option>
@@ -528,6 +536,10 @@
                             <dd class="font-medium text-zinc-900">{{ $guard->branch?->name ?? '—' }}</dd>
                         </div>
                         <div class="flex justify-between gap-4">
+                            <dt class="text-zinc-500">Duty type</dt>
+                            <dd class="font-medium text-zinc-900">{{ $guard->dutyTypeLabel() }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
                             <dt class="text-zinc-500">Rank</dt>
                             <dd class="text-zinc-900">{{ $guard->rank ?: '—' }}</dd>
                         </div>
@@ -544,10 +556,18 @@
 
                 <x-form-card title="Department assignment">
                     <form wire:submit="saveDepartment" class="space-y-3">
-                        <x-select wire:model="departmentForm.branch_id" label="Branch / department">
-                            <option value="">None</option>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                        <div>
+                            <x-select wire:model="departmentForm.branch_id" label="Branch / department">
+                                <option value="">None</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </x-select>
+                            <a href="{{ route('settings.branches') }}" class="mt-1 inline-block text-xs font-medium text-accent-600 hover:underline">Manage branches</a>
+                        </div>
+                        <x-select wire:model="departmentForm.duty_type" label="Duty type">
+                            @foreach($dutyTypes as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
                         <x-input wire:model="departmentForm.rank" label="Rank / title" />

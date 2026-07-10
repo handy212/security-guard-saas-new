@@ -11,16 +11,21 @@ return [
     ],
 
     'schedules' => [
-        ['href' => '/schedules', 'label' => 'Overview', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        // Plan
         ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/schedules/templates', 'label' => 'Shift Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/templates', 'label' => 'Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        // Day
+        ['href' => '/schedules', 'label' => 'Day roster', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/shift-status', 'label' => 'Confirmations', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        // Time
         ['href' => '/schedules/attendance', 'label' => 'Attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
         ['href' => '/attendance/reconciliation', 'label' => 'Reconciliation', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
-        ['href' => '/schedules/shift-status', 'label' => 'Shift Status', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/schedules/open-shifts', 'label' => 'Open Shifts', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
-        ['href' => '/schedules/shift-exchange', 'label' => 'Shift Exchange', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
-        ['href' => '/schedules/time-off', 'label' => 'Time Off', 'permission' => 'schedules.manage', 'feature' => 'workforce'],
-        ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        // Marketplace
+        ['href' => '/schedules/open-shifts', 'label' => 'Open shifts', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
+        ['href' => '/schedules/shift-exchange', 'label' => 'Shift exchange', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
+        // Leave
+        ['href' => '/schedules/time-off', 'label' => 'Time off', 'permission' => 'schedules.manage', 'feature' => 'workforce'],
     ],
 
     'pinned' => [
@@ -43,9 +48,10 @@ return [
             ['href' => '/reports/daily', 'label' => 'Daily Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
             ['href' => '/reports/templates', 'label' => 'Custom Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'custom_reports'],
         ],
-        'People' => [
+        'Guardians' => [
             ['href' => '/guards', 'label' => 'Guards', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/guards/know-your-guard', 'label' => 'Know Your Guard', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
+            ['href' => '/guards/applications', 'label' => 'Applications', 'icon' => 'workforce', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/visitors', 'label' => 'Visitors', 'icon' => 'visitors', 'permission' => 'visitors.manage', 'feature' => 'visitors'],
         ],
         'Clients' => [
@@ -77,6 +83,7 @@ return [
 
     'settings' => [
         ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
+        ['href' => '/settings/branches', 'label' => 'Branches', 'permission' => 'settings.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
         ['href' => '/settings/know-your-guard', 'label' => 'Know Your Guard', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],

@@ -110,7 +110,7 @@ class ClientProfile extends Component
             'profileForm.latitude' => 'nullable|numeric',
             'profileForm.longitude' => 'nullable|numeric',
             'profileForm.status' => 'required|in:active,inactive',
-            'profileForm.default_hourly_rate' => 'numeric|min:0',
+            'profileForm.default_monthly_rate' => 'numeric|min:0',
         ])['profileForm'];
 
         $data['latitude'] = $data['latitude'] !== '' && $data['latitude'] !== null ? $data['latitude'] : null;
@@ -540,7 +540,7 @@ class ClientProfile extends Component
     {
         $this->profileForm = $this->clientAccount->only([
             'name', 'industry', 'email', 'phone', 'address', 'latitude', 'longitude',
-            'status', 'default_hourly_rate',
+            'status', 'default_monthly_rate',
         ]);
         $this->profileForm['latitude'] = $this->clientAccount->latitude ?? '';
         $this->profileForm['longitude'] = $this->clientAccount->longitude ?? '';

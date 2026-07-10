@@ -3,6 +3,7 @@
 namespace App\Livewire\Guards;
 
 use App\Enums\GuardDocumentType;
+use App\Enums\GuardDutyType;
 use App\Models\Branch;
 use App\Models\Guard;
 use App\Models\GuardAvailability;
@@ -114,7 +115,7 @@ class GuardProfile extends Component
             'profileForm.phone' => 'nullable',
             'profileForm.email' => 'nullable|email',
             'profileForm.status' => 'required',
-            'profileForm.hourly_rate' => 'numeric',
+            'profileForm.monthly_rate' => 'numeric',
             'profileForm.user_id' => 'nullable',
             'profileForm.emergency_contact_name' => 'nullable',
             'profileForm.emergency_contact_phone' => 'nullable',
@@ -154,6 +155,7 @@ class GuardProfile extends Component
         $data = $this->validate([
             'departmentForm.branch_id' => 'nullable',
             'departmentForm.rank' => 'nullable|string|max:120',
+            'departmentForm.duty_type' => 'required|in:guardian,dispatch',
         ])['departmentForm'];
 
         $data['branch_id'] = $data['branch_id'] ?: null;
@@ -475,14 +477,29 @@ class GuardProfile extends Component
         $this->authorize('update', $this->guard);
         $verification->suspend($this->guard);
         $this->guard->refresh();
+        session()->flash('status', 'Verification suspended. Existing QR codes still scan and show suspended status.');
+    }
+
+    public function reinstate(GuardVerificationService $verification): void
+    {
+        $this->authorize('update', $this->guard);
+        $verification->reinstate($this->guard);
+        $this->guard->refresh();
+        session()->flash('status', 'Verification reinstated. Existing QR code remains valid.');
     }
 
     public function issueQrToken(GuardVerificationService $verification): void
     {
         $this->authorize('update', $this->guard);
 
-        if ($this->guard->verification_status !== 'verified') {
+        if (! in_array($this->guard->verification_status, ['verified', 'suspended'], true)) {
             $this->addError('verification', 'Mark this guard as verified before issuing a QR code.');
+
+            return;
+        }
+
+        if ($this->guard->verification_status === 'suspended') {
+            $this->addError('verification', 'Reinstate this guard before issuing a new QR code.');
 
             return;
         }
@@ -497,7 +514,7 @@ class GuardProfile extends Component
         $this->authorize('update', $this->guard);
 
         if ($this->guard->verification_status !== 'verified') {
-            $this->addError('verification', 'Mark this guard as verified before issuing a QR code.');
+            $this->addError('verification', 'Mark this guard as verified before rotating a QR code.');
 
             return;
         }
@@ -518,7 +535,7 @@ class GuardProfile extends Component
         $stats = $overview->stats($this->guard, $tenantId);
         $kpiMetrics = $overview->kpiMetrics($this->guard, $tenantId);
 
-        $token = $this->guard->verification_status === 'verified'
+        $token = in_array($this->guard->verification_status, ['verified', 'suspended'], true)
             ? $this->guard->activeVerificationToken()
             : null;
         $verifyUrl = $token ? $verification->verificationUrl($token) : null;
@@ -553,6 +570,7 @@ class GuardProfile extends Component
         }
 
         return view('livewire.guards.guard-profile', [
+            'dutyTypes' => GuardDutyType::options(),
             'branches' => Branch::orderBy('name')->get(),
             'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
@@ -599,7 +617,7 @@ class GuardProfile extends Component
     {
         $this->profileForm = $this->guard->only([
             'employee_number', 'first_name', 'last_name', 'phone', 'email', 'status',
-            'hourly_rate', 'user_id', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date',
+            'monthly_rate', 'user_id', 'emergency_contact_name', 'emergency_contact_phone', 'hire_date',
         ]);
         $this->profileForm['user_id'] = $this->guard->user_id ?? '';
         $this->profileForm['hire_date'] = $this->guard->hire_date?->format('Y-m-d') ?? '';
@@ -618,6 +636,9 @@ class GuardProfile extends Component
         $this->departmentForm = [
             'branch_id' => $this->guard->branch_id ?? '',
             'rank' => $this->guard->rank ?? '',
+            'duty_type' => $this->guard->duty_type instanceof GuardDutyType
+                ? $this->guard->duty_type->value
+                : ($this->guard->duty_type ?: 'guardian'),
         ];
     }
 

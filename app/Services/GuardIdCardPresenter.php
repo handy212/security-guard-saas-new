@@ -97,7 +97,8 @@ class GuardIdCardPresenter
         return [
             'employee_id' => $guard->employee_number ?: ('ID-'.$guard->id),
             'name' => $guard->full_name,
-            'role' => $guard->rank ?: ($guard->branch?->name ?: 'Security Officer'),
+            'role' => $guard->rank
+                ?: ($guard->dutyTypeLabel().($guard->branch?->name ? ' · '.$guard->branch->name : '')),
             'issue_date' => $guard->verified_at?->format('M j, Y') ?? '--',
             'initial' => strtoupper(substr($guard->first_name, 0, 1)),
         ];

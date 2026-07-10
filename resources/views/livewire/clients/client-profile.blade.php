@@ -79,8 +79,8 @@
                                 <dd class="text-zinc-900 text-right">{{ $clientAccount->address ?: '—' }}</dd>
                             </div>
                             <div class="flex justify-between gap-4">
-                                <dt class="text-zinc-500">Default rate</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->default_hourly_rate ? number_format($clientAccount->default_hourly_rate, 2) : '—' }}</dd>
+                                <dt class="text-zinc-500">Default monthly rate</dt>
+                                <dd class="text-zinc-900 text-right">{{ $clientAccount->default_monthly_rate ? number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
                             </div>
                             <div class="flex justify-between gap-4">
                                 <dt class="text-zinc-500">Contacts</dt>
@@ -149,9 +149,9 @@
                     <x-input wire:model="profileForm.email" label="Email" type="email" />
                     <x-input wire:model="profileForm.phone" label="Phone" />
                     <x-input wire:model="profileForm.address" label="Address" class="sm:col-span-2" />
-                    <x-input wire:model="profileForm.latitude" label="HQ latitude" type="number" step="any" />
-                    <x-input wire:model="profileForm.longitude" label="HQ longitude" type="number" step="any" />
-                    <x-input wire:model="profileForm.default_hourly_rate" label="Default hourly rate" type="number" step="0.01" />
+                    <x-input wire:model="profileForm.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model="profileForm.longitude" label="Longitude" type="number" step="any" />
+                    <x-input wire:model="profileForm.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
                     <div class="sm:col-span-2">
                         <x-button type="submit">Save profile</x-button>
                     </div>

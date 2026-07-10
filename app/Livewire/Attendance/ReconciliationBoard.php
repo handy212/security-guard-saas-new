@@ -31,7 +31,7 @@ class ReconciliationBoard extends Component
         $tenantId = TenantContext::id();
         $query = AttendanceLog::with(['assignedGuard', 'site'])
             ->where('tenant_id', $tenantId)
-            ->when($this->statusFilter === 'needs_review', fn ($q) => $q->whereIn('status', ['late', 'early'])->whereNull('reconciled_at'))
+            ->when($this->statusFilter === 'needs_review', fn ($q) => $q->whereIn('status', ['late', 'early_leave', 'no_show'])->whereNull('reconciled_at'))
             ->when($this->statusFilter === 'reconciled', fn ($q) => $q->whereNotNull('reconciled_at'))
             ->when($this->statusFilter === 'all', fn ($q) => $q)
             ->latest();

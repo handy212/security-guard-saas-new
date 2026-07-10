@@ -19,7 +19,6 @@ use App\Support\EnumHelper;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
 use Carbon\Carbon;
-use Illuminate\Validation\Rule;
 use Livewire\Component;
 use RuntimeException;
 
@@ -36,7 +35,7 @@ class ScheduleIndex extends Component
     public array $form = [
         'client_account_id' => '', 'site_id' => '', 'site_post_id' => '', 'title' => '',
         'starts_at' => '', 'ends_at' => '', 'required_guards' => 1, 'billing_rate' => 0,
-        'status' => 'open', 'notes' => '',
+        'notes' => '',
     ];
 
     public array $pendingGuard = [];
@@ -81,7 +80,6 @@ class ScheduleIndex extends Component
             'ends_at' => $shift->ends_at?->format('Y-m-d\TH:i') ?? '',
             'required_guards' => $shift->required_guards,
             'billing_rate' => $shift->billing_rate,
-            'status' => EnumHelper::value($shift->status),
             'notes' => $shift->notes ?? '',
         ];
         $this->showForm = true;
@@ -94,10 +92,12 @@ class ScheduleIndex extends Component
         if ($this->editingShiftId) {
             $shift = Shift::findOrFail($this->editingShiftId);
             $this->authorize('update', $shift);
+            $data['status'] = EnumHelper::value($shift->status);
             $service->updateShift($shift, $data);
             session()->flash('status', 'Shift updated.');
         } else {
             $this->authorize('create', Shift::class);
+            $data['status'] = ShiftStatus::OPEN->value;
             $service->createShift($data + ['tenant_id' => TenantContext::id()]);
             session()->flash('status', 'Shift created.');
         }
@@ -144,13 +144,6 @@ class ScheduleIndex extends Component
         $this->authorize('assign', $assignment->shift);
         $service->unassignGuard($assignment);
         session()->flash('status', 'Guard unassigned.');
-    }
-
-    public function postOpen(int $shiftId, SchedulingService $scheduling): void
-    {
-        abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $scheduling->markShiftOpen(Shift::findOrFail($shiftId));
-        session()->flash('status', 'Shift posted to open shifts.');
     }
 
     public function previousDay(): void
@@ -200,7 +193,6 @@ class ScheduleIndex extends Component
             'clients' => ClientAccount::orderBy('name')->get(),
             'sitesForClient' => $sitesForClient,
             'postsForSite' => $postsForSite,
-            'shiftStatuses' => config('scheduling.shift_statuses'),
             'guards' => Guard::where('tenant_id', $tenantId)
                 ->where('status', 'active')
                 ->where('verification_status', 'verified')
@@ -225,7 +217,6 @@ class ScheduleIndex extends Component
             'form.ends_at' => 'required|date|after:form.starts_at',
             'form.required_guards' => 'integer|min:1',
             'form.billing_rate' => 'numeric|min:0',
-            'form.status' => ['required', Rule::in(array_keys(config('scheduling.shift_statuses')))],
             'form.notes' => 'nullable|string',
         ])['form'];
 
@@ -251,7 +242,6 @@ class ScheduleIndex extends Component
             'ends_at' => $anchor->copy()->setTime(17, 0)->format('Y-m-d\TH:i'),
             'required_guards' => 1,
             'billing_rate' => 0,
-            'status' => 'open',
             'notes' => '',
         ];
     }

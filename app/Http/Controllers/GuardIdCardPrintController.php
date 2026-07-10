@@ -13,7 +13,7 @@ class GuardIdCardPrintController extends Controller
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
         abort_unless((int) $guard->tenant_id === (int) auth()->user()->tenant_id, 404);
-        abort_unless($guard->verification_status === 'verified', 403, 'Guard must be verified before printing an ID card.');
+        abort_unless(in_array($guard->verification_status, ['verified', 'suspended'], true), 403, 'Guard must be verified before printing an ID card.');
         abort_unless($guard->activeVerificationToken(), 403, 'An active QR token is required.');
 
         $built = $renderer->forGuard($guard);

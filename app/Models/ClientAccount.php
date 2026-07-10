@@ -12,7 +12,7 @@ class ClientAccount extends Model
 
     protected $fillable = [
         'tenant_id', 'name', 'industry', 'email', 'phone', 'address', 'latitude', 'longitude',
-        'status', 'default_hourly_rate', 'portal_enabled', 'portal_welcome_message',
+        'status', 'default_monthly_rate', 'portal_enabled', 'portal_welcome_message',
     ];
 
     protected function casts(): array
@@ -20,7 +20,7 @@ class ClientAccount extends Model
         return [
             'latitude' => 'float',
             'longitude' => 'float',
-            'default_hourly_rate' => 'decimal:2',
+            'default_monthly_rate' => 'decimal:2',
             'portal_enabled' => 'boolean',
         ];
     }

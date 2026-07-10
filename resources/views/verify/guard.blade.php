@@ -30,7 +30,19 @@
 </header>
 
 <main class="mx-auto max-w-lg px-4 pb-8 pt-4 sm:px-6">
-    @if ($isAuthorisedToday)
+    @if ($isSuspended ?? false)
+        <div class="rounded-xl border border-red-300 bg-red-50 px-4 py-3.5">
+            <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                </span>
+                <div>
+                    <p class="text-sm font-bold uppercase tracking-wide text-red-900">{{ $suspendedMessage }}</p>
+                    <p class="mt-1 text-sm leading-relaxed text-red-800">Do not grant access. Contact the security company if you need clarification.</p>
+                </div>
+            </div>
+        </div>
+    @elseif ($isAuthorisedToday)
         <div class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3.5">
             <div class="flex items-start gap-3">
                 <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
@@ -70,9 +82,12 @@
 
             <div class="min-w-0 flex-1">
                 <h2 class="text-lg font-bold leading-tight tracking-tight sm:text-xl">{{ $guard->full_name }}</h2>
-                @if ($guard->rank)
-                    <p class="mt-0.5 text-sm text-zinc-500">{{ $guard->rank }}</p>
-                @endif
+                <p class="mt-0.5 text-sm text-zinc-500">
+                    {{ $guard->dutyTypeLabel() }}
+                    @if ($guard->rank)
+                        · {{ $guard->rank }}
+                    @endif
+                </p>
 
                 <div class="mt-3 flex flex-wrap gap-1.5">
                     @if ($guard->employee_number)

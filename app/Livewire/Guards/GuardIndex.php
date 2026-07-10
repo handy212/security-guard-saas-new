@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Guards;
 
+use App\Enums\GuardDutyType;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\Branch;
@@ -26,8 +27,8 @@ class GuardIndex extends Component
 
     public array $form = [
         'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
-        'status' => 'active', 'hourly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
-        'rank' => '', 'branch_id' => '',
+        'status' => 'active', 'monthly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
+        'rank' => '', 'duty_type' => 'guardian', 'branch_id' => '',
     ];
 
     protected $queryString = [
@@ -50,10 +51,11 @@ class GuardIndex extends Component
             'form.phone' => 'nullable',
             'form.email' => 'nullable|email',
             'form.status' => 'required',
-            'form.hourly_rate' => 'numeric',
+            'form.monthly_rate' => 'numeric',
             'form.license_number' => 'nullable',
             'form.license_expires_at' => 'nullable|date',
             'form.rank' => 'nullable',
+            'form.duty_type' => 'required|in:guardian,dispatch',
             'form.branch_id' => 'nullable',
         ];
     }
@@ -82,11 +84,7 @@ class GuardIndex extends Component
     public function openCreate(): void
     {
         $this->reset(['editingId']);
-        $this->form = [
-            'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
-            'status' => 'active', 'hourly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
-            'rank' => '', 'branch_id' => '',
-        ];
+        $this->form = $this->blankForm();
         $this->showForm = true;
     }
 
@@ -107,11 +105,7 @@ class GuardIndex extends Component
             $guard = Guard::create($data + ['tenant_id' => TenantContext::id()]);
             $this->closeDrawer();
             $this->reset(['editingId']);
-            $this->form = [
-                'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
-                'status' => 'active', 'hourly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
-                'rank' => '', 'branch_id' => '',
-            ];
+            $this->form = $this->blankForm();
 
             $this->redirect(route('guards.show', $guard), navigate: true);
 
@@ -120,11 +114,7 @@ class GuardIndex extends Component
 
         $this->closeDrawer();
         $this->reset(['editingId']);
-        $this->form = [
-            'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
-            'status' => 'active', 'hourly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
-            'rank' => '', 'branch_id' => '',
-        ];
+        $this->form = $this->blankForm();
     }
 
     public function edit(int $id): void
@@ -133,6 +123,9 @@ class GuardIndex extends Component
         $this->authorize('update', $guard);
         $this->editingId = $guard->id;
         $this->form = array_merge($this->form, $guard->only(array_keys($this->form)));
+        $this->form['duty_type'] = $guard->duty_type instanceof GuardDutyType
+            ? $guard->duty_type->value
+            : ($guard->duty_type ?: 'guardian');
         $this->form['branch_id'] = $guard->branch_id ?? '';
         $this->form['license_expires_at'] = $guard->license_expires_at?->format('Y-m-d') ?? '';
         $this->showForm = true;
@@ -159,6 +152,7 @@ class GuardIndex extends Component
         return view('livewire.guards.guard-index', [
             'guards' => $this->guardsQuery()->paginate(15),
             'branches' => Branch::orderBy('name')->get(),
+            'dutyTypes' => GuardDutyType::options(),
             'guardStats' => [
                 'total' => Guard::where('tenant_id', $tenantId)->count(),
                 'active' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->count(),
@@ -167,6 +161,15 @@ class GuardIndex extends Component
             ],
             'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->verificationFilter !== 'all',
         ])->layout('layouts.app');
+    }
+
+    private function blankForm(): array
+    {
+        return [
+            'employee_number' => '', 'first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '',
+            'status' => 'active', 'monthly_rate' => 0, 'license_number' => '', 'license_expires_at' => '',
+            'rank' => '', 'duty_type' => 'guardian', 'branch_id' => '',
+        ];
     }
 
     private function guardsQuery()

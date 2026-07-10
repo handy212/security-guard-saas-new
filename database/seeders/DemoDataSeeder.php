@@ -98,7 +98,7 @@ class DemoDataSeeder extends Seeder
                 'latitude' => 6.202,
                 'longitude' => -1.668,
                 'status' => 'active',
-                'default_hourly_rate' => 25,
+                'default_monthly_rate' => 25,
                 'portal_enabled' => true,
                 'portal_welcome_message' => 'Welcome to your Gold Mine Ltd security portal. Review live guard activity, patrols, and approved reports here.',
             ]
@@ -125,7 +125,7 @@ class DemoDataSeeder extends Seeder
                 'phone' => '0240000000',
                 'email' => 'john.guard@test',
                 'status' => 'active',
-                'hourly_rate' => 10,
+                'monthly_rate' => 10,
                 'license_number' => 'SEC-001',
                 'rank' => 'Senior Officer',
                 'verification_status' => 'verified',

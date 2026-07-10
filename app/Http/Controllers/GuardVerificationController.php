@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Guard;
 use App\Services\GuardVerificationPagePresenter;
 use App\Services\GuardVerificationService;
 use Illuminate\Http\Request;
@@ -16,8 +15,7 @@ class GuardVerificationController extends Controller
         GuardVerificationPagePresenter $pagePresenter,
         ?string $tenant = null,
         ?string $token = null,
-    ): View
-    {
+    ): View {
         if ($token === null) {
             $token = $tenant;
             $tenant = null;
@@ -31,15 +29,12 @@ class GuardVerificationController extends Controller
 
         abort_unless($guard, 404);
 
-        if (in_array($guard->verification_status, ['suspended', 'expired'], true)) {
-            abort(404);
-        }
-
         $verification->recordScan($record);
 
         $guard->loadMissing('tenant');
 
-        $currentAssignment = $verification->currentAssignment($guard);
+        $isSuspended = $guard->verification_status === 'suspended';
+        $currentAssignment = $isSuspended ? null : $verification->currentAssignment($guard);
 
         return view('verify.guard', $pagePresenter->present(
             $guard,
@@ -50,10 +45,13 @@ class GuardVerificationController extends Controller
             $guard->verified_at,
             now(),
             $this->verificationPhotoUrl($guard, $token),
-        ));
+        ) + [
+            'isSuspended' => $isSuspended,
+            'suspendedMessage' => $isSuspended ? $verification->dutyTypeSuspendedMessage($guard) : null,
+        ]);
     }
 
-    private function verificationPhotoUrl(Guard $guard, string $token): ?string
+    private function verificationPhotoUrl($guard, string $token): ?string
     {
         if (! $guard->photo_path) {
             return null;

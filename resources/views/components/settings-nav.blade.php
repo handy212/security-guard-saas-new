@@ -12,6 +12,7 @@
                 'label' => $link['label'],
                 'icon' => $link['icon'] ?? match (true) {
                     str_contains($href, 'billing/subscription') => 'subscriptions',
+                    str_contains($href, 'branches') => 'sites',
                     str_contains($href, 'id-card') => 'guards',
                     str_contains($href, 'know-your-guard') => 'guards',
                     str_contains($href, 'roles') => 'workforce',
