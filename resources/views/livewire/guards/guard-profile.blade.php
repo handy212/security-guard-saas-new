@@ -346,6 +346,56 @@
             </div>
         @endif
 
+        @if ($activeTab === 'disciplinary')
+            <div class="page-split">
+                <x-section-card title="Disciplinary records">
+                    <x-data-table>
+                        <x-table.head>
+                            <tr>
+                                <x-table.th>Date</x-table.th>
+                                <x-table.th>Type</x-table.th>
+                                <x-table.th responsive="md">Description</x-table.th>
+                                <x-table.th responsive="lg">Action</x-table.th>
+                                <x-table.th align="right" class="w-20"></x-table.th>
+                            </tr>
+                        </x-table.head>
+                        <tbody>
+                            @forelse ($guard->disciplinaryRecords as $record)
+                                <tr wire:key="disc-{{ $record->id }}">
+                                    <x-table.td muted>{{ $record->occurred_on?->format('M j, Y') }}</x-table.td>
+                                    <x-table.td><x-badge :status="$record->type" /></x-table.td>
+                                    <x-table.td responsive="md">{{ $record->description }}</x-table.td>
+                                    <x-table.td responsive="lg" muted>{{ $record->action_taken }}</x-table.td>
+                                    <x-table.td align="right">
+                                        <button type="button" wire:click="deleteDisciplinary({{ $record->id }})" wire:confirm="Delete this record?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                    </x-table.td>
+                                </tr>
+                            @empty
+                                <x-table.empty colspan="5">
+                                    <x-empty-state compact title="No disciplinary records" />
+                                </x-table.empty>
+                            @endforelse
+                        </tbody>
+                    </x-data-table>
+                </x-section-card>
+
+                <x-form-card title="Add record">
+                    <form wire:submit="saveDisciplinary" class="space-y-3">
+                        <x-input wire:model="disciplinaryForm.occurred_on" label="Date" type="date" />
+                        <x-select wire:model="disciplinaryForm.type" label="Type">
+                            <option value="warning">Warning</option>
+                            <option value="reprimand">Reprimand</option>
+                            <option value="suspension">Suspension</option>
+                            <option value="termination">Termination</option>
+                        </x-select>
+                        <x-textarea wire:model="disciplinaryForm.description" label="Description" rows="3" />
+                        <x-textarea wire:model="disciplinaryForm.action_taken" label="Action taken" rows="2" />
+                        <x-button type="submit" size="sm">Add record</x-button>
+                    </form>
+                </x-form-card>
+            </div>
+        @endif
+
         @if ($activeTab === 'reminders')
             <div class="page-split">
                 <x-section-card title="Reminders">

@@ -37,6 +37,8 @@ class Overview extends Component
             'todayShifts' => $metrics->todayShifts($tenantId),
             'incidentsList' => $metrics->recentIncidents($tenantId),
             'attendance' => $metrics->liveAttendance($tenantId),
+            'openDispatches' => $metrics->openDispatches($tenantId),
+            'attentionItems' => $metrics->attentionItems($tenantId),
             'onboardingSteps' => $onboarding->steps($tenantId),
             'onboardingProgress' => $onboarding->progress($tenantId),
             'showOnboarding' => ! $onboarding->isComplete($tenantId),

@@ -47,6 +47,17 @@ class IncidentService
         return $incident->fresh();
     }
 
+    public function reject(Incident $incident, ?string $resolution = null): Incident
+    {
+        $incident->update([
+            'status' => 'rejected',
+            'resolution' => $resolution,
+            'closed_at' => now(),
+        ]);
+
+        return $incident->fresh();
+    }
+
     public function close(Incident $incident, ?string $resolution = null): Incident
     {
         $incident->update(['status' => 'closed', 'resolution' => $resolution, 'closed_at' => now()]);

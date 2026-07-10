@@ -534,6 +534,35 @@
                     </form>
                 </x-form-card>
             </div>
+
+            <x-section-card title="Recent submissions" class="mt-4">
+                <x-data-table>
+                    <x-table.head>
+                        <tr>
+                            <x-table.th>Task</x-table.th>
+                            <x-table.th>Guard</x-table.th>
+                            <x-table.th>Response</x-table.th>
+                            <x-table.th responsive="md">Notes</x-table.th>
+                            <x-table.th responsive="lg">When</x-table.th>
+                        </tr>
+                    </x-table.head>
+                    <tbody>
+                        @forelse ($taskSubmissions as $submission)
+                            <tr wire:key="site-sub-{{ $submission->id }}">
+                                <x-table.td class="font-medium">{{ $submission->task?->title ?? '—' }}</x-table.td>
+                                <x-table.td muted>{{ $submission->scan?->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                <x-table.td>{{ is_array($submission->response) ? json_encode($submission->response) : ($submission->response ?: '—') }}</x-table.td>
+                                <x-table.td responsive="md" muted>{{ $submission->notes ?: '—' }}</x-table.td>
+                                <x-table.td responsive="lg" muted>{{ $submission->created_at?->format('M j, H:i') }}</x-table.td>
+                            </tr>
+                        @empty
+                            <x-table.empty colspan="5">
+                                <x-empty-state compact title="No submissions yet" description="Responses from checkpoint tasks will appear here." />
+                            </x-table.empty>
+                        @endforelse
+                    </tbody>
+                </x-data-table>
+            </x-section-card>
         @endif
 
         @if ($activeTab === 'tours')
@@ -593,6 +622,7 @@
                                 <x-table.th responsive="md">Code</x-table.th>
                                 <x-table.th responsive="lg">Tour</x-table.th>
                                 <x-table.th>Seq</x-table.th>
+                                <x-table.th responsive="lg">GPS</x-table.th>
                             </tr>
                         </x-table.head>
                         <tbody>
@@ -602,9 +632,16 @@
                                     <x-table.td responsive="md" muted>{{ $checkpoint->code }}</x-table.td>
                                     <x-table.td responsive="lg" muted>{{ $checkpoint->route?->name }}</x-table.td>
                                     <x-table.td muted>{{ $checkpoint->sequence }}</x-table.td>
+                                    <x-table.td responsive="lg" muted>
+                                        @if ($checkpoint->latitude && $checkpoint->longitude)
+                                            {{ number_format($checkpoint->latitude, 5) }}, {{ number_format($checkpoint->longitude, 5) }}
+                                        @else
+                                            —
+                                        @endif
+                                    </x-table.td>
                                 </tr>
                             @empty
-                                <x-table.empty colspan="4">
+                                <x-table.empty colspan="5">
                                     <x-empty-state compact title="No tour tags" description="Add QR/NFC checkpoint tags to patrol routes." />
                                 </x-table.empty>
                             @endforelse
@@ -623,6 +660,10 @@
                         <x-input wire:model="tagForm.name" label="Tag name" />
                         <x-input wire:model="tagForm.code" label="Code (QR/NFC)" />
                         <x-input wire:model="tagForm.sequence" label="Sequence" type="number" min="1" />
+                        <div class="grid grid-cols-2 gap-3">
+                            <x-input wire:model="tagForm.latitude" label="Latitude" type="number" step="any" />
+                            <x-input wire:model="tagForm.longitude" label="Longitude" type="number" step="any" />
+                        </div>
                         <div>
                             <label class="form-label">Instructions</label>
                             <textarea wire:model="tagForm.instructions" rows="2" class="form-input mt-1"></textarea>

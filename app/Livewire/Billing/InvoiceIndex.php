@@ -27,6 +27,20 @@ class InvoiceIndex extends Component
 
     public string $statusFilter = 'all';
 
+    public ?int $payingInvoiceId = null;
+
+    public array $paymentForm = [
+        'amount' => '',
+        'payment_method' => 'cash',
+        'notes' => '',
+    ];
+
+    public ?int $viewingInvoiceId = null;
+
+    public array $items = [];
+
+    public bool $editingItems = false;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
@@ -68,14 +82,118 @@ class InvoiceIndex extends Component
         return Storage::download($path);
     }
 
-    public function recordPayment(Invoice $invoice, EstimateService $service): void
+    public function openPayment(int $invoiceId): void
     {
+        $invoice = Invoice::findOrFail($invoiceId);
         $this->authorize('update', $invoice);
-        $amount = (float) ($invoice->grand_total - ($invoice->amount_paid ?? 0));
-        if ($amount > 0) {
-            $service->recordPayment($invoice, $amount);
-            session()->flash('status', 'Payment recorded.');
+        $remaining = max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0));
+        $this->payingInvoiceId = $invoice->id;
+        $this->paymentForm = [
+            'amount' => number_format($remaining, 2, '.', ''),
+            'payment_method' => 'cash',
+            'notes' => '',
+        ];
+    }
+
+    public function closePayment(): void
+    {
+        $this->payingInvoiceId = null;
+        $this->paymentForm = ['amount' => '', 'payment_method' => 'cash', 'notes' => ''];
+    }
+
+    public function recordPayment(EstimateService $service): void
+    {
+        $invoice = Invoice::findOrFail($this->payingInvoiceId);
+        $this->authorize('update', $invoice);
+
+        $data = $this->validate([
+            'paymentForm.amount' => 'required|numeric|min:0.01',
+            'paymentForm.payment_method' => 'required|string|max:50',
+            'paymentForm.notes' => 'nullable|string|max:500',
+        ])['paymentForm'];
+
+        $remaining = max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0));
+        abort_if((float) $data['amount'] > $remaining + 0.001, 422, 'Amount exceeds remaining balance.');
+
+        $service->recordPayment(
+            $invoice,
+            (float) $data['amount'],
+            $data['payment_method'],
+            $data['notes'] ?: null,
+        );
+
+        $this->closePayment();
+        session()->flash('status', 'Payment recorded.');
+    }
+
+    public function viewPayments(int $invoiceId): void
+    {
+        $invoice = Invoice::with('items')->findOrFail($invoiceId);
+        $this->authorize('view', $invoice);
+        $this->viewingInvoiceId = $invoice->id;
+        $this->editingItems = false;
+        $this->items = $invoice->items->map(fn ($item) => [
+            'description' => $item->description,
+            'quantity' => (string) $item->quantity,
+            'unit_price' => (string) $item->unit_price,
+        ])->values()->all();
+
+        if (\App\Support\EnumHelper::value($invoice->status) === 'draft' && $this->items === []) {
+            $this->items = [['description' => '', 'quantity' => '1', 'unit_price' => '0']];
         }
+    }
+
+    public function closePayments(): void
+    {
+        $this->viewingInvoiceId = null;
+        $this->editingItems = false;
+        $this->items = [];
+    }
+
+    public function startEditingItems(): void
+    {
+        $invoice = Invoice::findOrFail($this->viewingInvoiceId);
+        $this->authorize('update', $invoice);
+        abort_unless(\App\Support\EnumHelper::value($invoice->status) === 'draft', 403);
+        $this->editingItems = true;
+    }
+
+    public function addLineItem(): void
+    {
+        $this->items[] = ['description' => '', 'quantity' => '1', 'unit_price' => '0'];
+    }
+
+    public function removeLineItem(int $index): void
+    {
+        if (count($this->items) <= 1) {
+            return;
+        }
+        unset($this->items[$index]);
+        $this->items = array_values($this->items);
+    }
+
+    public function saveItems(BillingService $billing): void
+    {
+        $invoice = Invoice::findOrFail($this->viewingInvoiceId);
+        $this->authorize('update', $invoice);
+
+        $data = $this->validate([
+            'items' => 'required|array|min:1',
+            'items.*.description' => 'required|string|max:255',
+            'items.*.quantity' => 'required|numeric|min:0',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            $billing->syncItems($invoice, $data['items']);
+        } catch (\RuntimeException $e) {
+            $this->addError('items', $e->getMessage());
+
+            return;
+        }
+
+        $this->editingItems = false;
+        session()->flash('status', 'Invoice line items updated.');
     }
 
     public function exportInvoicesCsv(AccountingExportService $exports): void
@@ -101,7 +219,7 @@ class InvoiceIndex extends Component
 
         $tenantId = TenantContext::id();
 
-        $query = Invoice::with('clientAccount')
+        $query = Invoice::with(['clientAccount', 'payments'])
             ->where('tenant_id', $tenantId)
             ->when($this->search !== '', fn ($q) => $q->where(function ($q) {
                 $needle = '%'.$this->search.'%';
@@ -112,12 +230,18 @@ class InvoiceIndex extends Component
             ->latest();
 
         $all = Invoice::where('tenant_id', $tenantId);
+        $payingInvoice = $this->payingInvoiceId ? Invoice::with('clientAccount')->find($this->payingInvoiceId) : null;
+        $viewingInvoice = $this->viewingInvoiceId
+            ? Invoice::with(['payments', 'items', 'clientAccount'])->find($this->viewingInvoiceId)
+            : null;
 
         return view('livewire.billing.invoice-index', [
             'invoices' => $query->paginate(25),
             'clients' => ClientAccount::orderBy('name')->get(),
             'exports' => AccountingExport::where('tenant_id', $tenantId)->latest()->limit(10)->get(),
             'canExport' => auth()->user()->can('exports.manage'),
+            'payingInvoice' => $payingInvoice,
+            'viewingInvoice' => $viewingInvoice,
             'stats' => [
                 'total' => $all->count(),
                 'draft' => (clone $all)->where('status', 'draft')->count(),

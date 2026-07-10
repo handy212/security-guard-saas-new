@@ -19,7 +19,10 @@ class ClientIndex extends Component
 
     public ?int $editingId = null;
 
-    public array $form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
+    public array $form = [
+        'name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'address' => '',
+        'latitude' => '', 'longitude' => '', 'status' => 'active', 'default_monthly_rate' => 0,
+    ];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -38,6 +41,9 @@ class ClientIndex extends Component
             'form.industry' => 'nullable',
             'form.email' => 'nullable|email',
             'form.phone' => 'nullable',
+            'form.address' => 'nullable|string|max:500',
+            'form.latitude' => 'nullable|numeric',
+            'form.longitude' => 'nullable|numeric',
             'form.status' => 'required',
             'form.default_monthly_rate' => 'numeric',
         ];
@@ -66,6 +72,10 @@ class ClientIndex extends Component
     {
         $this->authorize('create', ClientAccount::class);
         $data = $this->validate()['form'];
+        $data['latitude'] = $data['latitude'] !== '' && $data['latitude'] !== null ? $data['latitude'] : null;
+        $data['longitude'] = $data['longitude'] !== '' && $data['longitude'] !== null ? $data['longitude'] : null;
+        $data['address'] = $data['address'] !== '' ? $data['address'] : null;
+
         if ($this->editingId) {
             $client = ClientAccount::findOrFail($this->editingId);
             $this->authorize('update', $client);
@@ -74,7 +84,7 @@ class ClientIndex extends Component
             $client = ClientAccount::create($data + ['tenant_id' => TenantContext::id()]);
             $this->closeDrawer();
             $this->reset(['editingId']);
-            $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
+            $this->resetForm();
 
             $this->redirect(route('clients.show', $client), navigate: true);
 
@@ -82,13 +92,13 @@ class ClientIndex extends Component
         }
         $this->closeDrawer();
         $this->reset(['editingId']);
-        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
+        $this->resetForm();
     }
 
     public function openCreate(): void
     {
         $this->reset(['editingId']);
-        $this->form = ['name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'status' => 'active', 'default_monthly_rate' => 0];
+        $this->resetForm();
         $this->openForm();
     }
 
@@ -97,7 +107,17 @@ class ClientIndex extends Component
         $client = ClientAccount::findOrFail($id);
         $this->authorize('update', $client);
         $this->editingId = $client->id;
-        $this->form = $client->only(array_keys($this->form));
+        $this->form = [
+            'name' => $client->name ?? '',
+            'industry' => $client->industry ?? '',
+            'email' => $client->email ?? '',
+            'phone' => $client->phone ?? '',
+            'address' => $client->address ?? '',
+            'latitude' => $client->latitude !== null ? (string) $client->latitude : '',
+            'longitude' => $client->longitude !== null ? (string) $client->longitude : '',
+            'status' => $client->status ?? 'active',
+            'default_monthly_rate' => $client->default_monthly_rate ?? 0,
+        ];
         $this->openForm();
     }
 
@@ -113,6 +133,14 @@ class ClientIndex extends Component
         if (in_array($property, ['search', 'statusFilter'], true)) {
             $this->resetPage();
         }
+    }
+
+    private function resetForm(): void
+    {
+        $this->form = [
+            'name' => '', 'industry' => '', 'email' => '', 'phone' => '', 'address' => '',
+            'latitude' => '', 'longitude' => '', 'status' => 'active', 'default_monthly_rate' => 0,
+        ];
     }
 
     public function render()

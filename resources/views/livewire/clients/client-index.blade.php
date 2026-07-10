@@ -75,6 +75,9 @@
                 <x-input wire:model="form.industry" label="Industry" />
                 <x-input wire:model="form.email" label="Email" type="email" />
                 <x-input wire:model="form.phone" label="Phone" />
+                <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
+                <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
                 <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
             </x-drawer-form>
         </x-drawer>

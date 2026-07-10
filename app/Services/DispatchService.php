@@ -9,6 +9,7 @@ use App\Events\SosAlertRaised;
 use App\Models\DispatchActivityLog;
 use App\Models\DispatchEvent;
 use App\Models\Guard;
+use App\Models\Incident;
 use App\Models\SosAlert;
 use App\Models\User;
 use App\Notifications\GenericGuardOpsNotification;
@@ -109,6 +110,10 @@ class DispatchService
         $next = $event->status->next();
         abort_unless($next, 422, 'Dispatch cannot be advanced further.');
 
+        if ($event->status === DispatchStatus::OPEN && ! $event->guard_id) {
+            throw new \RuntimeException('Assign a guard before advancing this dispatch.');
+        }
+
         $timestamps = match ($next) {
             DispatchStatus::ASSIGNED => ['assigned_at' => now()],
             DispatchStatus::EN_ROUTE => ['en_route_at' => now()],
@@ -166,8 +171,11 @@ class DispatchService
 
     public function createFromSos(SosAlert $alert, int $userId): DispatchEvent
     {
+        $alert->loadMissing(['assignedGuard', 'site']);
+
         return $this->createDispatch([
             'tenant_id' => $alert->tenant_id,
+            'client_account_id' => $alert->site?->client_account_id,
             'site_id' => $alert->site_id,
             'guard_id' => $alert->guard_id,
             'created_by_user_id' => $userId,
@@ -181,6 +189,46 @@ class DispatchService
             'longitude' => $alert->longitude,
             'sos_alert_id' => $alert->id,
         ]);
+    }
+
+    public function promoteToIncident(DispatchEvent $event, int $userId): Incident
+    {
+        if ($event->incident_id) {
+            return $event->incident()->firstOrFail();
+        }
+
+        $priority = is_object($event->priority) ? $event->priority->value : (string) $event->priority;
+        $severity = match ($priority) {
+            'critical' => 'critical',
+            'high' => 'high',
+            'low' => 'low',
+            default => 'medium',
+        };
+
+        $title = trim(($event->dispatch_number ? $event->dispatch_number.' · ' : '').str_replace('_', ' ', (string) $event->event_type));
+        if ($event->incident_location) {
+            $title .= ' @ '.$event->incident_location;
+        }
+
+        $incident = app(IncidentService::class)->submit([
+            'tenant_id' => $event->tenant_id,
+            'site_id' => $event->site_id,
+            'reported_by_user_id' => $userId,
+            'title' => $title ?: 'Dispatch incident',
+            'type' => $event->event_type ?: 'other',
+            'severity' => $severity,
+            'description' => $event->description
+                ?: ('Promoted from dispatch '.($event->dispatch_number ?? '#'.$event->id)),
+            'latitude' => $event->latitude,
+            'longitude' => $event->longitude,
+            'occurred_at' => $event->opened_at ?? now(),
+        ]);
+
+        $event->update(['incident_id' => $incident->id]);
+        $this->logActivity($event, 'promoted', 'Promoted to incident #'.$incident->id, $userId);
+        $this->broadcastUpdate($event->fresh());
+
+        return $incident;
     }
 
     /** @deprecated Use createDispatch() */

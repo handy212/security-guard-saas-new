@@ -22,6 +22,16 @@ class TenantFileController extends Controller
         return $this->storage->response($guard->photo_path);
     }
 
+    public function applicationPhoto(\App\Models\GuardApplication $application): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('guards.manage'), 403);
+        abort_unless((int) $application->tenant_id === (int) TenantContext::id(), 404);
+        abort_unless($application->photo_path, 404);
+        abort_unless($this->storage->exists($application->photo_path), 404);
+
+        return $this->storage->response($application->photo_path);
+    }
+
     public function guardDocument(\App\Models\GuardDocument $document): StreamedResponse
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);

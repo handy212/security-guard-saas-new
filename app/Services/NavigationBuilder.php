@@ -61,8 +61,70 @@ class NavigationBuilder
         return collect(config('navigation.groups', []))->map(function (array $links, string $label) {
             $visible = collect($links)->filter(fn (array $link) => $this->linkVisible($link))->values()->all();
 
-            return ['label' => $label, 'links' => $visible];
+            return [
+                'label' => $label,
+                'icon' => $this->groupIcon($label),
+                'href' => $visible[0]['href'] ?? '#',
+                'links' => $visible,
+            ];
         })->filter(fn (array $group) => count($group['links']) > 0)->values();
+    }
+
+    public function groupIcon(string $label): string
+    {
+        return match ($label) {
+            'Patrols & Reports' => 'patrols',
+            'Guardians' => 'guards',
+            'Clients' => 'clients',
+            'Finance' => 'billing',
+            'Compliance & Insights' => 'analytics',
+            default => 'dashboard',
+        };
+    }
+
+    /** Child links shown in collapsed-rail hover flyouts for hub items. */
+    public function flyoutChildren(array $link): array
+    {
+        $href = $link['href'] ?? '';
+
+        $source = match ($href) {
+            '/schedules' => config('navigation.schedules', []),
+            '/assets' => config('navigation.assets', []),
+            '/settings' => config('navigation.settings', []),
+            default => [],
+        };
+
+        return collect($source)
+            ->filter(fn (array $child) => $this->linkVisible($child))
+            ->map(fn (array $child) => [
+                'href' => $child['href'],
+                'label' => $child['label'],
+                'icon' => $child['icon'] ?? ($link['icon'] ?? 'dashboard'),
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function shortLabel(string $label): string
+    {
+        $map = [
+            'Dashboard' => 'Home',
+            'Field app' => 'Field',
+            'Live Tracker' => 'Track',
+            'Messenger' => 'Chat',
+            'Scheduler' => 'Schedule',
+            'Incidents' => 'Incidents',
+            'Dispatch' => 'Dispatch',
+            'Assets' => 'Assets',
+            'Settings' => 'Settings',
+            'Patrols & Reports' => 'Patrols',
+            'Guardians' => 'Guards',
+            'Clients' => 'Clients',
+            'Finance' => 'Finance',
+            'Compliance & Insights' => 'Insights',
+        ];
+
+        return $map[$label] ?? \Illuminate\Support\Str::limit($label, 8, '');
     }
 
     public function footer(): Collection

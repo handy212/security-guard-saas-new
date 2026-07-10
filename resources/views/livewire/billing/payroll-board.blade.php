@@ -41,6 +41,7 @@
                         <x-table.th>Period</x-table.th>
                         <x-table.th>Hours</x-table.th>
                         <x-table.th>Status</x-table.th>
+                        <x-table.th align="right">Actions</x-table.th>
                     </tr>
                 </x-table.head>
                 <tbody>
@@ -50,9 +51,21 @@
                             <x-table.td muted>{{ $sheet->period_start?->format('M j') }} – {{ $sheet->period_end?->format('M j, Y') }}</x-table.td>
                             <x-table.td muted>{{ $sheet->regular_hours }}h + {{ $sheet->overtime_hours }}h OT</x-table.td>
                             <x-table.td><x-badge :status="$sheet->status" /></x-table.td>
+                            <x-table.td align="right">
+                                @if ($sheet->status === 'pending')
+                                    <div class="table-inline-actions">
+                                        <button type="button" wire:click="approveTimesheet({{ $sheet->id }})" class="table-action">Approve</button>
+                                        <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this timesheet?" class="table-action text-red-600">Reject</button>
+                                    </div>
+                                @elseif ($sheet->status === 'approved')
+                                    <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this approved timesheet?" class="table-action text-red-600">Reject</button>
+                                @else
+                                    <span class="text-xs text-zinc-400">—</span>
+                                @endif
+                            </x-table.td>
                         </tr>
                     @empty
-                        <x-table.empty colspan="4"><x-empty-state compact title="No timesheets" description="Generate a timesheet from attendance logs." /></x-table.empty>
+                        <x-table.empty colspan="5"><x-empty-state compact title="No timesheets" description="Generate a timesheet from attendance logs." /></x-table.empty>
                     @endforelse
                 </tbody>
             </x-data-table>

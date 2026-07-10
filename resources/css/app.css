@@ -28,7 +28,7 @@
     --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
     --shadow-card-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
     --sidebar-width: 16.25rem;
-    --sidebar-width-collapsed: 4rem;
+    --sidebar-width-collapsed: 4.75rem;
     --app-header-height: 3.5rem;
     --profile-sidebar-width: 14rem;
     --profile-sticky-top: calc(var(--app-header-height) + 0.5rem);
@@ -158,6 +158,65 @@
     .nav-link-highlight:not(.nav-link-active) {
         @apply border border-accent-100 bg-accent-50/50 text-accent-700 hover:bg-accent-50
             dark:border-accent-600/30 dark:bg-accent-600/10 dark:text-accent-500 dark:hover:bg-accent-600/20;
+    }
+
+    /* Collapsed icon rail (QuickBooks-style) */
+    .nav-rail-item {
+        @apply flex-col justify-center gap-1 px-1 py-2 text-center;
+    }
+
+    .nav-rail-item .nav-rail-icon {
+        @apply mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition;
+    }
+
+    .nav-rail-item.nav-link-active .nav-rail-icon,
+    .nav-rail-item-hot .nav-rail-icon {
+        @apply bg-accent-600 text-white shadow-sm dark:bg-accent-500;
+    }
+
+    .nav-rail-item.nav-link-active {
+        @apply bg-transparent text-accent-700 before:hidden dark:text-accent-500;
+    }
+
+    .nav-rail-item-hot:not(.nav-link-active) .nav-rail-icon {
+        @apply bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100;
+    }
+
+    .nav-rail-label {
+        @apply block max-w-full truncate px-0.5 text-[10px] font-medium leading-tight text-zinc-500 dark:text-zinc-400;
+    }
+
+    .nav-rail-item.nav-link-active .nav-rail-label,
+    .nav-rail-item-hot .nav-rail-label {
+        @apply text-accent-700 dark:text-accent-500;
+    }
+
+    .nav-flyout {
+        @apply fixed z-[80] pl-2;
+        left: var(--sidebar-width-collapsed);
+    }
+
+    .nav-flyout-panel {
+        @apply min-w-[13.5rem] max-w-[16rem] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-lg
+            dark:border-zinc-700 dark:bg-zinc-900;
+    }
+
+    .nav-flyout-title {
+        @apply px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400;
+    }
+
+    .nav-flyout-list {
+        @apply max-h-[min(24rem,70vh)] space-y-0.5 overflow-y-auto px-1.5;
+    }
+
+    .nav-flyout-link {
+        @apply flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-zinc-600 transition
+            hover:bg-zinc-50 hover:text-zinc-900
+            dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
+    }
+
+    .nav-flyout-link-active {
+        @apply bg-accent-50 font-medium text-accent-700 dark:bg-accent-600/20 dark:text-accent-500;
     }
 
     .nav-sublink {

@@ -26,4 +26,9 @@ class IncidentPolicy
     {
         return $user->can('incidents.manage') && $user->tenant_id === $incident->tenant_id;
     }
+
+    public function reject(User $user, Incident $incident): bool
+    {
+        return $user->can('incidents.manage') && $user->tenant_id === $incident->tenant_id;
+    }
 }

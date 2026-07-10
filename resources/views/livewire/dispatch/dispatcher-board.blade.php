@@ -1,24 +1,27 @@
 <div>
     <x-page-shell title="Dispatch Center" description="Create dispatches, assign guards, and track response status.">
         <x-slot:actions>
-            <x-button variant="secondary" href="{{ route('tracking.live') }}">Live map</x-button>
+            <x-button variant="secondary" :href="route('tracking.live')">Live map</x-button>
             <x-button wire:click="openForm">New dispatch</x-button>
         </x-slot:actions>
 
         <div class="stat-grid">
-            <x-stat-card compact label="Active" :value="$stats['active']" icon="dispatch" :tone="$stats['active'] ? 'warning' : 'success'" />
-            <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" :tone="$stats['critical'] ? 'danger' : 'default'" />
-            <x-stat-card compact label="En route" :value="$stats['en_route']" icon="gps" tone="info" />
-            <x-stat-card compact label="Open SOS" :value="$stats['sos']" icon="incidents" :tone="$stats['sos'] ? 'danger' : 'success'" />
+            <x-stat-card compact label="Active" :value="$stats['active']" icon="dispatch" :tone="$stats['active'] ? 'warning' : 'success'" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active' && $priorityFilter === 'all'" />
+            <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" :tone="$stats['critical'] ? 'danger' : 'default'" wire:click="applyStatFilter('critical')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$priorityFilter === 'critical'" />
+            <x-stat-card compact label="En route" :value="$stats['en_route']" icon="gps" tone="info" wire:click="applyStatFilter('en_route')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'en_route'" />
+            <x-stat-card compact label="Open SOS" :value="$stats['sos']" icon="incidents" :tone="$stats['sos'] ? 'danger' : 'success'" wire:click="applyStatFilter('sos')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$priorityFilter === 'critical' && $stats['sos'] > 0" />
         </div>
 
         <x-flash-status />
 
         <x-page-toolbar search="search" searchPlaceholder="Search dispatches…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'all' => 'All', 'closed' => 'Closed']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'all' => 'All', 'en_route' => 'En route', 'closed' => 'Closed']" />
             </x-slot:tabs>
             <x-slot:controls>
+                @if ($hasActiveFilters)
+                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
+                @endif
                 <x-filter-select wire:model.live="priorityFilter">
                     <option value="all">All priority</option>
                     <option value="critical">Critical</option>
@@ -30,39 +33,67 @@
         </x-page-toolbar>
 
         @if($sosAlerts->isNotEmpty())
-            <x-section-card title="SOS Alerts" class="border-red-200 bg-red-50/50">
-                @foreach($sosAlerts as $alert)
-                    <div class="flex items-start justify-between gap-2 border-t border-red-100 py-2 text-sm first:border-0" wire:key="sos-{{ $alert->id }}">
-                        <div>
-                            <div class="font-semibold text-red-800">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
-                            <div class="text-xs text-red-600">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }}</div>
+            <section class="mb-4 rounded-xl border border-red-300 bg-red-50 p-4 shadow-sm">
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-600"></span>
+                    </span>
+                    <h2 class="text-sm font-semibold text-red-900">SOS alerts require response</h2>
+                </div>
+                <div class="space-y-3">
+                    @foreach($sosAlerts as $alert)
+                        <div class="flex flex-wrap items-start justify-between gap-3 border-t border-red-200/80 pt-3 first:border-0 first:pt-0" wire:key="sos-{{ $alert->id }}">
+                            <div>
+                                <div class="font-semibold text-red-900">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
+                                <div class="text-xs text-red-700">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }} · {{ $alert->raised_at?->diffForHumans() }}</div>
+                            </div>
+                            <div class="flex shrink-0 flex-wrap gap-2">
+                                @if($alert->status === 'open')
+                                    <x-button size="sm" variant="danger" wire:click="acknowledgeSos({{ $alert->id }})">Ack</x-button>
+                                @endif
+                                <x-button size="sm" wire:click="dispatchFromSos({{ $alert->id }})">Dispatch</x-button>
+                                @if ($alert->latitude && $alert->longitude)
+                                    <x-button
+                                        size="sm"
+                                        variant="secondary"
+                                        :href="route('tracking.live', ['lat' => $alert->latitude, 'lng' => $alert->longitude, 'guard' => $alert->guard_id])"
+                                    >View on map</x-button>
+                                @endif
+                            </div>
                         </div>
-                        <div class="flex shrink-0 flex-col gap-1">
-                            @if($alert->status === 'open')
-                                <x-button size="sm" variant="danger" wire:click="acknowledgeSos({{ $alert->id }})">Ack</x-button>
-                            @endif
-                            <x-button size="sm" variant="secondary" wire:click="dispatchFromSos({{ $alert->id }})">Dispatch</x-button>
-                        </div>
-                    </div>
-                @endforeach
-            </x-section-card>
+                    @endforeach
+                </div>
+            </section>
         @endif
 
         <div class="page-board min-h-[28rem]">
             <x-section-card title="Dispatch queue" class="flex flex-col">
                 <div class="-mx-1 flex-1 overflow-y-auto px-1">
                     @forelse($dispatches as $dispatch)
+                        @php
+                            $priorityTone = match ($dispatch->priority->value ?? '') {
+                                'critical' => 'border-l-red-500',
+                                'high' => 'border-l-amber-500',
+                                'low' => 'border-l-zinc-300',
+                                default => 'border-l-sky-400',
+                            };
+                        @endphp
                         <button
                             type="button"
                             wire:click="selectDispatch({{ $dispatch->id }})"
-                            class="w-full rounded-lg border border-transparent px-2 py-3 text-left text-sm transition hover:border-zinc-200 hover:bg-zinc-50 {{ $selectedId === $dispatch->id ? 'border-accent-200 bg-accent-50' : '' }}"
+                            class="w-full rounded-lg border border-transparent border-l-4 {{ $priorityTone }} px-2 py-3 text-left text-sm transition hover:border-zinc-200 hover:bg-zinc-50 {{ $selectedId === $dispatch->id ? 'border-accent-200 bg-accent-50' : '' }}"
                             wire:key="dispatch-{{ $dispatch->id }}"
                         >
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
                                     <div class="font-semibold text-zinc-900">{{ $dispatch->dispatch_number ?? '#'.$dispatch->id }}</div>
-                                    <div class="truncate text-xs text-zinc-500">{{ $dispatch->clientAccount?->name }} · {{ $dispatch->site?->name }}</div>
+                                    <div class="truncate text-xs text-zinc-500">{{ $dispatch->clientAccount?->name ?? '—' }} · {{ $dispatch->site?->name }}</div>
                                     <div class="mt-1 truncate text-xs text-zinc-600">{{ $dispatch->caller_name }} — {{ $dispatch->incident_location }}</div>
+                                    <div class="mt-1 text-[11px] text-zinc-400">
+                                        {{ $dispatch->assignedGuard?->full_name ?? 'Unassigned' }}
+                                        · {{ $dispatch->opened_at?->diffForHumans() ?? $dispatch->created_at?->diffForHumans() }}
+                                    </div>
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
                                     <x-badge :status="$dispatch->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
@@ -82,20 +113,42 @@
             >
                 @if($selected)
                     <div class="flex-1 overflow-y-auto">
-                        <div class="mb-3 flex flex-wrap gap-2">
+                        <div class="mb-3 flex flex-wrap items-center gap-2">
                             <x-badge :status="$selected->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
                             <x-badge :status="$selected->status->value" :map="['open'=>'info','assigned'=>'info','en_route'=>'warning','on_scene'=>'warning','resolved'=>'success','closed'=>'neutral','cancelled'=>'danger']" />
+                            @if ($trackingUrl)
+                                <a href="{{ $trackingUrl }}" class="text-xs font-medium text-accent-600 hover:underline">View on live map</a>
+                            @endif
                         </div>
 
+                        <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+                            <div class="font-medium text-zinc-900">{{ $selected->assignedGuard?->full_name ?? 'Unassigned' }}</div>
+                            <div class="text-xs text-zinc-500">{{ $selected->clientAccount?->name ?? '—' }} · {{ $selected->site?->name ?? '—' }}</div>
+                        </div>
+
+                        <ol class="mb-4 grid gap-2 sm:grid-cols-3">
+                            @foreach ($timeline as $step)
+                                <li class="rounded-lg border px-2 py-1.5 text-xs {{ $step['at'] ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-zinc-200 bg-white text-zinc-400' }}">
+                                    <div class="font-semibold">{{ $step['label'] }}</div>
+                                    <div>{{ $step['at']?->format('M j, H:i') ?? 'Pending' }}</div>
+                                </li>
+                            @endforeach
+                        </ol>
+
+                        @if (! empty($mapMarkers))
+                            <div class="mb-4">
+                                <x-map
+                                    id="dispatch-detail-map-{{ $selected->id }}"
+                                    :lat="$mapMarkers[0]['lat']"
+                                    :lng="$mapMarkers[0]['lng']"
+                                    :markers="$mapMarkers"
+                                    :fit-bounds="false"
+                                    height="180px"
+                                />
+                            </div>
+                        @endif
+
                         <dl class="mb-4 grid gap-3 text-sm sm:grid-cols-2">
-                            <div>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Client</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ $selected->clientAccount?->name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Site</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ $selected->site?->name }}</dd>
-                            </div>
                             <div>
                                 <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Caller</dt>
                                 <dd class="mt-0.5 font-medium text-zinc-900">{{ ucfirst($selected->caller_type) }} — {{ $selected->caller_name }}</dd>
@@ -116,6 +169,14 @@
                                 <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Details</dt>
                                 <dd class="mt-0.5 text-zinc-700">{{ $selected->description ?: '—' }}</dd>
                             </div>
+                            @if ($selected->attachment_path)
+                                <div class="sm:col-span-2">
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Attachment</dt>
+                                    <dd class="mt-0.5">
+                                        <button type="button" wire:click="downloadAttachment" class="text-sm font-medium text-accent-600 hover:underline">Download attachment</button>
+                                    </dd>
+                                </div>
+                            @endif
                         </dl>
 
                         @if($selected->isActive())
@@ -135,8 +196,19 @@
                                             Mark {{ strtolower($selected->status->next()->label()) }}
                                         </x-button>
                                     @endif
-                                    <x-button size="sm" variant="danger" wire:click="cancelDispatch">Cancel</x-button>
+                                    @can('incidents.manage')
+                                        @if (! $selected->incident_id)
+                                            <x-button size="sm" variant="secondary" wire:click="promoteToIncident">Create incident</x-button>
+                                        @endif
+                                    @endcan
+                                    <x-button size="sm" variant="danger" wire:click="confirmCancel">Cancel</x-button>
                                 </div>
+                                @if ($selected->incident_id)
+                                    <p class="text-xs text-zinc-500">
+                                        Linked incident #{{ $selected->incident_id }}
+                                        · <a href="{{ route('incidents.index') }}" class="font-medium text-accent-600 hover:underline">Open incidents</a>
+                                    </p>
+                                @endif
                             </div>
                         @endif
 
@@ -147,20 +219,18 @@
                             <x-button type="submit" size="sm" variant="secondary">Save notes</x-button>
                         </form>
 
-                        @if($selected->activityLogs->isNotEmpty())
-                            <div class="mt-4 border-t border-zinc-100 pt-3">
-                                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Activity</h4>
-                                <div class="max-h-40 space-y-2 overflow-y-auto text-xs">
-                                    @foreach($selected->activityLogs as $log)
-                                        <div wire:key="log-{{ $log->id }}">
-                                            <span class="font-medium">{{ $log->user?->name ?? 'System' }}</span>
-                                            <span class="text-zinc-500"> — {{ $log->message }}</span>
-                                            <div class="text-[10px] text-zinc-400">{{ $log->created_at->diffForHumans() }}</div>
-                                        </div>
-                                    @endforeach
+                        <div class="mt-4 border-t border-zinc-100 pt-3">
+                            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Activity</h4>
+                            @forelse($selected->activityLogs as $log)
+                                <div class="border-t border-zinc-100 py-2 text-xs first:border-0" wire:key="log-{{ $log->id }}">
+                                    <span class="font-medium text-zinc-800">{{ $log->user?->name ?? 'System' }}</span>
+                                    <span class="text-zinc-500"> — {{ $log->message }}</span>
+                                    <div class="text-[10px] text-zinc-400">{{ $log->created_at->format('M j, Y H:i') }} · {{ $log->created_at->diffForHumans() }}</div>
                                 </div>
-                            </div>
-                        @endif
+                            @empty
+                                <p class="text-xs text-zinc-500">No activity yet.</p>
+                            @endforelse
+                        </div>
                     </div>
                 @else
                     <div class="flex flex-1 items-center justify-center py-8">
@@ -242,6 +312,15 @@
                 <x-file-input wire:model="attachmentFile" label="Attachment" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
+    @endif
+
+    @if ($confirmingCancel && $selected)
+        <x-modal title="Cancel dispatch" :description="'Cancel '.$selected->dispatch_number.'? This cannot be undone.'" closeMethod="closeCancelConfirm">
+            <div class="flex justify-end gap-2 p-1">
+                <x-button type="button" variant="secondary" wire:click="closeCancelConfirm">Keep open</x-button>
+                <x-button type="button" variant="danger" wire:click="cancelDispatch">Cancel dispatch</x-button>
+            </div>
+        </x-modal>
     @endif
 </div>
 

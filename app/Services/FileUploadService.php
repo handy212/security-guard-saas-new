@@ -81,6 +81,11 @@ class FileUploadService
         return $file->store("tenants/{$tenantId}/dispatches/{$dispatchId}", 'public');
     }
 
+    public function storeMessageAttachment(int $tenantId, int $threadId, UploadedFile $file): string
+    {
+        return $file->store("tenants/{$tenantId}/messenger/{$threadId}", 'public');
+    }
+
     public function guardPhotoUrl(Guard $guard): ?string
     {
         if (! $guard->photo_path) {

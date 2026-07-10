@@ -71,6 +71,12 @@ class ResolveTenant
         }
 
         if (! $tenant) {
+            // Public Livewire pages (e.g. /apply/{tenant}) bind tenant in the component.
+            // Guests have no user.tenant_id and localhost has no tenant domain.
+            if (! $user) {
+                return $next($request);
+            }
+
             abort(403, 'Tenant context is required.');
         }
 

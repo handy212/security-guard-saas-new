@@ -31,7 +31,7 @@
                 @forelse($inventory as $row)
                     <tr class="table-row-hover {{ $row->is_low_stock ? 'bg-red-50/40' : '' }}" wire:key="inv-{{ $row->id }}">
                         <x-table.td>
-                            <div class="font-medium">{{ $row->name }}</div>
+                            <a href="{{ route('assets.index', ['category' => $row->id]) }}" class="font-medium hover:underline">{{ $row->name }}</a>
                         </x-table.td>
                         <x-table.td muted>{{ $row->type === 'consumable' ? 'Consumable' : 'Serialized' }}</x-table.td>
                         <x-table.td class="font-semibold">{{ $row->on_hand }}</x-table.td>

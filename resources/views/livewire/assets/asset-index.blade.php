@@ -56,7 +56,7 @@
                                     <x-row-menu-item wire:click="openIssue({{ $item->id }})">Issue</x-row-menu-item>
                                 @endif
                                 @if($item->assignments->first())
-                                    <x-row-menu-item wire:click="returnAssignment({{ $item->assignments->first()->id }})">Return</x-row-menu-item>
+                                    <x-row-menu-item wire:click="openReturn({{ $item->assignments->first()->id }})">Return</x-row-menu-item>
                                 @endif
                                 <x-row-menu-item wire:click="edit({{ $item->id }})">Edit</x-row-menu-item>
                                 <x-row-menu-item wire:click="delete({{ $item->id }})" wire:confirm="Delete this asset?" danger>Delete</x-row-menu-item>
@@ -140,6 +140,14 @@
                     @endforeach
                 </x-select>
                 <x-textarea wire:model="issueForm.issue_notes" label="Issue notes" rows="3" class="sm:col-span-2" />
+            </x-drawer-form>
+        </x-drawer>
+    @endif
+
+    @if ($showReturnForm)
+        <x-drawer title="Return asset" width="md" close-method="closeReturnForm">
+            <x-drawer-form wire:submit.prevent="returnAssignment" submit-label="Confirm return" close-method="closeReturnForm" target="returnAssignment">
+                <x-textarea wire:model="returnNotes" label="Return notes (optional)" rows="3" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
     @endif

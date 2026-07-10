@@ -2,7 +2,6 @@
     <header class="mb-6 rounded-2xl bg-zinc-950 px-5 py-6 text-white">
         <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">{{ strtoupper($companyName) }}</p>
         <h1 class="mt-1 text-2xl font-extrabold tracking-tight">Guard application</h1>
-        <p class="mt-1 text-sm text-zinc-300">Apply to join as a Guardian or Dispatch officer.</p>
     </header>
 
     @if ($submitted)

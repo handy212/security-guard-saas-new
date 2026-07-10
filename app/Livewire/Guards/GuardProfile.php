@@ -5,6 +5,7 @@ namespace App\Livewire\Guards;
 use App\Enums\GuardDocumentType;
 use App\Enums\GuardDutyType;
 use App\Models\Branch;
+use App\Models\DisciplinaryRecord;
 use App\Models\Guard;
 use App\Models\GuardAvailability;
 use App\Models\GuardCertification;
@@ -33,7 +34,7 @@ class GuardProfile extends Component
 
     private const TABS = [
         'overview', 'profile', 'availability', 'kpis', 'licenses', 'notes', 'reminders',
-        'files', 'sites', 'skills', 'department', 'settings',
+        'files', 'sites', 'skills', 'disciplinary', 'department', 'settings',
     ];
 
     #[Locked]
@@ -55,6 +56,8 @@ class GuardProfile extends Component
     public array $skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
 
     public array $trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
+
+    public array $disciplinaryForm = ['occurred_on' => '', 'type' => 'warning', 'description' => '', 'action_taken' => ''];
 
     public array $noteForm = ['body' => '', 'is_internal' => true];
 
@@ -439,6 +442,34 @@ class GuardProfile extends Component
         session()->flash('status', 'Training record added.');
     }
 
+    public function saveDisciplinary(): void
+    {
+        $this->authorize('update', $this->guard);
+        $data = $this->validate([
+            'disciplinaryForm.occurred_on' => 'required|date',
+            'disciplinaryForm.type' => 'required|in:warning,reprimand,suspension,termination',
+            'disciplinaryForm.description' => 'required|string|max:2000',
+            'disciplinaryForm.action_taken' => 'required|string|max:1000',
+        ])['disciplinaryForm'];
+
+        DisciplinaryRecord::create($data + [
+            'tenant_id' => TenantContext::id(),
+            'guard_id' => $this->guard->id,
+            'recorded_by' => auth()->id(),
+        ]);
+
+        $this->disciplinaryForm = ['occurred_on' => '', 'type' => 'warning', 'description' => '', 'action_taken' => ''];
+        $this->reloadGuard();
+        session()->flash('status', 'Disciplinary record added.');
+    }
+
+    public function deleteDisciplinary(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        DisciplinaryRecord::where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
+    }
+
     public function submitForReview(GuardVerificationService $verification): void
     {
         $this->authorize('update', $this->guard);
@@ -562,6 +593,7 @@ class GuardProfile extends Component
             'skills' => ['label' => 'Skill Set', 'hint' => 'Skills and competencies', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->skills->count())],
             'files' => ['label' => 'Files', 'hint' => 'ID and clearance docs', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->documents->count())],
             'notes' => ['label' => 'Notes', 'hint' => 'Internal notes', 'group' => 'HR', 'badge' => $this->badge($this->guard->notes->count())],
+            'disciplinary' => ['label' => 'Disciplinary', 'hint' => 'Warnings and actions', 'group' => 'HR', 'badge' => $this->badge($this->guard->disciplinaryRecords->count())],
             'reminders' => ['label' => 'Reminders', 'hint' => 'Follow-ups', 'group' => 'HR', 'badge' => $this->badge($this->guard->reminders->where('is_completed', false)->count())],
         ];
 
@@ -605,6 +637,7 @@ class GuardProfile extends Component
             'certifications',
             'skills',
             'trainingRecords',
+            'disciplinaryRecords' => fn ($q) => $q->latest('occurred_on'),
             'availabilities' => fn ($q) => $q->orderBy('weekday')->orderBy('starts_at'),
             'notes' => fn ($q) => $q->latest(),
             'notes.author',

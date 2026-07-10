@@ -160,6 +160,7 @@
                 <x-input wire:model="form.ends_at" label="Ends *" type="datetime-local" />
                 <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" />
                 <x-input wire:model="form.billing_rate" label="Shift charge" type="number" step="0.01" hint="Fixed amount billed for this shift" />
+                <x-input wire:model="form.billable_hours" label="Billable hours" type="number" step="0.25" min="0" hint="Optional override for payroll export" />
                 <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>

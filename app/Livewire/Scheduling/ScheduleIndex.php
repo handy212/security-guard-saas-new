@@ -35,7 +35,7 @@ class ScheduleIndex extends Component
     public array $form = [
         'client_account_id' => '', 'site_id' => '', 'site_post_id' => '', 'title' => '',
         'starts_at' => '', 'ends_at' => '', 'required_guards' => 1, 'billing_rate' => 0,
-        'notes' => '',
+        'billable_hours' => '', 'notes' => '',
     ];
 
     public array $pendingGuard = [];
@@ -80,6 +80,7 @@ class ScheduleIndex extends Component
             'ends_at' => $shift->ends_at?->format('Y-m-d\TH:i') ?? '',
             'required_guards' => $shift->required_guards,
             'billing_rate' => $shift->billing_rate,
+            'billable_hours' => $shift->billable_hours ?? '',
             'notes' => $shift->notes ?? '',
         ];
         $this->showForm = true;
@@ -217,6 +218,7 @@ class ScheduleIndex extends Component
             'form.ends_at' => 'required|date|after:form.starts_at',
             'form.required_guards' => 'integer|min:1',
             'form.billing_rate' => 'numeric|min:0',
+            'form.billable_hours' => 'nullable|numeric|min:0',
             'form.notes' => 'nullable|string',
         ])['form'];
 
@@ -224,6 +226,7 @@ class ScheduleIndex extends Component
         abort_unless((int) $site->client_account_id === (int) $data['client_account_id'], 422, 'Selected site does not belong to the client.');
 
         $data['site_post_id'] = filled($data['site_post_id'] ?? null) ? $data['site_post_id'] : null;
+        $data['billable_hours'] = filled($data['billable_hours'] ?? null) ? $data['billable_hours'] : null;
         $data['notes'] = filled($data['notes'] ?? null) ? $data['notes'] : null;
 
         return $data;
@@ -242,6 +245,7 @@ class ScheduleIndex extends Component
             'ends_at' => $anchor->copy()->setTime(17, 0)->format('Y-m-d\TH:i'),
             'required_guards' => 1,
             'billing_rate' => 0,
+            'billable_hours' => '',
             'notes' => '',
         ];
     }

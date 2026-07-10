@@ -75,4 +75,38 @@ class BillingService
 
         return $invoice->fresh('items');
     }
+
+    public function syncItems(Invoice $invoice, array $items): Invoice
+    {
+        if (\App\Support\EnumHelper::value($invoice->status) !== 'draft') {
+            throw new \RuntimeException('Only draft invoices can be edited.');
+        }
+
+        $invoice->items()->delete();
+
+        $subtotal = 0;
+        foreach ($items as $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $price = (float) ($item['unit_price'] ?? 0);
+            $line = round($qty * $price, 2);
+            $subtotal += $line;
+
+            InvoiceItem::create([
+                'tenant_id' => $invoice->tenant_id,
+                'invoice_id' => $invoice->id,
+                'description' => $item['description'],
+                'quantity' => $qty,
+                'unit_price' => $price,
+                'line_total' => $line,
+            ]);
+        }
+
+        $invoice->update([
+            'subtotal' => $subtotal,
+            'tax_total' => 0,
+            'grand_total' => $subtotal,
+        ]);
+
+        return $invoice->fresh('items');
+    }
 }

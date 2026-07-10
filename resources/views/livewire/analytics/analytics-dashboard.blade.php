@@ -1,13 +1,14 @@
 <div>
     <x-page-shell title="Analytics" description="Historical KPI snapshots and operational trends.">
         <x-slot:actions>
+            <x-input wire:model="snapshotDate" type="date" class="w-auto text-sm" />
             <x-button wire:click="refreshSnapshot" size="sm" variant="secondary">Refresh snapshot</x-button>
         </x-slot:actions>
 
         <x-flash-status type="success" />
 
         @if($snapshot)
-            <p class="text-xs text-zinc-500">Latest snapshot: {{ \Carbon\Carbon::parse($snapshot->snapshot_date)->format('l, M j, Y') }} · refreshed nightly</p>
+            <p class="text-xs text-zinc-500">Latest snapshot: {{ \Carbon\Carbon::parse($snapshot->snapshot_date)->format('l, M j, Y') }} · refreshed nightly or on demand</p>
 
             <div class="stat-grid">
                 <x-stat-card compact label="Active guards" :value="$snapshot->active_guards" icon="guards" />
@@ -51,6 +52,37 @@
                     @endif
                 </x-section-card>
             </div>
+
+            <x-data-table title="Snapshot history" class="mt-4">
+                <x-table.head>
+                    <tr>
+                        <x-table.th>Date</x-table.th>
+                        <x-table.th>Guards</x-table.th>
+                        <x-table.th>Sites</x-table.th>
+                        <x-table.th>Patrol %</x-table.th>
+                        <x-table.th>Missed</x-table.th>
+                        <x-table.th responsive="md">Late</x-table.th>
+                        <x-table.th responsive="md">No-show</x-table.th>
+                        <x-table.th>Revenue</x-table.th>
+                    </tr>
+                </x-table.head>
+                <tbody>
+                    @forelse ($history as $row)
+                        <tr class="table-row-hover" wire:key="snap-{{ $row->id }}">
+                            <x-table.td class="font-medium">{{ \Carbon\Carbon::parse($row->snapshot_date)->format('M j, Y') }}</x-table.td>
+                            <x-table.td muted>{{ $row->active_guards }}</x-table.td>
+                            <x-table.td muted>{{ $row->active_sites }}</x-table.td>
+                            <x-table.td>{{ $row->patrol_completion_rate }}%</x-table.td>
+                            <x-table.td muted>{{ $row->missed_patrols }}</x-table.td>
+                            <x-table.td responsive="md" muted>{{ $row->late_shifts }}</x-table.td>
+                            <x-table.td responsive="md" muted>{{ $row->no_show_shifts }}</x-table.td>
+                            <x-table.td>₦{{ number_format($row->revenue_total, 0) }}</x-table.td>
+                        </tr>
+                    @empty
+                        <x-table.empty colspan="8"><x-empty-state title="No history yet" /></x-table.empty>
+                    @endforelse
+                </tbody>
+            </x-data-table>
         @else
             <x-empty-state title="No analytics yet" description="Run a snapshot to populate KPIs and trends.">
                 <x-button wire:click="refreshSnapshot" size="sm" class="mt-3">Run first snapshot</x-button>

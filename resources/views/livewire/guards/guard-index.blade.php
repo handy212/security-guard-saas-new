@@ -26,6 +26,18 @@
                     <option value="verified">Verified</option>
                     <option value="pending">Pending</option>
                 </x-filter-select>
+                <x-filter-select wire:model.live="dutyFilter">
+                    <option value="all">All duty types</option>
+                    @foreach ($dutyTypes as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </x-filter-select>
+                <x-filter-select wire:model.live="branchFilter">
+                    <option value="all">All branches</option>
+                    @foreach ($branches as $branch)
+                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                    @endforeach
+                </x-filter-select>
             </x-slot:controls>
         </x-page-toolbar>
 

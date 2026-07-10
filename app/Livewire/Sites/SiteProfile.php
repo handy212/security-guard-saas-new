@@ -16,6 +16,7 @@ use App\Models\SiteNote;
 use App\Models\SitePost;
 use App\Models\SiteReportSchedule;
 use App\Models\SiteSlaRequirement;
+use App\Models\TaskSubmission;
 use App\Services\FileUploadService;
 use App\Services\SiteOverviewService;
 use App\Services\TenantFileStorageService;
@@ -55,7 +56,10 @@ class SiteProfile extends Component
 
     public array $tourForm = ['name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
 
-    public array $tagForm = ['patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1, 'instructions' => ''];
+    public array $tagForm = [
+        'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
+        'instructions' => '', 'latitude' => '', 'longitude' => '',
+    ];
 
     public array $taskForm = ['patrol_checkpoint_id' => '', 'title' => '', 'response_type' => 'yes_no', 'is_required' => true];
 
@@ -287,14 +291,23 @@ class SiteProfile extends Component
             'tagForm.code' => 'required|string|max:80',
             'tagForm.sequence' => 'integer|min:1',
             'tagForm.instructions' => 'nullable|string|max:1000',
+            'tagForm.latitude' => 'nullable|numeric',
+            'tagForm.longitude' => 'nullable|numeric',
         ])['tagForm'];
+
+        $data['latitude'] = $data['latitude'] !== '' ? $data['latitude'] : null;
+        $data['longitude'] = $data['longitude'] !== '' ? $data['longitude'] : null;
+        $data['instructions'] = $data['instructions'] !== '' ? $data['instructions'] : null;
 
         PatrolCheckpoint::create($data + [
             'tenant_id' => TenantContext::id(),
             'status' => 'active',
         ]);
 
-        $this->tagForm = ['patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1, 'instructions' => ''];
+        $this->tagForm = [
+            'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
+            'instructions' => '', 'latitude' => '', 'longitude' => '',
+        ];
         $this->reloadSite();
         session()->flash('status', 'Tour tag added.');
     }
@@ -441,6 +454,14 @@ class SiteProfile extends Component
             ->orderBy('sort_order')
             ->get();
 
+        $taskSubmissions = TaskSubmission::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('checkpoint_task_id', $tasks->pluck('id'))
+            ->with(['task', 'scan.assignedGuard', 'scan.checkpoint'])
+            ->latest()
+            ->limit(40)
+            ->get();
+
         $profileTabs = [
             'overview' => ['label' => 'Overview', 'hint' => 'Map, KPIs, summary', 'group' => 'Summary'],
             'profile' => ['label' => 'Profile', 'hint' => 'Site details', 'group' => 'Summary'],
@@ -467,6 +488,7 @@ class SiteProfile extends Component
             'upcomingShifts' => $upcomingShifts,
             'checkpoints' => $checkpoints,
             'tasks' => $tasks,
+            'taskSubmissions' => $taskSubmissions,
             'clients' => ClientAccount::orderBy('name')->get(),
             'reportTemplates' => ReportTemplate::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get(),
             'documentTypes' => config('site_profile.document_types', []),

@@ -53,6 +53,36 @@ class PayrollBoard extends Component
         return Storage::download($export->file_path);
     }
 
+    public function approveTimesheet(int $timesheetId): void
+    {
+        abort_unless(auth()->user()->can('payroll.manage'), 403);
+        $timesheet = Timesheet::where('tenant_id', TenantContext::id())->findOrFail($timesheetId);
+        abort_unless($timesheet->status === 'pending', 422);
+
+        $timesheet->update([
+            'status' => 'approved',
+            'approved_by_user_id' => auth()->id(),
+            'approved_at' => now(),
+        ]);
+
+        session()->flash('status', 'Timesheet approved.');
+    }
+
+    public function rejectTimesheet(int $timesheetId): void
+    {
+        abort_unless(auth()->user()->can('payroll.manage'), 403);
+        $timesheet = Timesheet::where('tenant_id', TenantContext::id())->findOrFail($timesheetId);
+        abort_unless(in_array($timesheet->status, ['pending', 'approved'], true), 422);
+
+        $timesheet->update([
+            'status' => 'rejected',
+            'approved_by_user_id' => auth()->id(),
+            'approved_at' => now(),
+        ]);
+
+        session()->flash('status', 'Timesheet rejected.');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()->can('payroll.manage'), 403);

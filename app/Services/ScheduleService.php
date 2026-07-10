@@ -27,6 +27,7 @@ class ScheduleService
             'ends_at' => $data['ends_at'],
             'required_guards' => $data['required_guards'] ?? 1,
             'billing_rate' => $data['billing_rate'] ?? 0,
+            'billable_hours' => $data['billable_hours'] ?? $this->defaultBillableHours($data['starts_at'], $data['ends_at']),
             'status' => $data['status'] ?? 'open',
             'notes' => $data['notes'] ?? null,
         ]);
@@ -43,6 +44,7 @@ class ScheduleService
             'ends_at' => $data['ends_at'],
             'required_guards' => $data['required_guards'] ?? 1,
             'billing_rate' => $data['billing_rate'] ?? 0,
+            'billable_hours' => $data['billable_hours'] ?? $this->defaultBillableHours($data['starts_at'], $data['ends_at']),
             'status' => $data['status'] ?? $shift->status,
             'notes' => $data['notes'] ?? null,
         ]);
@@ -215,5 +217,12 @@ class ScheduleService
             ->whereDate('starts_at', $date)
             ->orderBy('starts_at')
             ->get();
+    }
+
+    private function defaultBillableHours(string|Carbon $startsAt, string|Carbon $endsAt): float
+    {
+        $hours = Carbon::parse($startsAt)->floatDiffInHours(Carbon::parse($endsAt));
+
+        return round(max($hours, 0.25), 2);
     }
 }

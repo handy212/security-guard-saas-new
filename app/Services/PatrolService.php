@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\CheckpointScan;
+use App\Models\Guard;
 use App\Models\PatrolCheckpoint;
+use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
+use App\Models\ShiftAssignment;
 use RuntimeException;
 
 class PatrolService
@@ -12,6 +15,56 @@ class PatrolService
     public function startSession(array $data): PatrolSession
     {
         return PatrolSession::create($data + ['status' => 'in_progress', 'started_at' => now()]);
+    }
+
+    /**
+     * Ops-assigned patrol: create an in-progress session for a guard on a route.
+     * Ensures a shift assignment exists (schema requires it).
+     */
+    public function assignAndStart(int $tenantId, int $routeId, int $guardId, ?int $shiftAssignmentId = null): PatrolSession
+    {
+        $active = PatrolSession::query()
+            ->where('tenant_id', $tenantId)
+            ->where('guard_id', $guardId)
+            ->where('status', 'in_progress')
+            ->exists();
+
+        if ($active) {
+            throw new RuntimeException('Guard already has an active patrol session.');
+        }
+
+        $route = PatrolRoute::where('tenant_id', $tenantId)->findOrFail($routeId);
+        $guard = Guard::where('tenant_id', $tenantId)->findOrFail($guardId);
+
+        $assignmentId = $shiftAssignmentId
+            ?? $this->resolveAssignmentForPatrol($tenantId, $guard, $route)?->id;
+
+        if (! $assignmentId) {
+            throw new RuntimeException('Guard needs an active shift assignment on this site before starting a patrol. Deploy them first.');
+        }
+
+        return $this->startSession([
+            'tenant_id' => $tenantId,
+            'patrol_route_id' => $routeId,
+            'guard_id' => $guardId,
+            'shift_assignment_id' => $assignmentId,
+        ]);
+    }
+
+    private function resolveAssignmentForPatrol(int $tenantId, Guard $guard, PatrolRoute $route): ?ShiftAssignment
+    {
+        return ShiftAssignment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('guard_id', $guard->id)
+            ->whereNotIn('status', ['cancelled', 'completed', 'no_show'])
+            ->whereHas('shift', function ($q) use ($route) {
+                $q->where('site_id', $route->site_id)
+                    ->where('starts_at', '<=', now()->addHours(2))
+                    ->where('ends_at', '>=', now()->subHour())
+                    ->whereNotIn('status', ['cancelled', 'completed']);
+            })
+            ->latest('id')
+            ->first();
     }
 
     public function scanCheckpoint(array $data): CheckpointScan

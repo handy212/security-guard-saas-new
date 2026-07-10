@@ -23,6 +23,10 @@ class GuardIndex extends Component
 
     public string $verificationFilter = 'all';
 
+    public string $dutyFilter = 'all';
+
+    public string $branchFilter = 'all';
+
     public ?int $editingId = null;
 
     public array $form = [
@@ -35,6 +39,8 @@ class GuardIndex extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
         'verificationFilter' => ['except' => 'all', 'as' => 'kyg'],
+        'dutyFilter' => ['except' => 'all', 'as' => 'duty'],
+        'branchFilter' => ['except' => 'all', 'as' => 'branch'],
     ];
 
     public function mount(): void
@@ -78,6 +84,8 @@ class GuardIndex extends Component
         $this->search = '';
         $this->statusFilter = 'all';
         $this->verificationFilter = 'all';
+        $this->dutyFilter = 'all';
+        $this->branchFilter = 'all';
         $this->resetPage();
     }
 
@@ -140,7 +148,7 @@ class GuardIndex extends Component
 
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'statusFilter', 'verificationFilter'], true)) {
+        if (in_array($property, ['search', 'statusFilter', 'verificationFilter', 'dutyFilter', 'branchFilter'], true)) {
             $this->resetPage();
         }
     }
@@ -159,7 +167,7 @@ class GuardIndex extends Component
                 'pending' => Guard::where('tenant_id', $tenantId)->where('verification_status', '!=', 'verified')->count(),
                 'inactive' => Guard::where('tenant_id', $tenantId)->where('status', 'inactive')->count(),
             ],
-            'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->verificationFilter !== 'all',
+            'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->verificationFilter !== 'all' || $this->dutyFilter !== 'all' || $this->branchFilter !== 'all',
         ])->layout('layouts.app');
     }
 
@@ -185,6 +193,8 @@ class GuardIndex extends Component
             ->when($this->statusFilter !== 'all', fn ($query) => $query->where('status', $this->statusFilter))
             ->when($this->verificationFilter === 'pending', fn ($query) => $query->where('verification_status', '!=', 'verified'))
             ->when($this->verificationFilter === 'verified', fn ($query) => $query->where('verification_status', 'verified'))
+            ->when($this->dutyFilter !== 'all', fn ($query) => $query->where('duty_type', $this->dutyFilter))
+            ->when($this->branchFilter !== 'all', fn ($query) => $query->where('branch_id', $this->branchFilter))
             ->orderBy('first_name');
     }
 }

@@ -135,4 +135,111 @@ class DispatchSystemTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', DispatchStatus::EN_ROUTE->value);
     }
+
+    public function test_create_from_sos_sets_client_account(): void
+    {
+        $guard = Guard::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+
+        $alert = \App\Models\SosAlert::create([
+            'tenant_id' => $this->tenant->id,
+            'guard_id' => $guard->id,
+            'site_id' => $site->id,
+            'latitude' => 5.6,
+            'longitude' => -0.18,
+            'message' => 'Need backup',
+            'status' => 'open',
+            'raised_at' => now(),
+        ]);
+
+        $event = app(DispatchService::class)->createFromSos($alert, $this->admin->id);
+
+        $this->assertSame($site->client_account_id, $event->client_account_id);
+        $this->assertSame(DispatchStatus::ASSIGNED, $event->status);
+        $this->assertSame('critical', $event->priority->value);
+    }
+
+    public function test_cannot_advance_open_dispatch_without_guard(): void
+    {
+        $client = ClientAccount::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+
+        $event = app(DispatchService::class)->createDispatch([
+            'tenant_id' => $this->tenant->id,
+            'client_account_id' => $client->id,
+            'site_id' => $site->id,
+            'created_by_user_id' => $this->admin->id,
+            'event_type' => 'alarm',
+            'priority' => 'normal',
+            'caller_type' => 'client',
+            'caller_name' => 'Front desk',
+            'incident_location' => 'Gate',
+            'description' => 'Alarm sounding',
+        ]);
+
+        $this->assertSame(DispatchStatus::OPEN, $event->status);
+        $this->assertNull($event->guard_id);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Assign a guard before advancing');
+
+        app(DispatchService::class)->advanceStatus($event, $this->admin->id);
+    }
+
+    public function test_livewire_blocks_advance_without_guard(): void
+    {
+        $client = ClientAccount::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+
+        $event = app(DispatchService::class)->createDispatch([
+            'tenant_id' => $this->tenant->id,
+            'client_account_id' => $client->id,
+            'site_id' => $site->id,
+            'created_by_user_id' => $this->admin->id,
+            'event_type' => 'alarm',
+            'priority' => 'normal',
+            'caller_type' => 'client',
+            'caller_name' => 'Front desk',
+            'incident_location' => 'Gate',
+            'description' => 'Alarm sounding',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->call('selectDispatch', $event->id)
+            ->call('advanceStatus')
+            ->assertHasErrors('assignGuardId');
+
+        $this->assertSame(DispatchStatus::OPEN, $event->fresh()->status);
+    }
+
+    public function test_assign_then_advance_from_board(): void
+    {
+        $client = ClientAccount::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+        $guard = Guard::where('tenant_id', $this->tenant->id)->where('status', 'active')->first();
+
+        $event = app(DispatchService::class)->createDispatch([
+            'tenant_id' => $this->tenant->id,
+            'client_account_id' => $client->id,
+            'site_id' => $site->id,
+            'created_by_user_id' => $this->admin->id,
+            'event_type' => 'alarm',
+            'priority' => 'high',
+            'caller_type' => 'client',
+            'caller_name' => 'Front desk',
+            'incident_location' => 'Gate',
+            'description' => 'Alarm sounding',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->call('selectDispatch', $event->id)
+            ->set('assignGuardId', $guard->id)
+            ->call('assignGuard')
+            ->call('advanceStatus')
+            ->assertHasNoErrors();
+
+        $this->assertSame(DispatchStatus::EN_ROUTE, $event->fresh()->status);
+    }
 }

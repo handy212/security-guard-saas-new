@@ -46,9 +46,16 @@ class AssetIndex extends Component
 
     public array $issueForm = ['guard_id' => '', 'site_id' => '', 'issue_notes' => ''];
 
+    public bool $showReturnForm = false;
+
+    public ?int $returnAssignmentId = null;
+
+    public string $returnNotes = '';
+
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
+        'categoryFilter' => ['except' => null, 'as' => 'category'],
     ];
 
     public function mount(): void
@@ -175,11 +182,32 @@ class AssetIndex extends Component
         $this->showIssueForm = false;
     }
 
-    public function returnAssignment(int $assignmentId, AssetManagementService $service): void
+    public function openReturn(int $assignmentId): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        $assignment = \App\Models\EquipmentAssignment::findOrFail($assignmentId);
-        $service->returnAsset($assignment);
+        $this->returnAssignmentId = $assignmentId;
+        $this->returnNotes = '';
+        $this->showReturnForm = true;
+    }
+
+    public function closeReturnForm(): void
+    {
+        $this->showReturnForm = false;
+        $this->returnAssignmentId = null;
+        $this->returnNotes = '';
+    }
+
+    public function returnAssignment(AssetManagementService $service): void
+    {
+        abort_unless(auth()->user()->can('equipment.manage'), 403);
+        $data = $this->validate([
+            'returnAssignmentId' => 'required|exists:equipment_assignments,id',
+            'returnNotes' => 'nullable|string|max:1000',
+        ]);
+
+        $assignment = \App\Models\EquipmentAssignment::findOrFail($data['returnAssignmentId']);
+        $service->returnAsset($assignment, $data['returnNotes'] ?: null);
+        $this->closeReturnForm();
         session()->flash('status', 'Asset returned.');
     }
 

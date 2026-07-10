@@ -16,6 +16,7 @@ return [
         ['href' => '/schedules/templates', 'label' => 'Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         // Day
         ['href' => '/schedules', 'label' => 'Day roster', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/deploy', 'label' => 'Deploy wizard', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/shift-status', 'label' => 'Confirmations', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         // Time
@@ -42,9 +43,10 @@ return [
     'groups' => [
         'Patrols & Reports' => [
             ['href' => '/patrols', 'label' => 'Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+            ['href' => '/patrols/fleet', 'label' => 'Fleet', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+            ['href' => '/patrols/vehicles', 'label' => 'Vehicle Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
             ['href' => '/passdown', 'label' => 'Passdown', 'icon' => 'reports', 'permission' => 'patrols.manage', 'feature' => 'passdown'],
             ['href' => '/patrols/playback', 'label' => 'Patrol Playback', 'icon' => 'gps', 'permission' => 'patrols.manage', 'feature' => 'gps'],
-            ['href' => '/patrols/vehicles', 'label' => 'Vehicle Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
             ['href' => '/reports/daily', 'label' => 'Daily Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
             ['href' => '/reports/templates', 'label' => 'Custom Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'custom_reports'],
         ],
@@ -91,6 +93,7 @@ return [
         ['href' => '/settings/team', 'label' => 'Team passwords', 'permission' => 'settings.manage'],
         ['href' => '/settings/two-factor', 'label' => 'Two-Factor Auth', 'permission' => null],
         ['href' => '/settings/webhooks', 'label' => 'Webhooks', 'permission' => 'settings.manage', 'feature' => 'webhooks'],
+        ['href' => '/settings/notifications', 'label' => 'Notification templates', 'permission' => 'settings.manage'],
         ['href' => '/mobile/offline-sync', 'label' => 'Offline Sync', 'permission' => 'mobile.use'],
     ],
 ];

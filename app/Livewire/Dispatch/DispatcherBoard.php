@@ -14,23 +14,32 @@ use App\Models\SosAlert;
 use App\Services\DispatchService;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DispatcherBoard extends Component
 {
     use AuthorizesModuleAccess, HasFormDrawer, WithFileUploads;
 
+    #[Url(as: 'q', except: '')]
     public string $search = '';
 
+    #[Url(as: 'status', except: 'active')]
     public string $statusFilter = 'active';
 
+    #[Url(as: 'priority', except: 'all')]
     public string $priorityFilter = 'all';
 
     public ?int $selectedId = null;
 
     public ?int $assignGuardId = null;
+
+    public bool $confirmingCancel = false;
 
     public $attachmentFile;
 
@@ -62,6 +71,24 @@ class DispatcherBoard extends Component
         $this->form['incident_time'] = now()->format('H:i');
     }
 
+    public function applyStatFilter(string $filter): void
+    {
+        match ($filter) {
+            'active' => [$this->statusFilter, $this->priorityFilter] = ['active', 'all'],
+            'critical' => [$this->statusFilter, $this->priorityFilter] = ['active', 'critical'],
+            'en_route' => [$this->statusFilter, $this->priorityFilter] = ['en_route', 'all'],
+            'sos' => [$this->statusFilter, $this->priorityFilter] = ['active', 'critical'],
+            default => null,
+        };
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->statusFilter = 'active';
+        $this->priorityFilter = 'all';
+    }
+
     public function openForm(): void
     {
         $this->resetForm();
@@ -71,6 +98,7 @@ class DispatcherBoard extends Component
     public function selectDispatch(int $id): void
     {
         $this->selectedId = $id;
+        $this->confirmingCancel = false;
         $dispatch = DispatchEvent::with('activityLogs.user')->findOrFail($id);
         $this->detail = [
             'action_taken' => $dispatch->action_taken ?? '',
@@ -134,6 +162,7 @@ class DispatcherBoard extends Component
 
         $service->updateDispatch($dispatch, $data['detail'] + ['user_id' => TenantContext::userId()], $this->attachmentFile);
         $this->reset('attachmentFile');
+        session()->flash('status', 'Dispatch notes saved.');
     }
 
     public function assignGuard(DispatchService $service): void
@@ -154,7 +183,23 @@ class DispatcherBoard extends Component
     {
         $dispatch = $this->authorizeSelectedDispatch();
 
-        $service->advanceStatus($dispatch, TenantContext::userId());
+        try {
+            $service->advanceStatus($dispatch, TenantContext::userId());
+            session()->flash('status', 'Status updated.');
+        } catch (RuntimeException $e) {
+            $this->addError('assignGuardId', $e->getMessage());
+        }
+    }
+
+    public function confirmCancel(): void
+    {
+        $this->authorizeSelectedDispatch();
+        $this->confirmingCancel = true;
+    }
+
+    public function closeCancelConfirm(): void
+    {
+        $this->confirmingCancel = false;
     }
 
     public function cancelDispatch(DispatchService $service): void
@@ -163,6 +208,26 @@ class DispatcherBoard extends Component
 
         $service->setStatus($dispatch, DispatchStatus::CANCELLED, TenantContext::userId());
         $this->selectedId = null;
+        $this->confirmingCancel = false;
+        session()->flash('status', 'Dispatch cancelled.');
+    }
+
+    public function promoteToIncident(DispatchService $service): void
+    {
+        $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless(auth()->user()->can('incidents.manage'), 403);
+
+        $incident = $service->promoteToIncident($dispatch, TenantContext::userId());
+        $this->selectDispatch($dispatch->id);
+        session()->flash('status', 'Incident #'.$incident->id.' created from dispatch.');
+    }
+
+    public function downloadAttachment(): StreamedResponse
+    {
+        $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless($dispatch->attachment_path && Storage::exists($dispatch->attachment_path), 404);
+
+        return Storage::download($dispatch->attachment_path);
     }
 
     public function acknowledgeSos(SosAlert $alert): void
@@ -181,6 +246,8 @@ class DispatcherBoard extends Component
         $alert = SosAlert::with(['assignedGuard', 'site'])->findOrFail($alertId);
         $event = $service->createFromSos($alert, TenantContext::userId());
         $this->selectedId = $event->id;
+        $this->selectDispatch($event->id);
+        session()->flash('status', 'Dispatch '.$event->dispatch_number.' created from SOS.');
     }
 
     public function updatedFormClientAccountId(): void
@@ -211,7 +278,7 @@ class DispatcherBoard extends Component
             ->get();
 
         $selected = $this->selectedId
-            ? DispatchEvent::with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert'])->find($this->selectedId)
+            ? DispatchEvent::with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert', 'incident'])->find($this->selectedId)
             : null;
 
         $sosAlerts = SosAlert::with(['assignedGuard', 'site'])
@@ -222,6 +289,39 @@ class DispatcherBoard extends Component
         $sitesForClient = $this->form['client_account_id']
             ? Site::where('client_account_id', $this->form['client_account_id'])->orderBy('name')->get()
             : collect();
+
+        $timeline = [];
+        if ($selected) {
+            $timeline = collect([
+                ['key' => 'opened', 'label' => 'Opened', 'at' => $selected->opened_at],
+                ['key' => 'assigned', 'label' => 'Assigned', 'at' => $selected->assigned_at],
+                ['key' => 'en_route', 'label' => 'En route', 'at' => $selected->en_route_at],
+                ['key' => 'on_scene', 'label' => 'On scene', 'at' => $selected->on_scene_at],
+                ['key' => 'resolved', 'label' => 'Resolved', 'at' => $selected->resolved_at],
+                ['key' => 'closed', 'label' => 'Closed', 'at' => $selected->closed_at],
+            ])->all();
+        }
+
+        $mapMarkers = [];
+        if ($selected?->latitude && $selected?->longitude) {
+            $mapMarkers[] = [
+                'lat' => (float) $selected->latitude,
+                'lng' => (float) $selected->longitude,
+                'label' => $selected->dispatch_number ?? 'Dispatch',
+                'meta' => $selected->incident_location ?? $selected->site?->name,
+            ];
+        }
+
+        $trackingUrl = null;
+        if ($selected?->latitude && $selected?->longitude) {
+            $trackingUrl = route('tracking.live', array_filter([
+                'lat' => $selected->latitude,
+                'lng' => $selected->longitude,
+                'guard' => $selected->guard_id,
+            ]));
+        } elseif ($selected?->guard_id) {
+            $trackingUrl = route('tracking.live', ['guard' => $selected->guard_id]);
+        }
 
         $stats = [
             'active' => DispatchEvent::where('tenant_id', $tenantId)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])->count(),
@@ -238,8 +338,12 @@ class DispatcherBoard extends Component
             'sitesForClient' => $sitesForClient,
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
             'stats' => $stats,
+            'timeline' => $timeline,
+            'mapMarkers' => $mapMarkers,
+            'trackingUrl' => $trackingUrl,
             'incidentTypes' => config('dispatch.incident_types'),
             'callerTypes' => config('dispatch.caller_types'),
+            'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'active' || $this->priorityFilter !== 'all',
         ])->layout('layouts.app');
     }
 

@@ -4,6 +4,7 @@ namespace App\Livewire\Visitors;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Models\Guard;
 use App\Models\Site;
 use App\Models\VisitorLog;
 use App\Support\TenantContext;
@@ -19,7 +20,8 @@ class VisitorLogIndex extends Component
     public string $statusFilter = 'all';
 
     public array $form = [
-        'site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '', 'purpose' => '', 'vehicle_plate' => '',
+        'site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '',
+        'purpose' => '', 'vehicle_plate' => '', 'id_type' => '', 'id_number' => '', 'guard_id' => '',
     ];
 
     protected $queryString = ['search' => ['except' => ''], 'statusFilter' => ['except' => 'all', 'as' => 'status']];
@@ -46,7 +48,14 @@ class VisitorLogIndex extends Component
             'form.company' => 'nullable',
             'form.purpose' => 'nullable',
             'form.vehicle_plate' => 'nullable',
+            'form.id_type' => 'nullable|string|max:50',
+            'form.id_number' => 'nullable|string|max:120',
+            'form.guard_id' => 'nullable',
         ])['form'];
+
+        $data['guard_id'] = $data['guard_id'] ?: null;
+        $data['id_type'] = $data['id_type'] ?: null;
+        $data['id_number'] = $data['id_number'] ?: null;
 
         VisitorLog::create($data + [
             'tenant_id' => TenantContext::id(),
@@ -54,13 +63,13 @@ class VisitorLogIndex extends Component
             'status' => 'checked_in',
         ]);
 
-        $this->form = ['site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '', 'purpose' => '', 'vehicle_plate' => ''];
+        $this->form = $this->blankForm();
         $this->closeDrawer();
     }
 
     public function openCheckIn(): void
     {
-        $this->form = ['site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '', 'purpose' => '', 'vehicle_plate' => ''];
+        $this->form = $this->blankForm();
         $this->openForm();
     }
 
@@ -76,12 +85,13 @@ class VisitorLogIndex extends Component
         $base = VisitorLog::where('tenant_id', $tenantId);
 
         return view('livewire.visitors.visitor-log-index', [
-            'items' => (clone $base)->with('site')
+            'items' => (clone $base)->with(['site', 'assignedGuard'])
                 ->when($this->search, fn ($q) => $q->where('visitor_name', 'like', '%'.$this->search.'%'))
                 ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
                 ->latest()
                 ->paginate(25),
             'sites' => Site::orderBy('name')->get(),
+            'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
             'stats' => [
                 'total' => (clone $base)->count(),
                 'on_site' => (clone $base)->where('status', 'checked_in')->count(),
@@ -89,5 +99,13 @@ class VisitorLogIndex extends Component
                 'sites' => Site::where('tenant_id', $tenantId)->count(),
             ],
         ])->layout('layouts.app');
+    }
+
+    private function blankForm(): array
+    {
+        return [
+            'site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '',
+            'purpose' => '', 'vehicle_plate' => '', 'id_type' => '', 'id_number' => '', 'guard_id' => '',
+        ];
     }
 }
