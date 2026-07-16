@@ -151,6 +151,22 @@ class FleetIndex extends Component
         session()->flash('status', 'Vehicle status updated.');
     }
 
+    public function delete(int $id, FleetService $fleet): void
+    {
+        abort_unless(auth()->user()->can('patrols.manage'), 403);
+        $vehicle = FleetVehicle::where('tenant_id', TenantContext::id())->findOrFail($id);
+
+        try {
+            $fleet->delete($vehicle);
+        } catch (\RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', 'Vehicle deleted.');
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();

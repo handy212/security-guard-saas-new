@@ -2,11 +2,11 @@
 
 @php
     $tones = [
-        'default' => 'bg-zinc-100 text-zinc-600',
-        'success' => 'bg-emerald-50 text-emerald-600',
-        'warning' => 'bg-amber-50 text-amber-600',
-        'danger' => 'bg-red-50 text-red-600',
-        'info' => 'bg-accent-50 text-accent-600',
+        'default' => 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300',
+        'success' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
+        'warning' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+        'danger' => 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400',
+        'info' => 'bg-accent-50 text-accent-700 dark:bg-accent-950/50 dark:text-accent-400',
     ];
     $iconTone = $tones[$tone] ?? $tones['default'];
 
@@ -29,33 +29,36 @@
     $path = $icons[$icon] ?? $icons['users'];
 
     $shellClass = $stacked
-        ? 'flex h-full min-w-0 flex-col items-center justify-center rounded-lg border border-zinc-200 bg-white px-2 py-3 text-center dark:border-zinc-800 dark:bg-zinc-900'
+        ? 'flex h-full min-w-0 flex-col items-center justify-center px-3 py-3 text-center'
         : ($compact
-            ? 'flex min-w-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-900'
-            : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900');
+            ? 'flex min-w-0 w-full items-center gap-3 px-4 py-3 text-left'
+            : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200/90 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900');
 
     if ($active) {
-        $shellClass .= ' border-zinc-400 bg-zinc-50 shadow-sm dark:border-zinc-600 dark:bg-zinc-800';
+        $shellClass .= $compact
+            ? ' bg-zinc-50 dark:bg-zinc-800/80'
+            : ' border-zinc-400 bg-zinc-50 shadow-sm dark:border-zinc-600 dark:bg-zinc-800';
     }
+
     $iconShellClass = $stacked
         ? 'mb-1.5 flex h-7 w-7 items-center justify-center rounded-md'
-        : ($compact ? 'flex h-6 w-6 shrink-0 items-center justify-center rounded-md' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg');
-    $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-3 w-3' : 'h-4 w-4');
+        : ($compact ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg');
+    $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-3.5 w-3.5' : 'h-4 w-4');
     $valueClass = $stacked
         ? 'truncate text-base font-semibold leading-tight text-zinc-900 dark:text-zinc-100'
-        : ($compact ? 'truncate text-sm font-semibold leading-none text-zinc-900 dark:text-zinc-100' : 'truncate text-lg font-semibold leading-tight text-zinc-900 dark:text-zinc-100');
+        : ($compact ? 'text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50' : 'truncate text-lg font-semibold leading-tight text-zinc-900 dark:text-zinc-100');
     $labelClass = $stacked
         ? 'mt-0.5 truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400'
-        : ($compact ? 'truncate text-[10px] font-medium leading-tight text-zinc-500 sm:text-[11px] dark:text-zinc-400' : 'truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-400');
+        : ($compact ? 'mt-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400' : 'truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-400');
 
     $isInteractive = $attributes->whereStartsWith('wire:click')->isNotEmpty();
     if ($isInteractive) {
-        $shellClass .= ' w-full text-left transition hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/20';
+        $shellClass .= ' transition hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-600/30 dark:hover:bg-zinc-800/60';
     }
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition hover:border-zinc-300']) }}>
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition hover:bg-zinc-50 dark:hover:bg-zinc-800/60']) }}>
 @elseif ($isInteractive)
     <button type="button" {{ $attributes->merge(['class' => $shellClass]) }}>
 @else
@@ -66,7 +69,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="{{ $path }}" />
         </svg>
     </div>
-    <div class="{{ $stacked ? 'min-w-0 w-full' : 'min-w-0' }}">
+    <div class="min-w-0 flex-1">
         <div class="{{ $valueClass }}">{{ $value }}</div>
         <div class="{{ $labelClass }}">{{ $label }}</div>
         @if ($hint)

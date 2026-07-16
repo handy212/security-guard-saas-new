@@ -6,9 +6,11 @@ use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Models\ClientAccount;
 use App\Models\ClientComplaint;
 use App\Models\Site;
+use App\Services\ComplaintService;
 use App\Support\TenantContext;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RuntimeException;
 
 class ComplaintBoard extends Component
 {
@@ -17,6 +19,8 @@ class ComplaintBoard extends Component
     public string $search = '';
 
     public string $statusFilter = 'all';
+
+    public ?int $editingId = null;
 
     public array $form = [
         'client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal',
@@ -46,9 +50,30 @@ class ComplaintBoard extends Component
         $this->resetPage();
     }
 
-    public function save(): void
+    public function edit(int $id): void
     {
-        abort_unless(auth()->user()->can('clients.manage'), 403);
+        $complaint = ClientComplaint::findOrFail($id);
+        $this->authorize('update', $complaint);
+        abort_unless($complaint->status === 'open', 422);
+
+        $this->editingId = $complaint->id;
+        $this->form = [
+            'client_account_id' => (string) $complaint->client_account_id,
+            'site_id' => (string) ($complaint->site_id ?? ''),
+            'subject' => $complaint->subject,
+            'description' => $complaint->description ?? '',
+            'priority' => $complaint->priority ?? 'normal',
+        ];
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->editingId = null;
+        $this->form = ['client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal'];
+    }
+
+    public function save(ComplaintService $service): void
+    {
         $data = $this->validate([
             'form.client_account_id' => 'required',
             'form.site_id' => 'nullable',
@@ -58,15 +83,47 @@ class ComplaintBoard extends Component
         ])['form'];
         $data['site_id'] = $data['site_id'] ?: null;
 
-        ClientComplaint::create($data + ['tenant_id' => TenantContext::id(), 'status' => 'open']);
-        $this->form = ['client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal'];
-        session()->flash('status', 'Complaint logged.');
+        try {
+            if ($this->editingId) {
+                $complaint = ClientComplaint::findOrFail($this->editingId);
+                $this->authorize('update', $complaint);
+                $service->update($complaint, $data);
+                session()->flash('status', 'Complaint updated.');
+            } else {
+                $this->authorize('create', ClientComplaint::class);
+                $service->create($data);
+                session()->flash('status', 'Complaint logged.');
+            }
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        $this->cancelEdit();
     }
 
-    public function resolve(ClientComplaint $complaint): void
+    public function resolve(ClientComplaint $complaint, ComplaintService $service): void
     {
-        abort_unless(auth()->user()->can('clients.manage'), 403);
-        $complaint->update(['status' => 'resolved', 'resolved_at' => now()]);
+        $this->authorize('update', $complaint);
+        $service->resolve($complaint);
+        session()->flash('status', 'Complaint resolved.');
+    }
+
+    public function delete(int $id, ComplaintService $service): void
+    {
+        $complaint = ClientComplaint::findOrFail($id);
+        $this->authorize('delete', $complaint);
+
+        try {
+            $service->delete($complaint);
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', 'Complaint deleted.');
     }
 
     public function render()

@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Plans" description="Pricing tiers, limits, and feature entitlements.">
+    <x-page-shell
+        title="Plans"
+        description="Pricing tiers, limits, and feature entitlements."
+        :breadcrumbs="[
+            ['label' => 'Platform', 'href' => route('saas.tenants')],
+            ['label' => 'Plans'],
+        ]"
+    >
         <x-slot:actions>
             <x-button wire:click="openCreate">Add plan</x-button>
         </x-slot:actions>
@@ -19,30 +26,33 @@
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @forelse($plans as $plan)
-                <div class="flex flex-col card-surface p-4" wire:key="plan-{{ $plan->id }}">
+                <div class="card-surface flex flex-col p-4" wire:key="plan-{{ $plan->id }}">
                     <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <h3 class="font-semibold text-zinc-900">{{ $plan->name }}</h3>
+                        <div class="min-w-0">
+                            <h3 class="truncate font-semibold text-zinc-900 dark:text-zinc-100">{{ $plan->name }}</h3>
                             <p class="font-mono text-[11px] text-zinc-500">{{ $plan->slug }}</p>
                         </div>
                         <x-badge :status="$plan->status" />
                     </div>
                     <div class="mt-3">
-                        <span class="text-2xl font-bold">${{ number_format($plan->monthly_price, 0) }}</span>
+                        <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-50">${{ number_format($plan->monthly_price, 0) }}</span>
                         <span class="text-sm text-zinc-500">/mo</span>
                     </div>
-                    <p class="mt-2 text-xs text-zinc-600">
+                    <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
                         {{ $plan->max_guards ? number_format($plan->max_guards).' guards' : '∞ guards' }}
                         · {{ $plan->max_sites ? number_format($plan->max_sites).' sites' : '∞ sites' }}
                     </p>
                     @if ($plan->features)
-                        <div class="mt-3 flex flex-wrap gap-1">
-                            @foreach ($plan->features as $feature)
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">{{ $featureLabels[$feature]['label'] ?? $feature }}</span>
+                        <div class="mt-3 flex max-h-16 flex-wrap gap-1 overflow-hidden">
+                            @foreach (collect($plan->features)->take(8) as $feature)
+                                <span class="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ $featureLabels[$feature]['label'] ?? $feature }}</span>
                             @endforeach
+                            @if (count($plan->features) > 8)
+                                <span class="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">+{{ count($plan->features) - 8 }}</span>
+                            @endif
                         </div>
                     @endif
-                    <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                    <div class="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
                         <span class="text-xs text-zinc-500">{{ $plan->subscriptions_count }} tenants</span>
                         <div class="flex gap-1">
                             <x-button wire:click="openEdit({{ $plan->id }})" variant="secondary" size="sm">Edit</x-button>
@@ -53,31 +63,48 @@
                     </div>
                 </div>
             @empty
-                <div class="col-span-full py-8"><x-empty-state title="No plans yet" /></div>
+                <div class="col-span-full py-8">
+                    <x-empty-state title="No plans yet" description="Create a pricing tier for tenants.">
+                        <x-slot:actions>
+                            <x-button size="sm" wire:click="openCreate">Add plan</x-button>
+                        </x-slot:actions>
+                    </x-empty-state>
+                </div>
             @endforelse
         </div>
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingPlanId ? 'Edit plan' : 'Add plan'" width="lg" closeMethod="closeDrawer">
+        <x-drawer
+            :title="$editingPlanId ? 'Edit plan' : 'Add plan'"
+            description="Set pricing, limits, and feature entitlements."
+            width="lg"
+            closeMethod="closeDrawer"
+        >
             <x-drawer-form wire:submit="save" :submit-label="$editingPlanId ? 'Save changes' : 'Create plan'">
-                <x-input wire:model.live="form.name" label="Plan name" />
-                <x-input wire:model="form.slug" label="Slug" />
-                <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
-                <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
-                <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
-                <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
-                <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
-                <div class="sm:col-span-2">
-                    <p class="mb-2 text-sm font-medium text-zinc-700">Feature entitlements</p>
-                    <div class="max-h-64 space-y-4 overflow-y-auto rounded-lg border border-zinc-200 p-3">
+                <x-form-section title="Plan">
+                    <x-input wire:model.live="form.name" label="Plan name" class="sm:col-span-2" />
+                    <x-input wire:model="form.slug" label="Slug" />
+                    <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
+                    <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
+                    <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
+                    <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
+                    <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
+                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </x-select>
+                </x-form-section>
+
+                <x-form-section title="Feature entitlements" description="Modules available on this plan.">
+                    <div class="sm:col-span-2 max-h-64 space-y-4 overflow-y-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
                         @foreach ($featureGroups as $group => $features)
                             <div wire:key="group-{{ $group }}">
                                 <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{{ $group }}</p>
                                 <div class="space-y-2">
                                     @foreach ($features as $feature)
-                                        <label class="flex items-start gap-2 text-sm">
-                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20" />
+                                        <label class="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600 dark:bg-zinc-900" />
                                             <span>{{ $feature['label'] }}</span>
                                         </label>
                                     @endforeach
@@ -85,11 +112,7 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
-                <x-select wire:model="form.status" label="Status">
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </x-select>
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Assets" description="Overview of company assets, inventory, and procurement.">
+    <x-page-shell
+        title="Assets"
+        description="Overview of company assets, inventory, and procurement."
+        :breadcrumbs="[['label' => 'Assets']]"
+    >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('assets.index')">Asset list</x-button>
             <x-button :href="route('assets.purchase-orders')">Purchase orders</x-button>
@@ -9,6 +13,25 @@
             <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
 
             <x-flash-status />
+
+            <x-section-card title="Deploy kit inventory" description="Vehicles, motors, radios, and bodycams used when deploying guards." class="mb-4">
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach ($kitCategories as $kit)
+                        <a href="{{ route('assets.index', ['category' => $kit->id]) }}" class="rounded-lg border border-zinc-200 p-3 transition hover:border-accent-300 hover:bg-accent-50/40 dark:border-zinc-800 dark:hover:border-accent-700 dark:hover:bg-accent-950/20" wire:key="kit-{{ $kit->id }}">
+                            <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $kit->name }}</div>
+                            <div class="mt-1 text-xs text-zinc-500">
+                                {{ $kit->assets_count }} total · {{ $kit->available_count }} available · {{ $kit->issued_count }} issued
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <x-button size="sm" :href="route('assets.index')">Open asset list</x-button>
+                    <x-button size="sm" variant="secondary" :href="route('assets.categories')">Categories</x-button>
+                    <x-button size="sm" variant="secondary" :href="route('patrols.fleet')">Fleet (cars / motors)</x-button>
+                    <x-button size="sm" variant="secondary" :href="route('schedules.deploy')">Deploy with kit</x-button>
+                </div>
+            </x-section-card>
 
             <div class="stat-grid">
                 <a href="{{ route('assets.index') }}" class="block">
@@ -46,7 +69,11 @@
                             <div class="text-xs text-zinc-500">{{ $po->vendor?->name }} · <x-badge :status="$po->status->value" /></div>
                         </a>
                     @empty
-                        <x-empty-state compact title="No open POs" />
+                        <x-empty-state compact title="No open POs" description="Create a purchase order to procure gear and supplies.">
+                            <x-slot:actions>
+                                <x-button size="sm" :href="route('assets.purchase-orders')">Purchase orders</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     @endforelse
                 </x-section-card>
 
@@ -64,7 +91,11 @@
                             </div>
                         </a>
                     @empty
-                        <x-empty-state compact title="No recent assignments" />
+                        <x-empty-state compact title="No recent assignments" description="Issue assets to guards from the asset list.">
+                            <x-slot:actions>
+                                <x-button size="sm" :href="route('assets.index')">Asset list</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     @endforelse
                 </x-section-card>
 
@@ -90,7 +121,7 @@
                     @endif
 
                     @if($lowStock->isEmpty() && $warrantyAlerts->isEmpty())
-                        <x-empty-state compact title="No alerts" />
+                        <x-empty-state compact title="No alerts" description="Stock levels and warranties look good." />
                     @endif
                 </x-section-card>
             </div>

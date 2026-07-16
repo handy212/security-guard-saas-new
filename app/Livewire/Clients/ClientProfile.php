@@ -64,6 +64,8 @@ class ClientProfile extends Component
 
     public ?int $editingContactId = null;
 
+    public ?int $editingNoteId = null;
+
     public bool $showSiteForm = false;
 
     public ?int $editingSiteId = null;
@@ -194,15 +196,35 @@ class ClientProfile extends Component
             'noteForm.is_internal' => 'boolean',
         ])['noteForm'];
 
-        ClientNote::create($data + [
-            'tenant_id' => TenantContext::id(),
-            'client_account_id' => $this->clientAccount->id,
-            'user_id' => auth()->id(),
-        ]);
+        if ($this->editingNoteId) {
+            ClientNote::query()
+                ->where('client_account_id', $this->clientAccount->id)
+                ->findOrFail($this->editingNoteId)
+                ->update($data);
+            session()->flash('status', 'Note updated.');
+        } else {
+            ClientNote::create($data + [
+                'tenant_id' => TenantContext::id(),
+                'client_account_id' => $this->clientAccount->id,
+                'user_id' => auth()->id(),
+            ]);
+            session()->flash('status', 'Note added.');
+        }
 
-        $this->noteForm = ['body' => '', 'is_internal' => true];
+        $this->resetNoteForm();
         $this->clientAccount->load('notes.author');
-        session()->flash('status', 'Note added.');
+    }
+
+    public function editNote(int $noteId): void
+    {
+        $this->authorize('update', $this->clientAccount);
+
+        $note = ClientNote::query()
+            ->where('client_account_id', $this->clientAccount->id)
+            ->findOrFail($noteId);
+
+        $this->editingNoteId = $note->id;
+        $this->noteForm = $note->only(['body', 'is_internal']);
     }
 
     public function deleteNote(int $noteId): void
@@ -534,6 +556,12 @@ class ClientProfile extends Component
     {
         $this->editingContactId = null;
         $this->contactForm = ['name' => '', 'email' => '', 'phone' => '', 'role' => ''];
+    }
+
+    private function resetNoteForm(): void
+    {
+        $this->editingNoteId = null;
+        $this->noteForm = ['body' => '', 'is_internal' => true];
     }
 
     private function loadProfileForm(): void

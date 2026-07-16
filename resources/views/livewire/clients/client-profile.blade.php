@@ -21,79 +21,82 @@
 
         <x-profile-layout :tabs="$profileTabs" :active="$activeTab">
         @if ($activeTab === 'overview')
-            <div class="space-y-4">
-                <x-section-card title="Last 7 days" class="!p-3">
+            <div class="space-y-3">
+                <x-section-card title="Last 7 days" flush>
                     <div class="overview-stat-grid">
-                        <button type="button" wire:click="setTab('sites')" class="min-w-0">
-                            <x-stat-card stacked label="Sites" :value="$stats['sites']" icon="sites" class="h-full w-full transition hover:border-zinc-300" />
+                        <button type="button" wire:click="setTab('sites')" class="min-w-0 text-left">
+                            <x-stat-card compact label="Sites" :value="$stats['sites']" icon="sites" class="h-full w-full" />
                         </button>
-                        <x-stat-card stacked label="Guards assigned" :value="$stats['guards_assigned']" icon="guards" hint="On upcoming shifts" />
-                        <x-stat-card stacked label="Tours completed" :value="$stats['tours_completed']" icon="patrols" />
-                        <x-stat-card stacked label="Incident reports" :value="$stats['incident_reports']" icon="incidents" tone="warning" />
-                        <x-stat-card stacked label="Tasks completed" :value="$stats['tasks_completed']" icon="check" />
-                        <x-stat-card stacked label="Hrs worked" :value="$stats['hours_worked']" icon="schedules" tone="info" />
+                        <x-stat-card compact label="Guards assigned" :value="$stats['guards_assigned']" icon="guards" hint="On upcoming shifts" />
+                        <x-stat-card compact label="Tours completed" :value="$stats['tours_completed']" icon="patrols" />
+                        <x-stat-card compact label="Incident reports" :value="$stats['incident_reports']" icon="incidents" tone="warning" />
+                        <x-stat-card compact label="Tasks completed" :value="$stats['tasks_completed']" icon="check" />
+                        <x-stat-card compact label="Hrs worked" :value="$stats['hours_worked']" icon="schedules" tone="info" />
                     </div>
                 </x-section-card>
 
                 <div class="overview-panel-grid">
-                    <x-section-card title="Client locations" wire:key="client-map-{{ $clientAccount->id }}">
+                    <x-section-card title="Client locations" flush wire:key="client-map-{{ $clientAccount->id }}">
                         @if (count($mapMarkers) > 0)
                             <x-map
                                 id="client-overview-map-{{ $clientAccount->id }}"
-                                height="300px"
+                                height="280px"
                                 :lat="$mapCenter['lat']"
                                 :lng="$mapCenter['lng']"
                                 :zoom="$mapCenter['zoom']"
                                 :markers="$mapMarkers"
                             />
-                            <p class="mt-2 text-xs text-zinc-500">{{ count($mapMarkers) }} pin(s) — HQ and post sites with coordinates.</p>
+                            <p class="border-t border-zinc-100 px-4 py-2 text-xs text-zinc-500 dark:border-zinc-800">{{ count($mapMarkers) }} pin(s) — HQ and post sites with coordinates.</p>
                         @else
-                            <x-empty-state compact title="No map pins yet" description="Set HQ coordinates on Profile or add site locations under Post Sites.">
-                                <x-slot:actions>
-                                    <x-button size="sm" variant="secondary" wire:click="setTab('sites')">Add post site</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                            <div class="p-4">
+                                <x-empty-state compact title="No map pins yet" description="Set HQ coordinates on Profile or add site locations under Post Sites.">
+                                    <x-slot:actions>
+                                        <x-button size="sm" variant="secondary" wire:click="setTab('sites')">Add post site</x-button>
+                                    </x-slot:actions>
+                                </x-empty-state>
+                            </div>
                         @endif
                     </x-section-card>
 
                     <x-section-card title="General information">
-                        <dl class="space-y-3 text-sm">
-                            <div class="flex justify-between gap-4">
+                        <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                            <div class="flex justify-between gap-4 py-2.5 first:pt-0">
                                 <dt class="text-zinc-500">Company</dt>
-                                <dd class="font-medium text-zinc-900 text-right">{{ $clientAccount->name }}</dd>
+                                <dd class="text-right font-medium text-zinc-900 dark:text-zinc-100">{{ $clientAccount->name }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Industry</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->industry ?: '—' }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->industry ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Phone</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->phone ?: '—' }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->phone ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Email</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->email ?: '—' }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->email ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Address</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->address ?: '—' }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->address ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Default monthly rate</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->default_monthly_rate ? number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->default_monthly_rate ? number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5">
                                 <dt class="text-zinc-500">Contacts</dt>
-                                <dd class="text-zinc-900 text-right">{{ $clientAccount->contacts->count() }}</dd>
+                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->contacts->count() }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4">
+                            <div class="flex justify-between gap-4 py-2.5 last:pb-0">
                                 <dt class="text-zinc-500">Status</dt>
                                 <dd class="text-right"><x-badge :status="$clientAccount->status" /></dd>
                             </div>
                         </dl>
-                        <div class="mt-4 flex flex-wrap gap-2">
+                        <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                             <x-button size="sm" variant="secondary" wire:click="setTab('profile')">Edit profile</x-button>
                             <x-button size="sm" variant="secondary" wire:click="setTab('contacts')">Manage contacts</x-button>
+                            <x-button size="sm" :href="route('sites.index')">Add site</x-button>
                         </div>
                     </x-section-card>
                 </div>
@@ -226,7 +229,10 @@
                                             @endif
                                         </p>
                                     </div>
-                                    <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="shrink-0 text-xs text-red-600 hover:underline">Delete</button>
+                                    <div class="flex shrink-0 gap-2">
+                                        <button type="button" wire:click="editNote({{ $note->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
+                                        <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                    </div>
                                 </div>
                             </div>
                         @empty
@@ -235,7 +241,7 @@
                     </div>
                 </x-section-card>
 
-                <x-form-card title="Add note">
+                <x-form-card :title="$editingNoteId ? 'Edit note' : 'Add note'">
                     <form wire:submit="addNote" class="space-y-3">
                         <div>
                             <label class="form-label">Note</label>
@@ -246,7 +252,7 @@
                             <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300">
                             Internal only (not visible in portal)
                         </label>
-                        <x-button type="submit" size="sm">Add note</x-button>
+                        <x-button type="submit" size="sm">{{ $editingNoteId ? 'Update' : 'Add' }} note</x-button>
                     </form>
                 </x-form-card>
             </div>

@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Clients" description="Manage client accounts, billing rates, and contacts.">
+    <x-page-shell
+        title="Clients"
+        description="Manage client accounts, billing rates, and contacts."
+        :breadcrumbs="[['label' => 'Clients']]"
+    >
         <x-slot:actions>
             <x-button wire:click="openCreate">Add client</x-button>
         </x-slot:actions>
@@ -53,10 +57,16 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state compact :title="$hasActiveFilters ? 'No matching clients' : 'No clients yet'">
+                        <x-empty-state
+                            compact
+                            :title="$hasActiveFilters ? 'No matching clients' : 'No clients yet'"
+                            :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Start with a client, then add sites and assign guards.'"
+                        >
                             <x-slot:actions>
                                 @if (! $hasActiveFilters)
                                     <x-button size="sm" wire:click="openCreate">Add client</x-button>
+                                @else
+                                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
                                 @endif
                             </x-slot:actions>
                         </x-empty-state>
@@ -69,16 +79,28 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingId ? 'Edit client' : 'Add client'" width="lg">
+        <x-drawer
+            :title="$editingId ? 'Edit client' : 'Add client'"
+            :description="$editingId ? 'Update account details.' : 'Start here, then add sites and assign guards.'"
+            width="lg"
+        >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update client' : 'Create client'">
-                <x-input wire:model="form.name" label="Client name" class="sm:col-span-2" />
-                <x-input wire:model="form.industry" label="Industry" />
-                <x-input wire:model="form.email" label="Email" type="email" />
-                <x-input wire:model="form.phone" label="Phone" />
-                <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
-                <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
-                <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
-                <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
+                <x-form-section title="Company">
+                    <x-input wire:model="form.name" label="Client name" class="sm:col-span-2" />
+                    <x-input wire:model="form.industry" label="Industry" />
+                    <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
+                </x-form-section>
+
+                <x-form-section title="Contact">
+                    <x-input wire:model="form.email" label="Email" type="email" />
+                    <x-input wire:model="form.phone" label="Phone" />
+                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                </x-form-section>
+
+                <x-form-section title="HQ coordinates" description="Optional — used on the client map overview.">
+                    <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

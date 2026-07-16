@@ -186,7 +186,7 @@ class AdminCrudTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(IncidentIndex::class)
             ->assertSet('showForm', false)
-            ->call('openForm')
+            ->call('openCreate')
             ->assertSet('showForm', true)
             ->set('form.site_id', $site->id)
             ->set('form.title', 'Test incident')
@@ -197,6 +197,94 @@ class AdminCrudTest extends TestCase
             ->assertSet('showForm', false);
 
         $this->assertDatabaseHas('incidents', ['title' => 'Test incident']);
+    }
+
+    public function test_incident_edit_and_delete_when_open(): void
+    {
+        $site = Site::first();
+        $incident = Incident::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'site_id' => $site->id,
+            'title' => 'Editable incident',
+            'type' => 'theft',
+            'incident_type' => 'theft',
+            'severity' => 'medium',
+            'description' => 'Open for edit',
+            'status' => 'submitted',
+            'reported_by_user_id' => $this->admin->id,
+            'reported_at' => now(),
+            'occurred_at' => now(),
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(IncidentIndex::class)
+            ->call('edit', $incident->id)
+            ->assertSet('editingId', $incident->id)
+            ->set('form.title', 'Edited incident')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('incidents', ['id' => $incident->id, 'title' => 'Edited incident']);
+
+        Livewire::actingAs($this->admin)
+            ->test(IncidentIndex::class)
+            ->call('delete', $incident->id);
+
+        $this->assertDatabaseMissing('incidents', ['id' => $incident->id]);
+    }
+
+    public function test_expense_edit_delete_and_locked_when_paid(): void
+    {
+        $expense = \App\Models\Expense::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'created_by_user_id' => $this->admin->id,
+            'expense_number' => 'EXP-TEST-1',
+            'title' => 'Draft fuel',
+            'expense_date' => today(),
+            'amount' => 50,
+            'status' => 'draft',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Billing\ExpenseIndex::class)
+            ->call('edit', $expense->id)
+            ->assertSet('editingId', $expense->id)
+            ->set('form.title', 'Draft fuel updated')
+            ->set('form.amount', '75')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('expenses', ['id' => $expense->id, 'title' => 'Draft fuel updated']);
+
+        $paid = \App\Models\Expense::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'created_by_user_id' => $this->admin->id,
+            'expense_number' => 'EXP-TEST-2',
+            'title' => 'Paid bill',
+            'expense_date' => today(),
+            'amount' => 100,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Billing\ExpenseIndex::class)
+            ->call('delete', $paid->id);
+
+        $this->assertDatabaseHas('expenses', ['id' => $paid->id]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Billing\ExpenseIndex::class)
+            ->call('delete', $expense->id);
+
+        $this->assertDatabaseMissing('expenses', ['id' => $expense->id]);
+    }
+
+    public function test_staff_settings_page_loads(): void
+    {
+        $this->actingAs($this->admin)
+            ->get('/settings/staff')
+            ->assertOk();
     }
 
     public function test_schedule_shift_drawer(): void

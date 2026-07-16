@@ -1,17 +1,36 @@
 <div>
-    <x-page-shell title="Attendance reconciliation" description="Review late arrivals, early leaves, and no-shows.">
+    <x-page-shell
+        title="Attendance reconciliation"
+        description="Review late arrivals, early leaves, and no-shows."
+        :breadcrumbs="[
+            ['label' => 'Scheduler', 'href' => route('schedules.index')],
+            ['label' => 'Reconciliation'],
+        ]"
+    >
+        <x-slot:actions>
+            <x-button variant="secondary" :href="route('schedules.attendance')">Attendance</x-button>
+        </x-slot:actions>
+
         <x-sub-sidebar-layout>
             <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
 
             <x-flash-status />
 
-            <x-page-toolbar>
+            <div class="stat-grid">
+                <x-stat-card compact label="Needs review" :value="$stats['needs_review']" icon="incidents" :tone="$stats['needs_review'] ? 'warning' : 'success'" wire:click="applyStatFilter('needs_review')" class="cursor-pointer text-left" :active="$statusFilter === 'needs_review'" />
+                <x-stat-card compact label="Late" :value="$stats['late']" icon="pause" :tone="$stats['late'] ? 'warning' : 'default'" />
+                <x-stat-card compact label="No-show" :value="$stats['no_show']" icon="guards" :tone="$stats['no_show'] ? 'danger' : 'default'" />
+                <x-stat-card compact label="Reconciled" :value="$stats['reconciled']" icon="check" tone="success" wire:click="applyStatFilter('reconciled')" class="cursor-pointer text-left" :active="$statusFilter === 'reconciled'" />
+            </div>
+
+            <x-page-toolbar search="search" searchPlaceholder="Search guard or site…">
+                <x-slot:tabs>
+                    <x-segment-control field="statusFilter" :active="$statusFilter" :options="['needs_review' => 'Needs review', 'reconciled' => 'Reconciled', 'all' => 'All']" />
+                </x-slot:tabs>
                 <x-slot:controls>
-                    <x-filter-select wire:model.live="statusFilter" label="Status">
-                        <option value="needs_review">Needs review</option>
-                        <option value="reconciled">Reconciled</option>
-                        <option value="all">All</option>
-                    </x-filter-select>
+                    @if ($hasActiveFilters)
+                        <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
+                    @endif
                 </x-slot:controls>
             </x-page-toolbar>
 
@@ -38,6 +57,7 @@
                                         @if ($log->clock_in_at)
                                             <a href="{{ route('schedules.index', ['date' => $log->clock_in_at->toDateString()]) }}" class="text-xs font-medium text-accent-600 hover:underline">Day roster</a>
                                         @endif
+                                        <a href="{{ route('schedules.attendance', array_filter(['date' => $log->clock_in_at?->toDateString()])) }}" class="text-xs font-medium text-accent-600 hover:underline">Attendance</a>
                                         <x-button size="sm" wire:click="reconcile({{ $log->id }})">Reconcile</x-button>
                                     </div>
                                 @else
@@ -47,7 +67,15 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="5">
-                            <x-empty-state compact title="Nothing to reconcile" description="All attendance records are up to date." />
+                            <x-empty-state
+                                compact
+                                :title="$statusFilter === 'needs_review' ? 'Nothing to reconcile' : 'No matching records'"
+                                :description="$statusFilter === 'needs_review' ? 'All attendance exceptions are up to date.' : 'Try adjusting your filters.'"
+                            >
+                                <x-slot:actions>
+                                    <x-button size="sm" variant="secondary" :href="route('schedules.attendance')">View attendance</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
                         </x-table.empty>
                     @endforelse
                 </tbody>

@@ -71,6 +71,11 @@ class FileUploadService
         return $this->storage->store($file, "tenants/{$tenantId}/sites/{$siteId}");
     }
 
+    public function storeExpenseReceipt(int $tenantId, int $expenseId, UploadedFile $file): string
+    {
+        return $this->storage->store($file, "tenants/{$tenantId}/expenses/{$expenseId}");
+    }
+
     public function storeIdCardLogo(int $tenantId, UploadedFile $file): string
     {
         return $file->store("tenants/{$tenantId}/branding", 'public');

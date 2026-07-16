@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Messenger" description="Secure site threads between guards and back-office staff.">
+    <x-page-shell
+        title="Messenger"
+        description="Secure site threads between guards and back-office staff."
+        :breadcrumbs="[['label' => 'Messenger']]"
+    >
         <x-slot:actions>
             <x-button wire:click="openCreateThread">New thread</x-button>
         </x-slot:actions>
@@ -34,7 +38,11 @@
                             @endif
                         </button>
                     @empty
-                        <x-empty-state compact title="No threads" description="Create a site thread to start messaging." />
+                        <x-empty-state compact title="No threads" description="Create a site thread to start messaging.">
+                            <x-slot:actions>
+                                <x-button size="sm" wire:click="openCreateThread">New thread</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     @endforelse
                 </div>
             </x-section-card>
@@ -79,7 +87,11 @@
                     </form>
                 @else
                     <div class="flex flex-1 items-center justify-center py-10">
-                        <x-empty-state compact title="Select a thread" description="Choose a conversation or create a new one." />
+                        <x-empty-state compact title="Select a thread" description="Choose a conversation or create a new one.">
+                            <x-slot:actions>
+                                <x-button size="sm" wire:click="openCreateThread">New thread</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     </div>
                 @endif
             </x-section-card>

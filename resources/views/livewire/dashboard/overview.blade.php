@@ -8,22 +8,24 @@
             $hasUrgent = ($sosKpi['value'] ?? 0) > 0;
             $displayKpis = collect($kpis)->whereIn('key', ['reports', 'incidents', 'patrols', 'guards', 'shifts', 'alerts']);
             $quickActions = array_filter([
-                ['label' => 'Live tracking', 'href' => route('tracking.live'), 'icon' => 'gps', 'permission' => 'dispatch.manage'],
-                ['label' => 'Dispatch', 'href' => route('dispatch.control-room'), 'icon' => 'dispatch', 'permission' => 'dispatch.manage'],
+                ['label' => 'Clients', 'href' => route('clients.index'), 'icon' => 'clients', 'permission' => 'clients.manage'],
+                ['label' => 'Sites', 'href' => route('sites.index'), 'icon' => 'sites', 'permission' => 'sites.manage'],
+                ['label' => 'Guards', 'href' => route('guards.index'), 'icon' => 'guards', 'permission' => 'guards.manage'],
                 ['label' => 'Schedules', 'href' => route('schedules.index', ['date' => today()->toDateString()]), 'icon' => 'schedules', 'permission' => 'schedules.manage'],
-                ['label' => 'Report incident', 'href' => route('incidents.index'), 'icon' => 'incidents', 'permission' => 'incidents.manage'],
+                ['label' => 'Dispatch', 'href' => route('dispatch.control-room'), 'icon' => 'dispatch', 'permission' => 'dispatch.manage'],
+                ['label' => 'Incidents', 'href' => route('incidents.index'), 'icon' => 'incidents', 'permission' => 'incidents.manage'],
+                ['label' => 'Live tracking', 'href' => route('tracking.live'), 'icon' => 'gps', 'permission' => 'dispatch.manage'],
                 ['label' => 'Messenger', 'href' => route('messenger.index'), 'icon' => 'messenger', 'permission' => 'dispatch.manage'],
-                ['label' => 'Know your guard', 'href' => route('guards.kyg'), 'icon' => 'guards', 'permission' => 'guards.manage'],
             ], fn ($action) => empty($action['permission']) || auth()->user()?->can($action['permission']));
             $attentionTone = [
                 'danger' => 'border-red-200 bg-red-50 text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100',
                 'warning' => 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100',
-                'info' => 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-100',
+                'info' => 'border-accent-200 bg-accent-50 text-accent-900 dark:border-accent-800/50 dark:bg-accent-950/40 dark:text-accent-100',
             ];
         @endphp
 
         @if ($hasUrgent)
-            <div class="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/50 dark:bg-red-950/40">
+            <div class="flex items-center justify-between gap-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/50 dark:bg-red-950/40">
                 <div class="flex items-center gap-3">
                     <span class="relative flex h-3 w-3">
                         <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
@@ -69,7 +71,7 @@
         <div class="kpi-grid">
             @foreach ($displayKpis as $kpi)
                 <x-stat-card
-                    stacked
+                    compact
                     :label="$kpi['label']"
                     :value="$kpi['value']"
                     :hint="$kpi['hint']"
@@ -88,18 +90,16 @@
             @endforeach
         </div>
 
-        <section class="card-surface p-4">
-            <div class="mb-3">
-                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Quick actions</h2>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Jump into the work you do most often</p>
+        <section class="section-block !gap-2">
+            <div>
+                <h2 class="section-heading">Quick actions</h2>
+                <p class="section-subheading">Clients → Sites → Guards → Schedule → Dispatch</p>
             </div>
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div class="flex flex-wrap gap-1.5">
                 @foreach ($quickActions as $action)
-                    <a href="{{ $action['href'] }}" class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 px-3 py-3 text-center transition hover:border-accent-300 hover:bg-accent-50/50 dark:border-zinc-700 dark:hover:bg-zinc-800/60">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                            <x-nav-icon :name="$action['icon']" class="h-5 w-5" />
-                        </span>
-                        <span class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $action['label'] }}</span>
+                    <a href="{{ $action['href'] }}" class="inline-flex items-center gap-2 rounded-md border border-zinc-200/90 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-accent-300 hover:bg-accent-50/50 hover:text-accent-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60">
+                        <x-nav-icon :name="$action['icon']" class="h-3.5 w-3.5 text-zinc-500" />
+                        {{ $action['label'] }}
                     </a>
                 @endforeach
             </div>
@@ -130,7 +130,7 @@
                         <a
                             href="{{ route('schedules.index', ['date' => $shift->starts_at->toDateString()]) }}"
                             @class([
-                                'flex items-center gap-4 border-t border-zinc-100 px-4 py-3 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60',
+                                'flex items-center gap-3 border-t border-zinc-100 px-4 py-2.5 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60',
                                 'bg-amber-50/60 dark:bg-amber-950/20' => $shift->is_understaffed,
                             ])
                         >
@@ -154,9 +154,17 @@
                             <x-badge :status="$shift->status" />
                         </a>
                     @empty
-                        <div class="px-4 py-10 text-center">
-                            <p class="text-sm text-zinc-500">No shifts scheduled for today.</p>
-                            <a href="{{ route('schedules.index') }}" class="mt-2 inline-block text-sm font-medium text-accent-600 hover:underline">Create a shift</a>
+                        <div class="p-3">
+                            <x-empty-state
+                                compact
+                                title="No shifts today"
+                                description="Create a shift on the day roster to staff coverage."
+                            >
+                                <x-slot:actions>
+                                    <x-button size="sm" :href="route('schedules.index', ['date' => today()->toDateString()])">Create shift</x-button>
+                                    <x-button size="sm" variant="secondary" :href="route('sites.index')">View sites</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
                         </div>
                     @endforelse
                 </section>
@@ -171,7 +179,7 @@
                     </div>
 
                     @forelse ($openDispatches as $dispatch)
-                        <a href="{{ route('dispatch.control-room') }}" class="flex items-start gap-3 border-t border-zinc-100 px-4 py-3 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60">
+                        <a href="{{ route('dispatch.control-room') }}" class="flex items-start gap-3 border-t border-zinc-100 px-4 py-2.5 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60">
                             <div @class([
                                 'mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 'bg-red-500' => in_array(\App\Support\EnumHelper::value($dispatch->priority), ['critical', 'high'], true),
@@ -194,9 +202,16 @@
                             <x-badge :status="$dispatch->status" />
                         </a>
                     @empty
-                        <div class="px-4 py-8 text-center">
-                            <p class="text-sm text-zinc-500">No open dispatches.</p>
-                            <a href="{{ route('dispatch.control-room') }}" class="mt-2 inline-block text-xs font-medium text-accent-600 hover:underline">Open control room</a>
+                        <div class="p-3">
+                            <x-empty-state
+                                compact
+                                title="No open dispatches"
+                                description="Create a dispatch when a client or site needs response."
+                            >
+                                <x-slot:actions>
+                                    <x-button size="sm" :href="route('dispatch.control-room')">Open dispatch</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
                         </div>
                     @endforelse
                 </section>
@@ -211,7 +226,7 @@
                     </div>
 
                     @forelse ($incidentsList as $incident)
-                        <a href="{{ route('incidents.index', ['status' => 'open']) }}" class="flex items-start gap-3 border-t border-zinc-100 px-4 py-3 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60">
+                        <a href="{{ route('incidents.index', ['status' => 'open']) }}" class="flex items-start gap-3 border-t border-zinc-100 px-4 py-2.5 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60">
                             <div @class([
                                 'mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 'bg-red-500' => in_array($incident->severity, ['critical', 'high']),
@@ -228,9 +243,16 @@
                             <x-badge :status="$incident->status" />
                         </a>
                     @empty
-                        <div class="px-4 py-10 text-center">
-                            <p class="text-sm text-zinc-500">No incidents logged yet.</p>
-                            <p class="mt-1 text-xs text-zinc-400">That's a good sign.</p>
+                        <div class="p-3">
+                            <x-empty-state
+                                compact
+                                title="No incidents yet"
+                                description="Quiet is good — open the board when something needs review."
+                            >
+                                <x-slot:actions>
+                                    <x-button size="sm" variant="secondary" :href="route('incidents.index')">Incidents board</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
                         </div>
                     @endforelse
                 </section>
@@ -255,9 +277,9 @@
                     @forelse ($attendance as $log)
                         <a
                             href="{{ route('tracking.live', array_filter(['guard' => $log->guard_id])) }}"
-                            class="flex items-center gap-3 border-t border-zinc-100 px-4 py-3 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60"
+                            class="flex items-center gap-3 border-t border-zinc-100 px-4 py-2.5 transition first:border-t-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60"
                         >
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-xs font-semibold text-accent-700 dark:bg-accent-950 dark:text-accent-300">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-50 text-xs font-semibold text-accent-700 dark:bg-accent-950 dark:text-accent-300">
                                 {{ strtoupper(substr($log->assignedGuard?->first_name ?? 'G', 0, 1)) }}
                             </div>
                             <div class="min-w-0 flex-1">
@@ -266,9 +288,17 @@
                             </div>
                         </a>
                     @empty
-                        <div class="px-4 py-8 text-center">
-                            <p class="text-sm text-zinc-500">Nobody clocked in.</p>
-                            <a href="{{ route('schedules.attendance') }}" class="mt-2 inline-block text-xs font-medium text-accent-600 hover:underline">Attendance</a>
+                        <div class="p-3">
+                            <x-empty-state
+                                compact
+                                title="Nobody on duty"
+                                description="Clock-ins from today's shifts appear here."
+                            >
+                                <x-slot:actions>
+                                    <x-button size="sm" variant="secondary" :href="route('schedules.attendance')">Attendance</x-button>
+                                    <x-button size="sm" variant="secondary" :href="route('tracking.live')">Live map</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
                         </div>
                     @endforelse
                 </section>

@@ -1,6 +1,6 @@
 {
-  "appId": "com.guardops.field",
-  "appName": "GuardOps Field",
+  "appId": "com.guardcore.field",
+  "appName": "GuardCore Pro Field",
   "webDir": "public",
   "server": {
     "androidScheme": "https"

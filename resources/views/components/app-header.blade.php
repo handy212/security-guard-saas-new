@@ -3,7 +3,7 @@
     $searchableLinks = $nav->searchableLinks();
 @endphp
 
-<header class="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/95">
+<header class="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:border-zinc-800 dark:bg-zinc-950/90">
     <div class="page-content flex items-center gap-3 py-2.5">
         <button
             type="button"
@@ -82,7 +82,9 @@
                         <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ auth()->user()->email }}</p>
                     </div>
                     @can('settings.manage')
-                        <a href="{{ route('settings.index') }}" class="block px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800">Settings</a>
+                        @if (! \App\Support\TenantContext::isPlatformConsole())
+                            <a href="{{ route('settings.index') }}" class="block px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800">Settings</a>
+                        @endif
                     @endcan
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

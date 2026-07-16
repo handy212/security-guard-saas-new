@@ -21,4 +21,9 @@ class ClientComplaintPolicy
     {
         return $user->can('clients.manage') && $user->tenant_id === $complaint->tenant_id;
     }
+
+    public function delete(User $user, ClientComplaint $complaint): bool
+    {
+        return $user->can('clients.manage') && $user->tenant_id === $complaint->tenant_id;
+    }
 }

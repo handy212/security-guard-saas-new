@@ -16,6 +16,7 @@
                     str_contains($href, 'id-card') => 'guards',
                     str_contains($href, 'know-your-guard') => 'guards',
                     str_contains($href, 'roles') => 'workforce',
+                    str_contains($href, 'staff') => 'workforce',
                     str_contains($href, 'audit') => 'reports',
                     str_contains($href, 'team') => 'workforce',
                     str_contains($href, 'two-factor') => 'compliance',

@@ -2,9 +2,18 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
-const chartColors = ['#0ea5e9', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e'];
+function tenantBrandColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--tenant-brand').trim() || '#0f766e';
+}
+
+function chartPalette() {
+    const brand = tenantBrandColor();
+    return [brand, '#d97706', '#0891b2', '#e11d48', '#65a30d'];
+}
 
 function initDashboardCharts() {
+    const chartColors = chartPalette();
+
     document.querySelectorAll('[data-dashboard-chart]').forEach((canvas) => {
         if (canvas.dataset.chartReady) return;
 
@@ -51,9 +60,9 @@ function initDashboardCharts() {
                     labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: values.map((_, i) => chartColors[i % chartColors.length]),
-                        borderRadius: 4,
-                        barThickness: 22,
+                        backgroundColor: tenantBrandColor(),
+                        borderRadius: 3,
+                        barThickness: 20,
                     }],
                 },
                 options: {

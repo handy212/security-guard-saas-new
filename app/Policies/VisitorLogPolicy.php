@@ -21,4 +21,9 @@ class VisitorLogPolicy
     {
         return $user->can('visitors.manage') && $user->tenant_id === $visitorLog->tenant_id;
     }
+
+    public function delete(User $user, VisitorLog $visitorLog): bool
+    {
+        return $user->can('visitors.manage') && $user->tenant_id === $visitorLog->tenant_id;
+    }
 }

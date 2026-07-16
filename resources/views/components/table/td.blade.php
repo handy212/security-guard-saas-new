@@ -12,7 +12,7 @@
         'xl' => 'hidden xl:table-cell',
         default => '',
     };
-    $toneClass = $muted ? 'text-zinc-600' : ($mono ? 'font-mono text-xs text-zinc-600' : '');
+    $toneClass = $muted ? 'text-zinc-500 dark:text-zinc-400' : ($mono ? 'font-mono text-xs text-zinc-600 dark:text-zinc-400' : '');
 @endphp
 
 <td {{ $attributes->merge(['class' => trim("table-td {$alignClass} {$responsiveClass} {$toneClass}")]) }}>

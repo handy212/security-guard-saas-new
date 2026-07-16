@@ -1,11 +1,11 @@
 {
-  "name": "GuardOps Client Portal",
-  "short_name": "GuardOps Client",
+  "name": "GuardCore Pro Client Portal",
+  "short_name": "GuardCore Client",
   "description": "Client portal for security reports, patrols, and site visibility",
   "start_url": "/client-portal",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#18181b",
+  "background_color": "#fafafa",
+  "theme_color": "#0f766e",
   "orientation": "portrait",
   "icons": [
     {

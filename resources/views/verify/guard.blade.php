@@ -6,16 +6,17 @@
     <title>Know Your Guard — {{ $guard->full_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css'])
 </head>
-<body class="min-h-screen bg-zinc-100 font-sans antialiased text-zinc-900">
+<body class="min-h-screen bg-zinc-50 font-sans antialiased text-zinc-900">
 @php
     $tel = static fn (?string $phone) => $phone ? preg_replace('/[^\d+]/', '', $phone) : null;
     $primaryTel = $tel($primaryPhone);
     $reportTel = $tel($reportPhone);
 @endphp
 
+<style>:root { --tenant-brand: {{ $brandColor ?? '#0f766e' }}; }</style>
 <header class="bg-zinc-950 px-4 py-5 text-white sm:px-6">
     <div class="mx-auto flex max-w-lg items-start justify-between gap-4">
         <div class="min-w-0">

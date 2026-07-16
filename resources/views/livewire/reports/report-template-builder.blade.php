@@ -1,8 +1,18 @@
 <div>
-    <x-page-shell title="Custom Report Templates" description="Build and assign custom report forms to post sites.">
+    <x-page-shell
+        title="Custom Report Templates"
+        description="Build and assign custom report forms to post sites."
+        :breadcrumbs="[
+            ['label' => 'Reports', 'href' => route('reports.hub')],
+            ['label' => 'Templates'],
+        ]"
+    >
         <x-slot:actions>
-            <x-button wire:click="$set('showForm', true)">New template</x-button>
+            <x-button wire:click="openCreate">New template</x-button>
         </x-slot:actions>
+
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-reports-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Templates" :value="$templates->total()" icon="plan" />
@@ -69,13 +79,22 @@
         <x-section-card title="Templates" class="mt-4">
             @forelse($templates as $template)
                 <div class="border-t border-zinc-100 py-3 first:border-0">
-                    <div class="font-medium">{{ $template->name }}</div>
-                    <div class="text-xs text-zinc-500">{{ $template->fields->count() }} fields · {{ $template->assignments->count() }} site assignments</div>
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <div class="font-medium">{{ $template->name }}</div>
+                            <div class="text-xs text-zinc-500">{{ $template->fields->count() }} fields · {{ $template->assignments->count() }} site assignments</div>
+                        </div>
+                        <div class="table-inline-actions shrink-0">
+                            <button type="button" wire:click="edit({{ $template->id }})" class="table-action">Edit</button>
+                            <button type="button" wire:click="delete({{ $template->id }})" wire:confirm="Delete this template?" class="table-action text-red-600">Delete</button>
+                        </div>
+                    </div>
                 </div>
             @empty
                 <x-empty-state title="No templates" description="Create a custom report template to get started." />
             @endforelse
             <x-pagination :paginator="$templates" />
         </x-section-card>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

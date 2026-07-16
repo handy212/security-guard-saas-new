@@ -12,9 +12,19 @@ class WebhookSubscriptionPolicy
         return $user->can('settings.manage');
     }
 
+    public function view(User $user, WebhookSubscription $subscription): bool
+    {
+        return $user->can('settings.manage') && $user->tenant_id === $subscription->tenant_id;
+    }
+
     public function create(User $user): bool
     {
         return $user->can('settings.manage');
+    }
+
+    public function update(User $user, WebhookSubscription $subscription): bool
+    {
+        return $user->can('settings.manage') && $user->tenant_id === $subscription->tenant_id;
     }
 
     public function delete(User $user, WebhookSubscription $subscription): bool

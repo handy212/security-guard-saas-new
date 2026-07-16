@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Assets" description="Manage radios, uniforms, vehicles, and issued gear.">
+    <x-page-shell
+        title="Assets"
+        description="Manage radios, uniforms, vehicles, and issued gear."
+        :breadcrumbs="[
+            ['label' => 'Assets', 'href' => route('assets.overview')],
+            ['label' => 'Asset list'],
+        ]"
+    >
         <x-slot:actions>
             <x-button wire:click="openCreate">Add asset</x-button>
         </x-slot:actions>

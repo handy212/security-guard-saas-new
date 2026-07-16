@@ -49,4 +49,9 @@ class ShiftAssignment extends Model
     {
         return $this->hasMany(ShiftSwapRequest::class);
     }
+
+    public function equipmentAssignments(): HasMany
+    {
+        return $this->hasMany(EquipmentAssignment::class);
+    }
 }

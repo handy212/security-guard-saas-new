@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Guards & Officers" description="Roster, profiles, and Know Your Guard verification.">
+    <x-page-shell
+        title="Guards & Officers"
+        description="Roster, profiles, and Know Your Guard verification."
+        :breadcrumbs="[['label' => 'Guards']]"
+    >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('guards.applications')">Applications</x-button>
             <x-button variant="secondary" :href="route('guards.kyg')">KYG queue</x-button>
@@ -76,7 +80,7 @@
                         <x-table.td align="right">
                             <x-row-menu>
                                 <x-row-menu-item :href="route('guards.show', $guard)">View profile</x-row-menu-item>
-                                <x-row-menu-item wire:click="edit({{ $guard->id }})">Edit</x-row-menu-item>
+                                <x-row-menu-item :href="route('guards.show', $guard).'?tab=profile'">Edit profile</x-row-menu-item>
                                 <x-row-menu-item wire:click="delete({{ $guard->id }})" wire:confirm="Remove this guard?" danger>Delete</x-row-menu-item>
                             </x-row-menu>
                         </x-table.td>
@@ -85,12 +89,13 @@
                     <x-table.empty colspan="7">
                         <x-empty-state
                             compact
-                            :title="$hasActiveFilters ? 'No matching guards' : 'No guards'"
-                            :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Add guards to enable scheduling and field operations.'"
+                            :title="$hasActiveFilters ? 'No matching guards' : 'No guards yet'"
+                            :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Add guards after clients and sites, then schedule coverage.'"
                         >
                             <x-slot:actions>
                                 @if (! $hasActiveFilters)
                                     <x-button size="sm" wire:click="openCreate">Add guard</x-button>
+                                    <x-button size="sm" variant="secondary" :href="route('sites.index')">View sites</x-button>
                                 @endif
                             </x-slot:actions>
                         </x-empty-state>
@@ -103,35 +108,50 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingId ? 'Edit guard' : 'Add guard'" width="lg">
+        <x-drawer
+            :title="$editingId ? 'Edit guard' : 'Add guard'"
+            :description="$editingId ? 'Update roster details. Full profile edits live on the guard page.' : 'Create a roster record. You can complete KYG and profile details next.'"
+            width="lg"
+        >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update guard' : 'Create guard'">
-                <x-input wire:model="form.employee_number" label="Employee #" placeholder="G-001" />
-                <x-select wire:model="form.status" label="Status">
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </x-select>
-                <x-input wire:model="form.first_name" label="First name" />
-                <x-input wire:model="form.last_name" label="Last name" />
-                <x-input wire:model="form.phone" label="Phone" />
-                <x-input wire:model="form.email" label="Email" type="email" />
-                <x-input wire:model="form.license_number" label="License #" />
-                <x-input wire:model="form.license_expires_at" label="License expires" type="date" />
-                <x-input wire:model="form.rank" label="Rank / position" />
-                <x-select wire:model="form.duty_type" label="Duty type">
-                    @foreach($dutyTypes as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </x-select>
-                <div>
-                    <x-select wire:model="form.branch_id" label="Branch">
-                        <option value="">None</option>
-                        @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                <x-form-section title="Identity">
+                    <x-input wire:model="form.first_name" label="First name" />
+                    <x-input wire:model="form.last_name" label="Last name" />
+                    <x-input wire:model="form.employee_number" label="Employee #" placeholder="G-001" hint="Optional unique ID" />
+                    <x-select wire:model="form.status" label="Status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </x-select>
+                </x-form-section>
+
+                <x-form-section title="Contact">
+                    <x-input wire:model="form.phone" label="Phone" />
+                    <x-input wire:model="form.email" label="Email" type="email" />
+                </x-form-section>
+
+                <x-form-section title="Assignment">
+                    <x-select wire:model="form.duty_type" label="Duty type">
+                        @foreach($dutyTypes as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <a href="{{ route('settings.branches') }}" class="mt-1 inline-block text-xs font-medium text-accent-600 hover:underline">Manage branches</a>
-                </div>
-                <x-input wire:model="form.monthly_rate" label="Monthly rate" type="number" step="0.01" class="sm:col-span-2" />
+                    <x-input wire:model="form.rank" label="Rank / position" />
+                    <div class="sm:col-span-2">
+                        <x-select wire:model="form.branch_id" label="Branch">
+                            <option value="">None</option>
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                            @endforeach
+                        </x-select>
+                        <a href="{{ route('settings.branches') }}" class="mt-1.5 inline-block text-xs font-medium text-accent-700 hover:underline">Manage branches</a>
+                    </div>
+                </x-form-section>
+
+                <x-form-section title="License & rate" description="Optional now — required for KYG verification later.">
+                    <x-input wire:model="form.license_number" label="License #" />
+                    <x-input wire:model="form.license_expires_at" label="License expires" type="date" />
+                    <x-input wire:model="form.monthly_rate" label="Monthly rate" type="number" step="0.01" class="sm:col-span-2" />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

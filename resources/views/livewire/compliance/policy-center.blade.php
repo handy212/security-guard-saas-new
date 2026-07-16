@@ -1,5 +1,15 @@
 <div>
-    <x-page-shell title="Compliance Policies" description="Tenant-wide escalation rules and data retention. Site SLA targets are managed on each site profile.">
+    <x-page-shell
+        title="Compliance Policies"
+        description="Tenant-wide escalation rules and data retention. Site SLA targets are managed on each site profile."
+        :breadcrumbs="[
+            ['label' => 'Back Office', 'href' => route('billing.hub')],
+            ['label' => 'Policies'],
+        ]"
+    >
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+
         <x-flash-status type="success" />
 
         <div class="stat-grid">
@@ -83,5 +93,6 @@
                 @endforelse
             </x-section-card>
         </div>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

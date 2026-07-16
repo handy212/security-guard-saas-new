@@ -36,24 +36,6 @@
     </section>
 
     @if($hasGuardProfile)
-    @if($dispatches->isNotEmpty())
-        <section class="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
-            <h2 class="mb-2 font-bold text-amber-200">Active dispatches</h2>
-            @foreach($dispatches as $dispatch)
-                <div class="mb-2 rounded-lg border border-amber-500/30 p-3 text-sm" wire:key="dispatch-{{ $dispatch->id }}">
-                    <div class="font-semibold">{{ $dispatch->dispatch_number }}</div>
-                    <div class="text-xs text-zinc-400">{{ $dispatch->site?->name }} · {{ ucfirst(str_replace('_', ' ', $dispatch->status->value)) }}</div>
-                    <div class="mt-1 text-xs">{{ $dispatch->incident_location }}</div>
-                    @if($dispatch->status->next())
-                        <button type="button" wire:click="advanceDispatch({{ $dispatch->id }})" class="mt-2 w-full rounded-lg bg-amber-600 py-2 text-xs font-semibold">
-                            Mark {{ strtolower($dispatch->status->next()->label()) }}
-                        </button>
-                    @endif
-                </div>
-            @endforeach
-        </section>
-    @endif
-
     <section class="grid grid-cols-2 gap-3">
         <button type="button"
             onclick="window.guardWithGeo(@this, 'clockIn', 'clock_in', (c, w) => ({ shift_assignment_id: w.activeAssignmentId, latitude: c.lat, longitude: c.lng }))"
@@ -233,9 +215,27 @@
             class="w-full rounded-lg bg-zinc-100 py-2 font-semibold text-zinc-900">Submit scan</button>
     </section>
 
+    @if($dispatches->isNotEmpty())
+        <section class="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+            <h2 class="mb-2 font-bold text-amber-200">Active dispatches</h2>
+            @foreach($dispatches as $dispatch)
+                <div class="mb-2 rounded-lg border border-amber-500/30 p-3 text-sm" wire:key="dispatch-{{ $dispatch->id }}">
+                    <div class="font-semibold">{{ $dispatch->dispatch_number }}</div>
+                    <div class="text-xs text-zinc-400">{{ $dispatch->site?->name }} · {{ ucfirst(str_replace('_', ' ', $dispatch->status->value)) }}</div>
+                    <div class="mt-1 text-xs">{{ $dispatch->incident_location }}</div>
+                    @if($dispatch->status->next())
+                        <button type="button" wire:click="advanceDispatch({{ $dispatch->id }})" class="mt-2 w-full rounded-lg bg-amber-600 py-2 text-xs font-semibold">
+                            Mark {{ strtolower($dispatch->status->next()->label()) }}
+                        </button>
+                    @endif
+                </div>
+            @endforeach
+        </section>
+    @endif
+
     <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
         <h2 class="mb-2 font-bold">Shift confirm</h2>
-        <button type="button" wire:click="confirmMyShift" class="w-full rounded-lg bg-indigo-600 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40" @disabled(! $activeAssignmentId)>Confirm shift</button>
+        <button type="button" wire:click="confirmMyShift" class="w-full rounded-lg bg-accent-600 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40" @disabled(! $activeAssignmentId)>Confirm shift</button>
     </section>
 
     <section class="rounded-lg border border-zinc-700 bg-zinc-800 p-4">
@@ -248,7 +248,7 @@
             @endforeach
         </select>
         <textarea wire:model="swapReason" rows="2" placeholder="Reason for swap (optional)" class="mb-2 w-full rounded-lg border-zinc-600 bg-zinc-900 px-3 py-2 text-sm" @disabled(! $activeAssignmentId)></textarea>
-        <button type="button" wire:click="requestShiftSwap" class="w-full rounded-lg bg-violet-600 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40" @disabled(! $activeAssignmentId)>Submit swap request</button>
+        <button type="button" wire:click="requestShiftSwap" class="w-full rounded-lg border border-zinc-600 bg-zinc-800 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40" @disabled(! $activeAssignmentId)>Submit swap request</button>
         @if($mySwaps->isNotEmpty())
             <div class="mt-3 space-y-1 border-t border-zinc-700 pt-3 text-xs text-zinc-400">
                 @foreach($mySwaps->take(5) as $swap)

@@ -16,6 +16,8 @@ class ReportTemplateBuilder extends Component
 
     public bool $showForm = false;
 
+    public ?int $editingId = null;
+
     public array $form = ['name' => '', 'description' => '', 'client_account_id' => '', 'is_active' => true];
 
     public array $fields = [['label' => '', 'field_type' => 'text', 'is_required' => false]];
@@ -34,24 +36,67 @@ class ReportTemplateBuilder extends Component
         $this->fields[] = ['label' => '', 'field_type' => 'text', 'is_required' => false];
     }
 
+    public function openCreate(): void
+    {
+        $this->editingId = null;
+        $this->form = ['name' => '', 'description' => '', 'client_account_id' => '', 'is_active' => true];
+        $this->fields = [['label' => '', 'field_type' => 'text', 'is_required' => false]];
+        $this->showForm = true;
+    }
+
+    public function edit(int $id): void
+    {
+        $template = ReportTemplate::with('fields')->where('tenant_id', TenantContext::id())->findOrFail($id);
+        $this->editingId = $template->id;
+        $this->form = [
+            'name' => $template->name,
+            'description' => $template->description ?? '',
+            'client_account_id' => (string) ($template->client_account_id ?? ''),
+            'is_active' => (bool) $template->is_active,
+        ];
+        $this->fields = $template->fields->map(fn ($f) => [
+            'label' => $f->label,
+            'field_type' => $f->field_type,
+            'is_required' => (bool) $f->is_required,
+        ])->values()->all() ?: [['label' => '', 'field_type' => 'text', 'is_required' => false]];
+        $this->showForm = true;
+    }
+
     public function save(CustomReportService $service): void
     {
         $data = $this->validate([
             'form.name' => 'required|string|max:255',
             'form.description' => 'nullable|string',
             'form.client_account_id' => 'nullable',
+            'form.is_active' => 'boolean',
             'fields' => 'required|array|min:1',
             'fields.*.label' => 'required|string',
             'fields.*.field_type' => 'required|in:text,textarea,photo,checkbox,signature,gps',
         ]);
 
-        $service->createTemplate(
-            $data['form'] + ['tenant_id' => TenantContext::id(), 'is_active' => true],
-            $data['fields'],
-        );
+        $payload = $data['form'] + ['tenant_id' => TenantContext::id()];
+        $payload['client_account_id'] = $payload['client_account_id'] ?: null;
+
+        if ($this->editingId) {
+            $template = ReportTemplate::where('tenant_id', TenantContext::id())->findOrFail($this->editingId);
+            $service->updateTemplate($template, $payload, $data['fields']);
+            session()->flash('status', 'Report template updated.');
+        } else {
+            $service->createTemplate($payload, $data['fields']);
+            session()->flash('status', 'Report template created.');
+        }
 
         $this->resetForm();
-        session()->flash('status', 'Report template created.');
+    }
+
+    public function delete(int $id, CustomReportService $service): void
+    {
+        $template = ReportTemplate::where('tenant_id', TenantContext::id())->findOrFail($id);
+        $service->deleteTemplate($template);
+        if ($this->editingId === $id) {
+            $this->resetForm();
+        }
+        session()->flash('status', 'Report template deleted.');
     }
 
     public function assignToSite(CustomReportService $service): void
@@ -64,6 +109,7 @@ class ReportTemplateBuilder extends Component
     public function resetForm(): void
     {
         $this->showForm = false;
+        $this->editingId = null;
         $this->form = ['name' => '', 'description' => '', 'client_account_id' => '', 'is_active' => true];
         $this->fields = [['label' => '', 'field_type' => 'text', 'is_required' => false]];
     }

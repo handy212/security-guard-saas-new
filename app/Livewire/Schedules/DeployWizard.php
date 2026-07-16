@@ -3,17 +3,20 @@
 namespace App\Livewire\Schedules;
 
 use App\Models\ClientAccount;
+use App\Models\EquipmentAsset;
 use App\Models\Guard;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\ShiftConfirmation;
 use App\Models\Site;
 use App\Models\SitePost;
+use App\Services\AssetManagementService;
 use App\Services\ScheduleService;
 use App\Services\WorkforceService;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use RuntimeException;
 
@@ -43,6 +46,9 @@ class DeployWizard extends Component
 
     public string $guard_id = '';
 
+    /** @var list<int|string> */
+    public array $selectedAssetIds = [];
+
     public bool $confirm_now = true;
 
     public ?int $createdAssignmentId = null;
@@ -71,6 +77,7 @@ class DeployWizard extends Component
     {
         $this->site_post_id = '';
         $this->shift_id = '';
+        $this->selectedAssetIds = [];
         if ($this->site_id) {
             $site = Site::find($this->site_id);
             if ($site?->client_account_id) {
@@ -83,6 +90,16 @@ class DeployWizard extends Component
     {
         $this->resetShiftTimes();
         $this->shift_id = '';
+    }
+
+    public function toggleAsset(int $assetId): void
+    {
+        $ids = array_map('intval', $this->selectedAssetIds);
+        if (in_array($assetId, $ids, true)) {
+            $this->selectedAssetIds = array_values(array_filter($ids, fn ($id) => $id !== $assetId));
+        } else {
+            $this->selectedAssetIds = array_values([...$ids, $assetId]);
+        }
     }
 
     public function nextStep(): void
@@ -122,6 +139,16 @@ class DeployWizard extends Component
                 'guard_id' => ['required', TenantValidation::exists('guards')],
             ]);
             $this->step = 4;
+
+            return;
+        }
+
+        if ($this->step === 4) {
+            $this->validate([
+                'selectedAssetIds' => 'array',
+                'selectedAssetIds.*' => ['integer', TenantValidation::exists('equipment_assets')],
+            ]);
+            $this->step = 5;
         }
     }
 
@@ -130,7 +157,7 @@ class DeployWizard extends Component
         $this->step = max(1, $this->step - 1);
     }
 
-    public function deploy(ScheduleService $schedules, WorkforceService $workforce): void
+    public function deploy(ScheduleService $schedules, WorkforceService $workforce, AssetManagementService $assets): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
 
@@ -138,52 +165,73 @@ class DeployWizard extends Component
             'client_account_id' => ['required', TenantValidation::exists('client_accounts')],
             'site_id' => ['required', TenantValidation::exists('sites')],
             'guard_id' => ['required', TenantValidation::exists('guards')],
+            'selectedAssetIds' => 'array',
+            'selectedAssetIds.*' => ['integer', TenantValidation::exists('equipment_assets')],
         ]);
 
         $tenantId = TenantContext::id();
 
-        if ($this->shift_mode === 'existing') {
-            $shift = Shift::where('tenant_id', $tenantId)->findOrFail($this->shift_id);
-        } else {
-            $this->validate([
-                'title' => 'required|string|max:255',
-                'starts_at' => 'required|date',
-                'ends_at' => 'required|date|after:starts_at',
-                'required_guards' => 'required|integer|min:1|max:50',
-            ]);
-
-            $shift = $schedules->createShift([
-                'tenant_id' => $tenantId,
-                'client_account_id' => (int) $this->client_account_id,
-                'site_id' => (int) $this->site_id,
-                'site_post_id' => $this->site_post_id ?: null,
-                'title' => $this->title,
-                'starts_at' => $this->starts_at,
-                'ends_at' => $this->ends_at,
-                'required_guards' => $this->required_guards,
-                'status' => 'open',
-            ]);
-        }
-
         try {
-            $assignment = $schedules->assignGuard($shift, Guard::findOrFail((int) $this->guard_id));
+            $assignment = DB::transaction(function () use ($schedules, $workforce, $assets, $tenantId) {
+                if ($this->shift_mode === 'existing') {
+                    $shift = Shift::where('tenant_id', $tenantId)->findOrFail($this->shift_id);
+                } else {
+                    $this->validate([
+                        'title' => 'required|string|max:255',
+                        'starts_at' => 'required|date',
+                        'ends_at' => 'required|date|after:starts_at',
+                        'required_guards' => 'required|integer|min:1|max:50',
+                    ]);
+
+                    $shift = $schedules->createShift([
+                        'tenant_id' => $tenantId,
+                        'client_account_id' => (int) $this->client_account_id,
+                        'site_id' => (int) $this->site_id,
+                        'site_post_id' => $this->site_post_id ?: null,
+                        'title' => $this->title,
+                        'starts_at' => $this->starts_at,
+                        'ends_at' => $this->ends_at,
+                        'required_guards' => $this->required_guards,
+                        'status' => 'open',
+                    ]);
+                }
+
+                $assignment = $schedules->assignGuard($shift, Guard::findOrFail((int) $this->guard_id));
+
+                if ($this->confirm_now) {
+                    $confirmation = ShiftConfirmation::where('shift_assignment_id', $assignment->id)->first();
+                    if ($confirmation) {
+                        $workforce->confirmShift($confirmation);
+                    }
+                }
+
+                $assets->issueKitForAssignment(
+                    $assignment->load('shift'),
+                    array_map('intval', $this->selectedAssetIds),
+                );
+
+                return $assignment;
+            });
         } catch (RuntimeException $e) {
-            $this->addError('guard_id', $e->getMessage());
-            $this->step = 3;
+            $message = $e->getMessage();
+            $field = str_contains(strtolower($message), 'available') || str_contains(strtolower($message), 'issue')
+                ? 'selectedAssetIds'
+                : 'guard_id';
+            $this->addError($field, $message);
+            $this->step = $field === 'selectedAssetIds' ? 4 : 3;
 
             return;
         }
 
-        if ($this->confirm_now) {
-            $confirmation = ShiftConfirmation::where('shift_assignment_id', $assignment->id)->first();
-            if ($confirmation) {
-                $workforce->confirmShift($confirmation);
-            }
-        }
-
         $this->createdAssignmentId = $assignment->id;
-        $this->step = 5;
-        session()->flash('status', 'Guard deployed to site.');
+        $this->step = 6;
+        $kitCount = count($this->selectedAssetIds);
+        session()->flash(
+            'status',
+            $kitCount > 0
+                ? "Guard deployed with {$kitCount} kit item".($kitCount === 1 ? '' : 's').'.'
+                : 'Guard deployed to site.'
+        );
     }
 
     public function resetWizard(): void
@@ -192,6 +240,7 @@ class DeployWizard extends Component
         $this->site_post_id = '';
         $this->shift_id = '';
         $this->guard_id = '';
+        $this->selectedAssetIds = [];
         $this->createdAssignmentId = null;
         $this->shift_mode = 'existing';
         $this->title = '';
@@ -199,7 +248,7 @@ class DeployWizard extends Component
         $this->resetErrorBag();
     }
 
-    public function render()
+    public function render(AssetManagementService $assets)
     {
         $tenantId = TenantContext::id();
 
@@ -228,9 +277,21 @@ class DeployWizard extends Component
             ->orderBy('first_name')
             ->get();
 
+        $kitAssets = $this->site_id
+            ? $assets->availableDeployKit($tenantId, (int) $this->site_id)
+            : collect();
+
+        $kitGrouped = $kitAssets->groupBy(fn (EquipmentAsset $asset) => $asset->category ?: ($asset->assetCategory?->name ?? 'Other'));
+
         $assignment = $this->createdAssignmentId
-            ? ShiftAssignment::with(['shift.site', 'shift.sitePost', 'assignedGuard'])->find($this->createdAssignmentId)
+            ? ShiftAssignment::with(['shift.site', 'shift.sitePost', 'assignedGuard', 'equipmentAssignments.asset'])
+                ->find($this->createdAssignmentId)
             : null;
+
+        $selectedLabels = $kitAssets
+            ->whereIn('id', array_map('intval', $this->selectedAssetIds))
+            ->map(fn (EquipmentAsset $a) => $a->displayLabel())
+            ->values();
 
         return view('livewire.schedules.deploy-wizard', [
             'clients' => ClientAccount::where('tenant_id', $tenantId)->orderBy('name')->get(),
@@ -238,13 +299,16 @@ class DeployWizard extends Component
             'posts' => $posts,
             'shifts' => $shifts,
             'guards' => $guards,
+            'kitGrouped' => $kitGrouped,
+            'selectedLabels' => $selectedLabels,
             'assignment' => $assignment,
             'steps' => [
                 1 => 'Site',
                 2 => 'Shift',
                 3 => 'Guard',
-                4 => 'Confirm',
-                5 => 'Done',
+                4 => 'Kit',
+                5 => 'Confirm',
+                6 => 'Done',
             ],
         ])->layout('layouts.app');
     }

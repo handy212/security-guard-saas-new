@@ -218,6 +218,18 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'name' => 'Uniforms'],
             ['type' => 'consumable', 'min_stock_level' => 10, 'description' => 'Uniforms and PPE', 'is_active' => true]
         );
+        $vehicleCategory = \App\Models\AssetCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Vehicles'],
+            ['type' => 'serialized', 'description' => 'Patrol cars and vans', 'is_active' => true]
+        );
+        $motorCategory = \App\Models\AssetCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Motors'],
+            ['type' => 'serialized', 'description' => 'Motorcycles and scooters', 'is_active' => true]
+        );
+        $bodycamCategory = \App\Models\AssetCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Bodycams'],
+            ['type' => 'serialized', 'description' => 'Body-worn cameras', 'is_active' => true]
+        );
         $vendor = \App\Models\AssetVendor::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'SecureGear Supply'],
             ['contact_name' => 'Alex Morgan', 'email' => 'orders@securegear.test', 'phone' => '+233 20 000 0000', 'status' => 'active']
@@ -245,6 +257,47 @@ class DemoDataSeeder extends Seeder
                 'category' => 'Uniforms',
                 'quantity_on_hand' => 24,
                 'purchase_cost' => 35,
+                'status' => 'available',
+                'condition' => 'good',
+            ]
+        );
+        EquipmentAsset::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'asset_tag' => 'CAM-001'],
+            [
+                'asset_category_id' => $bodycamCategory->id,
+                'vendor_id' => $vendor->id,
+                'name' => 'Axon Body 3',
+                'category' => 'Bodycams',
+                'serial_number' => 'AXN-B3-001',
+                'purchase_cost' => 800,
+                'status' => 'available',
+                'condition' => 'good',
+            ]
+        );
+        EquipmentAsset::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'asset_tag' => 'VEH-001'],
+            [
+                'asset_category_id' => $vehicleCategory->id,
+                'vendor_id' => $vendor->id,
+                'name' => 'Patrol van 1',
+                'category' => 'Vehicles',
+                'serial_number' => 'GV-1001',
+                'manufacturer' => 'Toyota',
+                'model' => 'HiAce',
+                'status' => 'available',
+                'condition' => 'good',
+            ]
+        );
+        EquipmentAsset::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'asset_tag' => 'MTR-001'],
+            [
+                'asset_category_id' => $motorCategory->id,
+                'vendor_id' => $vendor->id,
+                'name' => 'Response motor 1',
+                'category' => 'Motors',
+                'serial_number' => 'GM-2001',
+                'manufacturer' => 'Honda',
+                'model' => 'CG125',
                 'status' => 'available',
                 'condition' => 'good',
             ]

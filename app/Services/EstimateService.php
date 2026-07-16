@@ -7,6 +7,7 @@ use App\Models\EstimateItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InvoicePayment;
+use App\Support\MutableStatus;
 use App\Support\TenantContext;
 
 class EstimateService
@@ -20,12 +21,59 @@ class EstimateService
             'status' => 'draft',
         ]);
 
+        $this->syncItems($estimate, $items);
+
+        return $estimate->fresh('items');
+    }
+
+    public function update(Estimate $estimate, array $data, array $items): Estimate
+    {
+        MutableStatus::assertMutable($estimate);
+
+        $estimate->update(collect($data)->only([
+            'client_account_id', 'estimate_date', 'valid_until',
+        ])->filter(fn ($v) => $v !== null)->all());
+
+        $this->syncItems($estimate, $items);
+
+        return $estimate->fresh('items');
+    }
+
+    public function delete(Estimate $estimate): void
+    {
+        MutableStatus::assertMutable($estimate);
+        $estimate->items()->delete();
+        $estimate->delete();
+    }
+
+    public function send(Estimate $estimate): Estimate
+    {
+        MutableStatus::assertMutable($estimate);
+        $estimate->update([
+            'status' => 'sent',
+            'sent_at' => $estimate->sent_at ?? now(),
+        ]);
+
+        return $estimate->fresh('items');
+    }
+
+    public function accept(Estimate $estimate): Estimate
+    {
+        $estimate->update(['status' => 'accepted', 'accepted_at' => now()]);
+
+        return $estimate;
+    }
+
+    private function syncItems(Estimate $estimate, array $items): void
+    {
+        $estimate->items()->delete();
+
         $subtotal = 0;
         foreach ($items as $item) {
             $lineTotal = ($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0);
             $subtotal += $lineTotal;
             EstimateItem::create([
-                'tenant_id' => TenantContext::id(),
+                'tenant_id' => $estimate->tenant_id,
                 'estimate_id' => $estimate->id,
                 'description' => $item['description'],
                 'quantity' => $item['quantity'] ?? 1,
@@ -36,15 +84,6 @@ class EstimateService
         }
 
         $estimate->update(['subtotal' => $subtotal, 'grand_total' => $subtotal]);
-
-        return $estimate->fresh('items');
-    }
-
-    public function accept(Estimate $estimate): Estimate
-    {
-        $estimate->update(['status' => 'accepted', 'accepted_at' => now()]);
-
-        return $estimate;
     }
 
     public function convertToInvoice(Estimate $estimate): Invoice

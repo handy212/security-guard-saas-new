@@ -11,12 +11,14 @@ use App\Models\Site;
 use App\Services\FileUploadService;
 use App\Services\IncidentService;
 use App\Services\PdfExportService;
+use App\Support\MutableStatus;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncidentIndex extends Component
@@ -34,6 +36,8 @@ class IncidentIndex extends Component
     public bool $showDetail = false;
 
     public ?int $viewingIncidentId = null;
+
+    public ?int $editingId = null;
 
     public ?int $resolvingIncidentId = null;
 
@@ -97,9 +101,33 @@ class IncidentIndex extends Component
         $this->viewingIncidentId = null;
     }
 
+    public function openCreate(): void
+    {
+        $this->editingId = null;
+        $this->form = ['site_id' => '', 'title' => '', 'type' => '', 'severity' => 'medium', 'description' => '', 'status' => 'submitted'];
+        $this->openForm();
+    }
+
+    public function edit(int $id): void
+    {
+        $incident = Incident::findOrFail($id);
+        $this->authorize('update', $incident);
+        abort_unless(MutableStatus::isMutable($incident), 422, MutableStatus::lockedMessage($incident));
+
+        $this->editingId = $incident->id;
+        $this->form = [
+            'site_id' => (string) $incident->site_id,
+            'title' => $incident->title,
+            'type' => $incident->type ?? $incident->incident_type ?? '',
+            'severity' => (string) $incident->severity,
+            'description' => $incident->description ?? '',
+            'status' => $incident->status,
+        ];
+        $this->openForm();
+    }
+
     public function save(IncidentService $service): void
     {
-        $this->authorize('create', Incident::class);
         $data = $this->validate([
             'form.site_id' => 'required',
             'form.title' => 'required',
@@ -107,13 +135,49 @@ class IncidentIndex extends Component
             'form.severity' => ['required', Rule::enum(IncidentSeverity::class)],
             'form.description' => 'required',
         ])['form'];
-        $service->submit($data + [
-            'tenant_id' => TenantContext::id(),
-            'reported_by_user_id' => TenantContext::userId(),
-        ]);
+
+        try {
+            if ($this->editingId) {
+                $incident = Incident::findOrFail($this->editingId);
+                $this->authorize('update', $incident);
+                $service->update($incident, $data);
+                session()->flash('status', 'Incident updated.');
+            } else {
+                $this->authorize('create', Incident::class);
+                $service->submit($data + [
+                    'tenant_id' => TenantContext::id(),
+                    'reported_by_user_id' => TenantContext::userId(),
+                ]);
+                session()->flash('status', 'Incident submitted.');
+            }
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        $this->editingId = null;
         $this->form = ['site_id' => '', 'title' => '', 'type' => '', 'severity' => 'medium', 'description' => '', 'status' => 'submitted'];
         $this->closeDrawer();
-        session()->flash('status', 'Incident submitted.');
+    }
+
+    public function delete(int $id, IncidentService $service): void
+    {
+        $incident = Incident::findOrFail($id);
+        $this->authorize('delete', $incident);
+
+        try {
+            $service->delete($incident);
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        if ($this->viewingIncidentId === $id) {
+            $this->closeDetail();
+        }
+        session()->flash('status', 'Incident deleted.');
     }
 
     public function closeMediaDrawer(): void

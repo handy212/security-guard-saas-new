@@ -38,11 +38,15 @@
                         <x-table.td responsive="md" muted>{{ $item->checked_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$item->status" /></x-table.td>
                         <x-table.td align="right">
-                            @if($item->status === 'checked_in')
-                                <x-button size="sm" wire:click="checkOut({{ $item->id }})">Check out</x-button>
-                            @else
-                                <span class="text-xs text-zinc-500">{{ $item->checked_out_at?->format('H:i') ?? '—' }}</span>
-                            @endif
+                            <div class="table-inline-actions">
+                                @if($item->status === 'checked_in' || $item->checked_out_at === null)
+                                    <button type="button" wire:click="edit({{ $item->id }})" class="table-action">Edit</button>
+                                    <x-button size="sm" wire:click="checkOut({{ $item->id }})">Check out</x-button>
+                                    <button type="button" wire:click="delete({{ $item->id }})" wire:confirm="Delete this visitor log?" class="table-action text-red-600">Delete</button>
+                                @else
+                                    <span class="text-xs text-zinc-500">{{ $item->checked_out_at?->format('H:i') ?? '—' }}</span>
+                                @endif
+                            </div>
                         </x-table.td>
                     </tr>
                 @empty
@@ -57,8 +61,8 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer title="Check in visitor" width="lg">
-            <x-drawer-form wire:submit="checkIn" submit-label="Check in" target="checkIn">
+        <x-drawer :title="$editingId ? 'Edit visitor' : 'Check in visitor'" width="lg">
+            <x-drawer-form wire:submit="checkIn" :submit-label="$editingId ? 'Save changes' : 'Check in'" target="checkIn">
                 <x-select wire:model="form.site_id" label="Site" class="sm:col-span-2">
                     <option value="">Select site</option>
                     @foreach($sites as $site)

@@ -43,7 +43,7 @@
                             <button
                                 type="button"
                                 @click.prevent="toggleFavorite(@js($link['href']), @js($link['label']))"
-                                class="ml-auto shrink-0 rounded p-0.5 text-zinc-300 opacity-0 transition hover:text-amber-500 group-hover:opacity-100"
+                                class="ml-auto shrink-0 rounded p-0.5 text-zinc-600 opacity-0 transition hover:text-amber-400 group-hover:opacity-100"
                                 :class="isFavorite(@js($link['href'])) ? '!text-amber-500 !opacity-100' : ''"
                                 aria-label="Favorite"
                             >
@@ -120,46 +120,55 @@
             </template>
 
             @if ($pinned->isNotEmpty() && $groups->isNotEmpty())
-                <div class="my-3 border-t border-zinc-100 dark:border-zinc-800" x-show="!sidebarCollapsed" x-cloak></div>
-                <div class="my-2 border-t border-zinc-100 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak></div>
-                <p class="mb-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400" x-show="sidebarCollapsed" x-cloak>More</p>
+                <div class="my-3 border-t border-zinc-800" x-show="!sidebarCollapsed" x-cloak></div>
+                <div class="my-2 border-t border-zinc-800" x-show="sidebarCollapsed" x-cloak></div>
+                <p class="mb-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-500" x-show="sidebarCollapsed" x-cloak>More</p>
             @endif
 
-            <div class="space-y-2">
+            <div class="space-y-1">
                 @foreach ($groups as $group)
                     @php
                         $groupActive = collect($group['links'])->contains(fn ($link) => $nav->isLinkActive($link));
                         $flyoutId = 'group-'.$loop->index;
                     @endphp
 
-                    {{-- Expanded accordion --}}
-                    <div x-show="!sidebarCollapsed" x-cloak>
+                    {{-- Expanded: accordion group --}}
+                    <div class="nav-group" x-show="!sidebarCollapsed" x-cloak>
                         <button
                             type="button"
-                            @click="open = open === @js($group['label']) ? null : @js($group['label'])"
-                            class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide transition {{ $groupActive ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300' }}"
+                            class="nav-group-toggle"
+                            :class="open === @js($group['label']) || @js($groupActive) ? 'nav-group-toggle-active' : ''"
+                            @click="toggleGroup(@js($group['label']))"
+                            :aria-expanded="open === @js($group['label']) ? 'true' : 'false'"
                         >
-                            <span>{{ $group['label'] }}</span>
-                            <svg class="h-3.5 w-3.5 shrink-0 transition-transform duration-200" :class="open === @js($group['label']) ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            <x-nav-icon :name="$group['icon']" class="h-4 w-4 shrink-0 opacity-70" />
+                            <span class="flex-1 truncate text-left">{{ $group['label'] }}</span>
+                            <span class="rounded-md bg-zinc-800/80 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-500">{{ count($group['links']) }}</span>
+                            <svg class="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform duration-150" :class="open === @js($group['label']) ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
                         <div
+                            class="nav-group-panel"
                             x-show="open === @js($group['label'])"
-                            class="mt-0.5 ml-3 space-y-0.5 border-l border-zinc-200 pl-2 dark:border-zinc-700"
+                            x-cloak
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 -translate-y-0.5"
+                            x-transition:enter-end="opacity-100 translate-y-0"
                         >
                             @foreach ($group['links'] as $link)
                                 @php $active = $nav->isLinkActive($link); @endphp
                                 <a href="{{ $link['href'] }}"
                                    @click="sidebarOpen = false"
                                    class="nav-sublink {{ $active ? 'nav-sublink-active' : '' }}">
-                                    {{ $link['label'] }}
+                                    <x-nav-icon :name="$link['icon'] ?? $group['icon']" class="h-3.5 w-3.5 shrink-0 opacity-60" />
+                                    <span class="truncate">{{ $link['label'] }}</span>
                                 </a>
                             @endforeach
                         </div>
                     </div>
 
-                    {{-- Collapsed: one group icon + flyout children --}}
+                    {{-- Collapsed: icon + flyout --}}
                     <div
                         class="relative"
                         x-show="sidebarCollapsed"
@@ -212,7 +221,7 @@
     </div>
 
     @if ($footer->isNotEmpty())
-        <div class="shrink-0 border-t border-zinc-100 p-1.5 dark:border-zinc-800 lg:p-2">
+        <div class="shrink-0 border-t border-zinc-800 p-1.5 lg:p-2">
             @foreach ($footer as $link)
                 @php
                     $active = $nav->isLinkActive($link);

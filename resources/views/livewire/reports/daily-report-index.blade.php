@@ -1,5 +1,15 @@
 <div>
-    <x-page-shell title="Daily Activity Reports" description="Review guard shift summaries and approve for clients.">
+    <x-page-shell
+        title="Daily Activity Reports"
+        description="Review guard shift summaries and approve for clients."
+        :breadcrumbs="[
+            ['label' => 'Reports', 'href' => route('reports.hub')],
+            ['label' => 'Daily reports'],
+        ]"
+    >
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-reports-nav /></x-slot:sidebar>
+
         <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$stats['total']" icon="plan" />
             <x-stat-card compact label="Pending" :value="$stats['pending']" icon="pause" :tone="$stats['pending'] ? 'warning' : 'default'" />
@@ -52,12 +62,17 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state :title="$hasActiveFilters ? 'No matching reports' : 'No daily reports'" description="Guards submit activity reports from the field." />
+                        <x-empty-state :title="$hasActiveFilters ? 'No matching reports' : 'No daily reports'" description="Guards submit activity reports from the field.">
+                            <x-slot:actions>
+                                <x-button size="sm" :href="route('reports.templates')">Custom templates</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     </x-table.empty>
                 @endforelse
             </tbody>
         </x-data-table>
 
         <x-pagination :paginator="$reports" />
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

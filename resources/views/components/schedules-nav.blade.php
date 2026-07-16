@@ -10,7 +10,7 @@
                 'href' => $link['href'],
                 'label' => $link['label'],
                 'icon' => $link['icon'] ?? 'schedules',
-                'group' => 'Schedules',
+                'group' => $link['group'] ?? 'Schedules',
                 'active' => $isIndex
                     ? request()->is('schedules') && ! request()->is('schedules/*')
                     : request()->is($href) || request()->is($href.'/*'),

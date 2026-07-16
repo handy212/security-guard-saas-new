@@ -8,6 +8,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FleetVehicle extends Model
 {
@@ -35,6 +36,11 @@ class FleetVehicle extends Model
     public function vehiclePatrols(): HasMany
     {
         return $this->hasMany(VehiclePatrol::class, 'vehicle_id');
+    }
+
+    public function equipmentAsset(): HasOne
+    {
+        return $this->hasOne(EquipmentAsset::class, 'fleet_vehicle_id');
     }
 
     public function displayName(): string

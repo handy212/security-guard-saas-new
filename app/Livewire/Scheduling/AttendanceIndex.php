@@ -21,6 +21,8 @@ class AttendanceIndex extends Component
 
     public string $statusFilter = 'all';
 
+    public bool $showBreakForm = false;
+
     protected $queryString = ['date', 'statusFilter'];
 
     public function mount(): void
@@ -28,6 +30,22 @@ class AttendanceIndex extends Component
         $this->authorizePermission('attendance.manage');
         $this->date = $this->date ?: today()->toDateString();
         $this->breakForm['started_at'] = now()->format('Y-m-d\TH:i');
+    }
+
+    public function openBreakForm(?int $attendanceLogId = null): void
+    {
+        $this->breakForm = [
+            'attendance_log_id' => $attendanceLogId ? (string) $attendanceLogId : '',
+            'type' => 'meal',
+            'started_at' => now()->format('Y-m-d\TH:i'),
+            'ended_at' => '',
+        ];
+        $this->showBreakForm = true;
+    }
+
+    public function closeBreakForm(): void
+    {
+        $this->showBreakForm = false;
     }
 
     public function previousDay(): void
@@ -56,6 +74,7 @@ class AttendanceIndex extends Component
 
         BreakLog::create($data + ['tenant_id' => TenantContext::id()]);
         $this->breakForm = ['attendance_log_id' => '', 'type' => 'meal', 'started_at' => now()->format('Y-m-d\TH:i'), 'ended_at' => ''];
+        $this->showBreakForm = false;
         session()->flash('status', 'Break logged.');
     }
 

@@ -30,4 +30,15 @@ class PdfExportService
 
         return $path;
     }
+
+    public function exportEstimate(\App\Models\Estimate $estimate): string
+    {
+        $estimate->load(['clientAccount', 'items']);
+
+        $pdf = Pdf::loadView('pdf.estimate', ['estimate' => $estimate]);
+        $path = 'exports/estimates/estimate-'.$estimate->id.'-'.now()->format('YmdHis').'.pdf';
+        Storage::put($path, $pdf->output());
+
+        return $path;
+    }
 }

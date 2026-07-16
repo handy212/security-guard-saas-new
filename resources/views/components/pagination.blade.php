@@ -1,18 +1,19 @@
 @if ($paginator->hasPages())
-    <nav role="navigation" aria-label="Pagination" class="flex flex-col gap-3 px-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="text-sm text-zinc-500">
+    <nav role="navigation" aria-label="Pagination" class="flex flex-col gap-3 border-t border-zinc-100 px-3 py-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-xs text-zinc-500 dark:text-zinc-400">
             @if ($paginator->firstItem())
-                Showing <span class="font-medium text-zinc-700">{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</span> of <span class="font-medium text-zinc-700">{{ $paginator->total() }}</span>
+                Showing <span class="font-semibold text-zinc-700 dark:text-zinc-200">{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</span>
+                of <span class="font-semibold text-zinc-700 dark:text-zinc-200">{{ $paginator->total() }}</span>
             @endif
         </div>
-        <div class="flex gap-1">
+        <div class="flex gap-1.5">
             @if ($paginator->onFirstPage())
-                <span class="pagination-btn pagination-btn-disabled">Prev</span>
+                <span class="pagination-btn pagination-btn-disabled">Previous</span>
             @else
-                <button wire:click="previousPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Prev</button>
+                <button type="button" wire:click="previousPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Previous</button>
             @endif
             @if ($paginator->hasMorePages())
-                <button wire:click="nextPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Next</button>
+                <button type="button" wire:click="nextPage('{{ $paginator->getPageName() }}')" class="pagination-btn">Next</button>
             @else
                 <span class="pagination-btn pagination-btn-disabled">Next</span>
             @endif

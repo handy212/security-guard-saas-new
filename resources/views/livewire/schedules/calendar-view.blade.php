@@ -52,7 +52,15 @@
                 @php $day->addDay(); @endphp
             @endwhile
             @if ($shifts->isEmpty())
-                <x-empty-state title="No shifts in range" />
+                <x-empty-state
+                    title="No shifts in range"
+                    description="Create a shift on the day roster, or open a day to staff coverage."
+                >
+                    <x-slot:actions>
+                        <x-button size="sm" :href="route('schedules.index', ['date' => today()->toDateString()])">Create for today</x-button>
+                        <x-button size="sm" variant="secondary" :href="route('schedules.index')">Day roster</x-button>
+                    </x-slot:actions>
+                </x-empty-state>
             @endif
         </div>
 

@@ -1,9 +1,19 @@
 <div>
-    <x-page-shell title="Analytics" description="Historical KPI snapshots and operational trends.">
+    <x-page-shell
+        title="Analytics"
+        description="Historical KPI snapshots and operational trends."
+        :breadcrumbs="[
+            ['label' => 'Back Office', 'href' => route('billing.hub')],
+            ['label' => 'Analytics'],
+        ]"
+    >
         <x-slot:actions>
             <x-input wire:model="snapshotDate" type="date" class="w-auto text-sm" />
             <x-button wire:click="refreshSnapshot" size="sm" variant="secondary">Refresh snapshot</x-button>
         </x-slot:actions>
+
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
         <x-flash-status type="success" />
 
@@ -88,5 +98,6 @@
                 <x-button wire:click="refreshSnapshot" size="sm" class="mt-3">Run first snapshot</x-button>
             </x-empty-state>
         @endif
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

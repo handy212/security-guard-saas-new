@@ -7,7 +7,7 @@
             <x-stat-card compact label="Resolved" :value="$stats['resolved']" icon="check" tone="success" />
         </div>
 
-        <x-form-card title="Log complaint" description="Record a new client complaint or service issue." collapsible>
+        <x-form-card :title="$editingId ? 'Edit complaint' : 'Log complaint'" description="Record a new client complaint or service issue." collapsible>
             <form wire:submit="save" class="grid gap-4 md:grid-cols-2">
                 <x-select wire:model="form.client_account_id" label="Client" required>
                     <option value="">Select client</option>
@@ -28,8 +28,11 @@
                     <option value="normal">Normal</option>
                     <option value="high">High</option>
                 </x-select>
-                <div class="flex items-end">
-                    <x-button type="submit">Log complaint</x-button>
+                <div class="flex items-end gap-2">
+                    <x-button type="submit">{{ $editingId ? 'Save changes' : 'Log complaint' }}</x-button>
+                    @if ($editingId)
+                        <x-button type="button" variant="secondary" wire:click="cancelEdit">Cancel</x-button>
+                    @endif
                 </div>
             </form>
         </x-form-card>
@@ -66,9 +69,13 @@
                         <x-table.td><x-badge :status="$complaint->priority" /></x-table.td>
                         <x-table.td><x-badge :status="$complaint->status" /></x-table.td>
                         <x-table.td align="right">
-                            @if($complaint->status !== 'resolved')
-                                <x-button size="sm" wire:click="resolve({{ $complaint->id }})">Resolve</x-button>
-                            @endif
+                            <div class="table-inline-actions">
+                                @if($complaint->status === 'open')
+                                    <button type="button" wire:click="edit({{ $complaint->id }})" class="table-action">Edit</button>
+                                    <x-button size="sm" wire:click="resolve({{ $complaint->id }})">Resolve</x-button>
+                                    <button type="button" wire:click="delete({{ $complaint->id }})" wire:confirm="Delete this complaint?" class="table-action text-red-600">Delete</button>
+                                @endif
+                            </div>
                         </x-table.td>
                     </tr>
                 @empty

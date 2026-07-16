@@ -1,6 +1,6 @@
 # Design Archive
 
-Historical UI mockups and reference materials for GuardOps visual design decisions.
+Historical UI mockups and reference materials for GuardCore Pro visual design decisions.
 
 ## Files
 
@@ -10,20 +10,23 @@ Historical UI mockups and reference materials for GuardOps visual design decisio
 
 ## Adopted from SecurGuard mockup
 
-- Inter typography and 260px sidebar width
-- Card radius (~14px) and soft shadows
-- Icon + label navigation with left accent active state
 - Dense KPI strip with secondary hint metrics
 - Donut and bar chart patterns for incident analytics
+- Icon + label navigation with left accent active state
 - Subtle card entry animations (with `prefers-reduced-motion` respect)
 
-## Rejected from SecurGuard mockup
+## Rejected / superseded
 
-- Flat 14-item nav list with duplicate Reports / Invoicer / Scheduler entries
-- Full orange/red rebrand (GuardOps keeps zinc neutrals + sky accent)
+- Inter typography → **IBM Plex Sans**
+- Light white sidebar → **zinc-950 command sidebar**
+- Fixed sky accent → **per-tenant `--tenant-brand`** (fallback teal `#0f766e`)
+- Soft card shadows → **border-led surfaces**
+- Orange/red and cream/terracotta rebrands
 - Font Awesome CDN (Heroicons inline SVG instead)
-- Hardcoded mock data (wired to Livewire services)
 
-## Active roadmap
+## Active system (2026 refresh)
 
-See the UI/UX Refresh plan in the project for phased implementation status.
+- Product name: **GuardCore Pro**
+- Accent ownership: **per-tenant** via CSS `--tenant-brand`
+- Shell: dark sidebar, light canvas, open page headers
+- Field PWA and client portal share the same token system

@@ -11,6 +11,9 @@ document.addEventListener('alpine:init', () => {
         flyout: null,
         flyoutTimer: null,
         favorites: JSON.parse(localStorage.getItem('GuardCore Pro-nav-favorites') || '[]'),
+        toggleGroup(label) {
+            this.open = this.open === label ? null : label;
+        },
         showFlyout(id, el = null) {
             clearTimeout(this.flyoutTimer);
             this.flyout = id;

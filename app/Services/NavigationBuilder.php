@@ -13,6 +13,11 @@ class NavigationBuilder
 
     public function linkVisible(array $link): bool
     {
+        if (! empty($link['hub'])) {
+            return collect(config('navigation.'.$link['hub'], []))
+                ->contains(fn (array $child) => $this->linkVisible($child));
+        }
+
         if (! empty($link['permission']) && ! auth()->user()?->can($link['permission'])) {
             return false;
         }
@@ -74,9 +79,12 @@ class NavigationBuilder
     {
         return match ($label) {
             'Patrols & Reports' => 'patrols',
+            'Workforce' => 'workforce',
             'Guardians' => 'guards',
             'Clients' => 'clients',
-            'Finance' => 'billing',
+            'Live ops' => 'dispatch',
+            'Libraries' => 'reports',
+            'Back Office' => 'billing',
             'Compliance & Insights' => 'analytics',
             default => 'dashboard',
         };
@@ -88,9 +96,15 @@ class NavigationBuilder
         $href = $link['href'] ?? '';
 
         $source = match ($href) {
-            '/schedules' => config('navigation.schedules', []),
+            '/schedules' => [
+                ...config('navigation.schedules', []),
+                ...config('navigation.schedules_more', []),
+            ],
             '/assets' => config('navigation.assets', []),
             '/settings' => config('navigation.settings', []),
+            '/billing' => config('navigation.billing', []),
+            '/reports' => config('navigation.reports', []),
+            '/patrols' => config('navigation.patrols', []),
             default => [],
         };
 
@@ -118,10 +132,20 @@ class NavigationBuilder
             'Assets' => 'Assets',
             'Settings' => 'Settings',
             'Patrols & Reports' => 'Patrols',
+            'Workforce' => 'Workforce',
             'Guardians' => 'Guards',
             'Clients' => 'Clients',
-            'Finance' => 'Finance',
+            'Sites' => 'Sites',
+            'Guards' => 'Guards',
+            'Patrols' => 'Patrols',
+            'Reports' => 'Reports',
+            'Back Office' => 'Office',
             'Compliance & Insights' => 'Insights',
+            'Tenants' => 'Tenants',
+            'Plans' => 'Plans',
+            'Subscriptions' => 'Billing',
+            'Live ops' => 'Live',
+            'Libraries' => 'Libs',
         ];
 
         return $map[$label] ?? \Illuminate\Support\Str::limit($label, 8, '');
@@ -159,7 +183,49 @@ class NavigationBuilder
         $href = ltrim($link['href'], '/');
 
         if ($link['href'] === '/settings') {
-            return request()->is('settings*') || request()->is('mobile/offline-sync*');
+            return request()->is('settings*') || request()->is('mobile/offline-sync*') || request()->is('billing/subscription*');
+        }
+
+        // Scheduler hub: any schedules/* page (including reconciliation under schedules)
+        if ($link['href'] === '/schedules') {
+            return request()->is('schedules') || request()->is('schedules/*');
+        }
+
+        // Exact module roots: avoid highlighting pin for sibling nested routes
+        if ($link['href'] === '/guards') {
+            return request()->is('guards')
+                || (
+                    request()->is('guards/*')
+                    && ! request()->is('guards/know-your-guard*')
+                    && ! request()->is('guards/applications*')
+                );
+        }
+
+        if ($link['href'] === '/clients') {
+            return request()->is('clients')
+                || (
+                    request()->is('clients/*')
+                    && ! request()->is('clients/complaints*')
+                );
+        }
+
+        if ($link['href'] === '/sites') {
+            return request()->is('sites') || request()->is('sites/*');
+        }
+
+        if ($link['href'] === '/billing') {
+            return request()->is('billing') || request()->is('billing/*')
+                || request()->is('compliance') || request()->is('compliance/*')
+                || request()->is('analytics');
+        }
+
+        if ($link['href'] === '/reports') {
+            return request()->is('reports') || request()->is('reports/*');
+        }
+
+        if ($link['href'] === '/patrols') {
+            return request()->is('patrols') || request()->is('patrols/*')
+                || request()->is('passdown') || request()->is('passdown/*');
         }
 
         return request()->is($href) || request()->is($href.'/*');
@@ -191,6 +257,36 @@ class NavigationBuilder
         foreach (config('navigation.assets', []) as $link) {
             if ($this->linkVisible($link)) {
                 $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Assets'];
+            }
+        }
+
+        foreach (config('navigation.billing', []) as $link) {
+            if ($this->linkVisible($link)) {
+                $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Back Office'];
+            }
+        }
+
+        foreach (config('navigation.reports', []) as $link) {
+            if ($this->linkVisible($link)) {
+                $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Reports'];
+            }
+        }
+
+        foreach (config('navigation.patrols', []) as $link) {
+            if ($this->linkVisible($link)) {
+                $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Patrols'];
+            }
+        }
+
+        foreach (config('navigation.schedules', []) as $link) {
+            if ($this->linkVisible($link)) {
+                $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Scheduler'];
+            }
+        }
+
+        foreach (config('navigation.schedules_more', []) as $link) {
+            if ($this->linkVisible($link)) {
+                $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Scheduler'];
             }
         }
 

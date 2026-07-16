@@ -1,6 +1,14 @@
 <div>
-    <x-page-shell title="Fleet" description="Register cars, motors, and vans. Assign them to patrols from Vehicle Patrols.">
+    <x-page-shell
+        title="Fleet"
+        description="Register cars, motors, and vans. They sync into Assets so you can issue them on Deploy."
+        :breadcrumbs="[
+            ['label' => 'Patrols', 'href' => route('patrols.index')],
+            ['label' => 'Fleet'],
+        ]"
+    >
         <x-slot:actions>
+            <x-button variant="secondary" href="{{ route('assets.index') }}">Assets kit list</x-button>
             <x-button variant="secondary" href="{{ route('patrols.vehicles') }}">Vehicle patrols</x-button>
             <x-button wire:click="openCreate">Add vehicle</x-button>
         </x-slot:actions>
@@ -92,18 +100,23 @@
                         <x-table.td>
                             <div class="flex flex-wrap gap-2">
                                 <button type="button" class="text-xs font-medium text-accent-600 hover:underline" wire:click="openEdit({{ $vehicle->id }})">Edit</button>
-                                @if ($vehicle->status->value !== 'available')
+                                <button type="button" class="text-xs font-medium text-red-600 hover:underline" wire:click="delete({{ $vehicle->id }})" wire:confirm="Delete this vehicle?">Delete</button>
+                                    @if ($vehicle->status->value !== 'available')
                                     <button type="button" class="text-xs font-medium text-zinc-600 hover:underline" wire:click="setStatus({{ $vehicle->id }}, 'available')">Mark available</button>
-                                @endif
-                                @if ($vehicle->status->value !== 'maintenance')
+                                    @endif
+                                    @if ($vehicle->status->value !== 'maintenance')
                                     <button type="button" class="text-xs font-medium text-amber-700 hover:underline" wire:click="setStatus({{ $vehicle->id }}, 'maintenance')">Maintenance</button>
-                                @endif
+                                    @endif
                             </div>
                         </x-table.td>
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state title="No vehicles yet" description="Add cars and motors to the fleet, then assign them on Vehicle Patrols." />
+                        <x-empty-state title="No vehicles yet" description="Add cars and motors to the fleet, then assign them on Vehicle Patrols.">
+                            <x-slot:actions>
+                                <x-button size="sm" wire:click="openCreate">Add vehicle</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     </x-table.empty>
                 @endforelse
             </tbody>

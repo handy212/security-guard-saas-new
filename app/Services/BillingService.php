@@ -109,4 +109,35 @@ class BillingService
 
         return $invoice->fresh('items');
     }
+
+    public function create(array $data, array $items): Invoice
+    {
+        $invoice = Invoice::create([
+            'tenant_id' => \App\Support\TenantContext::id(),
+            'client_account_id' => $data['client_account_id'],
+            'invoice_number' => 'INV-'.now()->format('YmdHis'),
+            'invoice_date' => $data['invoice_date'] ?? now()->toDateString(),
+            'due_date' => $data['due_date'] ?? now()->addDays(14)->toDateString(),
+            'status' => 'draft',
+            'subtotal' => 0,
+            'tax_total' => 0,
+            'grand_total' => 0,
+            'amount_paid' => 0,
+        ]);
+
+        return $this->syncItems($invoice, $items);
+    }
+
+    public function updateDraft(Invoice $invoice, array $data, array $items): Invoice
+    {
+        if (\App\Support\EnumHelper::value($invoice->status) !== 'draft') {
+            throw new \RuntimeException('Only draft invoices can be edited.');
+        }
+
+        $invoice->update(collect($data)->only([
+            'client_account_id', 'invoice_date', 'due_date',
+        ])->filter(fn ($v) => $v !== null && $v !== '')->all());
+
+        return $this->syncItems($invoice, $items);
+    }
 }

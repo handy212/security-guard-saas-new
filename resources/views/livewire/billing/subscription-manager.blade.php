@@ -9,8 +9,8 @@
 
 <div>
     <x-page-shell
-        title="Your GuardOps plan"
-        description="Manage your platform subscription and usage limits. Client invoices and guard payroll are under Finance."
+        title="Your GuardCore Pro plan"
+        description="Manage your platform subscription and usage limits. Client invoices and guard payroll are under Back Office."
         :breadcrumbs="[
             ['label' => 'Settings', 'href' => route('settings.index')],
             ['label' => 'Your plan'],
@@ -23,11 +23,11 @@
 
             @unless($paystackConfigured)
                 <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700" role="status">
-                    Online checkout is not available for your account yet. Contact GuardOps support to change or upgrade your plan.
+                    Online checkout is not available for your account yet. Contact GuardCore Pro support to change or upgrade your plan.
                 </div>
             @endunless
 
-            <x-section-card title="Current plan" description="Your organization's active GuardOps subscription.">
+            <x-section-card title="Current plan" description="Your organization's active GuardCore Pro subscription.">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0 space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
@@ -159,7 +159,7 @@
 
             <p class="text-xs text-zinc-400">
                 Payments support cards, bank transfer, USSD, and mobile money via Paystack.
-                This subscription is separate from client invoicing and guard payroll under Finance.
+                This subscription is separate from client invoicing and guard payroll under Back Office.
             </p>
         </x-sub-sidebar-layout>
     </x-page-shell>

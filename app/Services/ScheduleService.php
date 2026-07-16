@@ -11,6 +11,7 @@ use App\Models\ShiftConfirmation;
 use App\Support\EnumHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class ScheduleService
@@ -103,10 +104,22 @@ class ScheduleService
     {
         $shift = $assignment->shift;
 
+        app(AssetManagementService::class)->returnOpenForAssignment($assignment);
+
         $assignment->update(['status' => 'cancelled']);
         ShiftConfirmation::where('shift_assignment_id', $assignment->id)->delete();
 
         $this->refreshShiftStaffingStatus($shift);
+    }
+
+    public function reassignGuard(ShiftAssignment $assignment, Guard $guard): ShiftAssignment
+    {
+        return DB::transaction(function () use ($assignment, $guard) {
+            $shift = $assignment->shift;
+            $this->unassignGuard($assignment);
+
+            return $this->assignGuard($shift, $guard);
+        });
     }
 
     /**

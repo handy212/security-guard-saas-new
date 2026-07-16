@@ -131,7 +131,7 @@ class GuardVerificationService
     }
 
     /**
-     * @return array{ready: bool, items: array<int, array{label: string, passed: bool}>}
+     * @return array{ready: bool, items: array<int, array{label: string, passed: bool, optional?: bool, tab?: string}>}
      */
     public function vettingChecklist(Guard $guard): array
     {
@@ -150,12 +150,14 @@ class GuardVerificationService
             ['label' => 'Photo uploaded', 'passed' => $hasPhoto, 'tab' => 'profile'],
             ['label' => 'ID document on file', 'passed' => $hasIdDocument, 'tab' => 'files'],
             ['label' => 'Police clearance on file', 'passed' => $hasPoliceClearance, 'tab' => 'files'],
-            ['label' => 'License valid', 'passed' => $licenseValid, 'tab' => 'licenses'],
-            ['label' => 'At least one current certification', 'passed' => $certsCurrent, 'tab' => 'licenses'],
+            ['label' => 'License valid', 'passed' => $licenseValid, 'optional' => true, 'tab' => 'qualifications'],
+            ['label' => 'At least one current certification', 'passed' => $certsCurrent, 'optional' => true, 'tab' => 'qualifications'],
         ];
 
         return [
-            'ready' => collect($items)->every(fn ($item) => $item['passed']),
+            'ready' => collect($items)
+                ->reject(fn (array $item) => ! empty($item['optional']))
+                ->every(fn (array $item) => $item['passed']),
             'items' => $items,
         ];
     }

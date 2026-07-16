@@ -11,7 +11,7 @@ class EquipmentAssignment extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'equipment_asset_id', 'guard_id', 'site_id',
+        'tenant_id', 'equipment_asset_id', 'guard_id', 'site_id', 'shift_assignment_id',
         'issued_at', 'returned_at', 'issue_notes', 'return_notes', 'status',
     ];
 
@@ -36,5 +36,10 @@ class EquipmentAssignment extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    public function shiftAssignment(): BelongsTo
+    {
+        return $this->belongsTo(ShiftAssignment::class);
     }
 }

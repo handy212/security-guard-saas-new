@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Day roster" description="Create shifts, assign guards, and staff the selected day.">
+    <x-page-shell
+        title="Day roster"
+        description="Create shifts, assign guards, and staff the selected day."
+        :breadcrumbs="[
+            ['label' => 'Scheduler', 'href' => route('schedules.index')],
+            ['label' => 'Day roster'],
+        ]"
+    >
         <x-slot:actions>
             <x-button variant="secondary" href="{{ route('schedules.calendar') }}">Calendar</x-button>
             <x-button variant="secondary" href="{{ route('schedules.deployment-sheet', ['date' => $date]) }}">Deployment</x-button>
@@ -27,7 +34,7 @@
                         <a href="{{ route('schedules.open-shifts') }}" class="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-800 hover:bg-blue-100">{{ $stats['pending_bids'] }} open-shift bids</a>
                     @endif
                     @if ($stats['pending_swaps'])
-                        <a href="{{ route('schedules.shift-exchange') }}" class="rounded-full bg-violet-50 px-3 py-1 font-medium text-violet-800 hover:bg-violet-100">{{ $stats['pending_swaps'] }} swap requests</a>
+                        <a href="{{ route('schedules.shift-exchange') }}" class="rounded-full bg-accent-50 px-3 py-1 font-medium text-accent-800 hover:bg-accent-100">{{ $stats['pending_swaps'] }} swap requests</a>
                     @endif
                     @if ($stats['pending_leave'])
                         <a href="{{ route('schedules.time-off') }}" class="rounded-full bg-zinc-100 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-200">{{ $stats['pending_leave'] }} leave requests</a>
@@ -46,8 +53,8 @@
 
             <div class="grid gap-3">
                 @forelse($shifts as $shift)
-                    <div class="card-surface p-3" wire:key="shift-{{ $shift->id }}">
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="card-surface p-4" wire:key="shift-{{ $shift->id }}">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-2">
                                     <h3 class="text-sm font-semibold">{{ $shift->title }}</h3>
@@ -123,10 +130,11 @@
                         @endif
                     </div>
                 @empty
-                    <x-empty-state title="No shifts" description="Create a shift for this day, or apply a template from Templates.">
+                    <x-empty-state title="No shifts" description="Create a shift for this day after you have clients, sites, and guards.">
                         <x-slot:actions>
                             <x-button size="sm" wire:click="openForm">Create shift</x-button>
                             <x-button size="sm" variant="secondary" :href="route('schedules.templates')">Templates</x-button>
+                            <x-button size="sm" variant="secondary" :href="route('sites.index')">View sites</x-button>
                         </x-slot:actions>
                     </x-empty-state>
                 @endforelse
@@ -135,33 +143,41 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingShiftId ? 'Edit shift' : 'Create shift'" width="lg">
+        <x-drawer :title="$editingShiftId ? 'Edit shift' : 'Create shift'" :description="$editingShiftId ? 'Update shift details.' : 'Pick the site, set the window, then assign guards from the day roster.'" width="lg">
             <x-drawer-form wire:submit.prevent="save" :submit-label="$editingShiftId ? 'Save changes' : 'Create shift'">
-                <x-select wire:model.live="form.client_account_id" label="Client *">
-                    <option value="">Select client</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-select wire:model.live="form.site_id" label="Site *" :disabled="! $form['client_account_id']">
-                    <option value="">Select site</option>
-                    @foreach ($sitesForClient as $site)
-                        <option value="{{ $site->id }}">{{ $site->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-select wire:model="form.site_post_id" label="Post" :disabled="! $form['site_id']">
-                    <option value="">None</option>
-                    @foreach ($postsForSite as $post)
-                        <option value="{{ $post->id }}">{{ $post->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-input wire:model="form.title" label="Title *" class="sm:col-span-2" />
-                <x-input wire:model="form.starts_at" label="Starts *" type="datetime-local" />
-                <x-input wire:model="form.ends_at" label="Ends *" type="datetime-local" />
-                <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" />
-                <x-input wire:model="form.billing_rate" label="Shift charge" type="number" step="0.01" hint="Fixed amount billed for this shift" />
-                <x-input wire:model="form.billable_hours" label="Billable hours" type="number" step="0.25" min="0" hint="Optional override for payroll export" />
-                <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                <x-form-section title="Location">
+                    <x-select wire:model.live="form.client_account_id" label="Client *">
+                        <option value="">Select client</option>
+                        @foreach ($clients as $client)
+                            <option value="{{ $client->id }}">{{ $client->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model.live="form.site_id" label="Site *" :disabled="! $form['client_account_id']">
+                        <option value="">Select site</option>
+                        @foreach ($sitesForClient as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="form.site_post_id" label="Post" :disabled="! $form['site_id']">
+                        <option value="">None</option>
+                        @foreach ($postsForSite as $post)
+                            <option value="{{ $post->id }}">{{ $post->name }}</option>
+                        @endforeach
+                    </x-select>
+                </x-form-section>
+
+                <x-form-section title="Shift">
+                    <x-input wire:model="form.title" label="Title *" class="sm:col-span-2" />
+                    <x-input wire:model="form.starts_at" label="Starts *" type="datetime-local" />
+                    <x-input wire:model="form.ends_at" label="Ends *" type="datetime-local" />
+                    <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" />
+                </x-form-section>
+
+                <x-form-section title="Billing" description="Optional — used for client charging and payroll export.">
+                    <x-input wire:model="form.billing_rate" label="Shift charge" type="number" step="0.01" hint="Fixed amount billed for this shift" />
+                    <x-input wire:model="form.billable_hours" label="Billable hours" type="number" step="0.25" min="0" hint="Optional override for payroll export" />
+                    <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

@@ -14,9 +14,10 @@ class Overview extends Component
 {
     use AuthorizesModuleAccess;
 
-    public function mount(): void
+    public function mount(AssetManagementService $assets): void
     {
         $this->authorizePolicy('viewAny', EquipmentAsset::class);
+        $assets->ensureDeployKitCatalog(TenantContext::id());
     }
 
     public function render(AssetManagementService $assets)
@@ -25,6 +26,7 @@ class Overview extends Component
 
         return view('livewire.assets.overview', [
             'stats' => $assets->overviewStats($tenantId),
+            'kitCategories' => $assets->deployKitSummary($tenantId),
             'recentAssignments' => EquipmentAssignment::with(['asset', 'assignedGuard', 'site'])
                 ->where('tenant_id', $tenantId)
                 ->latest()

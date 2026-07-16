@@ -20,10 +20,22 @@ class PayrollBoard extends Component
 
     public string $periodEnd = '';
 
+    public bool $showGenerateForm = false;
+
     public function mount(): void
     {
         $this->periodStart = now()->startOfMonth()->toDateString();
         $this->periodEnd = now()->endOfMonth()->toDateString();
+    }
+
+    public function openGenerate(): void
+    {
+        $this->showGenerateForm = true;
+    }
+
+    public function closeGenerate(): void
+    {
+        $this->showGenerateForm = false;
     }
 
     public function generateTimesheet(PayrollService $payroll): void
@@ -34,6 +46,7 @@ class PayrollBoard extends Component
             $this->periodStart,
             $this->periodEnd
         );
+        $this->showGenerateForm = false;
         session()->flash('status', 'Timesheet generated.');
     }
 

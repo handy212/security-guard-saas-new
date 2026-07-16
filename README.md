@@ -1,4 +1,4 @@
-# GuardOps SaaS — Laravel + Livewire Security Guard Management System
+# GuardCore Pro — Laravel + Livewire Security Guard Management System
 
 This is a full source starter for an enterprise security guard management SaaS. It is designed for Laravel, Livewire, Tailwind, RBAC, multi-tenant data isolation, guard scheduling, GPS attendance, QR/NFC patrol checkpoints, incident reporting, client portal, dispatch, billing, payroll foundation, and SaaS subscriptions.
 

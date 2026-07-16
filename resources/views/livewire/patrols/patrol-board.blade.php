@@ -1,14 +1,24 @@
 <div>
-    <x-page-shell title="Patrol Routes" description="Guard tour routes with QR/NFC checkpoints and live sessions.">
+    <x-page-shell
+        title="Patrol Routes"
+        description="Guard tour routes with QR/NFC checkpoints and live sessions."
+        :breadcrumbs="[['label' => 'Patrols']]"
+    >
         <div class="stat-grid">
             <x-stat-card compact label="Routes" :value="$stats['routes']" icon="patrols" />
             <x-stat-card compact label="Checkpoints" :value="$stats['checkpoints']" icon="gps" tone="info" />
             <x-stat-card compact label="Active sessions" :value="$stats['active_sessions']" icon="schedules" :tone="$stats['active_sessions'] ? 'warning' : 'default'" />
-            <x-stat-card compact label="Completed today" :value="$stats['completed_today']" icon="check" tone="success" />
+            <x-stat-card compact label="Fleet available" :value="$stats['fleet_available']" icon="sites" tone="info" />
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3">
+            <x-input wire:model.live.debounce.300ms="search" label="Search routes" placeholder="Route or site…" class="w-64" />
+            <x-button variant="secondary" size="sm" href="{{ route('patrols.fleet') }}">Manage fleet</x-button>
+            <x-button variant="secondary" size="sm" href="{{ route('assets.index') }}">Assets kit</x-button>
         </div>
 
         <div class="page-grid-2">
-            <x-form-card title="Create route">
+            <x-form-card id="create-route" :title="$editingRouteId ? 'Edit route' : 'Create route'">
                 <form wire:submit="saveRoute" class="space-y-3">
                     <x-select wire:model="routeForm.site_id" label="Site">
                         <option value="">Select site</option>
@@ -22,11 +32,16 @@
                         <textarea wire:model="routeForm.description" rows="2" class="form-input mt-1" placeholder="Optional route notes"></textarea>
                     </div>
                     <x-input wire:model="routeForm.expected_duration_minutes" label="Duration (min)" type="number" />
-                    <x-button type="submit">Save route</x-button>
+                    <div class="flex gap-2">
+                        <x-button type="submit">{{ $editingRouteId ? 'Update route' : 'Save route' }}</x-button>
+                        @if ($editingRouteId)
+                            <x-button type="button" variant="secondary" wire:click="$set('editingRouteId', null)">Cancel</x-button>
+                        @endif
+                    </div>
                 </form>
             </x-form-card>
 
-            <x-form-card title="Add checkpoint">
+            <x-form-card :title="$editingCheckpointId ? 'Edit checkpoint' : 'Add checkpoint'">
                 <form wire:submit="saveCheckpoint" class="space-y-3">
                     <x-select wire:model="checkpointForm.patrol_route_id" label="Route">
                         <option value="">Select route</option>
@@ -45,14 +60,19 @@
                         <label class="form-label">Instructions</label>
                         <textarea wire:model="checkpointForm.instructions" rows="2" class="form-input mt-1" placeholder="What the guard should check"></textarea>
                     </div>
-                    <x-button type="submit">Save checkpoint</x-button>
+                    <div class="flex gap-2">
+                        <x-button type="submit">{{ $editingCheckpointId ? 'Update checkpoint' : 'Save checkpoint' }}</x-button>
+                        @if ($editingCheckpointId)
+                            <x-button type="button" variant="secondary" wire:click="$set('editingCheckpointId', null)">Cancel</x-button>
+                        @endif
+                    </div>
                 </form>
             </x-form-card>
         </div>
 
         <x-flash-status />
 
-        <x-form-card title="Assign patrol" description="Start a session for a guard. Optionally assign a fleet vehicle/motor." collapsible open>
+        <x-form-card title="Assign patrol" description="Vehicles/motors also sync into Assets for deploy kits. Guard needs an active shift on the route’s site." collapsible open>
             <form wire:submit="assignPatrol" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <x-select wire:model="assignForm.patrol_route_id" label="Route" required>
                     <option value="">Select route</option>
@@ -69,7 +89,7 @@
                 <x-select wire:model="assignForm.vehicle_id" label="Vehicle / motor">
                     <option value="">None</option>
                     @foreach($availableFleet as $vehicle)
-                        <option value="{{ $vehicle->id }}">{{ $vehicle->plate_number }} · {{ $vehicle->type->label() }}</option>
+                        <option value="{{ $vehicle->id }}">{{ $vehicle->displayName() }}</option>
                     @endforeach
                 </x-select>
                 <div class="flex items-end">
@@ -84,6 +104,10 @@
         <div class="grid gap-3 md:grid-cols-2">
             @forelse($routes as $route)
                 <x-section-card :title="$route->name" :description="$route->site?->name">
+                    <div class="mb-2 flex gap-2">
+                        <button type="button" wire:click="editRoute({{ $route->id }})" class="table-action">Edit route</button>
+                        <button type="button" wire:click="deleteRoute({{ $route->id }})" wire:confirm="Delete this route and its checkpoints?" class="table-action text-red-600">Delete</button>
+                    </div>
                     <ol class="space-y-1">
                         @foreach($route->checkpoints->sortBy('sequence') as $cp)
                             <li class="flex items-center gap-2 rounded border border-zinc-100 bg-zinc-50 px-2 py-1.5 text-sm">
@@ -93,12 +117,18 @@
                                     <span class="text-[10px] text-zinc-400">{{ number_format($cp->latitude, 4) }}, {{ number_format($cp->longitude, 4) }}</span>
                                 @endif
                                 <span class="font-mono text-xs text-zinc-500">{{ $cp->code }}</span>
+                                <button type="button" wire:click="editCheckpoint({{ $cp->id }})" class="table-action">Edit</button>
+                                <button type="button" wire:click="deleteCheckpoint({{ $cp->id }})" wire:confirm="Delete this checkpoint?" class="table-action text-red-600">Del</button>
                             </li>
                         @endforeach
                     </ol>
                 </x-section-card>
             @empty
-                <x-empty-state title="No patrol routes" class="md:col-span-2" />
+                <x-empty-state title="No patrol routes" description="Create a route for a site, then add checkpoints." class="md:col-span-2">
+                    <x-slot:actions>
+                        <x-button size="sm" href="#create-route">Create route</x-button>
+                    </x-slot:actions>
+                </x-empty-state>
             @endforelse
         </div>
 
@@ -108,6 +138,7 @@
                     <tr>
                         <x-table.th>Route</x-table.th>
                         <x-table.th>Guard</x-table.th>
+                        <x-table.th>Vehicle</x-table.th>
                         <x-table.th>Status</x-table.th>
                         <x-table.th>Progress</x-table.th>
                         <x-table.th>Scans</x-table.th>
@@ -116,8 +147,20 @@
                 <tbody>
                     @foreach($sessions as $session)
                         <tr class="table-row-hover" wire:key="session-{{ $session->id }}">
-                            <x-table.td>{{ $session->route?->name ?? '—' }}</x-table.td>
+                            <x-table.td>
+                                <div>{{ $session->route?->name ?? '—' }}</div>
+                                @if ($session->route?->site)
+                                    <div class="text-xs text-zinc-500">{{ $session->route->site->name }}</div>
+                                @endif
+                            </x-table.td>
                             <x-table.td>{{ $session->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                            <x-table.td muted>
+                                @if ($session->vehiclePatrol?->vehicle)
+                                    {{ $session->vehiclePatrol->vehicle->displayName() }}
+                                @else
+                                    —
+                                @endif
+                            </x-table.td>
                             <x-table.td><x-badge :status="$session->status" /></x-table.td>
                             <x-table.td muted>{{ $session->completion_percent ?? 0 }}%</x-table.td>
                             <x-table.td muted>{{ $session->scans->count() }}</x-table.td>

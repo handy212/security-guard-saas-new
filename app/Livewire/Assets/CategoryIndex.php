@@ -21,9 +21,10 @@ class CategoryIndex extends Component
 
     public ?int $editingId = null;
 
-    public function mount(): void
+    public function mount(\App\Services\AssetManagementService $assets): void
     {
         $this->authorizePermission('equipment.manage');
+        $assets->ensureDeployKitCatalog(TenantContext::id(), false);
     }
 
     public function save(): void

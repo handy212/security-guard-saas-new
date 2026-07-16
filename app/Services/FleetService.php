@@ -2,25 +2,112 @@
 
 namespace App\Services;
 
+use App\Enums\AssetStatus;
 use App\Enums\VehicleStatus;
+use App\Enums\VehicleType;
+use App\Models\AssetCategory;
+use App\Models\EquipmentAsset;
 use App\Models\FleetVehicle;
 use App\Models\Guard;
 use App\Models\PatrolSession;
 use App\Models\VehiclePatrol;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class FleetService
 {
     public function create(array $data): FleetVehicle
     {
-        return FleetVehicle::create($data);
+        return DB::transaction(function () use ($data) {
+            $vehicle = FleetVehicle::create($data);
+            $this->syncEquipmentAsset($vehicle);
+
+            return $vehicle;
+        });
     }
 
     public function update(FleetVehicle $vehicle, array $data): FleetVehicle
     {
-        $vehicle->update($data);
+        return DB::transaction(function () use ($vehicle, $data) {
+            $vehicle->update($data);
+            $this->syncEquipmentAsset($vehicle->fresh());
 
-        return $vehicle->fresh();
+            return $vehicle->fresh();
+        });
+    }
+
+    public function delete(FleetVehicle $vehicle): void
+    {
+        if ($vehicle->vehiclePatrols()->where('status', 'active')->exists()) {
+            throw new RuntimeException('Cannot delete a vehicle with an active trip.');
+        }
+
+        DB::transaction(function () use ($vehicle) {
+            EquipmentAsset::where('fleet_vehicle_id', $vehicle->id)->update([
+                'fleet_vehicle_id' => null,
+                'status' => AssetStatus::RETIRED,
+                'notes' => trim(($vehicle->notes ?? '').' Fleet unit removed.'),
+            ]);
+            $vehicle->delete();
+        });
+    }
+
+    public function syncEquipmentAsset(FleetVehicle $vehicle): EquipmentAsset
+    {
+        $type = $vehicle->type instanceof VehicleType ? $vehicle->type->value : (string) $vehicle->type;
+        $categoryName = config('assets.fleet_type_categories.'.$type, 'Vehicles');
+
+        $category = AssetCategory::firstOrCreate(
+            ['tenant_id' => $vehicle->tenant_id, 'name' => $categoryName],
+            ['type' => 'serialized', 'description' => $categoryName.' used on deployments and patrols', 'is_active' => true]
+        );
+
+        $tag = 'FLT-'.$vehicle->plate_number;
+        $name = $vehicle->name ?: ($vehicle->make.' '.$vehicle->model);
+        $name = trim($name) !== '' ? trim($name) : $vehicle->plate_number;
+
+        $statusEnum = $vehicle->status instanceof VehicleStatus
+            ? $vehicle->status
+            : (VehicleStatus::tryFrom((string) $vehicle->status) ?? VehicleStatus::AVAILABLE);
+
+        $status = match ($statusEnum) {
+            VehicleStatus::AVAILABLE => AssetStatus::AVAILABLE,
+            VehicleStatus::IN_USE => AssetStatus::ISSUED,
+            VehicleStatus::MAINTENANCE => AssetStatus::MAINTENANCE,
+            VehicleStatus::RETIRED => AssetStatus::RETIRED,
+        };
+
+        $existing = EquipmentAsset::query()
+            ->where('tenant_id', $vehicle->tenant_id)
+            ->where('fleet_vehicle_id', $vehicle->id)
+            ->first();
+
+        // Do not free an asset that still has an open kit issue while syncing fleet metadata.
+        if (
+            $existing
+            && $status === AssetStatus::AVAILABLE
+            && $existing->assignments()->where('status', 'issued')->whereNull('returned_at')->exists()
+        ) {
+            $status = AssetStatus::ISSUED;
+        }
+
+        return EquipmentAsset::updateOrCreate(
+            ['tenant_id' => $vehicle->tenant_id, 'fleet_vehicle_id' => $vehicle->id],
+            [
+                'asset_category_id' => $category->id,
+                'site_id' => $vehicle->site_id,
+                'asset_tag' => $tag,
+                'name' => $name,
+                'category' => $categoryName,
+                'model' => $vehicle->model,
+                'manufacturer' => $vehicle->make,
+                'serial_number' => $vehicle->plate_number,
+                'location' => $vehicle->site_id ? null : 'Fleet pool',
+                'status' => $status,
+                'condition' => 'good',
+                'notes' => $vehicle->notes,
+            ]
+        );
     }
 
     public function startTrip(array $data): VehiclePatrol
@@ -63,6 +150,9 @@ class FleetService
             'current_odometer' => $startOdo ?? $vehicle->current_odometer,
         ]);
 
+        EquipmentAsset::where('fleet_vehicle_id', $vehicle->id)
+            ->update(['status' => AssetStatus::ISSUED]);
+
         return $trip;
     }
 
@@ -91,10 +181,24 @@ class FleetService
         ]);
 
         if ($trip->vehicle) {
-            $trip->vehicle->update([
-                'status' => VehicleStatus::AVAILABLE,
-                'current_odometer' => $endOdo ?? $trip->vehicle->current_odometer,
-            ]);
+            $hasOpenKit = EquipmentAsset::query()
+                ->where('fleet_vehicle_id', $trip->vehicle->id)
+                ->whereHas('assignments', fn ($q) => $q->where('status', 'issued')->whereNull('returned_at'))
+                ->exists();
+
+            if (! $hasOpenKit) {
+                $trip->vehicle->update([
+                    'status' => VehicleStatus::AVAILABLE,
+                    'current_odometer' => $endOdo ?? $trip->vehicle->current_odometer,
+                ]);
+
+                EquipmentAsset::where('fleet_vehicle_id', $trip->vehicle->id)
+                    ->update(['status' => AssetStatus::AVAILABLE]);
+            } else {
+                $trip->vehicle->update([
+                    'current_odometer' => $endOdo ?? $trip->vehicle->current_odometer,
+                ]);
+            }
         }
 
         return $trip->fresh(['vehicle', 'assignedGuard', 'patrolSession']);

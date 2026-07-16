@@ -10,6 +10,7 @@ use App\Models\Guard;
 use App\Models\GuardAvailability;
 use App\Models\GuardCertification;
 use App\Models\GuardNote;
+use App\Models\GuardDocument;
 use App\Models\GuardReminder;
 use App\Models\GuardSiteAssignment;
 use App\Models\GuardSkill;
@@ -21,6 +22,7 @@ use App\Services\GuardIdCardPresenter;
 use App\Services\GuardOverviewService;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
+use App\Services\TenantFileStorageService;
 use App\Support\TenantContext;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
@@ -33,8 +35,18 @@ class GuardProfile extends Component
     use WithFileUploads;
 
     private const TABS = [
-        'overview', 'profile', 'availability', 'kpis', 'licenses', 'notes', 'reminders',
-        'files', 'sites', 'skills', 'disciplinary', 'department', 'settings',
+        'overview', 'profile', 'availability', 'sites', 'qualifications', 'files', 'hr',
+    ];
+
+    private const TAB_ALIASES = [
+        'department' => 'profile',
+        'settings' => 'profile',
+        'kpis' => 'overview',
+        'licenses' => 'qualifications',
+        'skills' => 'qualifications',
+        'notes' => 'hr',
+        'reminders' => 'hr',
+        'disciplinary' => 'hr',
     ];
 
     #[Locked]
@@ -79,6 +91,8 @@ class GuardProfile extends Component
 
     public ?int $editingAvailabilityId = null;
 
+    public ?int $editingTrainingId = null;
+
     public function mount(Guard $guard): void
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
@@ -90,16 +104,12 @@ class GuardProfile extends Component
         $this->loadDepartmentForm();
         $this->loadSettingsForm();
 
-        if (! in_array($this->activeTab, self::TABS, true)) {
-            $this->activeTab = 'overview';
-        }
+        $this->activeTab = $this->resolveTab($this->activeTab);
     }
 
     public function setTab(string $tab): void
     {
-        if (in_array($tab, self::TABS, true)) {
-            $this->activeTab = $tab;
-        }
+        $this->activeTab = $this->resolveTab($tab);
     }
 
     public function setIdCardPreviewSide(string $side): void
@@ -436,10 +446,50 @@ class GuardProfile extends Component
         $data['completed_on'] = $data['completed_on'] ?: null;
         $data['expires_on'] = $data['expires_on'] ?: null;
 
-        TrainingRecord::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'completed']);
-        $this->trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
+        if ($this->editingTrainingId) {
+            TrainingRecord::query()
+                ->where('guard_id', $this->guard->id)
+                ->findOrFail($this->editingTrainingId)
+                ->update($data);
+            session()->flash('status', 'Training record updated.');
+        } else {
+            TrainingRecord::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'completed']);
+            session()->flash('status', 'Training record added.');
+        }
+
+        $this->resetTrainingForm();
         $this->reloadGuard();
-        session()->flash('status', 'Training record added.');
+    }
+
+    public function editTraining(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        $record = TrainingRecord::query()->where('guard_id', $this->guard->id)->findOrFail($id);
+        $this->editingTrainingId = $record->id;
+        $this->trainingForm = [
+            'course_name' => $record->course_name,
+            'course_custom' => '',
+            'provider' => $record->provider ?? '',
+            'completed_on' => $record->completed_on?->format('Y-m-d') ?? '',
+            'expires_on' => $record->expires_on?->format('Y-m-d') ?? '',
+        ];
+    }
+
+    public function deleteTraining(int $id): void
+    {
+        $this->authorize('update', $this->guard);
+        TrainingRecord::query()->where('guard_id', $this->guard->id)->whereKey($id)->delete();
+        $this->reloadGuard();
+    }
+
+    public function deleteDocument(int $id, TenantFileStorageService $storage): void
+    {
+        $this->authorize('update', $this->guard);
+        $doc = GuardDocument::query()->where('guard_id', $this->guard->id)->findOrFail($id);
+        $storage->delete($doc->file_path);
+        $doc->delete();
+        $this->reloadGuard();
+        session()->flash('status', 'Document deleted.');
     }
 
     public function saveDisciplinary(): void
@@ -489,7 +539,7 @@ class GuardProfile extends Component
 
         if (! $checklist['ready']) {
             $missing = collect($checklist['items'])
-                ->reject(fn (array $item) => $item['passed'])
+                ->reject(fn (array $item) => $item['passed'] || ! empty($item['optional']))
                 ->pluck('label')
                 ->implode(', ');
 
@@ -564,7 +614,8 @@ class GuardProfile extends Component
         $this->reloadGuard();
         $tenantId = TenantContext::id();
         $stats = $overview->stats($this->guard, $tenantId);
-        $kpiMetrics = $overview->kpiMetrics($this->guard, $tenantId);
+        $statusMetrics = $overview->statusMetrics($this->guard);
+        $recentActivity = $overview->recentActivity($this->guard, $tenantId);
 
         $token = in_array($this->guard->verification_status, ['verified', 'suspended'], true)
             ? $this->guard->activeVerificationToken()
@@ -581,20 +632,20 @@ class GuardProfile extends Component
             ? $this->guard->documents->firstWhere('id', $this->previewDocumentId)
             : null;
 
+        $openReminders = $this->guard->reminders->where('is_completed', false)->count();
+        $hrBadge = $this->guard->notes->count() + $openReminders + $this->guard->disciplinaryRecords->count();
+        $qualBadge = $this->guard->certifications->count()
+            + $this->guard->skills->count()
+            + $this->guard->trainingRecords->count();
+
         $profileTabs = [
-            'overview' => ['label' => 'Overview', 'hint' => 'Summary and KYG', 'group' => 'Summary'],
-            'profile' => ['label' => 'Profile', 'hint' => 'Photo and personal details', 'group' => 'Summary'],
-            'department' => ['label' => 'Department', 'hint' => 'Branch and rank', 'group' => 'Summary'],
-            'settings' => ['label' => 'Settings', 'hint' => 'Guard preferences', 'group' => 'Summary'],
+            'overview' => ['label' => 'Overview', 'hint' => 'Summary and KYG', 'group' => 'Overview'],
+            'profile' => ['label' => 'Profile', 'hint' => 'Personal, department, preferences', 'group' => 'Profile'],
             'availability' => ['label' => 'Availability', 'hint' => 'Weekly schedule', 'group' => 'Work', 'badge' => $this->badge($this->guard->availabilities->count())],
-            'sites' => ['label' => 'Assign Sites', 'hint' => 'Site assignments', 'group' => 'Work', 'badge' => $this->badge($this->guard->siteAssignments->count())],
-            'kpis' => ['label' => 'KPIs', 'hint' => 'Performance metrics', 'group' => 'Work'],
-            'licenses' => ['label' => 'Licenses', 'hint' => 'License and certifications', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->certifications->count())],
-            'skills' => ['label' => 'Skill Set', 'hint' => 'Skills and competencies', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->skills->count())],
-            'files' => ['label' => 'Files', 'hint' => 'ID and clearance docs', 'group' => 'Qualifications', 'badge' => $this->badge($this->guard->documents->count())],
-            'notes' => ['label' => 'Notes', 'hint' => 'Internal notes', 'group' => 'HR', 'badge' => $this->badge($this->guard->notes->count())],
-            'disciplinary' => ['label' => 'Disciplinary', 'hint' => 'Warnings and actions', 'group' => 'HR', 'badge' => $this->badge($this->guard->disciplinaryRecords->count())],
-            'reminders' => ['label' => 'Reminders', 'hint' => 'Follow-ups', 'group' => 'HR', 'badge' => $this->badge($this->guard->reminders->where('is_completed', false)->count())],
+            'sites' => ['label' => 'Sites', 'hint' => 'Site assignments', 'group' => 'Work', 'badge' => $this->badge($this->guard->siteAssignments->count())],
+            'qualifications' => ['label' => 'Qualifications', 'hint' => 'License, certs, skills, training', 'group' => 'Records', 'badge' => $this->badge($qualBadge), 'icon' => 'compliance'],
+            'files' => ['label' => 'Files', 'hint' => 'ID and clearance docs', 'group' => 'Records', 'badge' => $this->badge($this->guard->documents->count())],
+            'hr' => ['label' => 'HR', 'hint' => 'Notes, reminders, disciplinary', 'group' => 'Records', 'badge' => $this->badge($hrBadge), 'icon' => 'workforce'],
         ];
 
         if ($checklistIncomplete > 0) {
@@ -609,7 +660,8 @@ class GuardProfile extends Component
             'checklist' => $checklist,
             'profileTabs' => $profileTabs,
             'stats' => $stats,
-            'kpiMetrics' => $kpiMetrics,
+            'statusMetrics' => $statusMetrics,
+            'recentActivity' => $recentActivity,
             'verifyUrl' => $verifyUrl,
             'qrSvg' => $qrSvg,
             'lastScannedAt' => $token?->last_scanned_at,
@@ -625,6 +677,13 @@ class GuardProfile extends Component
             'weekdays' => config('guard_profile.weekdays'),
             'previewDocument' => $previewDocument,
         ])->layout('layouts.app');
+    }
+
+    private function resolveTab(string $tab): string
+    {
+        $resolved = self::TAB_ALIASES[$tab] ?? $tab;
+
+        return in_array($resolved, self::TABS, true) ? $resolved : 'overview';
     }
 
     private function reloadGuard(): void
@@ -684,6 +743,12 @@ class GuardProfile extends Component
     {
         $this->editingAvailabilityId = null;
         $this->availabilityForm = ['weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];
+    }
+
+    private function resetTrainingForm(): void
+    {
+        $this->editingTrainingId = null;
+        $this->trainingForm = ['course_name' => '', 'course_custom' => '', 'provider' => '', 'completed_on' => '', 'expires_on' => ''];
     }
 
     private function badge(int $count): ?string

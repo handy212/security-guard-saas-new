@@ -58,6 +58,7 @@
                                     <button type="button" wire:click="toggle({{ $template->id }})" class="table-action">
                                         {{ $template->is_active ? 'Pause' : 'Activate' }}
                                     </button>
+                                    <button type="button" wire:click="delete({{ $template->id }})" wire:confirm="Delete this template?" class="table-action text-red-600">Delete</button>
                                 </div>
                             </x-table.td>
                         </tr>

@@ -7,9 +7,12 @@ use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\Guard;
 use App\Models\Site;
 use App\Models\VisitorLog;
+use App\Services\VisitorService;
+use App\Support\MutableStatus;
 use App\Support\TenantContext;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RuntimeException;
 
 class VisitorLogIndex extends Component
 {
@@ -18,6 +21,8 @@ class VisitorLogIndex extends Component
     public string $search = '';
 
     public string $statusFilter = 'all';
+
+    public ?int $editingId = null;
 
     public array $form = [
         'site_id' => '', 'visitor_name' => '', 'visitor_phone' => '', 'company' => '',
@@ -38,7 +43,7 @@ class VisitorLogIndex extends Component
         }
     }
 
-    public function checkIn(): void
+    public function checkIn(VisitorService $service): void
     {
         abort_unless(auth()->user()->can('visitors.manage'), 403);
         $data = $this->validate([
@@ -57,26 +62,76 @@ class VisitorLogIndex extends Component
         $data['id_type'] = $data['id_type'] ?: null;
         $data['id_number'] = $data['id_number'] ?: null;
 
-        VisitorLog::create($data + [
-            'tenant_id' => TenantContext::id(),
-            'checked_in_at' => now(),
-            'status' => 'checked_in',
-        ]);
+        try {
+            if ($this->editingId) {
+                $visitor = VisitorLog::findOrFail($this->editingId);
+                $this->authorize('update', $visitor);
+                $service->update($visitor, $data);
+                session()->flash('status', 'Visitor updated.');
+            } else {
+                $service->checkIn($data + ['status' => 'checked_in']);
+                session()->flash('status', 'Visitor checked in.');
+            }
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
 
+            return;
+        }
+
+        $this->editingId = null;
         $this->form = $this->blankForm();
         $this->closeDrawer();
     }
 
     public function openCheckIn(): void
     {
+        $this->editingId = null;
         $this->form = $this->blankForm();
         $this->openForm();
     }
 
-    public function checkOut(VisitorLog $visitor): void
+    public function edit(int $id): void
+    {
+        $visitor = VisitorLog::findOrFail($id);
+        $this->authorize('update', $visitor);
+        abort_unless(MutableStatus::isMutable($visitor), 422);
+
+        $this->editingId = $visitor->id;
+        $this->form = [
+            'site_id' => (string) $visitor->site_id,
+            'visitor_name' => $visitor->visitor_name,
+            'visitor_phone' => $visitor->visitor_phone ?? '',
+            'company' => $visitor->company ?? '',
+            'purpose' => $visitor->purpose ?? '',
+            'vehicle_plate' => $visitor->vehicle_plate ?? '',
+            'id_type' => $visitor->id_type ?? '',
+            'id_number' => $visitor->id_number ?? '',
+            'guard_id' => (string) ($visitor->guard_id ?? ''),
+        ];
+        $this->openForm();
+    }
+
+    public function checkOut(VisitorLog $visitor, VisitorService $service): void
     {
         abort_unless(auth()->user()->can('visitors.manage'), 403);
-        $visitor->update(['checked_out_at' => now(), 'status' => 'checked_out']);
+        $service->checkOut($visitor);
+        session()->flash('status', 'Visitor checked out.');
+    }
+
+    public function delete(int $id, VisitorService $service): void
+    {
+        $visitor = VisitorLog::findOrFail($id);
+        $this->authorize('delete', $visitor);
+
+        try {
+            $service->delete($visitor);
+        } catch (RuntimeException $e) {
+            session()->flash('status', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', 'Visitor log deleted.');
     }
 
     public function render()

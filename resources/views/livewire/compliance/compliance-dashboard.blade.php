@@ -1,9 +1,19 @@
 <div>
-    <x-page-shell title="Compliance Overview" description="Expiring credentials, site documents, training, and SLA coverage across your organization.">
+    <x-page-shell
+        title="Compliance Overview"
+        description="Expiring credentials, site documents, training, and SLA coverage across your organization."
+        :breadcrumbs="[
+            ['label' => 'Back Office', 'href' => route('billing.hub')],
+            ['label' => 'Compliance'],
+        ]"
+    >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('compliance.policies')">Policies</x-button>
             <x-button variant="secondary" :href="route('analytics.dashboard')">Analytics</x-button>
         </x-slot:actions>
+
+        <x-sub-sidebar-layout>
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
             <x-stat-card compact label="Expiring certs" :value="$summary['expiring_certs']" icon="guards" :tone="$summary['expiring_certs'] ? 'warning' : 'success'" />
@@ -40,7 +50,7 @@
                             <tr class="table-row-hover" wire:key="cert-{{ $item->id }}">
                                 <x-table.td>
                                     @if ($item->assignedGuard)
-                                        <a href="{{ route('guards.show', $item->assignedGuard) }}?tab=licenses" class="font-medium text-accent-700 hover:underline">{{ $item->assignedGuard->full_name }}</a>
+                                        <a href="{{ route('guards.show', $item->assignedGuard) }}?tab=qualifications" class="font-medium text-accent-700 hover:underline">{{ $item->assignedGuard->full_name }}</a>
                                     @else
                                         —
                                     @endif
@@ -49,7 +59,13 @@
                                 <x-table.td mono>{{ $item->expires_at?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring certifications" description="Nothing due in the next {{ $windowDays }} days." /></x-table.empty>
+                            <x-table.empty colspan="3">
+                                <x-empty-state compact title="No expiring certifications" description="Nothing due in the next {{ $windowDays }} days.">
+                                    <x-slot:actions>
+                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
+                                    </x-slot:actions>
+                                </x-empty-state>
+                            </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
@@ -78,7 +94,13 @@
                                 <x-table.td mono>{{ $doc->expires_at?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring documents" /></x-table.empty>
+                            <x-table.empty colspan="3">
+                                <x-empty-state compact title="No expiring documents" description="Guard files with expiry dates will appear here.">
+                                    <x-slot:actions>
+                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
+                                    </x-slot:actions>
+                                </x-empty-state>
+                            </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
@@ -109,7 +131,13 @@
                                 <x-table.td mono>{{ $doc->expires_on?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring site documents" /></x-table.empty>
+                            <x-table.empty colspan="3">
+                                <x-empty-state compact title="No expiring site documents" description="Upload permits and SOPs on each site profile.">
+                                    <x-slot:actions>
+                                        <x-button size="sm" :href="route('sites.index')">Manage sites</x-button>
+                                    </x-slot:actions>
+                                </x-empty-state>
+                            </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
@@ -129,7 +157,7 @@
                             <tr class="table-row-hover" wire:key="training-{{ $row->id }}">
                                 <x-table.td>
                                     @if ($row->assignedGuard)
-                                        <a href="{{ route('guards.show', $row->assignedGuard) }}?tab=licenses" class="font-medium text-accent-700 hover:underline">{{ $row->assignedGuard->full_name }}</a>
+                                        <a href="{{ route('guards.show', $row->assignedGuard) }}?tab=qualifications" class="font-medium text-accent-700 hover:underline">{{ $row->assignedGuard->full_name }}</a>
                                     @else
                                         —
                                     @endif
@@ -138,11 +166,18 @@
                                 <x-table.td mono>{{ $row->expires_on?->format('M j, Y') }}</x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3"><x-empty-state compact title="No expiring training" /></x-table.empty>
+                            <x-table.empty colspan="3">
+                                <x-empty-state compact title="No expiring training" description="Record guard training and renewal dates on guard profiles.">
+                                    <x-slot:actions>
+                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
+                                    </x-slot:actions>
+                                </x-empty-state>
+                            </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
             </x-section-card>
         </div>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

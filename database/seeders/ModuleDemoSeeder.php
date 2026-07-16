@@ -780,6 +780,7 @@ class ModuleDemoSeeder extends Seeder
                     'status' => 'issued',
                 ]
             );
+            $radioAsset->update(['status' => \App\Enums\AssetStatus::ISSUED]);
         }
 
         $reportTemplate = ReportTemplate::updateOrCreate(

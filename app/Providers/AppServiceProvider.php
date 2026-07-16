@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
             EnsurePlanFeature::class,
         ]);
 
-        View::composer(['layouts.app', 'layouts.portal'], function ($view): void {
+        View::composer(['layouts.app', 'layouts.portal', 'layouts.guard', 'auth.login'], function ($view): void {
             $branding = app(TenantBrandingService::class)->forTenant(TenantContext::current());
             $view->with('tenantBranding', $branding);
         });

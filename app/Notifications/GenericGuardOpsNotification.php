@@ -52,7 +52,7 @@ class GenericGuardOpsNotification extends Notification implements ShouldQueue
             ->line($this->body);
 
         if ($this->actionUrl) {
-            $mail->action('View in GuardOps', url($this->actionUrl));
+            $mail->action('View in GuardCore Pro', url($this->actionUrl));
         }
 
         return $mail;

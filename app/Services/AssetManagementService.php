@@ -4,30 +4,188 @@ namespace App\Services;
 
 use App\Enums\AssetStatus;
 use App\Enums\PurchaseOrderStatus;
+use App\Enums\VehicleStatus;
 use App\Models\AssetCategory;
 use App\Models\AssetPurchaseOrder;
 use App\Models\AssetPurchaseOrderItem;
 use App\Models\AssetVendor;
 use App\Models\EquipmentAsset;
 use App\Models\EquipmentAssignment;
+use App\Models\FleetVehicle;
+use App\Models\ShiftAssignment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class AssetManagementService
 {
     public function issue(EquipmentAsset $asset, array $data): EquipmentAssignment
     {
-        $asset->update(['status' => AssetStatus::ISSUED]);
+        if ($asset->status !== AssetStatus::AVAILABLE) {
+            throw new RuntimeException($asset->displayLabel().' is not available to issue.');
+        }
 
-        return EquipmentAssignment::create([
-            'tenant_id' => $asset->tenant_id,
-            'equipment_asset_id' => $asset->id,
-            'guard_id' => $data['guard_id'] ?? null,
-            'site_id' => $data['site_id'] ?? null,
-            'issue_notes' => $data['issue_notes'] ?? null,
-            'issued_at' => now(),
-            'status' => 'issued',
-        ]);
+        if ($asset->assignments()->where('status', 'issued')->whereNull('returned_at')->exists()) {
+            throw new RuntimeException($asset->displayLabel().' already has an open issue record.');
+        }
+
+        return DB::transaction(function () use ($asset, $data) {
+            $asset->update(['status' => AssetStatus::ISSUED]);
+
+            if ($asset->fleet_vehicle_id) {
+                FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                    ->where('status', VehicleStatus::AVAILABLE)
+                    ->update(['status' => VehicleStatus::IN_USE]);
+            }
+
+            return EquipmentAssignment::create([
+                'tenant_id' => $asset->tenant_id,
+                'equipment_asset_id' => $asset->id,
+                'guard_id' => $data['guard_id'] ?? null,
+                'site_id' => $data['site_id'] ?? null,
+                'shift_assignment_id' => $data['shift_assignment_id'] ?? null,
+                'issue_notes' => $data['issue_notes'] ?? null,
+                'issued_at' => now(),
+                'status' => 'issued',
+            ]);
+        });
+    }
+
+    /** @param  list<int>  $assetIds */
+    public function issueKitForAssignment(ShiftAssignment $assignment, array $assetIds, ?string $notes = null): Collection
+    {
+        $assetIds = array_values(array_unique(array_filter(array_map('intval', $assetIds))));
+        if ($assetIds === []) {
+            return collect();
+        }
+
+        return DB::transaction(function () use ($assignment, $assetIds, $notes) {
+            $issued = collect();
+
+            foreach ($assetIds as $assetId) {
+                $asset = EquipmentAsset::where('tenant_id', $assignment->tenant_id)->findOrFail($assetId);
+                $issued->push($this->issue($asset, [
+                    'guard_id' => $assignment->guard_id,
+                    'site_id' => $assignment->shift?->site_id,
+                    'shift_assignment_id' => $assignment->id,
+                    'issue_notes' => $notes ?? 'Issued with deployment',
+                ]));
+            }
+
+            return $issued;
+        });
+    }
+
+    public function returnOpenForAssignment(ShiftAssignment $assignment, ?string $notes = null): int
+    {
+        $open = EquipmentAssignment::query()
+            ->where('shift_assignment_id', $assignment->id)
+            ->where('status', 'issued')
+            ->whereNull('returned_at')
+            ->get();
+
+        foreach ($open as $row) {
+            $this->returnAsset($row, $notes ?? 'Returned with unassign');
+        }
+
+        return $open->count();
+    }
+
+    public function availableDeployKit(int $tenantId, ?int $siteId = null): Collection
+    {
+        $this->ensureDeployKitCatalog($tenantId);
+
+        $categories = config('assets.deploy_kit_categories', []);
+
+        return EquipmentAsset::query()
+            ->with('assetCategory')
+            ->where('tenant_id', $tenantId)
+            ->where('status', AssetStatus::AVAILABLE)
+            ->whereDoesntHave('assignments', fn ($q) => $q->where('status', 'issued')->whereNull('returned_at'))
+            ->where(function ($q) use ($categories) {
+                $q->whereIn('category', $categories)
+                    ->orWhereHas('assetCategory', fn ($c) => $c->whereIn('name', $categories));
+            })
+            ->when($siteId, function ($q) use ($siteId) {
+                $q->where(function ($inner) use ($siteId) {
+                    $inner->whereNull('site_id')->orWhere('site_id', $siteId);
+                });
+            })
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Ensure Vehicles / Motors / Radios / Bodycams categories (and starter units) exist
+     * so Deploy kit and Assets always have somewhere to record field gear.
+     *
+     * @return Collection<int, AssetCategory>
+     */
+    public function ensureDeployKitCatalog(int $tenantId, bool $withSamples = true): Collection
+    {
+        $defs = [
+            'Vehicles' => ['type' => 'serialized', 'description' => 'Patrol cars and vans for deploy / patrol'],
+            'Motors' => ['type' => 'serialized', 'description' => 'Motorcycles and scooters for response'],
+            'Radios' => ['type' => 'serialized', 'description' => 'Two-way radios and accessories'],
+            'Bodycams' => ['type' => 'serialized', 'description' => 'Body-worn cameras'],
+        ];
+
+        $categories = collect();
+        foreach ($defs as $name => $meta) {
+            $categories[$name] = AssetCategory::firstOrCreate(
+                ['tenant_id' => $tenantId, 'name' => $name],
+                ['type' => $meta['type'], 'description' => $meta['description'], 'is_active' => true]
+            );
+        }
+
+        if ($withSamples) {
+            // Radios / bodycams live only in Assets. Vehicles / motors are recorded in Fleet
+            // and auto-synced into Assets — do not create parallel sample plates here.
+            $samples = [
+                ['tag' => 'CAM-001', 'category' => 'Bodycams', 'name' => 'Axon Body 3', 'serial' => 'AXN-B3-001', 'make' => 'Axon', 'model' => 'Body 3'],
+                ['tag' => 'RAD-001', 'category' => 'Radios', 'name' => 'Motorola DP4400', 'serial' => 'MOT-4400-001', 'make' => 'Motorola', 'model' => 'DP4400'],
+            ];
+
+            foreach ($samples as $sample) {
+                $category = $categories[$sample['category']];
+                EquipmentAsset::firstOrCreate(
+                    ['tenant_id' => $tenantId, 'asset_tag' => $sample['tag']],
+                    [
+                        'asset_category_id' => $category->id,
+                        'name' => $sample['name'],
+                        'category' => $sample['category'],
+                        'serial_number' => $sample['serial'],
+                        'manufacturer' => $sample['make'],
+                        'model' => $sample['model'],
+                        'status' => AssetStatus::AVAILABLE,
+                        'condition' => 'good',
+                        'quantity_on_hand' => 1,
+                    ]
+                );
+            }
+        }
+
+        return $categories->values();
+    }
+
+    public function deployKitSummary(int $tenantId): Collection
+    {
+        $this->ensureDeployKitCatalog($tenantId);
+
+        $names = config('assets.deploy_kit_categories', []);
+
+        return AssetCategory::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('name', $names)
+            ->withCount([
+                'assets',
+                'assets as available_count' => fn ($q) => $q->where('status', AssetStatus::AVAILABLE),
+                'assets as issued_count' => fn ($q) => $q->where('status', AssetStatus::ISSUED),
+            ])
+            ->get()
+            ->sortBy(fn (AssetCategory $c) => array_search($c->name, $names, true))
+            ->values();
     }
 
     public function returnAsset(EquipmentAssignment $assignment, ?string $notes = null): EquipmentAssignment
@@ -38,7 +196,26 @@ class AssetManagementService
             'status' => 'returned',
         ]);
 
-        $assignment->asset?->update(['status' => AssetStatus::AVAILABLE]);
+        $asset = $assignment->asset;
+        if (! $asset) {
+            return $assignment;
+        }
+
+        $hasActiveTrip = $asset->fleet_vehicle_id
+            && FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                ->whereHas('vehiclePatrols', fn ($q) => $q->where('status', 'active'))
+                ->exists();
+
+        // Keep asset/fleet marked in use while a GPS trip is still active.
+        if (! $hasActiveTrip) {
+            $asset->update(['status' => AssetStatus::AVAILABLE]);
+
+            if ($asset->fleet_vehicle_id) {
+                FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                    ->where('status', VehicleStatus::IN_USE)
+                    ->update(['status' => VehicleStatus::AVAILABLE]);
+            }
+        }
 
         return $assignment;
     }

@@ -175,17 +175,14 @@ class GuardVerificationTest extends TestCase
             'file_path' => 'tenants/1/guards/1/police-clearance.pdf',
             'status' => 'valid',
         ]);
-        $guard->update(['license_number' => 'LIC-1', 'license_expires_at' => now()->addYear()]);
-        GuardCertification::create([
-            'tenant_id' => $tenant->id,
-            'guard_id' => $guard->id,
-            'name' => 'Basic Security',
-            'expires_at' => now()->addYear(),
-            'status' => 'valid',
-        ]);
 
         $guard->refresh();
-        $this->assertTrue($service->vettingChecklist($guard)['ready']);
+        $checklist = $service->vettingChecklist($guard);
+        $this->assertTrue($checklist['ready']);
+
+        $optionalLabels = collect($checklist['items'])->where('optional', true)->pluck('label');
+        $this->assertTrue($optionalLabels->contains('License valid'));
+        $this->assertTrue($optionalLabels->contains('At least one current certification'));
 
         $service->markVerified($guard, $admin->id);
 

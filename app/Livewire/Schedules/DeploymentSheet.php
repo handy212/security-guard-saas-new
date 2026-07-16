@@ -123,11 +123,8 @@ class DeploymentSheet extends Component
             ->where('tenant_id', TenantContext::id())
             ->findOrFail($this->reassignAssignmentId);
 
-        $shift = $assignment->shift;
-        $service->unassignGuard($assignment);
-
         try {
-            $service->assignGuard($shift, Guard::findOrFail((int) $this->reassignGuardId));
+            $service->reassignGuard($assignment, Guard::findOrFail((int) $this->reassignGuardId));
         } catch (RuntimeException $e) {
             $this->addError('reassignGuardId', $e->getMessage());
 
@@ -143,7 +140,15 @@ class DeploymentSheet extends Component
     {
         $tenantId = TenantContext::id();
 
-        $assignments = ShiftAssignment::with(['shift.site', 'shift.sitePost', 'assignedGuard', 'confirmations'])
+        $assignments = ShiftAssignment::with([
+            'shift.site',
+            'shift.sitePost',
+            'shift.clientAccount',
+            'assignedGuard',
+            'confirmations',
+            'equipmentAssignments' => fn ($q) => $q->where('status', 'issued')->whereNull('returned_at'),
+            'equipmentAssignments.asset',
+        ])
             ->where('tenant_id', $tenantId)
             ->whereNotIn('status', ['cancelled', 'completed'])
             ->whereHas('shift', function ($q) {
@@ -192,6 +197,7 @@ class DeploymentSheet extends Component
                 'pending' => $pending,
                 'confirmed' => $confirmed,
                 'gaps' => $understaffed->count(),
+                'kit' => $assignments->sum(fn ($a) => $a->equipmentAssignments->count()),
             ],
         ])->layout('layouts.app');
     }

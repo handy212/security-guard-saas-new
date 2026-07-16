@@ -6,7 +6,7 @@
     <title>ID Card Preview — {{ $card['name'] }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -14,9 +14,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f4f4f5;
+            background: #fafafa;
             padding: 24px;
-            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
         }
 
         .preview-toolbar {

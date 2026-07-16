@@ -70,6 +70,17 @@ class NotificationTemplateIndex extends Component
         $template->update(['is_active' => ! $template->is_active]);
     }
 
+    public function delete(int $id): void
+    {
+        abort_unless(auth()->user()->can('settings.manage'), 403);
+        $template = NotificationTemplate::where('tenant_id', TenantContext::id())->findOrFail($id);
+        $template->delete();
+        if ($this->editingId === $id) {
+            $this->resetForm();
+        }
+        session()->flash('status', 'Template deleted.');
+    }
+
     public function cancelEdit(): void
     {
         $this->resetForm();

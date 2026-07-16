@@ -10,66 +10,89 @@ return [
         ['href' => '/assets/purchase-orders', 'label' => 'Purchase Orders', 'permission' => 'equipment.manage'],
     ],
 
+    'patrols' => [
+        ['href' => '/patrols', 'label' => 'Patrol board', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+        ['href' => '/patrols/fleet', 'label' => 'Fleet', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+        ['href' => '/patrols/vehicles', 'label' => 'Vehicle patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+        ['href' => '/patrols/playback', 'label' => 'Patrol playback', 'permission' => 'patrols.manage', 'feature' => 'gps'],
+        ['href' => '/passdown', 'label' => 'Passdown', 'permission' => 'patrols.manage', 'feature' => 'passdown'],
+    ],
+
+    'reports' => [
+        ['href' => '/reports', 'label' => 'Overview', 'permission' => 'reports.approve', 'feature' => 'reports'],
+        ['href' => '/reports/daily', 'label' => 'Daily reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
+        ['href' => '/reports/templates', 'label' => 'Custom templates', 'permission' => 'reports.approve', 'feature' => 'custom_reports'],
+    ],
+
+    /*
+     | Primary scheduler hub (~6). Secondary tools live under groups.schedules_more
+     | and remain routed, but stay out of the flyout / schedules sub-nav.
+     */
     'schedules' => [
-        // Plan
-        ['href' => '/schedules/calendar', 'label' => 'Calendar', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/schedules/templates', 'label' => 'Templates', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        // Day
-        ['href' => '/schedules', 'label' => 'Day roster', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/schedules/deploy', 'label' => 'Deploy wizard', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/calendar', 'label' => 'Calendar', 'group' => 'Planning', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules', 'label' => 'Day roster', 'group' => 'Planning', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/templates', 'label' => 'Templates', 'group' => 'Planning', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/deploy', 'label' => 'Deploy', 'group' => 'Planning', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/schedules/attendance', 'label' => 'Attendance', 'group' => 'Field day', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
+        ['href' => '/schedules/reconciliation', 'label' => 'Reconciliation', 'group' => 'Field day', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
+    ],
+
+    'schedules_more' => [
+        ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment sheet', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ['href' => '/schedules/shift-status', 'label' => 'Confirmations', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        // Time
-        ['href' => '/schedules/attendance', 'label' => 'Attendance', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
-        ['href' => '/attendance/reconciliation', 'label' => 'Reconciliation', 'permission' => 'attendance.manage', 'feature' => 'attendance'],
-        // Marketplace
         ['href' => '/schedules/open-shifts', 'label' => 'Open shifts', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
         ['href' => '/schedules/shift-exchange', 'label' => 'Shift exchange', 'permission' => 'schedules.manage', 'feature' => 'marketplace'],
-        // Leave
         ['href' => '/schedules/time-off', 'label' => 'Time off', 'permission' => 'schedules.manage', 'feature' => 'workforce'],
     ],
 
-    'pinned' => [
-        ['href' => '/dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'permission' => 'dashboard.view'],
-        ['href' => '/guard', 'label' => 'Field app', 'icon' => 'mobile', 'permission' => 'mobile.use', 'feature' => 'guards', 'highlight' => true],
-        ['href' => '/dispatch', 'label' => 'Dispatch', 'icon' => 'dispatch', 'permission' => 'dispatch.manage', 'feature' => 'dispatch'],
-        ['href' => '/schedules', 'label' => 'Scheduler', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-        ['href' => '/incidents', 'label' => 'Incidents', 'icon' => 'incidents', 'permission' => 'incidents.manage', 'feature' => 'incidents'],
-        ['href' => '/tracking', 'label' => 'Live Tracker', 'icon' => 'gps', 'permission' => 'dispatch.manage', 'feature' => 'gps'],
-        ['href' => '/messenger', 'label' => 'Messenger', 'icon' => 'messenger', 'permission' => 'dispatch.manage', 'feature' => 'messenger'],
-        ['href' => '/assets', 'label' => 'Assets', 'icon' => 'equipment', 'permission' => 'equipment.manage', 'feature' => 'equipment'],
+    'billing' => [
+        ['href' => '/billing', 'label' => 'Overview'],
+        ['href' => '/billing/invoices', 'label' => 'Invoices', 'permission' => 'billing.manage', 'feature' => 'billing'],
+        ['href' => '/billing/estimates', 'label' => 'Estimates', 'permission' => 'billing.manage', 'feature' => 'estimates'],
+        ['href' => '/billing/payments', 'label' => 'Payments', 'permission' => 'billing.manage', 'feature' => 'billing'],
+        ['href' => '/billing/expenses', 'label' => 'Expenses', 'permission' => 'billing.manage', 'feature' => 'expenses'],
+        ['href' => '/billing/payroll', 'label' => 'Payroll', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
+        ['href' => '/compliance', 'label' => 'Compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+        ['href' => '/compliance/policies', 'label' => 'Policies', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+        ['href' => '/analytics', 'label' => 'Analytics', 'permission' => 'analytics.view', 'feature' => 'analytics'],
     ],
 
+    /*
+     | Slim ops spine (~9). Hubs and secondary tools live in groups.
+     */
+    'pinned' => [
+        ['href' => '/dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'permission' => 'dashboard.view'],
+        ['href' => '/clients', 'label' => 'Clients', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
+        ['href' => '/sites', 'label' => 'Sites', 'icon' => 'sites', 'permission' => 'sites.manage', 'feature' => 'clients'],
+        ['href' => '/guards', 'label' => 'Guards', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
+        ['href' => '/schedules', 'label' => 'Scheduler', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+        ['href' => '/dispatch', 'label' => 'Dispatch', 'icon' => 'dispatch', 'permission' => 'dispatch.manage', 'feature' => 'dispatch'],
+        ['href' => '/incidents', 'label' => 'Incidents', 'icon' => 'incidents', 'permission' => 'incidents.manage', 'feature' => 'incidents'],
+        ['href' => '/patrols', 'label' => 'Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
+        ['href' => '/billing', 'label' => 'Back Office', 'icon' => 'billing', 'hub' => 'billing'],
+        ['href' => '/guard', 'label' => 'Field app', 'icon' => 'mobile', 'permission' => 'mobile.use', 'feature' => 'guards', 'highlight' => true],
+    ],
+
+    /*
+     | Secondary accordion (~3 groups). Schedule extras live under Scheduler flyout
+     | via schedules_more — do not duplicate them here.
+     */
     'groups' => [
-        'Patrols & Reports' => [
-            ['href' => '/patrols', 'label' => 'Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
-            ['href' => '/patrols/fleet', 'label' => 'Fleet', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
-            ['href' => '/patrols/vehicles', 'label' => 'Vehicle Patrols', 'icon' => 'patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
-            ['href' => '/passdown', 'label' => 'Passdown', 'icon' => 'reports', 'permission' => 'patrols.manage', 'feature' => 'passdown'],
-            ['href' => '/patrols/playback', 'label' => 'Patrol Playback', 'icon' => 'gps', 'permission' => 'patrols.manage', 'feature' => 'gps'],
-            ['href' => '/reports/daily', 'label' => 'Daily Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
-            ['href' => '/reports/templates', 'label' => 'Custom Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'custom_reports'],
-        ],
-        'Guardians' => [
-            ['href' => '/guards', 'label' => 'Guards', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
+        'Workforce' => [
             ['href' => '/guards/know-your-guard', 'label' => 'Know Your Guard', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/guards/applications', 'label' => 'Applications', 'icon' => 'workforce', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/visitors', 'label' => 'Visitors', 'icon' => 'visitors', 'permission' => 'visitors.manage', 'feature' => 'visitors'],
-        ],
-        'Clients' => [
-            ['href' => '/clients', 'label' => 'Clients', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
-            ['href' => '/sites', 'label' => 'Sites', 'icon' => 'sites', 'permission' => 'sites.manage', 'feature' => 'clients'],
             ['href' => '/clients/complaints', 'label' => 'Complaints', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
         ],
-        'Finance' => [
-            ['href' => '/billing/invoices', 'label' => 'Invoices', 'icon' => 'billing', 'permission' => 'billing.manage', 'feature' => 'billing'],
-            ['href' => '/billing/estimates', 'label' => 'Estimates', 'icon' => 'billing', 'permission' => 'billing.manage', 'feature' => 'estimates'],
-            ['href' => '/billing/payroll', 'label' => 'Payroll', 'icon' => 'billing', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
+        'Live ops' => [
+            ['href' => '/tracking', 'label' => 'Live Tracker', 'icon' => 'gps', 'permission' => 'dispatch.manage', 'feature' => 'gps'],
+            ['href' => '/messenger', 'label' => 'Messenger', 'icon' => 'messenger', 'permission' => 'dispatch.manage', 'feature' => 'messenger'],
+            ['href' => '/schedules/shift-status', 'label' => 'Confirmations', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
+            ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment sheet', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ],
-        'Compliance & Insights' => [
-            ['href' => '/compliance', 'label' => 'Overview', 'icon' => 'compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
-            ['href' => '/compliance/policies', 'label' => 'Policies', 'icon' => 'compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
-            ['href' => '/analytics', 'label' => 'Analytics', 'icon' => 'analytics', 'permission' => 'analytics.view', 'feature' => 'analytics'],
+        'Libraries' => [
+            ['href' => '/reports', 'label' => 'Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
+            ['href' => '/assets', 'label' => 'Assets', 'icon' => 'equipment', 'permission' => 'equipment.manage', 'feature' => 'equipment'],
         ],
     ],
 
@@ -87,8 +110,9 @@ return [
         ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
         ['href' => '/settings/branches', 'label' => 'Branches', 'permission' => 'settings.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
-        ['href' => '/settings/know-your-guard', 'label' => 'Know Your Guard', 'permission' => 'settings.manage'],
+        ['href' => '/settings/know-your-guard', 'label' => 'KYG public page', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],
+        ['href' => '/settings/staff', 'label' => 'Team members', 'permission' => 'settings.manage'],
         ['href' => '/settings/audit-log', 'label' => 'Audit trail', 'permission' => 'audit.view'],
         ['href' => '/settings/team', 'label' => 'Team passwords', 'permission' => 'settings.manage'],
         ['href' => '/settings/two-factor', 'label' => 'Two-Factor Auth', 'permission' => null],

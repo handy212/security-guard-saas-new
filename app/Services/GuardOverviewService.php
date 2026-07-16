@@ -75,31 +75,25 @@ class GuardOverviewService
     /**
      * @return array<int, array{label: string, value: string|int|float, tone?: string}>
      */
-    public function kpiMetrics(Guard $guard, int $tenantId): array
+    public function statusMetrics(Guard $guard): array
     {
-        $stats = $this->stats($guard, $tenantId);
-
-        $licenseStatus = '—';
-        $licenseTone = 'default';
+        $licenseStatus = 'Not on file';
+        $licenseTone = 'warning';
         if ($guard->license_number) {
             if ($guard->license_expires_at === null) {
-                $licenseStatus = 'Valid (no expiry)';
+                $licenseStatus = 'Valid';
                 $licenseTone = 'success';
             } elseif ($guard->license_expires_at->isFuture()) {
-                $licenseStatus = 'Valid until '.$guard->license_expires_at->format('M j, Y');
+                $licenseStatus = 'Until '.$guard->license_expires_at->format('M j');
                 $licenseTone = $guard->license_expires_at->diffInDays(now()) <= 30 ? 'warning' : 'success';
             } else {
                 $licenseStatus = 'Expired';
                 $licenseTone = 'warning';
             }
-        } else {
-            $licenseStatus = 'Not on file';
-            $licenseTone = 'warning';
         }
 
-        $certsExpiring = $guard->certifications()
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', now()->addDays(30))
+        $certsExpiring = $guard->certifications
+            ->filter(fn ($c) => $c->expires_at && $c->expires_at->lte(now()->addDays(30)))
             ->count();
 
         $verificationTone = match ($guard->verification_status) {
@@ -109,15 +103,61 @@ class GuardOverviewService
         };
 
         return [
-            ['label' => 'KYG status', 'value' => ucfirst(str_replace('_', ' ', $guard->verification_status)), 'tone' => $verificationTone],
+            ['label' => 'KYG', 'value' => ucfirst(str_replace('_', ' ', (string) $guard->verification_status)), 'tone' => $verificationTone],
             ['label' => 'License', 'value' => $licenseStatus, 'tone' => $licenseTone],
-            ['label' => 'Certs expiring (30d)', 'value' => $certsExpiring, 'tone' => $certsExpiring > 0 ? 'warning' : 'default'],
+            ['label' => 'Certs (30d)', 'value' => $certsExpiring, 'tone' => $certsExpiring > 0 ? 'warning' : 'default'],
+            ['label' => 'Skills', 'value' => $guard->skills->count()],
+        ];
+    }
+
+    /**
+     * @return array{shifts: \Illuminate\Support\Collection, incidents: \Illuminate\Support\Collection}
+     */
+    public function recentActivity(Guard $guard, int $tenantId): array
+    {
+        $shifts = ShiftAssignment::query()
+            ->with(['shift.site'])
+            ->where('tenant_id', $tenantId)
+            ->where('guard_id', $guard->id)
+            ->where('status', '!=', ShiftAssignmentStatus::CANCELLED->value)
+            ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now()->subDays(14)))
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        $assignmentIds = ShiftAssignment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('guard_id', $guard->id)
+            ->pluck('id');
+
+        $incidents = Incident::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('shift_assignment_id', $assignmentIds)
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return [
+            'shifts' => $shifts,
+            'incidents' => $incidents,
+        ];
+    }
+
+    /**
+     * @return array<int, array{label: string, value: string|int|float, tone?: string}>
+     * @deprecated Prefer statusMetrics() + overview stats
+     */
+    public function kpiMetrics(Guard $guard, int $tenantId): array
+    {
+        $stats = $this->stats($guard, $tenantId);
+        $status = $this->statusMetrics($guard);
+
+        return array_merge($status, [
             ['label' => 'Shifts (7d)', 'value' => $stats['shifts_completed'].' / '.$stats['shifts_scheduled']],
             ['label' => 'Hours worked (7d)', 'value' => $stats['hours_worked']],
             ['label' => 'Patrols completed (7d)', 'value' => $stats['patrols_completed']],
             ['label' => 'Incidents reported (7d)', 'value' => $stats['incidents_reported'], 'tone' => $stats['incidents_reported'] > 0 ? 'warning' : 'default'],
             ['label' => 'Assigned sites', 'value' => $stats['sites_assigned']],
-            ['label' => 'Skills', 'value' => $guard->skills()->count()],
-        ];
+        ]);
     }
 }

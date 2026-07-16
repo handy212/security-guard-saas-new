@@ -6,10 +6,11 @@
         ?? $attributes->get('wire:model.blur')
         ?? $attributes->get('wire:model.defer');
     $resolvedError = $error ?? ($errorKey ? $errors->first($errorKey) : null);
+    $inputClass = 'form-input'.($resolvedError ? ' form-input-error' : '');
 @endphp
 
 <x-form-field :label="$label" :error="$resolvedError" :hint="$hint" {{ $attributes->only('class') }}>
-    <select {{ $attributes->merge(['class' => 'form-input'])->except(['label', 'error', 'hint']) }}>
+    <select {{ $attributes->merge(['class' => $inputClass])->except(['label', 'error', 'hint']) }}>
         {{ $slot }}
     </select>
 </x-form-field>

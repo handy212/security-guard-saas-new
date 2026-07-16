@@ -135,10 +135,12 @@ class FleetAndDeployFlowTest extends TestCase
             ->set('guard_id', (string) $guard->id)
             ->call('nextStep')
             ->assertSet('step', 4)
+            ->call('nextStep')
+            ->assertSet('step', 5)
             ->set('confirm_now', true)
             ->call('deploy')
             ->assertHasNoErrors()
-            ->assertSet('step', 5);
+            ->assertSet('step', 6);
 
         $this->assertDatabaseHas('shift_assignments', [
             'guard_id' => $guard->id,
@@ -173,9 +175,9 @@ class FleetAndDeployFlowTest extends TestCase
             ->set('ends_at', $ends->format('Y-m-d\TH:i'))
             ->set('guard_id', (string) $guard->id)
             ->set('confirm_now', false)
-            ->set('step', 4)
+            ->set('step', 5)
             ->call('deploy')
-            ->assertSet('step', 5);
+            ->assertSet('step', 6);
 
         $assignment = ShiftAssignment::where('guard_id', $guard->id)->latest('id')->firstOrFail();
         $this->assertSame('assigned', $assignment->status->value);
@@ -186,5 +188,78 @@ class FleetAndDeployFlowTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('confirmed', $assignment->fresh()->status->value);
+    }
+
+    public function test_deploy_wizard_can_issue_kit_assets(): void
+    {
+        $tenantId = $this->admin->tenant_id;
+        $site = Site::where('tenant_id', $tenantId)->firstOrFail();
+        $guard = Guard::create([
+            'tenant_id' => $tenantId,
+            'status' => 'active',
+            'verification_status' => 'verified',
+            'first_name' => 'Kit',
+            'last_name' => 'Officer',
+            'employee_number' => 'G-KIT-1',
+        ]);
+
+        $radio = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
+        $bodycam = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
+
+        // Demo seed may have already issued RAD-001 — ensure kit items are available.
+        \App\Models\EquipmentAssignment::where('equipment_asset_id', $radio->id)->where('status', 'issued')->update([
+            'status' => 'returned',
+            'returned_at' => now(),
+        ]);
+        $radio->update(['status' => 'available']);
+        $bodycam->update(['status' => 'available']);
+
+        $starts = now()->addDays(4)->setTime(8, 0);
+        $ends = now()->addDays(4)->setTime(16, 0);
+
+        Livewire::actingAs($this->admin)
+            ->test(DeployWizard::class)
+            ->set('date', $starts->toDateString())
+            ->set('client_account_id', (string) $site->client_account_id)
+            ->set('site_id', (string) $site->id)
+            ->set('shift_mode', 'new')
+            ->set('title', 'Kit deploy')
+            ->set('starts_at', $starts->format('Y-m-d\TH:i'))
+            ->set('ends_at', $ends->format('Y-m-d\TH:i'))
+            ->set('guard_id', (string) $guard->id)
+            ->set('selectedAssetIds', [$radio->id, $bodycam->id])
+            ->set('confirm_now', true)
+            ->set('step', 5)
+            ->call('deploy')
+            ->assertHasNoErrors()
+            ->assertSet('step', 6);
+
+        $assignment = ShiftAssignment::where('guard_id', $guard->id)->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('equipment_assignments', [
+            'shift_assignment_id' => $assignment->id,
+            'equipment_asset_id' => $radio->id,
+            'status' => 'issued',
+        ]);
+        $this->assertDatabaseHas('equipment_assignments', [
+            'shift_assignment_id' => $assignment->id,
+            'equipment_asset_id' => $bodycam->id,
+            'status' => 'issued',
+        ]);
+        $this->assertSame('issued', $radio->fresh()->status->value);
+    }
+
+    public function test_available_deploy_kit_excludes_already_issued_assets(): void
+    {
+        $tenantId = $this->admin->tenant_id;
+        $assets = app(\App\Services\AssetManagementService::class);
+
+        $radio = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
+        $bodycam = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
+
+        $kit = $assets->availableDeployKit($tenantId);
+
+        $this->assertFalse($kit->contains('id', $radio->id), 'Already-issued demo radio should not appear in kit picker');
+        $this->assertTrue($kit->contains('id', $bodycam->id), 'Available bodycam should appear in kit picker');
     }
 }

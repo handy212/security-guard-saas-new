@@ -20,6 +20,24 @@ return [
         'consumable' => 'Consumable (quantity tracked)',
     ],
 
+    /*
+     | Categories shown in the deploy kit step and preferred for field kits.
+     | Vehicles / motors stay synchronized with fleet when created from Fleet.
+     */
+    'deploy_kit_categories' => [
+        'Vehicles',
+        'Motors',
+        'Radios',
+        'Bodycams',
+    ],
+
+    'fleet_type_categories' => [
+        'car' => 'Vehicles',
+        'van' => 'Vehicles',
+        'motor' => 'Motors',
+        'other' => 'Vehicles',
+    ],
+
     'po_statuses' => [
         'draft' => 'Draft',
         'submitted' => 'Submitted',

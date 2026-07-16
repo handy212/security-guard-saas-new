@@ -7,14 +7,9 @@
     @if(config('notifications.push.vapid.public_key'))
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
-    <title>{{ $tenantBranding['name'] ?? config('app.name', 'GuardOps SaaS') }}</title>
-    @if (! empty($tenantBranding['color']))
-        <style>:root { --tenant-brand: {{ $tenantBranding['color'] }}; }</style>
-    @endif
+    <title>{{ $tenantBranding['name'] ?? config('app.name', 'GuardCore Pro') }}</title>
     @include('partials.theme-init')
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    @include('partials.brand-assets')
     <script>
         try {
             if (localStorage.getItem('GuardCore Pro-sidebar-collapsed') === 'true') {
@@ -27,7 +22,7 @@
     @stack('styles')
 </head>
 <body
-    class="bg-zinc-100 antialiased text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
+    class="bg-zinc-50 antialiased text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
     x-data="{
         sidebarOpen: false,
         sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
@@ -46,30 +41,29 @@
         x-show="sidebarOpen"
         x-cloak
         @click="sidebarOpen = false"
-        class="fixed inset-0 z-40 bg-zinc-900/60 lg:hidden"
+        class="fixed inset-0 z-40 bg-zinc-950/70 lg:hidden"
     ></div>
 
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-white max-lg:transition-transform max-lg:duration-200 max-lg:ease-out dark:border-zinc-800 dark:bg-zinc-900"
+        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-800 bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
-        <div class="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 dark:border-zinc-800">
-            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant() ? route('saas.tenants') : route('dashboard') }}"
+        <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-800/80 px-3">
+            <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant()
+                ? route('saas.tenants')
+                : app(\App\Services\UserHomeRouteService::class)->resolve(auth()->user()) }}"
                class="flex min-w-0 flex-1 items-center gap-2.5"
                :class="sidebarCollapsed ? 'justify-center' : ''">
-                <div
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm"
-                    style="background-color: {{ $tenantBranding['color'] ?? '#0284c7' }}"
-                >{{ $tenantBranding['initial'] ?? 'G' }}</div>
+                <x-brand-mark />
                 <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $tenantBranding['name'] ?? 'GuardOps' }}</div>
-                    <div class="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{{ $tenantBranding['tagline'] ?? 'Security Operations' }}</div>
+                    <div class="truncate text-sm font-semibold tracking-tight text-white">{{ $tenantBranding['name'] ?? 'GuardCore Pro' }}</div>
+                    <div class="truncate text-[11px] text-zinc-500">{{ $tenantBranding['tagline'] ?? 'Security operations' }}</div>
                 </div>
             </a>
             <button
                 type="button"
                 @click="toggleSidebarCollapse()"
-                class="hidden rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 lg:inline-flex"
+                class="hidden rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 lg:inline-flex"
                 :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                 aria-label="Toggle sidebar"
             >
@@ -82,9 +76,9 @@
         <x-sidebar-nav />
 
         @auth
-            <div class="shrink-0 border-t border-zinc-100 p-2 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak>
+            <div class="shrink-0 border-t border-zinc-800 p-2" x-show="sidebarCollapsed" x-cloak>
                 <div class="flex justify-center">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100 text-xs font-semibold text-accent-700" title="{{ auth()->user()->name }}">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/20 text-xs font-semibold text-accent-300" title="{{ auth()->user()->name }}">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </div>
                 </div>
@@ -105,11 +99,11 @@
         @endif
 
         @if (\App\Support\TenantContext::isViewingAsTenant())
-            <div class="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
+            <div class="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100">
                 <span>Viewing <strong>{{ \App\Support\TenantContext::current()?->name }}</strong> as platform admin.</span>
                 <form method="POST" action="{{ route('saas.exit-tenant') }}" class="inline">
                     @csrf
-                    <button type="submit" class="btn-link text-amber-900">Exit to platform</button>
+                    <button type="submit" class="btn-link text-amber-900 dark:text-amber-100">Exit to platform</button>
                 </form>
             </div>
         @else

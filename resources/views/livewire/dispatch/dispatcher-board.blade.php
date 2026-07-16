@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Dispatch Center" description="Create dispatches, assign guards, and track response status.">
+    <x-page-shell
+        title="Dispatch Center"
+        description="Create dispatches, assign guards, and track response status."
+        :breadcrumbs="[['label' => 'Dispatch']]"
+    >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('tracking.live')">Live map</x-button>
             <x-button wire:click="openForm">New dispatch</x-button>
@@ -68,8 +72,8 @@
         @endif
 
         <div class="page-board min-h-[28rem]">
-            <x-section-card title="Dispatch queue" class="flex flex-col">
-                <div class="-mx-1 flex-1 overflow-y-auto px-1">
+            <x-section-card title="Dispatch queue" flush class="flex flex-col">
+                <div class="flex-1 overflow-y-auto px-2 py-2">
                     @forelse($dispatches as $dispatch)
                         @php
                             $priorityTone = match ($dispatch->priority->value ?? '') {
@@ -102,7 +106,12 @@
                             </div>
                         </button>
                     @empty
-                        <x-empty-state compact title="No dispatches" description="Create a new dispatch to get started." />
+                        <x-empty-state compact title="No dispatches" description="Create a dispatch when a client or site needs response.">
+                            <x-slot:actions>
+                                <x-button size="sm" wire:click="openForm">New dispatch</x-button>
+                                <x-button size="sm" variant="secondary" :href="route('schedules.index')">Day roster</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     @endforelse
                 </div>
             </x-section-card>
@@ -242,10 +251,10 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer title="New dispatch" width="lg">
+        <x-drawer title="New dispatch" description="Assign a guard and capture the call so the response team can act." width="lg">
             <x-drawer-form wire:submit.prevent="save" submit-label="Submit dispatch">
                 @if ($errors->any())
-                    <div class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2">
+                    <div class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
                         <p class="font-medium">Please fix the following:</p>
                         <ul class="mt-1 list-inside list-disc">
                             @foreach ($errors->all() as $error)
@@ -255,61 +264,63 @@
                     </div>
                 @endif
 
-                <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
-                    <option value="">Select client</option>
-                    @foreach($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </x-select>
+                <x-form-section title="Assignment">
+                    <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
+                        <option value="">Select client</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}">{{ $client->name }}</option>
+                        @endforeach
+                    </x-select>
 
-                <x-select wire:model="form.site_id" label="Post site *" class="sm:col-span-2" :disabled="! $form['client_account_id']">
-                    <option value="">Select site</option>
-                    @foreach($sitesForClient as $site)
-                        <option value="{{ $site->id }}">{{ $site->name }}</option>
-                    @endforeach
-                </x-select>
+                    <x-select wire:model="form.site_id" label="Post site *" class="sm:col-span-2" :disabled="! $form['client_account_id']">
+                        <option value="">Select site</option>
+                        @foreach($sitesForClient as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </x-select>
 
-                <x-select wire:model="form.guard_id" label="Assign guard" class="sm:col-span-2">
-                    <option value="">Unassigned</option>
-                    @foreach($guards as $guard)
-                        <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
-                    @endforeach
-                </x-select>
+                    <x-select wire:model="form.guard_id" label="Assign guard" class="sm:col-span-2">
+                        <option value="">Unassigned</option>
+                        @foreach($guards as $guard)
+                            <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
+                        @endforeach
+                    </x-select>
 
-                <x-select wire:model="form.priority" label="Priority *">
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                </x-select>
+                    <x-select wire:model="form.priority" label="Priority *">
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </x-select>
+                </x-form-section>
 
-                <x-select wire:model="form.caller_type" label="Caller type *">
-                    @foreach($callerTypes as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </x-select>
+                <x-form-section title="Caller">
+                    <x-select wire:model="form.caller_type" label="Caller type *">
+                        @foreach($callerTypes as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="form.caller_name" label="Caller name *" />
+                </x-form-section>
 
-                <x-input wire:model="form.caller_name" label="Caller name *" class="sm:col-span-2" />
+                <x-form-section title="Incident">
+                    <x-input wire:model="form.incident_location" label="Incident location *" class="sm:col-span-2" />
+                    <x-select wire:model="form.event_type" label="Incident type *" class="sm:col-span-2">
+                        <option value="">Select type</option>
+                        @foreach($incidentTypes as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="form.incident_date" type="date" label="Incident date *" />
+                    <x-input wire:model="form.incident_time" type="time" label="Incident time *" />
+                    <x-textarea wire:model="form.description" label="Incident details *" rows="4" class="sm:col-span-2" />
+                </x-form-section>
 
-                <div class="sm:col-span-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <h3 class="mb-3 text-sm font-semibold text-zinc-800">Incident details</h3>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <x-input wire:model="form.incident_location" label="Incident location *" class="sm:col-span-2" />
-                        <x-select wire:model="form.event_type" label="Incident type *" class="sm:col-span-2">
-                            <option value="">Select type</option>
-                            @foreach($incidentTypes as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </x-select>
-                        <x-input wire:model="form.incident_date" type="date" label="Incident date *" />
-                        <x-input wire:model="form.incident_time" type="time" label="Incident time *" />
-                        <x-textarea wire:model="form.description" label="Incident details *" rows="4" class="sm:col-span-2" />
-                    </div>
-                </div>
-
-                <x-textarea wire:model="form.action_taken" label="Action taken" rows="3" class="sm:col-span-2" />
-                <x-textarea wire:model="form.internal_notes" label="Internal notes" rows="3" class="sm:col-span-2" />
-                <x-file-input wire:model="attachmentFile" label="Attachment" class="sm:col-span-2" />
+                <x-form-section title="Follow-up" description="Optional notes and evidence for the response record.">
+                    <x-textarea wire:model="form.action_taken" label="Action taken" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model="form.internal_notes" label="Internal notes" rows="3" class="sm:col-span-2" />
+                    <x-file-input wire:model="attachmentFile" label="Attachment" class="sm:col-span-2" />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

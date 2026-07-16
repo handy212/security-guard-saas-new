@@ -7,6 +7,7 @@ use App\Notifications\IncidentSubmittedNotification;
 use App\Services\AuditLogService;
 use App\Services\NotificationDispatcher;
 use App\Services\WebhookDeliveryService;
+use App\Support\MutableStatus;
 
 class IncidentService
 {
@@ -39,6 +40,32 @@ class IncidentService
         $this->webhooks->dispatch($incident->tenant_id, 'incident.submitted', $incident->toArray());
 
         return $incident;
+    }
+
+    public function update(Incident $incident, array $data): Incident
+    {
+        MutableStatus::assertMutable($incident);
+
+        if (isset($data['type']) && ! isset($data['incident_type'])) {
+            $data['incident_type'] = $data['type'];
+        }
+
+        $incident->update(collect($data)->only([
+            'site_id', 'title', 'type', 'incident_type', 'severity', 'description',
+            'latitude', 'longitude', 'occurred_at',
+        ])->filter(fn ($v) => $v !== null)->all());
+
+        $this->audit->record('incident.updated', $incident);
+
+        return $incident->fresh();
+    }
+
+    public function delete(Incident $incident): void
+    {
+        MutableStatus::assertMutable($incident);
+        $this->audit->record('incident.deleted', $incident, ['title' => $incident->title]);
+        $incident->media()->delete();
+        $incident->delete();
     }
 
     public function approve(Incident $incident, int $userId): Incident

@@ -1,6 +1,6 @@
 @props(['title' => null])
 
-<div {{ $attributes->merge(['class' => 'card-surface']) }}>
+<div {{ $attributes->merge(['class' => 'card-surface overflow-hidden']) }}>
     @if ($title)
         <div class="table-caption">{{ $title }}</div>
     @endif

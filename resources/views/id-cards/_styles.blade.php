@@ -8,7 +8,7 @@
         overflow: hidden;
         position: relative;
         box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
         color: #0f172a;
     }
 

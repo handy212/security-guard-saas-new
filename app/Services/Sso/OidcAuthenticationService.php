@@ -75,7 +75,7 @@ class OidcAuthenticationService
         $user = User::where('email', $email)->first();
 
         if (! $user) {
-            throw new RuntimeException('No GuardOps account exists for this SSO identity.');
+            throw new RuntimeException('No GuardCore Pro account exists for this SSO identity.');
         }
 
         $user->forceFill(['last_login_at' => now()])->save();

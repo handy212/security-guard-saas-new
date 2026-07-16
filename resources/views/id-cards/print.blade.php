@@ -24,7 +24,7 @@
 
         body {
             margin: 0;
-            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
             background: #f4f4f5;
             color: #0f172a;
             -webkit-print-color-adjust: exact;

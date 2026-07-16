@@ -17,6 +17,16 @@ class IncidentPolicy
         return $user->can('incidents.manage') || $user->can('mobile.use');
     }
 
+    public function update(User $user, Incident $incident): bool
+    {
+        return $user->can('incidents.manage') && $user->tenant_id === $incident->tenant_id;
+    }
+
+    public function delete(User $user, Incident $incident): bool
+    {
+        return $user->can('incidents.manage') && $user->tenant_id === $incident->tenant_id;
+    }
+
     public function approve(User $user, Incident $incident): bool
     {
         return $user->can('reports.approve') && $user->tenant_id === $incident->tenant_id;

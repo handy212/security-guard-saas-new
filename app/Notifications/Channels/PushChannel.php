@@ -31,7 +31,7 @@ class PushChannel
         }
 
         $payload = json_encode([
-            'title' => $data['title'] ?? 'GuardOps',
+            'title' => $data['title'] ?? 'GuardCore Pro',
             'body' => $data['body'] ?? '',
             'url' => $data['action_url'] ?? '/dashboard',
         ]);

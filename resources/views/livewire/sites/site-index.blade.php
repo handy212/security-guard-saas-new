@@ -1,5 +1,9 @@
 <div>
-    <x-page-shell title="Sites & Geofences" description="Client locations with GPS and geofence radius.">
+    <x-page-shell
+        title="Sites & Geofences"
+        description="Client locations with GPS and geofence radius."
+        :breadcrumbs="[['label' => 'Sites']]"
+    >
         <x-slot:actions>
             <x-button wire:click="openCreate">Add site</x-button>
         </x-slot:actions>
@@ -53,7 +57,20 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state compact :title="$hasActiveFilters ? 'No matching sites' : 'No sites'" />
+                        <x-empty-state
+                            compact
+                            :title="$hasActiveFilters ? 'No matching sites' : 'No sites yet'"
+                            :description="$hasActiveFilters ? 'Try adjusting your filters.' : 'Add a site after creating a client to schedule and track coverage.'"
+                        >
+                            <x-slot:actions>
+                                @if (! $hasActiveFilters)
+                                    <x-button size="sm" wire:click="openCreate">Add site</x-button>
+                                    <x-button size="sm" variant="secondary" :href="route('clients.index')">View clients</x-button>
+                                @else
+                                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
+                                @endif
+                            </x-slot:actions>
+                        </x-empty-state>
                     </x-table.empty>
                 @endforelse
             </tbody>
@@ -63,19 +80,28 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingId ? 'Edit site' : 'Add site'" width="lg">
+        <x-drawer
+            :title="$editingId ? 'Edit site' : 'Add site'"
+            :description="$editingId ? 'Update location and geofence basics.' : 'Link a client location. Assign posts and patrols from the site profile.'"
+            width="lg"
+        >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update site' : 'Create site'">
-                <x-select wire:model="form.client_account_id" label="Client" class="sm:col-span-2">
-                    <option value="">Select client</option>
-                    @foreach($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-input wire:model="form.name" label="Site name" class="sm:col-span-2" />
-                <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
-                <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
-                <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
-                <x-input wire:model="form.geofence_radius_meters" label="Geofence radius (m)" type="number" class="sm:col-span-2" />
+                <x-form-section title="Site">
+                    <x-select wire:model="form.client_account_id" label="Client" class="sm:col-span-2" hint="Create the client first if they are not listed.">
+                        <option value="">Select client</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}">{{ $client->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-input wire:model="form.name" label="Site name" class="sm:col-span-2" placeholder="Main Gate" />
+                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                </x-form-section>
+
+                <x-form-section title="Geofence" description="Used for clock-in validation and live map.">
+                    <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
+                    <x-input wire:model="form.geofence_radius_meters" label="Radius (meters)" type="number" class="sm:col-span-2" hint="Typical coverage is 100–300m." />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

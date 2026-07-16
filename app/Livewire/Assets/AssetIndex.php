@@ -58,9 +58,10 @@ class AssetIndex extends Component
         'categoryFilter' => ['except' => null, 'as' => 'category'],
     ];
 
-    public function mount(): void
+    public function mount(AssetManagementService $assets): void
     {
         $this->authorizePolicy('viewAny', EquipmentAsset::class);
+        $assets->ensureDeployKitCatalog(TenantContext::id());
     }
 
     public function updated($property): void
@@ -172,7 +173,15 @@ class AssetIndex extends Component
         ]);
 
         $asset = EquipmentAsset::findOrFail($data['issueAssetId']);
-        $service->issue($asset, $data['issueForm'] + ['tenant_id' => TenantContext::id()]);
+
+        try {
+            $service->issue($asset, $data['issueForm'] + ['tenant_id' => TenantContext::id()]);
+        } catch (\RuntimeException $e) {
+            $this->addError('issueAssetId', $e->getMessage());
+
+            return;
+        }
+
         $this->showIssueForm = false;
         session()->flash('status', 'Asset issued.');
     }

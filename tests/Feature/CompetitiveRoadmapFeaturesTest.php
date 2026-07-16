@@ -94,7 +94,7 @@ class CompetitiveRoadmapFeaturesTest extends TestCase
             '/messenger',
             '/passdown',
             '/billing/estimates',
-            '/attendance/reconciliation',
+            '/schedules/reconciliation',
         ];
 
         foreach ($routes as $route) {

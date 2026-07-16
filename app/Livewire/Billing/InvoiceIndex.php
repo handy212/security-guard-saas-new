@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Services\AccountingExportService;
 use App\Services\BillingService;
 use App\Services\EstimateService;
+use App\Services\InvoiceDeliveryService;
 use App\Services\PdfExportService;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +28,14 @@ class InvoiceIndex extends Component
 
     public string $statusFilter = 'all';
 
+    public string $dateFrom = '';
+
+    public string $dateTo = '';
+
+    public string $filterClientId = '';
+
+    public bool $showFilters = false;
+
     public ?int $payingInvoiceId = null;
 
     public array $paymentForm = [
@@ -35,26 +44,57 @@ class InvoiceIndex extends Component
         'notes' => '',
     ];
 
-    public ?int $viewingInvoiceId = null;
+    public bool $showGenerateForm = false;
 
-    public array $items = [];
+    public ?int $sendingInvoiceId = null;
 
-    public bool $editingItems = false;
+    public string $sendEmails = '';
+
+    public string $sendMessage = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
+        'dateFrom' => ['except' => ''],
+        'dateTo' => ['except' => ''],
+        'filterClientId' => ['except' => '', 'as' => 'client'],
     ];
 
     public function mount(): void
     {
         abort_unless(auth()->user()->can('billing.manage'), 403);
         $this->month = now()->format('Y-m');
+        $this->showFilters = $this->hasAdvancedFilters();
+    }
+
+    public function openGenerate(): void
+    {
+        $this->showGenerateForm = true;
+    }
+
+    public function closeGenerate(): void
+    {
+        $this->showGenerateForm = false;
+    }
+
+    public function toggleFilters(): void
+    {
+        $this->showFilters = ! $this->showFilters;
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->statusFilter = 'all';
+        $this->dateFrom = '';
+        $this->dateTo = '';
+        $this->filterClientId = '';
+        $this->resetPage();
     }
 
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'statusFilter'], true)) {
+        if (in_array($property, ['search', 'statusFilter', 'dateFrom', 'dateTo', 'filterClientId'], true)) {
             $this->resetPage();
         }
     }
@@ -64,19 +104,59 @@ class InvoiceIndex extends Component
         $this->authorize('create', Invoice::class);
         $client = ClientAccount::findOrFail($this->clientId);
         $service->generateMonthlyInvoice($client, $this->month);
+        $this->showGenerateForm = false;
         session()->flash('status', 'Invoice generated.');
     }
 
     public function markSent(Invoice $invoice): void
     {
         $this->authorize('update', $invoice);
+        abort_unless($invoice->status === 'draft', 422);
         $invoice->update(['status' => 'sent', 'sent_at' => now()]);
+        session()->flash('status', 'Invoice marked as sent.');
+    }
+
+    public function openSend(int $invoiceId, InvoiceDeliveryService $delivery): void
+    {
+        $invoice = Invoice::with(['clientAccount.contacts'])->findOrFail($invoiceId);
+        $this->authorize('update', $invoice);
+        abort_unless(in_array($invoice->status, ['draft', 'sent', 'partial', 'overdue'], true), 422);
+        $this->sendingInvoiceId = $invoice->id;
+        $this->sendEmails = implode(', ', $delivery->defaultRecipients($invoice));
+        $this->sendMessage = '';
+    }
+
+    public function closeSend(): void
+    {
+        $this->sendingInvoiceId = null;
+        $this->sendEmails = '';
+        $this->sendMessage = '';
+    }
+
+    public function sendInvoice(InvoiceDeliveryService $delivery): void
+    {
+        $invoice = Invoice::findOrFail($this->sendingInvoiceId);
+        $this->authorize('update', $invoice);
+
+        $data = $this->validate([
+            'sendEmails' => 'required|string|max:1000',
+            'sendMessage' => 'nullable|string|max:2000',
+        ]);
+
+        $recipients = preg_split('/[\s,;]+/', $data['sendEmails'], -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        foreach ($recipients as $email) {
+            abort_unless(filter_var($email, FILTER_VALIDATE_EMAIL), 422, "Invalid email: {$email}");
+        }
+
+        $count = $delivery->send($invoice, $recipients, $data['sendMessage'] ?: null);
+        $this->closeSend();
+        session()->flash('status', "Invoice emailed to {$count} recipient".($count === 1 ? '' : 's').'.');
     }
 
     public function exportPdf(int $invoiceId, PdfExportService $pdf): StreamedResponse
     {
         $invoice = Invoice::findOrFail($invoiceId);
-        $this->authorize('update', $invoice);
+        $this->authorize('view', $invoice);
         $path = $pdf->exportInvoice($invoice);
 
         return Storage::download($path);
@@ -126,76 +206,6 @@ class InvoiceIndex extends Component
         session()->flash('status', 'Payment recorded.');
     }
 
-    public function viewPayments(int $invoiceId): void
-    {
-        $invoice = Invoice::with('items')->findOrFail($invoiceId);
-        $this->authorize('view', $invoice);
-        $this->viewingInvoiceId = $invoice->id;
-        $this->editingItems = false;
-        $this->items = $invoice->items->map(fn ($item) => [
-            'description' => $item->description,
-            'quantity' => (string) $item->quantity,
-            'unit_price' => (string) $item->unit_price,
-        ])->values()->all();
-
-        if (\App\Support\EnumHelper::value($invoice->status) === 'draft' && $this->items === []) {
-            $this->items = [['description' => '', 'quantity' => '1', 'unit_price' => '0']];
-        }
-    }
-
-    public function closePayments(): void
-    {
-        $this->viewingInvoiceId = null;
-        $this->editingItems = false;
-        $this->items = [];
-    }
-
-    public function startEditingItems(): void
-    {
-        $invoice = Invoice::findOrFail($this->viewingInvoiceId);
-        $this->authorize('update', $invoice);
-        abort_unless(\App\Support\EnumHelper::value($invoice->status) === 'draft', 403);
-        $this->editingItems = true;
-    }
-
-    public function addLineItem(): void
-    {
-        $this->items[] = ['description' => '', 'quantity' => '1', 'unit_price' => '0'];
-    }
-
-    public function removeLineItem(int $index): void
-    {
-        if (count($this->items) <= 1) {
-            return;
-        }
-        unset($this->items[$index]);
-        $this->items = array_values($this->items);
-    }
-
-    public function saveItems(BillingService $billing): void
-    {
-        $invoice = Invoice::findOrFail($this->viewingInvoiceId);
-        $this->authorize('update', $invoice);
-
-        $data = $this->validate([
-            'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string|max:255',
-            'items.*.quantity' => 'required|numeric|min:0',
-            'items.*.unit_price' => 'required|numeric|min:0',
-        ]);
-
-        try {
-            $billing->syncItems($invoice, $data['items']);
-        } catch (\RuntimeException $e) {
-            $this->addError('items', $e->getMessage());
-
-            return;
-        }
-
-        $this->editingItems = false;
-        session()->flash('status', 'Invoice line items updated.');
-    }
-
     public function exportInvoicesCsv(AccountingExportService $exports): void
     {
         abort_unless(auth()->user()->can('exports.manage'), 403);
@@ -227,12 +237,16 @@ class InvoiceIndex extends Component
                     ->orWhereHas('clientAccount', fn ($q) => $q->where('name', 'like', $needle));
             }))
             ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
+            ->when($this->filterClientId !== '', fn ($q) => $q->where('client_account_id', $this->filterClientId))
+            ->when($this->dateFrom !== '', fn ($q) => $q->whereDate('invoice_date', '>=', $this->dateFrom))
+            ->when($this->dateTo !== '', fn ($q) => $q->whereDate('invoice_date', '<=', $this->dateTo))
             ->latest();
 
         $all = Invoice::where('tenant_id', $tenantId);
+        $open = (clone $all)->whereIn('status', ['draft', 'sent', 'partial', 'overdue'])->get();
         $payingInvoice = $this->payingInvoiceId ? Invoice::with('clientAccount')->find($this->payingInvoiceId) : null;
-        $viewingInvoice = $this->viewingInvoiceId
-            ? Invoice::with(['payments', 'items', 'clientAccount'])->find($this->viewingInvoiceId)
+        $sendingInvoice = $this->sendingInvoiceId
+            ? Invoice::with('clientAccount')->find($this->sendingInvoiceId)
             : null;
 
         return view('livewire.billing.invoice-index', [
@@ -241,14 +255,21 @@ class InvoiceIndex extends Component
             'exports' => AccountingExport::where('tenant_id', $tenantId)->latest()->limit(10)->get(),
             'canExport' => auth()->user()->can('exports.manage'),
             'payingInvoice' => $payingInvoice,
-            'viewingInvoice' => $viewingInvoice,
+            'sendingInvoice' => $sendingInvoice,
+            'hasAdvancedFilters' => $this->hasAdvancedFilters(),
             'stats' => [
                 'total' => $all->count(),
                 'draft' => (clone $all)->where('status', 'draft')->count(),
                 'sent' => (clone $all)->where('status', 'sent')->count(),
                 'paid' => (clone $all)->where('status', 'paid')->count(),
                 'partial' => (clone $all)->where('status', 'partial')->count(),
+                'amount_due' => $open->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0))),
             ],
         ])->layout('layouts.app');
+    }
+
+    private function hasAdvancedFilters(): bool
+    {
+        return $this->dateFrom !== '' || $this->dateTo !== '' || $this->filterClientId !== '';
     }
 }

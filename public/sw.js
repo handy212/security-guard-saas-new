@@ -16,7 +16,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-    let payload = { title: 'GuardOps', body: 'New notification', url: '/dashboard' };
+    let payload = { title: 'GuardCore Pro', body: 'New notification', url: '/dashboard' };
 
     try {
         if (event.data) {

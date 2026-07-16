@@ -1,10 +1,36 @@
 openapi: 3.0.3
 info:
   title: GuardOps SaaS API
-  version: 1.0.0
+  version: 1.1.0
+  description: Mobile guard API plus tenant admin CRUD under /api/v1/admin.
 servers:
   - url: /api/v1
 paths:
+  /auth/token:
+    post:
+      summary: Issue Sanctum bearer token for admin API users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, device_name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                device_name: { type: string }
+      responses:
+        '200':
+          description: Token issued
+        '422':
+          description: Invalid credentials or no admin access
+    delete:
+      summary: Revoke current Sanctum token
+      security: [{sanctum: []}]
+      responses:
+        '204':
+          description: Token revoked
   /me/assignments:
     get:
       summary: List guard shift assignments
@@ -12,26 +38,328 @@ paths:
   /attendance/clock-in:
     post:
       summary: Clock in with GPS coordinates
+      security: [{sanctum: []}]
   /attendance/clock-out:
     post:
       summary: Clock out with GPS coordinates
+      security: [{sanctum: []}]
   /patrols/scan:
     post:
       summary: Scan patrol checkpoint
+      security: [{sanctum: []}]
   /incidents:
     post:
-      summary: Submit incident report
+      summary: Submit incident report (mobile)
+      security: [{sanctum: []}]
   /sos:
     post:
       summary: Raise SOS alert
+      security: [{sanctum: []}]
   /location:
     post:
       summary: Update guard live location
+      security: [{sanctum: []}]
   /offline-sync:
     post:
       summary: Queue offline sync batch
+      security: [{sanctum: []}]
+  /admin/clients:
+    get:
+      summary: List clients
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create client
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/clients/{id}:
+    get:
+      summary: Show client
+      security: [{sanctum: []}]
+      tags: [Admin]
+    put:
+      summary: Update client
+      security: [{sanctum: []}]
+      tags: [Admin]
+    delete:
+      summary: Delete client
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/sites:
+    get:
+      summary: List sites
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create site
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/guards:
+    get:
+      summary: List guards
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create guard
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/branches:
+    get:
+      summary: List branches
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create branch
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/assets:
+    get:
+      summary: List equipment assets
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create asset
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/shifts:
+    get:
+      summary: List shifts
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create shift
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/incidents:
+    get:
+      summary: List incidents
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create incident
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/incidents/{id}:
+    put:
+      summary: Update open incident
+      security: [{sanctum: []}]
+      tags: [Admin]
+    delete:
+      summary: Delete open incident (locked when closed/rejected)
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/incidents/{id}/approve:
+    post:
+      summary: Approve incident
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/incidents/{id}/close:
+    post:
+      summary: Close incident
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/incidents/{id}/reject:
+    post:
+      summary: Reject incident
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/expenses:
+    get:
+      summary: List expenses
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create expense
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/expenses/{id}:
+    put:
+      summary: Update draft/submitted expense
+      security: [{sanctum: []}]
+      tags: [Admin]
+    delete:
+      summary: Delete draft/submitted expense (locked when approved/paid)
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/expenses/{id}/approve:
+    post:
+      summary: Approve expense
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/expenses/{id}/mark-paid:
+    post:
+      summary: Mark expense paid
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/estimates:
+    get:
+      summary: List estimates
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create estimate
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/estimates/{id}/send:
+    post:
+      summary: Mark estimate sent
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/estimates/{id}/accept:
+    post:
+      summary: Accept estimate
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/estimates/{id}/convert:
+    post:
+      summary: Convert estimate to invoice
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/complaints:
+    get:
+      summary: List client complaints
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Create complaint
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/complaints/{id}/resolve:
+    post:
+      summary: Resolve complaint
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/visitors:
+    get:
+      summary: List visitor logs
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Check in visitor
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/visitors/{id}/check-out:
+    post:
+      summary: Check out visitor
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/passdowns:
+    get:
+      summary: List passdown logs
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/fleet-vehicles:
+    get:
+      summary: List fleet vehicles
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/webhooks:
+    get:
+      summary: List webhook subscriptions
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/notification-templates:
+    get:
+      summary: List notification templates
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/report-templates:
+    get:
+      summary: List report templates
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/patrol-routes:
+    get:
+      summary: List patrol routes
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/patrol-checkpoints:
+    get:
+      summary: List patrol checkpoints
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/staff-users:
+    get:
+      summary: List tenant staff users
+      security: [{sanctum: []}]
+      tags: [Admin]
+    post:
+      summary: Invite/create staff user
+      security: [{sanctum: []}]
+      tags: [Admin]
+  /admin/clients/{client}/notes:
+    get:
+      summary: List client notes
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create client note
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/clients/{client}/notes/{note}:
+    put:
+      summary: Update client note
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    delete:
+      summary: Delete client note
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/clients/{client}/contacts:
+    get:
+      summary: List client contacts
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create client contact
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/sites/{site}/posts:
+    get:
+      summary: List site posts
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create site post
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/sites/{site}/notes:
+    get:
+      summary: List site notes
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create site note
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/guards/{guard}/training-records:
+    get:
+      summary: List guard training records
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create training record
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+  /admin/guards/{guard}/notes:
+    get:
+      summary: List guard notes
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
+    post:
+      summary: Create guard note
+      security: [{sanctum: []}]
+      tags: [Admin Nested]
 components:
   securitySchemes:
     sanctum:
       type: http
       scheme: bearer
+  schemas:
+    PaginatedMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }

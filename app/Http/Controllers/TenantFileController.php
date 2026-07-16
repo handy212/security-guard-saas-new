@@ -88,4 +88,14 @@ class TenantFileController extends Controller
 
         return $this->storage->response($document->file_path);
     }
+
+    public function expenseReceipt(\App\Models\Expense $expense): StreamedResponse
+    {
+        abort_unless(auth()->user()->can('billing.manage'), 403);
+        abort_unless((int) $expense->tenant_id === (int) TenantContext::id(), 404);
+        abort_unless($expense->receipt_path, 404);
+        abort_unless($this->storage->exists($expense->receipt_path), 404);
+
+        return $this->storage->response($expense->receipt_path);
+    }
 }

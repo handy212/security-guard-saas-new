@@ -37,8 +37,8 @@ class SiteProfileTest extends TestCase
             ->assertSee($site->name)
             ->assertSee('Overview')
             ->assertSee('Post Orders')
-            ->assertSee('Geo-Fence')
-            ->assertSee('Email Reports');
+            ->assertSee('Patrol')
+            ->assertSee('Reports');
     }
 
     public function test_site_profile_tabs_switch(): void
@@ -87,6 +87,7 @@ class SiteProfileTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(SiteProfile::class, ['site' => $site])
             ->call('setTab', 'notes')
+            ->assertSet('activeTab', 'contacts')
             ->set('noteForm.body', 'Gate code changed to 4521.')
             ->call('addNote')
             ->assertHasNoErrors();
@@ -138,6 +139,7 @@ class SiteProfileTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(SiteProfile::class, ['site' => $site])
             ->call('setTab', 'settings')
+            ->assertSet('activeTab', 'profile')
             ->set('settingsForm.require_geofence_clock_in', false)
             ->set('settingsForm.patrol_reminder_minutes', 45)
             ->call('saveSettings')

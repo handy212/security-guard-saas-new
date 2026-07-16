@@ -13,7 +13,7 @@ class EquipmentAsset extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'asset_category_id', 'vendor_id', 'purchase_order_id', 'site_id',
+        'tenant_id', 'asset_category_id', 'vendor_id', 'purchase_order_id', 'site_id', 'fleet_vehicle_id',
         'asset_tag', 'name', 'category', 'description', 'serial_number', 'model', 'manufacturer',
         'purchase_cost', 'purchase_date', 'warranty_expires_at', 'location', 'quantity_on_hand',
         'condition', 'status', 'notes',
@@ -49,8 +49,21 @@ class EquipmentAsset extends Model
         return $this->belongsTo(Site::class);
     }
 
+    public function fleetVehicle(): BelongsTo
+    {
+        return $this->belongsTo(FleetVehicle::class, 'fleet_vehicle_id');
+    }
+
     public function assignments(): HasMany
     {
         return $this->hasMany(EquipmentAssignment::class, 'equipment_asset_id');
+    }
+
+    public function displayLabel(): string
+    {
+        $tag = $this->asset_tag ? $this->asset_tag.' · ' : '';
+        $category = $this->category ?: ($this->assetCategory?->name ?? 'Asset');
+
+        return trim($tag.$this->name.' ('.$category.')');
     }
 }

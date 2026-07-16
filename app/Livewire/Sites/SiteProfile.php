@@ -31,9 +31,17 @@ class SiteProfile extends Component
     use WithFileUploads;
 
     private const TABS = [
-        'overview', 'profile', 'contacts', 'kpis', 'post_orders', 'notes', 'files',
-        'guards', 'tasks', 'tours', 'tour_tags', 'geofence', 'reports',
-        'email_reports', 'settings',
+        'overview', 'profile', 'contacts', 'post_orders', 'tasks', 'tours', 'kpis', 'files', 'reports',
+    ];
+
+    private const TAB_ALIASES = [
+        'settings' => 'profile',
+        'notes' => 'contacts',
+        'guards' => 'overview',
+        'tour_tags' => 'tours',
+        'geofence' => 'tours',
+        'email_reports' => 'reports',
+        'checklists' => 'kpis',
     ];
 
     #[Locked]
@@ -77,6 +85,20 @@ class SiteProfile extends Component
 
     public ?int $editingContactId = null;
 
+    public ?int $editingPostId = null;
+
+    public ?int $editingPostOrderId = null;
+
+    public ?int $editingTourId = null;
+
+    public ?int $editingTourTagId = null;
+
+    public ?int $editingTaskId = null;
+
+    public ?int $editingChecklistId = null;
+
+    public ?int $editingNoteId = null;
+
     public function mount(Site $site): void
     {
         $this->authorize('view', $site);
@@ -87,20 +109,20 @@ class SiteProfile extends Component
         $this->loadSettingsForm();
         $this->loadGeofenceForm();
 
-        if ($this->activeTab === 'checklists') {
-            $this->activeTab = 'kpis';
-        }
-
-        if (! in_array($this->activeTab, self::TABS, true)) {
-            $this->activeTab = 'overview';
-        }
+        // Canonicalize aliased tabs in the URL (settings → profile, etc.).
+        $this->activeTab = $this->resolveTab($this->activeTab);
     }
 
     public function setTab(string $tab): void
     {
-        if (in_array($tab, self::TABS, true)) {
-            $this->activeTab = $tab;
-        }
+        $this->activeTab = $this->resolveTab($tab);
+    }
+
+    private function resolveTab(string $tab): string
+    {
+        $resolved = self::TAB_ALIASES[$tab] ?? $tab;
+
+        return in_array($resolved, self::TABS, true) ? $resolved : 'overview';
     }
 
     public function saveProfile(): void
@@ -178,10 +200,25 @@ class SiteProfile extends Component
     {
         $this->authorize('update', $this->site);
         $data = $this->validate(['noteForm.body' => 'required|string|max:5000', 'noteForm.is_internal' => 'boolean'])['noteForm'];
-        SiteNote::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id, 'user_id' => auth()->id()]);
-        $this->noteForm = ['body' => '', 'is_internal' => true];
+
+        if ($this->editingNoteId) {
+            SiteNote::query()->where('site_id', $this->site->id)->findOrFail($this->editingNoteId)->update($data);
+            session()->flash('status', 'Note updated.');
+        } else {
+            SiteNote::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id, 'user_id' => auth()->id()]);
+            session()->flash('status', 'Note added.');
+        }
+
+        $this->resetNoteForm();
         $this->reloadSite();
-        session()->flash('status', 'Note added.');
+    }
+
+    public function editNote(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $note = SiteNote::query()->where('site_id', $this->site->id)->findOrFail($id);
+        $this->editingNoteId = $note->id;
+        $this->noteForm = $note->only(['body', 'is_internal']);
     }
 
     public function deleteNote(int $id): void
@@ -238,10 +275,31 @@ class SiteProfile extends Component
             'postForm.status' => 'required|in:active,inactive',
         ])['postForm'];
 
-        SitePost::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id]);
-        $this->postForm = ['name' => '', 'description' => '', 'required_guards' => 1, 'status' => 'active'];
+        if ($this->editingPostId) {
+            SitePost::query()->where('site_id', $this->site->id)->findOrFail($this->editingPostId)->update($data);
+            session()->flash('status', 'Post updated.');
+        } else {
+            SitePost::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id]);
+            session()->flash('status', 'Post added.');
+        }
+
+        $this->resetPostForm();
         $this->reloadSite();
-        session()->flash('status', 'Post added.');
+    }
+
+    public function editPost(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $post = SitePost::query()->where('site_id', $this->site->id)->findOrFail($id);
+        $this->editingPostId = $post->id;
+        $this->postForm = $post->only(['name', 'description', 'required_guards', 'status']);
+    }
+
+    public function deletePost(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        SitePost::query()->where('site_id', $this->site->id)->whereKey($id)->delete();
+        $this->reloadSite();
     }
 
     public function addPostOrder(): void
@@ -254,16 +312,42 @@ class SiteProfile extends Component
             'postOrderForm.is_active' => 'boolean',
         ])['postOrderForm'];
 
-        PostOrder::create($data + [
+        $payload = $data + [
             'tenant_id' => TenantContext::id(),
             'site_id' => $this->site->id,
             'site_post_id' => $data['site_post_id'] ?: null,
-            'version' => 1,
-        ]);
+        ];
 
-        $this->postOrderForm = ['site_post_id' => '', 'title' => '', 'instructions' => '', 'is_active' => true];
+        if ($this->editingPostOrderId) {
+            PostOrder::query()->where('site_id', $this->site->id)->findOrFail($this->editingPostOrderId)->update($payload);
+            session()->flash('status', 'Post order updated.');
+        } else {
+            PostOrder::create($payload + ['version' => 1]);
+            session()->flash('status', 'Post order added.');
+        }
+
+        $this->resetPostOrderForm();
         $this->reloadSite();
-        session()->flash('status', 'Post order added.');
+    }
+
+    public function editPostOrder(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $order = PostOrder::query()->where('site_id', $this->site->id)->findOrFail($id);
+        $this->editingPostOrderId = $order->id;
+        $this->postOrderForm = [
+            'site_post_id' => $order->site_post_id ?? '',
+            'title' => $order->title,
+            'instructions' => $order->instructions,
+            'is_active' => (bool) $order->is_active,
+        ];
+    }
+
+    public function deletePostOrder(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        PostOrder::query()->where('site_id', $this->site->id)->whereKey($id)->delete();
+        $this->reloadSite();
     }
 
     public function addTour(): void
@@ -276,10 +360,31 @@ class SiteProfile extends Component
             'tourForm.status' => 'required|in:active,inactive',
         ])['tourForm'];
 
-        PatrolRoute::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id]);
-        $this->tourForm = ['name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+        if ($this->editingTourId) {
+            PatrolRoute::query()->where('site_id', $this->site->id)->findOrFail($this->editingTourId)->update($data);
+            session()->flash('status', 'Site tour updated.');
+        } else {
+            PatrolRoute::create($data + ['tenant_id' => TenantContext::id(), 'site_id' => $this->site->id]);
+            session()->flash('status', 'Site tour created.');
+        }
+
+        $this->resetTourForm();
         $this->reloadSite();
-        session()->flash('status', 'Site tour created.');
+    }
+
+    public function editTour(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $route = PatrolRoute::query()->where('site_id', $this->site->id)->findOrFail($id);
+        $this->editingTourId = $route->id;
+        $this->tourForm = $route->only(['name', 'description', 'expected_duration_minutes', 'status']);
+    }
+
+    public function deleteTour(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        PatrolRoute::query()->where('site_id', $this->site->id)->whereKey($id)->delete();
+        $this->reloadSite();
     }
 
     public function addTourTag(): void
@@ -299,17 +404,54 @@ class SiteProfile extends Component
         $data['longitude'] = $data['longitude'] !== '' ? $data['longitude'] : null;
         $data['instructions'] = $data['instructions'] !== '' ? $data['instructions'] : null;
 
-        PatrolCheckpoint::create($data + [
-            'tenant_id' => TenantContext::id(),
-            'status' => 'active',
-        ]);
+        if ($this->editingTourTagId) {
+            PatrolCheckpoint::query()
+                ->where('tenant_id', TenantContext::id())
+                ->whereHas('route', fn ($q) => $q->where('site_id', $this->site->id))
+                ->findOrFail($this->editingTourTagId)
+                ->update($data);
+            session()->flash('status', 'Tour tag updated.');
+        } else {
+            PatrolCheckpoint::create($data + [
+                'tenant_id' => TenantContext::id(),
+                'status' => 'active',
+            ]);
+            session()->flash('status', 'Tour tag added.');
+        }
 
-        $this->tagForm = [
-            'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
-            'instructions' => '', 'latitude' => '', 'longitude' => '',
-        ];
+        $this->resetTagForm();
         $this->reloadSite();
-        session()->flash('status', 'Tour tag added.');
+    }
+
+    public function editTourTag(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $tag = PatrolCheckpoint::query()
+            ->where('tenant_id', TenantContext::id())
+            ->whereHas('route', fn ($q) => $q->where('site_id', $this->site->id))
+            ->findOrFail($id);
+
+        $this->editingTourTagId = $tag->id;
+        $this->tagForm = [
+            'patrol_route_id' => $tag->patrol_route_id,
+            'name' => $tag->name,
+            'code' => $tag->code,
+            'sequence' => $tag->sequence,
+            'instructions' => $tag->instructions ?? '',
+            'latitude' => $tag->latitude ?? '',
+            'longitude' => $tag->longitude ?? '',
+        ];
+    }
+
+    public function deleteTourTag(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        PatrolCheckpoint::query()
+            ->where('tenant_id', TenantContext::id())
+            ->whereHas('route', fn ($q) => $q->where('site_id', $this->site->id))
+            ->whereKey($id)
+            ->delete();
+        $this->reloadSite();
     }
 
     public function addTask(): void
@@ -322,9 +464,32 @@ class SiteProfile extends Component
             'taskForm.is_required' => 'boolean',
         ])['taskForm'];
 
-        CheckpointTask::create($data + ['tenant_id' => TenantContext::id(), 'sort_order' => 1]);
-        $this->taskForm = ['patrol_checkpoint_id' => '', 'title' => '', 'response_type' => 'yes_no', 'is_required' => true];
-        session()->flash('status', 'Task added.');
+        if ($this->editingTaskId) {
+            CheckpointTask::query()
+                ->where('tenant_id', TenantContext::id())
+                ->findOrFail($this->editingTaskId)
+                ->update($data);
+            session()->flash('status', 'Task updated.');
+        } else {
+            CheckpointTask::create($data + ['tenant_id' => TenantContext::id(), 'sort_order' => 1]);
+            session()->flash('status', 'Task added.');
+        }
+
+        $this->resetTaskForm();
+    }
+
+    public function editTask(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $task = CheckpointTask::query()->where('tenant_id', TenantContext::id())->findOrFail($id);
+        $this->editingTaskId = $task->id;
+        $this->taskForm = $task->only(['patrol_checkpoint_id', 'title', 'response_type', 'is_required']);
+    }
+
+    public function deleteTask(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        CheckpointTask::query()->where('tenant_id', TenantContext::id())->whereKey($id)->delete();
     }
 
     public function addChecklist(): void
@@ -337,15 +502,35 @@ class SiteProfile extends Component
             'checklistForm.grace_minutes' => 'integer|min:0',
         ])['checklistForm'];
 
-        SiteSlaRequirement::create($data + [
-            'tenant_id' => TenantContext::id(),
-            'site_id' => $this->site->id,
-            'is_active' => true,
-        ]);
+        if ($this->editingChecklistId) {
+            SiteSlaRequirement::query()->where('site_id', $this->site->id)->findOrFail($this->editingChecklistId)->update($data);
+            session()->flash('status', 'Checklist item updated.');
+        } else {
+            SiteSlaRequirement::create($data + [
+                'tenant_id' => TenantContext::id(),
+                'site_id' => $this->site->id,
+                'is_active' => true,
+            ]);
+            session()->flash('status', 'Checklist item added.');
+        }
 
-        $this->checklistForm = ['metric' => '', 'target_value' => '', 'frequency' => 'daily', 'grace_minutes' => 0];
+        $this->resetChecklistForm();
         $this->reloadSite();
-        session()->flash('status', 'Checklist item added.');
+    }
+
+    public function editChecklist(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        $item = SiteSlaRequirement::query()->where('site_id', $this->site->id)->findOrFail($id);
+        $this->editingChecklistId = $item->id;
+        $this->checklistForm = $item->only(['metric', 'target_value', 'frequency', 'grace_minutes']);
+    }
+
+    public function deleteChecklist(int $id): void
+    {
+        $this->authorize('update', $this->site);
+        SiteSlaRequirement::query()->where('site_id', $this->site->id)->whereKey($id)->delete();
+        $this->reloadSite();
     }
 
     public function assignReport(): void
@@ -462,22 +647,20 @@ class SiteProfile extends Component
             ->limit(40)
             ->get();
 
+        $peopleBadge = $this->site->emergencyContacts->count() + $this->site->notes->count();
+        $patrolBadge = $this->site->patrolRoutes->count() + $checkpoints->count();
+        $reportsBadge = $this->site->reportAssignments->count() + $this->site->reportSchedules->count();
+
         $profileTabs = [
-            'overview' => ['label' => 'Overview', 'hint' => 'Map, KPIs, summary', 'group' => 'Summary'],
-            'profile' => ['label' => 'Profile', 'hint' => 'Site details', 'group' => 'Summary'],
-            'settings' => ['label' => 'Settings', 'hint' => 'Site preferences', 'group' => 'Summary'],
-            'contacts' => ['label' => 'Contacts', 'hint' => 'Emergency contacts', 'group' => 'People', 'badge' => $this->badge($this->site->emergencyContacts->count())],
-            'notes' => ['label' => 'Notes', 'hint' => 'Internal notes', 'group' => 'People', 'badge' => $this->badge($this->site->notes->count())],
+            'overview' => ['label' => 'Overview', 'hint' => 'Map, KPIs, shifts', 'group' => 'Overview'],
+            'profile' => ['label' => 'Profile', 'hint' => 'Details and preferences', 'group' => 'Overview'],
+            'contacts' => ['label' => 'Contacts', 'hint' => 'Emergency contacts and notes', 'group' => 'People', 'badge' => $this->badge($peopleBadge)],
             'post_orders' => ['label' => 'Post Orders', 'hint' => 'Posts and orders', 'group' => 'Operations', 'badge' => $this->badge($this->site->postOrders->count())],
-            'guards' => ['label' => 'Assign Guards', 'hint' => 'Upcoming shifts', 'group' => 'Operations'],
             'tasks' => ['label' => 'Tasks', 'hint' => 'Checkpoint tasks', 'group' => 'Operations', 'badge' => $this->badge($tasks->count())],
-            'tours' => ['label' => 'Site Tours', 'hint' => 'Patrol routes', 'group' => 'Operations', 'badge' => $this->badge($this->site->patrolRoutes->count())],
-            'tour_tags' => ['label' => 'Site Tour Tags', 'hint' => 'QR / NFC tags', 'group' => 'Operations', 'badge' => $this->badge($checkpoints->count())],
-            'geofence' => ['label' => 'Geo-Fence', 'hint' => 'GPS boundary', 'group' => 'Operations'],
+            'tours' => ['label' => 'Patrol', 'hint' => 'Routes, tags, geofence', 'group' => 'Patrol', 'badge' => $this->badge($patrolBadge), 'icon' => 'patrols'],
             'kpis' => ['label' => 'SLA & Checklists', 'hint' => 'Compliance targets', 'group' => 'Compliance', 'badge' => $this->badge($this->site->slaRequirements->count())],
             'files' => ['label' => 'Files', 'hint' => 'Documents', 'group' => 'Compliance', 'badge' => $this->badge($this->site->documents->count())],
-            'reports' => ['label' => 'Assign Reports', 'hint' => 'Report templates', 'group' => 'Compliance', 'badge' => $this->badge($this->site->reportAssignments->count())],
-            'email_reports' => ['label' => 'Email Reports', 'hint' => 'Scheduled emails', 'group' => 'Compliance', 'badge' => $this->badge($this->site->reportSchedules->count())],
+            'reports' => ['label' => 'Reports', 'hint' => 'Templates and email schedules', 'group' => 'Compliance', 'badge' => $this->badge($reportsBadge)],
         ];
 
         return view('livewire.sites.site-profile', [
@@ -538,6 +721,51 @@ class SiteProfile extends Component
     {
         $this->editingContactId = null;
         $this->contactForm = ['name' => '', 'role' => '', 'phone' => '', 'email' => '', 'priority' => 1];
+    }
+
+    private function resetNoteForm(): void
+    {
+        $this->editingNoteId = null;
+        $this->noteForm = ['body' => '', 'is_internal' => true];
+    }
+
+    private function resetPostForm(): void
+    {
+        $this->editingPostId = null;
+        $this->postForm = ['name' => '', 'description' => '', 'required_guards' => 1, 'status' => 'active'];
+    }
+
+    private function resetPostOrderForm(): void
+    {
+        $this->editingPostOrderId = null;
+        $this->postOrderForm = ['site_post_id' => '', 'title' => '', 'instructions' => '', 'is_active' => true];
+    }
+
+    private function resetTourForm(): void
+    {
+        $this->editingTourId = null;
+        $this->tourForm = ['name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+    }
+
+    private function resetTagForm(): void
+    {
+        $this->editingTourTagId = null;
+        $this->tagForm = [
+            'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
+            'instructions' => '', 'latitude' => '', 'longitude' => '',
+        ];
+    }
+
+    private function resetTaskForm(): void
+    {
+        $this->editingTaskId = null;
+        $this->taskForm = ['patrol_checkpoint_id' => '', 'title' => '', 'response_type' => 'yes_no', 'is_required' => true];
+    }
+
+    private function resetChecklistForm(): void
+    {
+        $this->editingChecklistId = null;
+        $this->checklistForm = ['metric' => '', 'target_value' => '', 'frequency' => 'daily', 'grace_minutes' => 0];
     }
 
     private function badge(int $count): ?string

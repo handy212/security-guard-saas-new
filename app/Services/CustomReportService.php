@@ -15,6 +15,30 @@ class CustomReportService
     {
         $template = ReportTemplate::create($data + ['tenant_id' => TenantContext::id()]);
 
+        $this->syncFields($template, $fields);
+
+        return $template->load('fields');
+    }
+
+    public function updateTemplate(ReportTemplate $template, array $data, array $fields): ReportTemplate
+    {
+        $template->update(collect($data)->only(['name', 'description', 'client_account_id', 'is_active'])->all());
+        $this->syncFields($template, $fields);
+
+        return $template->fresh('fields');
+    }
+
+    public function deleteTemplate(ReportTemplate $template): void
+    {
+        $template->assignments()->delete();
+        $template->fields()->delete();
+        $template->delete();
+    }
+
+    private function syncFields(ReportTemplate $template, array $fields): void
+    {
+        $template->fields()->delete();
+
         foreach ($fields as $index => $field) {
             ReportTemplateField::create([
                 'report_template_id' => $template->id,
@@ -25,8 +49,6 @@ class CustomReportService
                 'options' => $field['options'] ?? null,
             ]);
         }
-
-        return $template->load('fields');
     }
 
     public function assignToSite(int $templateId, int $siteId, ?int $sitePostId = null): ReportTemplateAssignment

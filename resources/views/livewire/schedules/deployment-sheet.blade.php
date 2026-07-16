@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell title="Deployment Sheet" description="Daily roster — assign, confirm, and reassign from here.">
+    <x-page-shell title="Deployment Sheet" description="Daily roster — assign, confirm, kit, and reassign from here.">
         <x-slot:actions>
             <x-button variant="secondary" size="sm" wire:click="previousDay">Previous</x-button>
             <x-button variant="secondary" size="sm" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
@@ -18,8 +18,9 @@
             <div class="space-y-4">
                 <div class="stat-grid">
                     <x-stat-card compact label="Assignments" :value="$stats['assignments']" icon="schedules" />
-                    <x-stat-card compact label="Sites" :value="$stats['sites']" icon="sites" tone="info" />
+                    <x-stat-card compact label="Confirmed" :value="$stats['confirmed']" icon="check" tone="success" />
                     <x-stat-card compact label="Pending confirm" :value="$stats['pending']" icon="guards" :tone="$stats['pending'] ? 'warning' : 'default'" />
+                    <x-stat-card compact label="Kit issued" :value="$stats['kit']" icon="sites" :tone="$stats['kit'] ? 'info' : 'default'" />
                     <x-stat-card compact label="Staffing gaps" :value="$stats['gaps']" icon="dispatch" :tone="$stats['gaps'] ? 'danger' : 'success'" />
                 </div>
 
@@ -91,6 +92,7 @@
                             <x-table.th>Time</x-table.th>
                             <x-table.th>Site / Post</x-table.th>
                             <x-table.th>Guard</x-table.th>
+                            <x-table.th>Kit</x-table.th>
                             <x-table.th>Status</x-table.th>
                             <x-table.th class="print:hidden">Actions</x-table.th>
                         </tr>
@@ -105,8 +107,18 @@
                                     @if ($assignment->shift?->sitePost)
                                         <div class="text-xs text-zinc-500">{{ $assignment->shift->sitePost->name }}</div>
                                     @endif
+                                    @if ($assignment->shift?->clientAccount)
+                                        <div class="text-xs text-zinc-400">{{ $assignment->shift->clientAccount->name }}</div>
+                                    @endif
                                 </x-table.td>
                                 <x-table.td>{{ $assignment->assignedGuard?->full_name ?? 'Unassigned' }}</x-table.td>
+                                <x-table.td>
+                                    @forelse ($assignment->equipmentAssignments as $issued)
+                                        <div class="text-xs text-zinc-700 dark:text-zinc-300">{{ $issued->asset?->name ?? 'Asset' }}</div>
+                                    @empty
+                                        <span class="text-xs text-zinc-400">—</span>
+                                    @endforelse
+                                </x-table.td>
                                 <x-table.td><x-badge :status="$assignment->status" /></x-table.td>
                                 <x-table.td class="print:hidden">
                                     <div class="flex flex-wrap gap-2">
@@ -114,12 +126,12 @@
                                             <button type="button" class="text-xs font-medium text-accent-600 hover:underline" wire:click="confirmAssignment({{ $assignment->id }})">Confirm</button>
                                         @endif
                                         <button type="button" class="text-xs font-medium text-zinc-600 hover:underline" wire:click="openReassign({{ $assignment->id }})">Reassign</button>
-                                        <button type="button" class="text-xs font-medium text-red-600 hover:underline" wire:click="unassign({{ $assignment->id }})" wire:confirm="Unassign this guard?">Unassign</button>
+                                        <button type="button" class="text-xs font-medium text-red-600 hover:underline" wire:click="unassign({{ $assignment->id }})" wire:confirm="Unassign this guard and return kit?">Unassign</button>
                                     </div>
                                 </x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="6">
+                            <x-table.empty colspan="7">
                                 <x-empty-state title="No deployments for this date" description="Use the deploy wizard or fill gaps above.">
                                     <x-slot:actions>
                                         <x-button href="{{ route('schedules.deploy', ['date' => $date]) }}">Deploy wizard</x-button>

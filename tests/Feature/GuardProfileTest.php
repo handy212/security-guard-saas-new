@@ -36,8 +36,8 @@ class GuardProfileTest extends TestCase
             ->assertSee($guard->full_name)
             ->assertSee('Overview')
             ->assertSee('Availability')
-            ->assertSee('Skill Set')
-            ->assertSee('Settings');
+            ->assertSee('Qualifications')
+            ->assertSee('HR');
     }
 
     public function test_guard_profile_tabs_switch(): void
@@ -47,7 +47,7 @@ class GuardProfileTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(GuardProfile::class, ['guard' => $guard])
             ->call('setTab', 'notes')
-            ->assertSet('activeTab', 'notes')
+            ->assertSet('activeTab', 'hr')
             ->assertSee('Add note');
     }
 
@@ -57,7 +57,7 @@ class GuardProfileTest extends TestCase
 
         Livewire::actingAs($this->admin)
             ->test(GuardProfile::class, ['guard' => $guard])
-            ->call('setTab', 'notes')
+            ->call('setTab', 'hr')
             ->set('noteForm.body', 'Completed annual refresher training.')
             ->call('addNote')
             ->assertHasNoErrors();
@@ -114,6 +114,7 @@ class GuardProfileTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(GuardProfile::class, ['guard' => $guard])
             ->call('setTab', 'settings')
+            ->assertSet('activeTab', 'profile')
             ->set('settingsForm.allow_open_shift_bids', false)
             ->set('settingsForm.preferred_contact_method', 'email')
             ->call('saveSettings')
