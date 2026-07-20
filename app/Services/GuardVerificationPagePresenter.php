@@ -44,8 +44,10 @@ class GuardVerificationPagePresenter
 
         $isAuthorisedToday = $this->isAuthorisedToday($guard, $isVerified, $currentAssignment);
         $statusTone = $this->statusTone($guard, $isVerified, $currentAssignment);
-        $issuedAssets = $this->issuedAssetsForAssignment($currentAssignment);
-        $supervisor = $this->supervisorForAssignment($currentAssignment, $guard->tenant_id);
+        // Preference hides assignment details on the public page; status still uses the real assignment when required.
+        $assignmentForDisplay = $guard->show_current_assignment ? $currentAssignment : null;
+        $issuedAssets = $this->issuedAssetsForAssignment($assignmentForDisplay);
+        $supervisor = $this->supervisorForAssignment($assignmentForDisplay, $guard->tenant_id);
 
         return [
             'companyName' => $branding['company_name'],
@@ -55,7 +57,7 @@ class GuardVerificationPagePresenter
             'brandColor' => $branding['brand_color'],
             'guard' => $guard,
             'branchName' => $guard->branch?->name,
-            'currentAssignment' => $currentAssignment,
+            'currentAssignment' => $assignmentForDisplay,
             'issuedAssets' => $issuedAssets,
             'supervisor' => $supervisor,
             'skills' => $skills,
@@ -81,6 +83,9 @@ class GuardVerificationPagePresenter
 
     /**
      * Public KYG status: suspended | unassigned | authorised | pending.
+     *
+     * When show_current_assignment is false, verified active guards are authorised
+     * without requiring an on-shift assignment (assignment details are also hidden).
      */
     public function statusTone(Guard $guard, bool $isVerified, ?array $currentAssignment): string
     {
@@ -90,6 +95,10 @@ class GuardVerificationPagePresenter
 
         if (! $isVerified || $guard->status !== 'active') {
             return 'pending';
+        }
+
+        if (! $guard->show_current_assignment) {
+            return 'authorised';
         }
 
         if ($currentAssignment === null) {
@@ -218,25 +227,42 @@ class GuardVerificationPagePresenter
         if (is_string($appearance)) {
             $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $appearance) ?: [])));
         }
-        if (! is_array($appearance) || $appearance === []) {
-            $appearance = $defaults['expected_appearance'] ?? [];
+
+        if (is_array($appearance) && $appearance !== []) {
+            // Preserve tenant customizations as stored — do not silently drop items.
+            $merged['expected_appearance'] = array_values(array_map(
+                fn ($item) => is_string($item) ? trim($item) : $item,
+                $appearance
+            ));
+        } else {
+            // Defaults only: strip legacy kit placeholders (kit belongs under issued shift assets).
+            $merged['expected_appearance'] = $this->withoutLegacyKitPlaceholders(
+                $defaults['expected_appearance'] ?? []
+            );
         }
 
-        // Strip legacy kit placeholders — radios/bodycams belong under issued shift assets.
+        $merged['report_concern_phone'] = $stored['report_concern_phone'] ?? null;
+        $merged['report_concern_email'] = $stored['report_concern_email'] ?? null;
+
+        return $merged;
+    }
+
+    /**
+     * @param  list<string>  $items
+     * @return list<string>
+     */
+    private function withoutLegacyKitPlaceholders(array $items): array
+    {
         $legacyKitPlaceholders = [
             'company radio',
             'bodycam / guard tour device',
             'bodycam',
             'guard tour device',
         ];
-        $merged['expected_appearance'] = array_values(array_filter(
-            $appearance,
-            fn ($item) => ! in_array(strtolower(trim((string) $item)), $legacyKitPlaceholders, true)
+
+        return array_values(array_filter(
+            $items,
+            fn ($item) => $item !== '' && ! in_array(strtolower(trim((string) $item)), $legacyKitPlaceholders, true)
         ));
-
-        $merged['report_concern_phone'] = $stored['report_concern_phone'] ?? null;
-        $merged['report_concern_email'] = $stored['report_concern_email'] ?? null;
-
-        return $merged;
     }
 }

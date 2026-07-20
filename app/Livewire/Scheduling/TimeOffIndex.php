@@ -93,6 +93,7 @@ class TimeOffIndex extends Component
         $request = LeaveRequest::where('tenant_id', TenantContext::id())->findOrFail($requestId);
         abort_unless($request->status === LeaveStatus::PENDING, 422, 'Only pending requests can be edited.');
 
+        $this->resetErrorBag();
         $this->editingLeaveId = $request->id;
         $this->leaveForm = [
             'guard_id' => (string) $request->guard_id,
@@ -179,6 +180,7 @@ class TimeOffIndex extends Component
     {
         $availability = GuardAvailability::where('tenant_id', TenantContext::id())->findOrFail($availabilityId);
 
+        $this->resetErrorBag();
         $this->editingAvailabilityId = $availability->id;
         $this->availabilityForm = [
             'guard_id' => (string) $availability->guard_id,
@@ -248,6 +250,7 @@ class TimeOffIndex extends Component
 
     private function resetLeaveForm(): void
     {
+        $this->resetErrorBag();
         $this->showLeaveForm = false;
         $this->editingLeaveId = null;
         $this->leaveForm = ['guard_id' => '', 'type' => 'annual', 'starts_on' => '', 'ends_on' => '', 'reason' => ''];
@@ -255,6 +258,7 @@ class TimeOffIndex extends Component
 
     private function resetAvailabilityForm(): void
     {
+        $this->resetErrorBag();
         $this->showAvailabilityForm = false;
         $this->editingAvailabilityId = null;
         $this->availabilityForm = ['guard_id' => '', 'weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];

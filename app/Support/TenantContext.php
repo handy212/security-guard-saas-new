@@ -120,7 +120,9 @@ class TenantContext
 
     public static function exitTenant(): void
     {
-        // Do not rotate the session/CSRF here — suspend/exit can run inside Livewire.
+        // Do not rotate the session/CSRF here — suspend/exit can run inside Livewire
+        // (e.g. TenantManagement::clearTenantSession). Full-page exits regenerate in
+        // PlatformTenantContextController::exit after this call.
         session()->forget('platform_tenant_slug');
     }
 }

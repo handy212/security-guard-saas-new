@@ -39,11 +39,20 @@ class KygPageSettings extends Component
         $this->reportConcernPhone = $stored['report_concern_phone'] ?? null;
         $this->reportConcernEmail = $stored['report_concern_email'] ?? null;
 
-        $appearance = $stored['expected_appearance'] ?? $defaults['expected_appearance'] ?? [];
-        if (! is_array($appearance)) {
-            $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $appearance) ?: [])));
+        if (array_key_exists('expected_appearance', $stored) && $stored['expected_appearance'] !== null && $stored['expected_appearance'] !== '') {
+            $appearance = $stored['expected_appearance'];
+            if (! is_array($appearance)) {
+                $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $appearance) ?: [])));
+            }
+            // Keep tenant-stored items intact (no silent stripping of custom kit-like lines).
+            $appearance = array_values(array_filter(array_map(
+                fn ($item) => is_string($item) ? trim($item) : $item,
+                $appearance
+            ), fn ($item) => $item !== ''));
+        } else {
+            $appearance = $this->withoutLegacyKitPlaceholders($defaults['expected_appearance'] ?? []);
         }
-        $this->expectedAppearanceText = implode("\n", $this->sanitizeAppearanceItems($appearance));
+        $this->expectedAppearanceText = implode("\n", $appearance);
     }
 
     public function save(): void
@@ -65,9 +74,8 @@ class KygPageSettings extends Component
             ->where('key', 'verification')
             ->value('value') ?? [];
 
-        $appearance = $this->sanitizeAppearanceItems(
-            array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $this->expectedAppearanceText) ?: [])))
-        );
+        // Persist what the admin entered — do not silently drop lines that match legacy kit labels.
+        $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $this->expectedAppearanceText) ?: [])));
 
         $existing['page'] = array_merge($existing['page'] ?? [], [
             'subtitle' => $this->subtitle,
@@ -96,7 +104,7 @@ class KygPageSettings extends Component
      * @param  list<string>  $items
      * @return list<string>
      */
-    private function sanitizeAppearanceItems(array $items): array
+    private function withoutLegacyKitPlaceholders(array $items): array
     {
         $legacyKitPlaceholders = [
             'company radio',

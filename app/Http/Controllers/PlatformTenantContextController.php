@@ -12,6 +12,8 @@ class PlatformTenantContextController extends Controller
         abort_unless(TenantContext::isPlatformAdmin(), 403);
 
         TenantContext::exitTenant();
+        // Safe here: this action redirects away from Livewire, unlike in-component exits.
+        session()->regenerate();
 
         return redirect()->route('saas.tenants');
     }
