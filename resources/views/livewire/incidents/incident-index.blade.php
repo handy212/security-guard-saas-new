@@ -45,13 +45,22 @@
                         <button
                             type="button"
                             wire:click="viewIncident({{ $incident->id }})"
-                            class="mb-1 w-full rounded-lg border border-transparent border-l-4 px-2 py-3 text-left text-sm transition hover:border-zinc-200 hover:bg-zinc-50 {{ $viewingIncidentId === $incident->id ? 'border-accent-200 bg-accent-50' : '' }} {{ match($incident->severity) { 'critical' => 'border-l-red-500', 'high' => 'border-l-amber-500', default => 'border-l-zinc-300' } }}"
+                            @class([
+                                'board-item',
+                                match ($incident->severity) {
+                                    'critical' => 'border-l-red-500',
+                                    'high' => 'border-l-amber-500',
+                                    'medium' => 'border-l-accent-500',
+                                    default => 'border-l-zinc-300 dark:border-l-zinc-600',
+                                },
+                                'board-item-active' => $viewingIncidentId === $incident->id,
+                            ])
                             wire:key="incident-{{ $incident->id }}"
                         >
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-zinc-900">{{ $incident->title }}</div>
-                                    <div class="truncate text-xs text-zinc-500">{{ $incident->site?->name ?? '—' }} · {{ $incidentTypes[$incident->type ?? $incident->incident_type] ?? ($incident->type ?? $incident->incident_type) }}</div>
+                                    <div class="board-item-title">{{ $incident->title }}</div>
+                                    <div class="board-item-meta">{{ $incident->site?->name ?? '—' }} · {{ $incidentTypes[$incident->type ?? $incident->incident_type] ?? ($incident->type ?? $incident->incident_type) }}</div>
                                     <div class="mt-1 text-[11px] text-zinc-400">{{ $incident->reported_at?->diffForHumans() ?? $incident->created_at?->diffForHumans() }}</div>
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
@@ -94,13 +103,13 @@
                             @endif
                         </div>
 
-                        <div class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900/60">
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">
+                        <div class="meta-tile">
+                            <div class="meta-tile-value">
                                 {{ $incidentTypes[$viewingIncident->type ?? $viewingIncident->incident_type] ?? ($viewingIncident->type ?? 'Incident') }}
                             </div>
-                            <div class="text-xs text-zinc-500">
+                            <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                                 Reported by {{ $viewingIncident->reportedBy?->name ?? '—' }}
-                                · {{ $viewingIncident->reported_at?->format('M j, Y H:i') ?? $viewingIncident->created_at?->format('M j, Y H:i') }}
+                                · <span class="tabular-nums">{{ $viewingIncident->reported_at?->format('M j, Y H:i') ?? $viewingIncident->created_at?->format('M j, Y H:i') }}</span>
                             </div>
                         </div>
 

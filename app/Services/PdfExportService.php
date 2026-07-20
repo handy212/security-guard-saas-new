@@ -11,7 +11,7 @@ class PdfExportService
 {
     public function exportIncident(Incident $incident): string
     {
-        $incident->load(['site']);
+        $incident->load(['site', 'tenant']);
 
         $pdf = Pdf::loadView('pdf.incident', ['incident' => $incident]);
         $path = 'exports/incidents/incident-'.$incident->id.'-'.now()->format('YmdHis').'.pdf';
@@ -22,7 +22,7 @@ class PdfExportService
 
     public function exportInvoice(Invoice $invoice): string
     {
-        $invoice->load(['clientAccount', 'items']);
+        $invoice->load(['clientAccount', 'items', 'tenant']);
 
         $pdf = Pdf::loadView('pdf.invoice', ['invoice' => $invoice]);
         $path = 'exports/invoices/invoice-'.$invoice->id.'-'.now()->format('YmdHis').'.pdf';
@@ -33,7 +33,7 @@ class PdfExportService
 
     public function exportEstimate(\App\Models\Estimate $estimate): string
     {
-        $estimate->load(['clientAccount', 'items']);
+        $estimate->load(['clientAccount', 'items', 'tenant']);
 
         $pdf = Pdf::loadView('pdf.estimate', ['estimate' => $estimate]);
         $path = 'exports/estimates/estimate-'.$estimate->id.'-'.now()->format('YmdHis').'.pdf';

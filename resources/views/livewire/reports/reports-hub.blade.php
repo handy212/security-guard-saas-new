@@ -14,31 +14,36 @@
                 <x-stat-card compact label="Templates" :value="$stats['templates']" icon="plan" :href="route('reports.templates')" />
             </div>
 
-            <x-section-card title="Recent daily reports">
+            <div class="flex flex-wrap gap-1.5">
+                <a href="{{ route('reports.daily') }}" class="quick-action" wire:navigate>Daily reports</a>
+                <a href="{{ route('reports.templates') }}" class="quick-action" wire:navigate>Custom templates</a>
+            </div>
+
+            <x-section-card title="Recent daily reports" flush>
+                <x-slot:actions>
+                    <a href="{{ route('reports.daily') }}" class="page-link" wire:navigate>View all</a>
+                </x-slot:actions>
                 @forelse ($recentDaily as $report)
-                    <div class="flex items-center justify-between gap-3 border-t border-zinc-100 py-2.5 text-sm first:border-0 dark:border-zinc-800" wire:key="dar-{{ $report->id }}">
-                        <div class="min-w-0">
+                    <a href="{{ route('reports.daily') }}" wire:navigate class="list-row" wire:key="dar-{{ $report->id }}">
+                        <div class="min-w-0 flex-1">
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->title }}</div>
-                            <div class="truncate text-xs text-zinc-500">{{ $report->site?->name }} · {{ $report->assignedGuard?->full_name }}</div>
+                            <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $report->site?->name }} · {{ $report->assignedGuard?->full_name }}</div>
                         </div>
                         <div class="flex shrink-0 items-center gap-2">
-                            <span class="text-xs text-zinc-500">{{ $report->report_date?->format('M j') }}</span>
+                            <span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $report->report_date?->format('M j') }}</span>
                             <x-badge :status="$report->status" />
                         </div>
-                    </div>
+                    </a>
                 @empty
-                    <x-empty-state compact title="No reports yet" description="Guards submit daily activity from the field.">
-                        <x-slot:actions>
-                            <x-button size="sm" :href="route('reports.daily')">Daily reports</x-button>
-                        </x-slot:actions>
-                    </x-empty-state>
+                    <div class="p-3">
+                        <x-empty-state compact title="No reports yet" description="Guards submit daily activity from the field.">
+                            <x-slot:actions>
+                                <x-button size="sm" :href="route('reports.daily')">Daily reports</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
+                    </div>
                 @endforelse
             </x-section-card>
-
-            <div class="flex flex-wrap gap-2">
-                <x-button :href="route('reports.daily')">Daily reports</x-button>
-                <x-button variant="secondary" :href="route('reports.templates')">Custom templates</x-button>
-            </div>
         </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

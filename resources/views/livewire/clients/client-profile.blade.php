@@ -59,37 +59,37 @@
                     </x-section-card>
 
                     <x-section-card title="General information">
-                        <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                            <div class="flex justify-between gap-4 py-2.5 first:pt-0">
-                                <dt class="text-zinc-500">Company</dt>
-                                <dd class="text-right font-medium text-zinc-900 dark:text-zinc-100">{{ $clientAccount->name }}</dd>
+                        <dl class="profile-dl">
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Company</dt>
+                                <dd class="profile-dl-value">{{ $clientAccount->name }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Industry</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->industry ?: '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Industry</dt>
+                                <dd class="profile-dl-value font-normal">{{ $clientAccount->industry ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Phone</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->phone ?: '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Phone</dt>
+                                <dd class="profile-dl-value font-normal">{{ $clientAccount->phone ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Email</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->email ?: '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Email</dt>
+                                <dd class="profile-dl-value font-normal">{{ $clientAccount->email ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Address</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->address ?: '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Address</dt>
+                                <dd class="profile-dl-value font-normal">{{ $clientAccount->address ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Default monthly rate</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->default_monthly_rate ? number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Default monthly rate</dt>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->default_monthly_rate ? '₦'.number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Contacts</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $clientAccount->contacts->count() }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Contacts</dt>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->contacts->count() }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5 last:pb-0">
-                                <dt class="text-zinc-500">Status</dt>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Status</dt>
                                 <dd class="text-right"><x-badge :status="$clientAccount->status" /></dd>
                             </div>
                         </dl>
@@ -101,39 +101,45 @@
                     </x-section-card>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <x-section-card title="Recent shifts">
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <x-section-card title="Recent shifts" flush>
                         @forelse ($recentActivity['shifts'] as $shift)
-                            <div class="border-t border-zinc-100 py-3 first:border-t-0">
-                                <div class="font-medium text-sm">{{ $shift->site?->name ?? 'Site' }}</div>
-                                <div class="text-xs text-zinc-500">{{ $shift->starts_at?->format('M j, Y g:i A') }}</div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-zinc-500">No shifts scheduled yet.</p>
-                        @endforelse
-                    </x-section-card>
-
-                    <x-section-card title="Recent patrols">
-                        @forelse ($recentActivity['patrols'] as $patrol)
-                            <div class="border-t border-zinc-100 py-3 first:border-t-0">
-                                <div class="font-medium text-sm">{{ $patrol->route?->site?->name ?? 'Site' }}</div>
-                                <div class="text-xs text-zinc-500">
-                                    {{ $patrol->assignedGuard?->full_name ?? 'Guard' }} · {{ ucfirst($patrol->status) }}
+                            <div class="list-row" wire:key="client-shift-{{ $shift->id }}">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $shift->site?->name ?? 'Site' }}</div>
+                                    <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $shift->starts_at?->format('M j, Y H:i') }}</div>
                                 </div>
                             </div>
                         @empty
-                            <p class="text-sm text-zinc-500">No patrol activity yet.</p>
+                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No shifts scheduled yet.</p>
                         @endforelse
                     </x-section-card>
 
-                    <x-section-card title="Recent incidents">
-                        @forelse ($recentActivity['incidents'] as $incident)
-                            <div class="border-t border-zinc-100 py-3 first:border-t-0">
-                                <div class="font-medium text-sm">{{ $incident->title }}</div>
-                                <div class="text-xs text-zinc-500">{{ $incident->site?->name }} · {{ ucfirst($incident->status) }}</div>
+                    <x-section-card title="Recent patrols" flush>
+                        @forelse ($recentActivity['patrols'] as $patrol)
+                            <div class="list-row" wire:key="client-patrol-{{ $patrol->id }}">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $patrol->route?->site?->name ?? 'Site' }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ $patrol->assignedGuard?->full_name ?? 'Guard' }} · {{ ucfirst($patrol->status) }}
+                                    </div>
+                                </div>
                             </div>
                         @empty
-                            <p class="text-sm text-zinc-500">No incidents reported.</p>
+                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No patrol activity yet.</p>
+                        @endforelse
+                    </x-section-card>
+
+                    <x-section-card title="Recent incidents" flush>
+                        @forelse ($recentActivity['incidents'] as $incident)
+                            <div class="list-row" wire:key="client-incident-{{ $incident->id }}">
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $incident->title }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $incident->site?->name }} · {{ ucfirst($incident->status) }}</div>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No incidents reported.</p>
                         @endforelse
                     </x-section-card>
                 </div>
@@ -141,7 +147,7 @@
         @endif
 
         @if ($activeTab === 'profile')
-            <x-form-card title="Client profile">
+            <x-form-card title="Client profile" description="Company details used across scheduling and billing">
                 <form wire:submit="saveProfile" class="grid gap-3 sm:grid-cols-2">
                     <x-input wire:model="profileForm.name" label="Client name" class="sm:col-span-2" />
                     <x-input wire:model="profileForm.industry" label="Industry" />
@@ -164,7 +170,7 @@
 
         @if ($activeTab === 'contacts')
             <div class="page-split">
-                <x-section-card title="Contacts">
+                <x-section-card title="Contacts" description="Key people at this client">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -177,14 +183,16 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($clientAccount->contacts as $contact)
-                                <tr wire:key="contact-{{ $contact->id }}">
-                                    <x-table.td class="font-medium">{{ $contact->name }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="contact-{{ $contact->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $contact->name }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $contact->role ?: '—' }}</x-table.td>
                                     <x-table.td responsive="lg" muted>{{ $contact->email ?: '—' }}</x-table.td>
                                     <x-table.td responsive="lg" muted>{{ $contact->phone ?: '—' }}</x-table.td>
-                                    <x-table.td align="right" class="space-x-2">
-                                        <button type="button" wire:click="editContact({{ $contact->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                        <button type="button" wire:click="deleteContact({{ $contact->id }})" wire:confirm="Remove this contact?" class="text-xs text-red-600 hover:underline">Remove</button>
+                                    <x-table.td align="right">
+                                        <div class="table-inline-actions justify-end">
+                                            <button type="button" wire:click="editContact({{ $contact->id }})" class="table-action">Edit</button>
+                                            <button type="button" wire:click="deleteContact({{ $contact->id }})" wire:confirm="Remove this contact?" class="table-action text-red-600">Remove</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -215,30 +223,28 @@
 
         @if ($activeTab === 'notes')
             <div class="page-split">
-                <x-section-card title="Notes">
-                    <div class="space-y-3">
-                        @forelse ($clientAccount->notes as $note)
-                            <div wire:key="note-{{ $note->id }}" class="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <p class="text-sm text-zinc-800 whitespace-pre-wrap">{{ $note->body }}</p>
-                                        <p class="mt-2 text-xs text-zinc-500">
-                                            {{ $note->author?->name ?? 'System' }} · {{ $note->created_at->format('M j, Y g:i A') }}
-                                            @if ($note->is_internal)
-                                                · <span class="font-medium">Internal</span>
-                                            @endif
-                                        </p>
-                                    </div>
-                                    <div class="flex shrink-0 gap-2">
-                                        <button type="button" wire:click="editNote({{ $note->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                        <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="text-xs text-red-600 hover:underline">Delete</button>
-                                    </div>
-                                </div>
+                <x-section-card title="Notes" description="Internal history for this account" flush>
+                    @forelse ($clientAccount->notes as $note)
+                        <div class="list-row-start" wire:key="note-{{ $note->id }}">
+                            <div class="min-w-0 flex-1">
+                                <p class="whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">{{ $note->body }}</p>
+                                <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                    {{ $note->author?->name ?? 'System' }} · {{ $note->created_at->format('M j, Y g:i A') }}
+                                    @if ($note->is_internal)
+                                        · <span class="font-medium text-zinc-600 dark:text-zinc-300">Internal</span>
+                                    @endif
+                                </p>
                             </div>
-                        @empty
+                            <div class="table-inline-actions shrink-0">
+                                <button type="button" wire:click="editNote({{ $note->id }})" class="table-action">Edit</button>
+                                <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="table-action text-red-600">Delete</button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-3">
                             <x-empty-state compact title="No notes" description="Add internal notes about this client." />
-                        @endforelse
-                    </div>
+                        </div>
+                    @endforelse
                 </x-section-card>
 
                 <x-form-card :title="$editingNoteId ? 'Edit note' : 'Add note'">
@@ -248,7 +254,7 @@
                             <textarea wire:model="noteForm.body" rows="5" class="form-input mt-1"></textarea>
                             @error('noteForm.body') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300">
                             Internal only (not visible in portal)
                         </label>
@@ -260,7 +266,7 @@
 
         @if ($activeTab === 'files')
             <div class="page-split">
-                <x-section-card title="Files">
+                <x-section-card title="Files" description="Contracts, SOWs, and client documents">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -273,20 +279,22 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($clientAccount->documents as $document)
-                                <tr wire:key="doc-{{ $document->id }}">
-                                    <x-table.td class="font-medium">{{ $document->title }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="doc-{{ $document->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $document->title }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $document->document_type }}</x-table.td>
-                                    <x-table.td responsive="lg" muted>{{ $document->expires_on?->format('M j, Y') ?? '—' }}</x-table.td>
+                                    <x-table.td responsive="lg" muted class="tabular-nums">{{ $document->expires_on?->format('M j, Y') ?? '—' }}</x-table.td>
                                     <x-table.td>
                                         @if ($document->client_visible)
-                                            <span class="text-xs font-medium text-emerald-700">Visible</span>
+                                            <span class="text-xs font-medium text-emerald-700 dark:text-emerald-400">Visible</span>
                                         @else
                                             <span class="text-xs text-zinc-400">Internal</span>
                                         @endif
                                     </x-table.td>
                                     <x-table.td align="right">
-                                        <a href="{{ route('files.client-document', $document) }}" class="text-xs font-medium text-accent-600 hover:underline">Download</a>
-                                        <button type="button" wire:click="deleteDocument({{ $document->id }})" wire:confirm="Delete this file?" class="ml-2 text-xs text-red-600 hover:underline">Delete</button>
+                                        <div class="table-inline-actions justify-end">
+                                            <a href="{{ route('files.client-document', $document) }}" class="table-action">Download</a>
+                                            <button type="button" wire:click="deleteDocument({{ $document->id }})" wire:confirm="Delete this file?" class="table-action text-red-600">Delete</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -307,11 +315,11 @@
                             @endforeach
                         </x-select>
                         <x-input wire:model="documentForm.expires_on" label="Expires on" type="date" />
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="documentForm.client_visible" class="rounded border-zinc-300">
                             Visible in client portal
                         </label>
-                        <input wire:model="documentFile" type="file" class="form-input text-xs">
+                        <input wire:model="documentFile" type="file" class="form-input text-sm">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit" size="sm">Upload</x-button>
                     </form>
@@ -325,7 +333,7 @@
                     <x-button size="sm" wire:click="openSiteForm">Add post site</x-button>
                 </div>
 
-                <x-data-table>
+                <x-data-table title="Post sites">
                     <x-table.head>
                         <tr>
                             <x-table.th>Site</x-table.th>
@@ -337,12 +345,12 @@
                     </x-table.head>
                     <tbody>
                         @forelse ($clientAccount->sites as $site)
-                            <tr wire:key="site-{{ $site->id }}">
-                                <x-table.td class="font-medium">
-                                    <a href="{{ route('sites.show', $site) }}" class="font-medium text-accent-700 hover:underline">{{ $site->name }}</a>
+                            <tr class="table-row-hover" wire:key="site-{{ $site->id }}">
+                                <x-table.td>
+                                    <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
                                 </x-table.td>
                                 <x-table.td responsive="md" muted>{{ $site->address ?: '—' }}</x-table.td>
-                                <x-table.td responsive="lg" muted>
+                                <x-table.td responsive="lg" muted class="tabular-nums">
                                     @if ($site->latitude && $site->longitude)
                                         {{ $site->latitude }}, {{ $site->longitude }}
                                     @else
@@ -351,9 +359,11 @@
                                 </x-table.td>
                                 <x-table.td><x-badge :status="$site->status" /></x-table.td>
                                 <x-table.td align="right">
-                                    <button type="button" wire:click="openSiteForm({{ $site->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                    <a href="{{ route('sites.show', $site) }}" class="ml-2 text-xs font-medium text-accent-600 hover:underline">Profile</a>
-                                    <button type="button" wire:click="deleteSite({{ $site->id }})" wire:confirm="Delete this site?" class="ml-2 text-xs text-red-600 hover:underline">Delete</button>
+                                    <div class="table-inline-actions justify-end">
+                                        <button type="button" wire:click="openSiteForm({{ $site->id }})" class="table-action">Edit</button>
+                                        <a href="{{ route('sites.show', $site) }}" class="table-action">Profile</a>
+                                        <button type="button" wire:click="deleteSite({{ $site->id }})" wire:confirm="Delete this site?" class="table-action text-red-600">Delete</button>
+                                    </div>
                                 </x-table.td>
                             </tr>
                         @empty
@@ -388,9 +398,9 @@
 
         @if ($activeTab === 'portal')
             <div class="page-split">
-                <x-form-card title="Client portal settings">
+                <x-form-card title="Client portal settings" description="Access and welcome message for portal users">
                     <form wire:submit="savePortal" class="space-y-4">
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="portalForm.portal_enabled" class="rounded border-zinc-300">
                             Enable client portal for this account
                         </label>
@@ -403,21 +413,21 @@
                 </x-form-card>
 
                 <x-section-card title="Portal status">
-                    <dl class="space-y-3 text-sm">
-                        <div class="flex justify-between gap-3">
-                            <dt class="text-zinc-500">Portal access</dt>
-                            <dd><x-badge :status="$clientAccount->portal_enabled ? 'active' : 'inactive'" /></dd>
+                    <dl class="profile-dl">
+                        <div class="profile-dl-row">
+                            <dt class="profile-dl-label">Portal access</dt>
+                            <dd class="text-right"><x-badge :status="$clientAccount->portal_enabled ? 'active' : 'inactive'" /></dd>
                         </div>
-                        <div class="flex justify-between gap-3">
-                            <dt class="text-zinc-500">Portal users</dt>
-                            <dd class="font-medium">{{ $clientAccount->portalUsers->where('status', 'active')->count() }} active</dd>
+                        <div class="profile-dl-row">
+                            <dt class="profile-dl-label">Portal users</dt>
+                            <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->portalUsers->where('status', 'active')->count() }} active</dd>
                         </div>
-                        <div class="flex justify-between gap-3">
-                            <dt class="text-zinc-500">Visible files</dt>
-                            <dd class="font-medium">{{ $clientAccount->documents->where('client_visible', true)->count() }}</dd>
+                        <div class="profile-dl-row">
+                            <dt class="profile-dl-label">Visible files</dt>
+                            <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->documents->where('client_visible', true)->count() }}</dd>
                         </div>
                     </dl>
-                    <div class="mt-4 flex flex-wrap gap-2">
+                    <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                         <x-button size="sm" variant="secondary" wire:click="setTab('users')">Manage users</x-button>
                         @if ($clientAccount->portal_enabled)
                             <x-button size="sm" variant="secondary" :href="route('client-portal.dashboard')" target="_blank">Open portal</x-button>
@@ -429,7 +439,7 @@
 
         @if ($activeTab === 'users')
             <div class="page-split">
-                <x-section-card title="Portal users">
+                <x-section-card title="Portal users" description="People who can sign into the client portal">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -441,15 +451,15 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($clientAccount->portalUsers as $user)
-                                <tr wire:key="user-{{ $user->id }}">
-                                    <x-table.td class="font-medium">{{ $user->name }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="user-{{ $user->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $user->name }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $user->email }}</x-table.td>
                                     <x-table.td><x-badge :status="$user->status" /></x-table.td>
                                     <x-table.td align="right">
                                         @if ($user->status === 'active')
-                                            <button type="button" wire:click="deactivatePortalUser({{ $user->id }})" wire:confirm="Deactivate this user?" class="text-xs text-red-600 hover:underline">Deactivate</button>
+                                            <button type="button" wire:click="deactivatePortalUser({{ $user->id }})" wire:confirm="Deactivate this user?" class="table-action text-red-600">Deactivate</button>
                                         @else
-                                            <button type="button" wire:click="reactivatePortalUser({{ $user->id }})" class="text-xs font-medium text-emerald-700 hover:underline">Reactivate</button>
+                                            <button type="button" wire:click="reactivatePortalUser({{ $user->id }})" class="table-action text-emerald-700">Reactivate</button>
                                         @endif
                                     </x-table.td>
                                 </tr>
@@ -464,7 +474,7 @@
 
                 <x-form-card title="Invite portal user">
                     @if (! $clientAccount->portal_enabled)
-                        <p class="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        <p class="mb-3 rounded-md border border-amber-200/90 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
                             Enable the portal on the Client Portal tab before creating users.
                         </p>
                     @endif
@@ -482,7 +492,7 @@
 
         @if ($activeTab === 'reports')
             <div class="page-split">
-                <x-section-card title="Email report schedules">
+                <x-section-card title="Email report schedules" description="Automated reports sent to this client">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -496,19 +506,21 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($clientAccount->reportSchedules as $schedule)
-                                <tr wire:key="schedule-{{ $schedule->id }}">
-                                    <x-table.td class="font-medium">{{ $reportTypes[$schedule->report_type] ?? $schedule->report_type }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="schedule-{{ $schedule->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $reportTypes[$schedule->report_type] ?? $schedule->report_type }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ ucfirst($schedule->frequency) }}</x-table.td>
                                     <x-table.td responsive="lg" muted>{{ implode(', ', $schedule->recipients ?? []) }}</x-table.td>
-                                    <x-table.td responsive="md" muted>{{ $schedule->last_sent_at?->format('M j, Y g:i A') ?? 'Never' }}</x-table.td>
+                                    <x-table.td responsive="md" muted class="tabular-nums">{{ $schedule->last_sent_at?->format('M j, Y g:i A') ?? 'Never' }}</x-table.td>
                                     <x-table.td>
                                         <x-badge :status="$schedule->is_active ? 'active' : 'inactive'" />
                                     </x-table.td>
                                     <x-table.td align="right">
-                                        <button type="button" wire:click="toggleReportSchedule({{ $schedule->id }})" class="text-xs font-medium text-accent-600 hover:underline">
-                                            {{ $schedule->is_active ? 'Pause' : 'Enable' }}
-                                        </button>
-                                        <button type="button" wire:click="deleteReportSchedule({{ $schedule->id }})" wire:confirm="Delete this schedule?" class="ml-2 text-xs text-red-600 hover:underline">Delete</button>
+                                        <div class="table-inline-actions justify-end">
+                                            <button type="button" wire:click="toggleReportSchedule({{ $schedule->id }})" class="table-action">
+                                                {{ $schedule->is_active ? 'Pause' : 'Enable' }}
+                                            </button>
+                                            <button type="button" wire:click="deleteReportSchedule({{ $schedule->id }})" wire:confirm="Delete this schedule?" class="table-action text-red-600">Delete</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty

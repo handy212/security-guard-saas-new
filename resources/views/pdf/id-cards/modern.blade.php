@@ -35,8 +35,8 @@
                 <tr>
                     <td valign="middle" width="60%">
                         <div class="id-number">{{ $card['employee_id'] }}</div>
-                        <div class="scan-hint" style="color:#94a3b8;font-size:5.5pt;">Issued {{ $card['issue_date'] }}</div>
-                        <div class="scan-hint">Scan to verify</div>
+                        <div class="scan-hint" style="font-size:5.5pt;">Issued {{ $card['issue_date'] }}</div>
+                        <div class="scan-hint">Scan to verify (KYG)</div>
                     </td>
                     <td valign="middle" align="right" width="40%">
                         @if ($qrPath || ! empty($qrPng))

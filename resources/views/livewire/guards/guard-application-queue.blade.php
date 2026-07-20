@@ -8,16 +8,19 @@
         <x-flash-status />
 
         @if ($publicApplyUrl)
-            <section class="card-surface mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="min-w-0">
-                    <h2 class="text-sm font-semibold text-zinc-900">Public application link</h2>
+            <section class="card-surface overflow-hidden">
+                <div class="card-header">
+                    <div class="min-w-0">
+                        <h2 class="card-header-title">Public application link</h2>
+                        <p class="card-header-meta truncate font-mono">{{ $publicApplyUrl }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn-secondary shrink-0"
+                        x-data
+                        x-on:click="navigator.clipboard.writeText(@js($publicApplyUrl)); $el.textContent = 'Copied'; setTimeout(() => $el.textContent = 'Copy link', 1500)"
+                    >Copy link</button>
                 </div>
-                <button
-                    type="button"
-                    class="btn-secondary shrink-0"
-                    x-data
-                    x-on:click="navigator.clipboard.writeText(@js($publicApplyUrl)); $el.textContent = 'Copied'; setTimeout(() => $el.textContent = 'Copy link', 1500)"
-                >Copy link</button>
             </section>
         @endif
 
@@ -33,48 +36,48 @@
 
         <div class="space-y-3">
             @forelse($applications as $application)
-                <article class="card-surface p-4" wire:key="app-{{ $application->id }}">
-                    <div class="flex flex-col gap-4 sm:flex-row">
+                <article class="card-surface overflow-hidden" wire:key="app-{{ $application->id }}">
+                    <div class="flex flex-col gap-4 p-4 sm:flex-row">
                         <div class="shrink-0">
                             @if ($application->photo_path)
                                 <img
                                     src="{{ route('files.application-photo', $application) }}"
                                     alt=""
-                                    class="h-28 w-20 rounded-xl border border-zinc-200 object-cover"
+                                    class="h-28 w-20 rounded-md border border-zinc-200/90 object-cover dark:border-zinc-700"
                                 >
                             @else
-                                <div class="flex h-28 w-20 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 text-xs text-zinc-400">No photo</div>
+                                <div class="flex h-28 w-20 items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 text-xs text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">No photo</div>
                             @endif
                         </div>
 
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-start justify-between gap-2">
                                 <div>
-                                    <h3 class="text-base font-semibold text-zinc-900">{{ $application->full_name }}</h3>
-                                    <p class="mt-0.5 text-xs text-zinc-500">{{ $application->created_at->diffForHumans() }}</p>
+                                    <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ $application->full_name }}</h3>
+                                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ $application->created_at->diffForHumans() }}</p>
                                 </div>
                                 <x-badge :status="$application->status" />
                             </div>
 
-                            <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                                <div>
-                                    <dt class="text-xs text-zinc-500">Contact</dt>
-                                    <dd class="text-zinc-800">{{ collect([$application->phone, $application->email])->filter()->implode(' · ') ?: '—' }}</dd>
+                            <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                <div class="meta-tile">
+                                    <dt class="meta-tile-label">Contact</dt>
+                                    <dd class="meta-tile-value font-normal">{{ collect([$application->phone, $application->email])->filter()->implode(' · ') ?: '—' }}</dd>
                                 </div>
-                                <div>
-                                    <dt class="text-xs text-zinc-500">Duty type</dt>
-                                    <dd class="text-zinc-800">{{ $application->dutyTypeLabel() }}</dd>
+                                <div class="meta-tile">
+                                    <dt class="meta-tile-label">Duty type</dt>
+                                    <dd class="meta-tile-value font-normal">{{ $application->dutyTypeLabel() }}</dd>
                                 </div>
-                                <div>
-                                    <dt class="text-xs text-zinc-500">Branch</dt>
-                                    <dd class="text-zinc-800">{{ $application->branch?->name ?? '—' }}</dd>
+                                <div class="meta-tile">
+                                    <dt class="meta-tile-label">Branch</dt>
+                                    <dd class="meta-tile-value font-normal">{{ $application->branch?->name ?? '—' }}</dd>
                                 </div>
                             </dl>
 
                             @if ($application->notes)
-                                <div class="mt-3 rounded-lg bg-zinc-50 p-3 text-sm text-zinc-700">
-                                    <p class="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">Applicant notes</p>
-                                    <p class="whitespace-pre-wrap">{{ $application->notes }}</p>
+                                <div class="meta-tile mt-3">
+                                    <p class="meta-tile-label mb-1">Applicant notes</p>
+                                    <p class="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{{ $application->notes }}</p>
                                 </div>
                             @endif
 
@@ -90,7 +93,18 @@
                     </div>
                 </article>
             @empty
-                <x-empty-state title="No applications" description="Share your public link to start receiving applications." />
+                <x-empty-state title="No applications" description="Share your public link to start receiving applications.">
+                    @if ($publicApplyUrl)
+                        <x-slot:actions>
+                            <button
+                                type="button"
+                                class="btn-secondary"
+                                x-data
+                                x-on:click="navigator.clipboard.writeText(@js($publicApplyUrl))"
+                            >Copy application link</button>
+                        </x-slot:actions>
+                    @endif
+                </x-empty-state>
             @endforelse
         </div>
 

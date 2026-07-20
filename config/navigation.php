@@ -62,6 +62,7 @@ return [
      */
     'pinned' => [
         ['href' => '/dashboard', 'label' => 'Dashboard', 'icon' => 'dashboard', 'permission' => 'dashboard.view'],
+        ['href' => '/tracking', 'label' => 'Live Tracker', 'icon' => 'gps', 'permission' => 'dispatch.manage', 'feature' => 'gps'],
         ['href' => '/clients', 'label' => 'Clients', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
         ['href' => '/sites', 'label' => 'Sites', 'icon' => 'sites', 'permission' => 'sites.manage', 'feature' => 'clients'],
         ['href' => '/guards', 'label' => 'Guards', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
@@ -85,12 +86,9 @@ return [
             ['href' => '/clients/complaints', 'label' => 'Complaints', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
         ],
         'Live ops' => [
-            ['href' => '/tracking', 'label' => 'Live Tracker', 'icon' => 'gps', 'permission' => 'dispatch.manage', 'feature' => 'gps'],
             ['href' => '/messenger', 'label' => 'Messenger', 'icon' => 'messenger', 'permission' => 'dispatch.manage', 'feature' => 'messenger'],
-            ['href' => '/schedules/shift-status', 'label' => 'Confirmations', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
-            ['href' => '/schedules/deployment-sheet', 'label' => 'Deployment sheet', 'icon' => 'schedules', 'permission' => 'schedules.manage', 'feature' => 'schedules'],
         ],
-        'Libraries' => [
+        'Resources' => [
             ['href' => '/reports', 'label' => 'Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
             ['href' => '/assets', 'label' => 'Assets', 'icon' => 'equipment', 'permission' => 'equipment.manage', 'feature' => 'equipment'],
         ],

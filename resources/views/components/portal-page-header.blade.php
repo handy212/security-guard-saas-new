@@ -2,9 +2,9 @@
 
 <div {{ $attributes->merge(['class' => 'mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between']) }}>
     <div class="min-w-0">
-        <h1 class="text-lg font-semibold text-zinc-900">{{ $title }}</h1>
+        <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{{ $title }}</h1>
         @if ($description)
-            <p class="mt-0.5 text-sm text-zinc-500">{{ $description }}</p>
+            <p class="mt-0.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
         @endif
     </div>
     @if (isset($actions))

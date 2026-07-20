@@ -113,13 +113,14 @@ class TenantContext
     {
         abort_unless($tenant->status === 'active', 403, 'Cannot enter a suspended tenant.');
 
+        // Callers redirect after enter, so rotating the session/CSRF is safe.
         session()->regenerate();
         session(['platform_tenant_slug' => $tenant->slug]);
     }
 
     public static function exitTenant(): void
     {
+        // Do not rotate the session/CSRF here — suspend/exit can run inside Livewire.
         session()->forget('platform_tenant_slug');
-        session()->regenerate();
     }
 }

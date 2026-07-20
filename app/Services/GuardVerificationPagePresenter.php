@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\EquipmentAssignment;
 use App\Models\Guard;
+use App\Models\Site;
 use App\Models\TenantSetting;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class GuardVerificationPagePresenter
@@ -40,6 +43,9 @@ class GuardVerificationPagePresenter
         $reportEmail = ($page['report_concern_email'] ?? null) ?: $branding['email'];
 
         $isAuthorisedToday = $this->isAuthorisedToday($guard, $isVerified, $currentAssignment);
+        $statusTone = $this->statusTone($guard, $isVerified, $currentAssignment);
+        $issuedAssets = $this->issuedAssetsForAssignment($currentAssignment);
+        $supervisor = $this->supervisorForAssignment($currentAssignment, $guard->tenant_id);
 
         return [
             'companyName' => $branding['company_name'],
@@ -50,9 +56,13 @@ class GuardVerificationPagePresenter
             'guard' => $guard,
             'branchName' => $guard->branch?->name,
             'currentAssignment' => $currentAssignment,
+            'issuedAssets' => $issuedAssets,
+            'supervisor' => $supervisor,
             'skills' => $skills,
             'isVerified' => $isVerified,
             'isAuthorisedToday' => $isAuthorisedToday,
+            'isUnassigned' => $statusTone === 'unassigned',
+            'statusTone' => $statusTone,
             'verifiedAt' => $verifiedAt,
             'scannedAt' => $scannedAt,
             'photoUrl' => $photoUrl,
@@ -66,15 +76,27 @@ class GuardVerificationPagePresenter
 
     public function isAuthorisedToday(Guard $guard, bool $isVerified, ?array $currentAssignment): bool
     {
+        return $this->statusTone($guard, $isVerified, $currentAssignment) === 'authorised';
+    }
+
+    /**
+     * Public KYG status: suspended | unassigned | authorised | pending.
+     */
+    public function statusTone(Guard $guard, bool $isVerified, ?array $currentAssignment): string
+    {
+        if ($guard->verification_status === 'suspended') {
+            return 'suspended';
+        }
+
         if (! $isVerified || $guard->status !== 'active') {
-            return false;
+            return 'pending';
         }
 
-        if ($guard->show_current_assignment) {
-            return $currentAssignment !== null;
+        if ($currentAssignment === null) {
+            return 'unassigned';
         }
 
-        return true;
+        return 'authorised';
     }
 
     public function publicLogoUrl(Guard $guard, string $token): ?string
@@ -86,6 +108,89 @@ class GuardVerificationPagePresenter
         }
 
         return route('guard.verify.logo.legacy', $token);
+    }
+
+    /**
+     * Currently issued kit for the active shift assignment only.
+     *
+     * @param  array{shift_assignment_id?: int}|null  $currentAssignment
+     * @return list<array{label: string, tag: ?string}>
+     */
+    public function issuedAssetsForAssignment(?array $currentAssignment): array
+    {
+        $shiftAssignmentId = $currentAssignment['shift_assignment_id'] ?? null;
+
+        if (! $shiftAssignmentId) {
+            return [];
+        }
+
+        return EquipmentAssignment::query()
+            ->where('shift_assignment_id', $shiftAssignmentId)
+            ->where('status', 'issued')
+            ->whereNull('returned_at')
+            ->with('asset')
+            ->orderBy('issued_at')
+            ->get()
+            ->map(function (EquipmentAssignment $assignment) {
+                $asset = $assignment->asset;
+                if (! $asset) {
+                    return null;
+                }
+
+                $name = trim((string) ($asset->name ?: $asset->asset_tag));
+                if ($name === '') {
+                    return null;
+                }
+
+                return [
+                    'label' => $name,
+                    'tag' => $asset->asset_tag ?: null,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Site supervisor for the current assignment (option B).
+     *
+     * @param  array{site_id?: int}|null  $currentAssignment
+     * @return array{name: string, phone: ?string, email: ?string, role_label: string}|null
+     */
+    public function supervisorForAssignment(?array $currentAssignment, int $tenantId): ?array
+    {
+        $siteId = $currentAssignment['site_id'] ?? null;
+
+        if (! $siteId) {
+            return null;
+        }
+
+        $site = Site::query()
+            ->where('tenant_id', $tenantId)
+            ->whereKey($siteId)
+            ->with('supervisor')
+            ->first();
+
+        $user = $site?->supervisor;
+
+        if (! $user instanceof User || $user->status !== 'active') {
+            return null;
+        }
+
+        $phone = $user->phone ? trim((string) $user->phone) : null;
+        $email = $user->email ? trim((string) $user->email) : null;
+
+        if (! $phone && ! $email) {
+            return null;
+        }
+
+        return [
+            'name' => $user->name,
+            'phone' => $phone ?: null,
+            'email' => $email ?: null,
+            'role_label' => 'Site supervisor',
+        ];
     }
 
     /**
@@ -113,9 +218,21 @@ class GuardVerificationPagePresenter
         if (is_string($appearance)) {
             $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $appearance) ?: [])));
         }
-        $merged['expected_appearance'] = ! empty($appearance)
-            ? $appearance
-            : ($defaults['expected_appearance'] ?? []);
+        if (! is_array($appearance) || $appearance === []) {
+            $appearance = $defaults['expected_appearance'] ?? [];
+        }
+
+        // Strip legacy kit placeholders — radios/bodycams belong under issued shift assets.
+        $legacyKitPlaceholders = [
+            'company radio',
+            'bodycam / guard tour device',
+            'bodycam',
+            'guard tour device',
+        ];
+        $merged['expected_appearance'] = array_values(array_filter(
+            $appearance,
+            fn ($item) => ! in_array(strtolower(trim((string) $item)), $legacyKitPlaceholders, true)
+        ));
 
         $merged['report_concern_phone'] = $stored['report_concern_phone'] ?? null;
         $merged['report_concern_email'] = $stored['report_concern_email'] ?? null;

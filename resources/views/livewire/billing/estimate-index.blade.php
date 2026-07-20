@@ -64,12 +64,12 @@
                 <tbody>
                     @forelse($estimates as $estimate)
                         <tr class="table-row-hover" wire:key="estimate-{{ $estimate->id }}">
-                            <x-table.td class="font-mono font-medium">
-                                <a href="{{ route('billing.estimates.show', $estimate) }}" wire:navigate class="text-accent-700 hover:underline">{{ $estimate->estimate_number }}</a>
+                            <x-table.td mono>
+                                <a href="{{ route('billing.estimates.show', $estimate) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $estimate->estimate_number }}</a>
                             </x-table.td>
                             <x-table.td>{{ $estimate->clientAccount?->name }}</x-table.td>
-                            <x-table.td responsive="md" muted>{{ $estimate->valid_until?->format('M j, Y') ?? '—' }}</x-table.td>
-                            <x-table.td class="font-semibold">₦{{ number_format($estimate->grand_total, 2) }}</x-table.td>
+                            <x-table.td responsive="md" muted class="tabular-nums">{{ $estimate->valid_until?->format('M j, Y') ?? '—' }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($estimate->grand_total, 2) }}</x-table.td>
                             <x-table.td><x-badge :status="$estimate->status" /></x-table.td>
                             <x-table.td align="right">
                                 <x-row-menu>

@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\WebhookSubscription;
 use App\Services\WebhookDeliveryService;
 use App\Support\TenantContext;
@@ -10,7 +11,7 @@ use Livewire\Component;
 
 class WebhookManager extends Component
 {
-    use AuthorizesModuleAccess;
+    use AuthorizesModuleAccess, HasFormDrawer;
 
     public ?int $editingId = null;
 
@@ -21,6 +22,24 @@ class WebhookManager extends Component
     public function mount(): void
     {
         $this->authorizePolicy('viewAny', WebhookSubscription::class);
+    }
+
+    public function openForm(): void
+    {
+        $this->editingId = null;
+        $this->event = 'incident.submitted';
+        $this->targetUrl = '';
+        $this->resetErrorBag();
+        $this->showForm = true;
+    }
+
+    public function closeDrawer(): void
+    {
+        $this->showForm = false;
+        $this->editingId = null;
+        $this->event = 'incident.submitted';
+        $this->targetUrl = '';
+        $this->resetErrorBag();
     }
 
     public function create(): void
@@ -50,7 +69,7 @@ class WebhookManager extends Component
             session()->flash('status', 'Webhook subscription created.');
         }
 
-        $this->cancelEdit();
+        $this->closeDrawer();
     }
 
     public function edit(int $id): void
@@ -60,13 +79,8 @@ class WebhookManager extends Component
         $this->editingId = $subscription->id;
         $this->event = $subscription->event;
         $this->targetUrl = $subscription->target_url;
-    }
-
-    public function cancelEdit(): void
-    {
-        $this->editingId = null;
-        $this->event = 'incident.submitted';
-        $this->targetUrl = '';
+        $this->resetErrorBag();
+        $this->showForm = true;
     }
 
     public function toggle(WebhookSubscription $subscription): void
@@ -78,14 +92,23 @@ class WebhookManager extends Component
     public function delete(WebhookSubscription $subscription): void
     {
         $this->authorize('delete', $subscription);
+        if ($this->editingId === $subscription->id) {
+            $this->closeDrawer();
+        }
         $subscription->delete();
         session()->flash('status', 'Webhook subscription deleted.');
     }
 
     public function render()
     {
+        $subscriptions = WebhookSubscription::where('tenant_id', TenantContext::id())->latest()->get();
+
         return view('livewire.settings.webhook-manager', [
-            'subscriptions' => WebhookSubscription::where('tenant_id', TenantContext::id())->latest()->get(),
+            'subscriptions' => $subscriptions,
+            'stats' => [
+                'total' => $subscriptions->count(),
+                'active' => $subscriptions->where('is_active', true)->count(),
+            ],
         ])->layout('layouts.app');
     }
 }

@@ -38,9 +38,9 @@
                             wire:key="sib-{{ $sibling->id }}"
                         >
                             <div class="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{ $sibling->invoice_number }}</div>
-                            <div class="mt-0.5 truncate text-xs text-zinc-500">{{ $sibling->clientAccount?->name }}</div>
+                            <div class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $sibling->clientAccount?->name }}</div>
                             <div class="mt-1 flex items-center justify-between gap-2">
-                                <span class="text-xs font-medium">₦{{ number_format($sibling->grand_total, 0) }}</span>
+                                <span class="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200">₦{{ number_format($sibling->grand_total, 0) }}</span>
                                 <x-badge :status="$sibling->status" />
                             </div>
                         </a>
@@ -54,33 +54,39 @@
                 <x-billing.invoice-document :invoice="$invoice" />
 
                 @if ($status === 'draft')
-                    <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-                        <div class="mb-3 flex items-center justify-between gap-2">
-                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Line items</h3>
+                    <x-section-card title="Draft" description="Edit line items before sending">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">Draft invoices can be edited on the full form before sending.</p>
                             <x-button size="sm" variant="secondary" :href="route('billing.invoices.edit', $invoice)">Edit invoice</x-button>
                         </div>
-                        <p class="text-sm text-zinc-500">Draft invoices can be edited on the full form before sending.</p>
-                    </div>
+                    </x-section-card>
                 @endif
 
-                <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-                    <div class="mb-3 flex items-center justify-between gap-2">
-                        <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Payments</h3>
+                <x-section-card title="Payments" flush>
+                    <x-slot:actions>
                         @if (! in_array($status, ['paid', 'void'], true))
-                            <button type="button" class="text-xs font-medium text-accent-600 hover:underline" wire:click="openPayment">Record payment</button>
+                            <button type="button" class="page-link" wire:click="openPayment">Record payment</button>
                         @endif
-                    </div>
+                    </x-slot:actions>
                     @forelse ($invoice->payments as $payment)
-                        <div class="flex justify-between gap-3 border-t border-zinc-100 py-2 text-sm first:border-0 dark:border-zinc-800" wire:key="pay-{{ $payment->id }}">
-                            <div>
-                                <div class="font-medium">₦{{ number_format($payment->amount, 2) }} · {{ str_replace('_', ' ', $payment->payment_method) }}</div>
-                                <div class="text-xs text-zinc-500">{{ $payment->paid_at?->format('M j, Y H:i') }}@if($payment->notes) · {{ $payment->notes }}@endif</div>
+                        <div class="list-row" wire:key="pay-{{ $payment->id }}">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                                    ₦{{ number_format($payment->amount, 2) }}
+                                    <span class="font-normal text-zinc-500 dark:text-zinc-400">· {{ str_replace('_', ' ', $payment->payment_method) }}</span>
+                                </div>
+                                <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                                    {{ $payment->paid_at?->format('M j, Y H:i') }}
+                                    @if($payment->notes) · {{ $payment->notes }}@endif
+                                </div>
                             </div>
                         </div>
                     @empty
-                        <p class="text-sm text-zinc-500">No payments recorded yet.</p>
+                        <div class="p-3">
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">No payments recorded yet.</p>
+                        </div>
                     @endforelse
-                </div>
+                </x-section-card>
             </div>
         </div>
     </x-page-shell>

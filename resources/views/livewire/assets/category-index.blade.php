@@ -28,12 +28,12 @@
                 @forelse($categories as $category)
                     <tr class="table-row-hover" wire:key="cat-{{ $category->id }}">
                         <x-table.td>
-                            <div class="font-medium">{{ $category->name }}</div>
-                            <div class="text-xs text-zinc-500">{{ Str::limit($category->description, 60) }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $category->name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ Str::limit($category->description, 60) }}</div>
                         </x-table.td>
                         <x-table.td muted>{{ $types[$category->type] ?? $category->type }}</x-table.td>
-                        <x-table.td>{{ $category->type === 'consumable' ? $category->min_stock_level : '—' }}</x-table.td>
-                        <x-table.td>{{ $category->assets_count }}</x-table.td>
+                        <x-table.td class="tabular-nums">{{ $category->type === 'consumable' ? $category->min_stock_level : '—' }}</x-table.td>
+                        <x-table.td class="tabular-nums">{{ $category->assets_count }}</x-table.td>
                         <x-table.td><x-badge :status="$category->is_active ? 'active' : 'inactive'" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>

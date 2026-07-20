@@ -65,6 +65,7 @@
                     'photoSrc' => $photoSrc,
                     'logoSrc' => $logoSrc,
                     'backLogoSrc' => $backLogoSrc,
+                    'signatureSrc' => $signatureSrc ?? null,
                     'qrPng' => $qrPng,
                 ])
             </div>
@@ -81,6 +82,7 @@
                     'photoSrc' => $photoSrc,
                     'logoSrc' => $logoSrc,
                     'backLogoSrc' => $backLogoSrc,
+                    'signatureSrc' => $signatureSrc ?? null,
                     'qrPng' => $qrPng,
                 ])
             </div>

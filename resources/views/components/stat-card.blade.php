@@ -31,7 +31,7 @@
     $shellClass = $stacked
         ? 'flex h-full min-w-0 flex-col items-center justify-center px-3 py-3 text-center'
         : ($compact
-            ? 'flex min-w-0 w-full items-center gap-3 px-4 py-3 text-left'
+            ? 'flex min-w-0 w-full items-center gap-3 px-3.5 py-3 text-left sm:px-4'
             : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200/90 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900');
 
     if ($active) {
@@ -42,11 +42,11 @@
 
     $iconShellClass = $stacked
         ? 'mb-1.5 flex h-7 w-7 items-center justify-center rounded-md'
-        : ($compact ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg');
+        : ($compact ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-md' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-md');
     $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-3.5 w-3.5' : 'h-4 w-4');
     $valueClass = $stacked
-        ? 'truncate text-base font-semibold leading-tight text-zinc-900 dark:text-zinc-100'
-        : ($compact ? 'text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50' : 'truncate text-lg font-semibold leading-tight text-zinc-900 dark:text-zinc-100');
+        ? 'truncate text-base font-semibold leading-tight tabular-nums text-zinc-900 dark:text-zinc-100'
+        : ($compact ? 'text-xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50' : 'truncate text-lg font-semibold leading-tight tabular-nums text-zinc-900 dark:text-zinc-100');
     $labelClass = $stacked
         ? 'mt-0.5 truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400'
         : ($compact ? 'mt-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400' : 'truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-400');
@@ -58,7 +58,7 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition hover:bg-zinc-50 dark:hover:bg-zinc-800/60']) }}>
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $shellClass.' transition']) }}>
 @elseif ($isInteractive)
     <button type="button" {{ $attributes->merge(['class' => $shellClass]) }}>
 @else
@@ -73,7 +73,7 @@
         <div class="{{ $valueClass }}">{{ $value }}</div>
         <div class="{{ $labelClass }}">{{ $label }}</div>
         @if ($hint)
-            <div class="truncate text-[10px] text-zinc-400 dark:text-zinc-500">{{ $hint }}</div>
+            <div class="truncate text-[10px] leading-snug text-zinc-400 dark:text-zinc-500">{{ $hint }}</div>
         @endif
     </div>
 @if ($href)

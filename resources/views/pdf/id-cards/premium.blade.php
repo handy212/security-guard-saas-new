@@ -5,19 +5,7 @@
             <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                     <td align="right" valign="middle">
-                        <table cellpadding="0" cellspacing="0" align="right">
-                            <tr>
-                                <td align="right" valign="middle" style="padding-right:6pt;">
-                                    <div class="company-name">{{ $brand['company_name'] }}</div>
-                                    <div class="company-tagline">{{ $brand['tagline'] }}</div>
-                                </td>
-                                @if (($logoPath ?? null) || ($logoUrl ?? null))
-                                    <td valign="middle">
-                                        <img src="{{ $logoPath ?? $logoUrl }}" alt="" height="{{ $logoHeight ?? 18 }}" style="height:{{ $logoHeight ?? 18 }}pt;width:auto;display:block;">
-                                    </td>
-                                @endif
-                            </tr>
-                        </table>
+                        @include('pdf.id-cards._company-header', ['showTagline' => true, 'align' => 'right'])
                     </td>
                 </tr>
             </table>
@@ -32,7 +20,7 @@
                         width="{{ $photoWidth }}"
                         height="{{ $photoHeight }}"
                         alt=""
-                        style="display:block;width:{{ $photoWidth }}pt;height:{{ $photoHeight }}pt;border:2pt solid {{ $brand['brand_color'] }};border-radius:6pt;object-fit:cover;"
+                        style="display:block;width:{{ $photoWidth }}pt;height:{{ $photoHeight }}pt;border:2pt solid {{ $brand['brand_color'] }};object-fit:cover;"
                     >
                 </div>
             @endif
@@ -62,7 +50,7 @@
             <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                     <td valign="middle" width="60%">
-                        <div class="scan-hint" style="color:#94a3b8;">Scan to verify (KYG)</div>
+                        <div class="scan-hint">Scan to verify (KYG)</div>
                     </td>
                     <td valign="middle" align="right" width="40%">
                         @if ($qrPath || ! empty($qrPng))

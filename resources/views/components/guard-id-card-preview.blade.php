@@ -5,6 +5,7 @@
     'photoUrl' => null,
     'logoUrl' => null,
     'backLogoUrl' => null,
+    'signatureUrl' => null,
     'qrSvg' => null,
 ])
 
@@ -48,6 +49,7 @@
         'photoUrl' => $photoUrl,
         'logoUrl' => $logoUrl ?? ($brand['logo_url'] ?? null),
         'backLogoUrl' => $backLogoUrl ?? ($brand['back_logo_url'] ?? null),
+        'signatureUrl' => $signatureUrl ?? ($brand['signature_url'] ?? null),
         'qrSvg' => $qrSvg,
     ])
 </div>

@@ -75,6 +75,13 @@ class FleetIndex extends Component
         $this->resetErrorBag();
     }
 
+    public function closeDrawer(): void
+    {
+        $this->showForm = false;
+        $this->editingId = null;
+        $this->resetErrorBag();
+    }
+
     public function openEdit(int $id): void
     {
         $vehicle = FleetVehicle::where('tenant_id', TenantContext::id())->findOrFail($id);

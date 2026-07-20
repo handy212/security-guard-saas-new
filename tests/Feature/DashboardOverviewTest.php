@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
 use App\Enums\ShiftStatus;
+use App\Livewire\Dashboard\AttentionIndicator;
 use App\Livewire\Dashboard\Overview;
 use App\Models\DispatchEvent;
 use App\Models\Guard;
@@ -93,10 +94,10 @@ class DashboardOverviewTest extends TestCase
         $this->assertTrue($items->contains('dispatch'));
 
         Livewire::actingAs($this->admin)
-            ->test(Overview::class)
+            ->test(AttentionIndicator::class)
             ->assertSee('Needs attention')
             ->assertSee('open SOS')
             ->assertSee('understaffed')
-            ->assertSee('DSP-TEST-1');
+            ->assertSeeHtml('needing attention');
     }
 }

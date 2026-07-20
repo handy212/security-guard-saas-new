@@ -161,6 +161,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/files/applications/{application}/photo', [TenantFileController::class, 'applicationPhoto'])->name('files.application-photo');
     Route::get('/files/id-card-logo', [TenantFileController::class, 'idCardLogo'])->name('files.id-card-logo');
     Route::get('/files/id-card-back-logo', [TenantFileController::class, 'idCardBackLogo'])->name('files.id-card-back-logo');
+    Route::get('/files/id-card-signature', [TenantFileController::class, 'idCardSignature'])->name('files.id-card-signature');
     Route::get('/files/guard-documents/{document}', [TenantFileController::class, 'guardDocument'])->name('files.guard-document');
     Route::get('/files/client-documents/{document}', [TenantFileController::class, 'clientDocument'])->name('files.client-document');
     Route::get('/files/site-documents/{document}', [TenantFileController::class, 'siteDocument'])->name('files.site-document');

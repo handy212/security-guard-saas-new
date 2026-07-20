@@ -3,6 +3,7 @@
 namespace App\Livewire\Clients;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ClientAccount;
 use App\Models\ClientComplaint;
 use App\Models\Site;
@@ -14,7 +15,7 @@ use RuntimeException;
 
 class ComplaintBoard extends Component
 {
-    use AuthorizesModuleAccess, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public string $search = '';
 
@@ -50,6 +51,14 @@ class ComplaintBoard extends Component
         $this->resetPage();
     }
 
+    public function openForm(): void
+    {
+        $this->editingId = null;
+        $this->form = ['client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal'];
+        $this->resetErrorBag();
+        $this->showForm = true;
+    }
+
     public function edit(int $id): void
     {
         $complaint = ClientComplaint::findOrFail($id);
@@ -64,12 +73,16 @@ class ComplaintBoard extends Component
             'description' => $complaint->description ?? '',
             'priority' => $complaint->priority ?? 'normal',
         ];
+        $this->resetErrorBag();
+        $this->showForm = true;
     }
 
-    public function cancelEdit(): void
+    public function closeDrawer(): void
     {
+        $this->showForm = false;
         $this->editingId = null;
         $this->form = ['client_account_id' => '', 'site_id' => '', 'subject' => '', 'description' => '', 'priority' => 'normal'];
+        $this->resetErrorBag();
     }
 
     public function save(ComplaintService $service): void
@@ -100,7 +113,7 @@ class ComplaintBoard extends Component
             return;
         }
 
-        $this->cancelEdit();
+        $this->closeDrawer();
     }
 
     public function resolve(ClientComplaint $complaint, ComplaintService $service): void

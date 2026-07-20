@@ -2,13 +2,18 @@
 
 @php
     $total = $breakdown->sum();
-    $colors = ['#0ea5e9', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e'];
+    // Must match resources/js/dashboard-charts.js chartPalette()
+    $colors = ['#0f766e', '#d97706', '#0891b2', '#e11d48', '#65a30d'];
 @endphp
 
-<section class="card-surface overflow-hidden p-5">
-    <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $title }}</h2>
+<section class="card-surface overflow-hidden">
+    <div class="card-header">
+        <div>
+            <h2 class="card-header-title">{{ $title }}</h2>
+            <p class="card-header-meta">Last 7 days</p>
+        </div>
     </div>
+    <div class="p-5">
 
     @if ($total > 0)
         <div class="flex flex-col items-center gap-5 sm:flex-row">
@@ -19,7 +24,7 @@
                     class="h-full w-full"
                 ></canvas>
                 <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $total }}</span>
+                    <span class="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{{ $total }}</span>
                     <span class="text-[11px] font-medium text-zinc-400">7 days</span>
                 </div>
             </div>
@@ -38,4 +43,5 @@
     @else
         <x-empty-state title="No incidents" description="Incident categories will appear here once logged." />
     @endif
+    </div>
 </section>

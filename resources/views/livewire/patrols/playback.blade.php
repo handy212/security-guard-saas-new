@@ -1,5 +1,12 @@
 <div>
-    <x-page-shell title="Patrol Playback" description="Replay guard GPS tracks for completed patrol sessions.">
+    <x-page-shell
+        title="Patrol Playback"
+        description="Replay guard GPS tracks for completed patrol sessions."
+        :breadcrumbs="[
+            ['label' => 'Patrols', 'href' => route('patrols.index')],
+            ['label' => 'Playback'],
+        ]"
+    >
         <x-slot:actions>
             <x-filter-select wire:model.live="sessionId" class="min-w-[16rem]">
                 @foreach($sessions as $session)
@@ -16,7 +23,9 @@
         </div>
 
         @if($points->isNotEmpty())
-            <x-map id="playback-map" :lat="$points->first()->latitude" :lng="$points->first()->longitude" :markers="$markers" :polyline="$polyline" height="420px" />
+            <x-section-card title="Route replay" description="GPS track for the selected session">
+                <x-map id="playback-map" :lat="$points->first()->latitude" :lng="$points->first()->longitude" :markers="$markers" :polyline="$polyline" height="420px" />
+            </x-section-card>
         @else
             <x-empty-state title="No playback data" description="Select a patrol session with GPS points to view the route replay." />
         @endif

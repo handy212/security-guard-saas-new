@@ -52,6 +52,7 @@
             </div>
 
             @if (! \App\Support\TenantContext::isPlatformConsole())
+                <livewire:dashboard.attention-indicator />
                 <livewire:notifications.notification-bell />
             @endif
 

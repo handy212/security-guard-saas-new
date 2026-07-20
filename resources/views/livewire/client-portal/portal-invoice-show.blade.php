@@ -14,24 +14,28 @@
     <div class="mx-auto max-w-3xl space-y-4">
         <x-billing.invoice-document :invoice="$invoice" />
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-            <h3 class="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Payment history</h3>
+        <x-section-card title="Payment history" flush>
             @forelse ($invoice->payments as $payment)
-                <div class="flex justify-between gap-3 border-t border-zinc-100 py-2 text-sm first:border-0 dark:border-zinc-800" wire:key="portal-pay-{{ $payment->id }}">
-                    <div>
-                        <div class="font-medium">₦{{ number_format($payment->amount, 2) }} · {{ str_replace('_', ' ', $payment->payment_method) }}</div>
-                        <div class="text-xs text-zinc-500">{{ $payment->paid_at?->format('M j, Y') }}</div>
+                <div class="list-row" wire:key="portal-pay-{{ $payment->id }}">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                            ₦{{ number_format($payment->amount, 2) }}
+                            <span class="font-normal text-zinc-500 dark:text-zinc-400">· {{ str_replace('_', ' ', $payment->payment_method) }}</span>
+                        </div>
+                        <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $payment->paid_at?->format('M j, Y') }}</div>
                     </div>
                 </div>
             @empty
-                <p class="text-sm text-zinc-500">
-                    @if ($balance > 0)
-                        No payments recorded yet. Balance due: ₦{{ number_format($balance, 2) }}.
-                    @else
-                        This invoice is fully paid.
-                    @endif
-                </p>
+                <div class="p-3">
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        @if ($balance > 0)
+                            No payments recorded yet. Balance due: <span class="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">₦{{ number_format($balance, 2) }}</span>.
+                        @else
+                            This invoice is fully paid.
+                        @endif
+                    </p>
+                </div>
             @endforelse
-        </div>
+        </x-section-card>
     </div>
 </div>

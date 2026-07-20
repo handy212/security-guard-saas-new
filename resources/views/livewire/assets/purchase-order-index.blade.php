@@ -24,13 +24,13 @@
                     <tbody>
                         @forelse($orders as $po)
                             <tr
-                                class="cursor-pointer table-row-hover {{ $selectedId === $po->id ? 'bg-sky-50' : '' }}"
+                                class="cursor-pointer table-row-hover {{ $selectedId === $po->id ? 'bg-accent-50 dark:bg-accent-950/40' : '' }}"
                                 wire:click="selectPo({{ $po->id }})"
                                 wire:key="po-row-{{ $po->id }}"
                             >
                                 <x-table.td>
-                                    <div class="font-medium">{{ $po->po_number }}</div>
-                                    <div class="text-xs text-zinc-500">{{ $po->order_date?->format('M j, Y') }}</div>
+                                    <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">{{ $po->po_number }}</div>
+                                    <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $po->order_date?->format('M j, Y') }}</div>
                                 </x-table.td>
                                 <x-table.td muted>{{ $po->vendor?->name }}</x-table.td>
                                 <x-table.td><x-badge :status="$po->status->value" /></x-table.td>
@@ -48,11 +48,23 @@
             <div class="lg:col-span-3">
                 @if($selected)
                     <x-section-card :title="$selected->po_number">
-                        <div class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
-                            <div><span class="text-zinc-500">Vendor</span><div class="font-medium">{{ $selected->vendor?->name }}</div></div>
-                            <div><span class="text-zinc-500">Status</span><div><x-badge :status="$selected->status->value" /></div></div>
-                            <div><span class="text-zinc-500">Expected</span><div>{{ $selected->expected_date?->format('M j, Y') ?? '—' }}</div></div>
-                            <div><span class="text-zinc-500">Total</span><div class="font-medium">${{ number_format($selected->grand_total, 2) }}</div></div>
+                        <div class="mb-4 grid gap-2 sm:grid-cols-2">
+                            <div class="meta-tile">
+                                <div class="meta-tile-label">Vendor</div>
+                                <div class="meta-tile-value">{{ $selected->vendor?->name }}</div>
+                            </div>
+                            <div class="meta-tile">
+                                <div class="meta-tile-label">Status</div>
+                                <div class="mt-1"><x-badge :status="$selected->status->value" /></div>
+                            </div>
+                            <div class="meta-tile">
+                                <div class="meta-tile-label">Expected</div>
+                                <div class="meta-tile-value tabular-nums">{{ $selected->expected_date?->format('M j, Y') ?? '—' }}</div>
+                            </div>
+                            <div class="meta-tile">
+                                <div class="meta-tile-label">Total</div>
+                                <div class="meta-tile-value tabular-nums">${{ number_format($selected->grand_total, 2) }}</div>
+                            </div>
                         </div>
 
                         <x-data-table>

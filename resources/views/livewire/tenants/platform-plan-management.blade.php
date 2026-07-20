@@ -24,44 +24,46 @@
             </x-slot:tabs>
         </x-page-toolbar>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             @forelse($plans as $plan)
-                <div class="card-surface flex flex-col p-4" wire:key="plan-{{ $plan->id }}">
-                    <div class="flex items-start justify-between gap-2">
+                <article class="card-surface flex flex-col overflow-hidden" wire:key="plan-{{ $plan->id }}">
+                    <div class="card-header">
                         <div class="min-w-0">
-                            <h3 class="truncate font-semibold text-zinc-900 dark:text-zinc-100">{{ $plan->name }}</h3>
-                            <p class="font-mono text-[11px] text-zinc-500">{{ $plan->slug }}</p>
+                            <h3 class="card-header-title truncate">{{ $plan->name }}</h3>
+                            <p class="card-header-meta font-mono">{{ $plan->slug }}</p>
                         </div>
                         <x-badge :status="$plan->status" />
                     </div>
-                    <div class="mt-3">
-                        <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-50">${{ number_format($plan->monthly_price, 0) }}</span>
-                        <span class="text-sm text-zinc-500">/mo</span>
-                    </div>
-                    <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                        {{ $plan->max_guards ? number_format($plan->max_guards).' guards' : '∞ guards' }}
-                        · {{ $plan->max_sites ? number_format($plan->max_sites).' sites' : '∞ sites' }}
-                    </p>
-                    @if ($plan->features)
-                        <div class="mt-3 flex max-h-16 flex-wrap gap-1 overflow-hidden">
-                            @foreach (collect($plan->features)->take(8) as $feature)
-                                <span class="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ $featureLabels[$feature]['label'] ?? $feature }}</span>
-                            @endforeach
-                            @if (count($plan->features) > 8)
-                                <span class="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">+{{ count($plan->features) - 8 }}</span>
-                            @endif
+                    <div class="flex flex-1 flex-col gap-3 p-4">
+                        <div>
+                            <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">${{ number_format($plan->monthly_price, 0) }}</span>
+                            <span class="text-sm text-zinc-500">/mo</span>
                         </div>
-                    @endif
-                    <div class="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                        <span class="text-xs text-zinc-500">{{ $plan->subscriptions_count }} tenants</span>
-                        <div class="flex gap-1">
-                            <x-button wire:click="openEdit({{ $plan->id }})" variant="secondary" size="sm">Edit</x-button>
-                            @if ($plan->subscriptions_count === 0)
-                                <x-button wire:click="delete({{ $plan->id }})" wire:confirm="Delete {{ $plan->name }}?" variant="danger" size="sm">Delete</x-button>
-                            @endif
+                        <p class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
+                            {{ $plan->max_guards ? number_format($plan->max_guards).' guards' : '∞ guards' }}
+                            · {{ $plan->max_sites ? number_format($plan->max_sites).' sites' : '∞ sites' }}
+                        </p>
+                        @if ($plan->features)
+                            <div class="flex max-h-16 flex-wrap gap-1 overflow-hidden">
+                                @foreach (collect($plan->features)->take(8) as $feature)
+                                    <span class="status-chip status-chip-neutral !px-2 !py-0.5 text-[10px]">{{ $featureLabels[$feature]['label'] ?? $feature }}</span>
+                                @endforeach
+                                @if (count($plan->features) > 8)
+                                    <span class="status-chip status-chip-neutral !px-2 !py-0.5 text-[10px]">+{{ count($plan->features) - 8 }}</span>
+                                @endif
+                            </div>
+                        @endif
+                        <div class="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                            <span class="text-xs tabular-nums text-zinc-500">{{ $plan->subscriptions_count }} tenants</span>
+                            <div class="flex gap-1.5">
+                                <x-button wire:click="openEdit({{ $plan->id }})" variant="secondary" size="sm">Edit</x-button>
+                                @if ($plan->subscriptions_count === 0)
+                                    <x-button wire:click="delete({{ $plan->id }})" wire:confirm="Delete {{ $plan->name }}?" variant="danger" size="sm">Delete</x-button>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
+                </article>
             @empty
                 <div class="col-span-full py-8">
                     <x-empty-state title="No plans yet" description="Create a pricing tier for tenants.">

@@ -17,6 +17,7 @@ use App\Models\SitePost;
 use App\Models\SiteReportSchedule;
 use App\Models\SiteSlaRequirement;
 use App\Models\TaskSubmission;
+use App\Models\User;
 use App\Services\FileUploadService;
 use App\Services\SiteOverviewService;
 use App\Services\TenantFileStorageService;
@@ -128,13 +129,34 @@ class SiteProfile extends Component
     public function saveProfile(): void
     {
         $this->authorize('update', $this->site);
+
+        if (($this->profileForm['supervisor_user_id'] ?? '') === '') {
+            $this->profileForm['supervisor_user_id'] = null;
+        }
+
         $data = $this->validate([
             'profileForm.name' => 'required|string|max:255',
             'profileForm.client_account_id' => 'required|exists:client_accounts,id',
+            'profileForm.supervisor_user_id' => 'nullable|integer|exists:users,id',
             'profileForm.address' => 'nullable|string|max:500',
             'profileForm.status' => 'required|in:active,inactive',
             'profileForm.instructions' => 'nullable|string|max:5000',
         ])['profileForm'];
+
+        $data['supervisor_user_id'] = $data['supervisor_user_id'] !== null
+            ? (int) $data['supervisor_user_id']
+            : null;
+
+        if ($data['supervisor_user_id']) {
+            $allowed = User::query()
+                ->where('tenant_id', TenantContext::id())
+                ->whereKey($data['supervisor_user_id'])
+                ->where('status', 'active')
+                ->role(['supervisor', 'operations-manager', 'company-admin'])
+                ->exists();
+
+            abort_unless($allowed, 422);
+        }
 
         $this->site->update($data);
         $this->site->refresh()->load('clientAccount');
@@ -673,6 +695,12 @@ class SiteProfile extends Component
             'tasks' => $tasks,
             'taskSubmissions' => $taskSubmissions,
             'clients' => ClientAccount::orderBy('name')->get(),
+            'supervisorCandidates' => User::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->role(['supervisor', 'operations-manager', 'company-admin'])
+                ->orderBy('name')
+                ->get(['id', 'name', 'phone', 'email']),
             'reportTemplates' => ReportTemplate::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get(),
             'documentTypes' => config('site_profile.document_types', []),
             'reportTypes' => config('site_profile.report_types', []),
@@ -700,7 +728,10 @@ class SiteProfile extends Component
 
     private function loadProfileForm(): void
     {
-        $this->profileForm = $this->site->only(['name', 'client_account_id', 'address', 'status', 'instructions']);
+        $this->profileForm = $this->site->only([
+            'name', 'client_account_id', 'supervisor_user_id', 'address', 'status', 'instructions',
+        ]);
+        $this->profileForm['supervisor_user_id'] = $this->site->supervisor_user_id ?? '';
     }
 
     private function loadGeofenceForm(): void

@@ -31,16 +31,18 @@
 
             <x-page-toolbar>
                 <x-slot:controls>
-                    <x-button type="button" size="sm" variant="secondary" wire:click="previousDay">Previous</x-button>
-                    <x-button type="button" size="sm" variant="secondary" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
-                    <x-button type="button" size="sm" variant="secondary" wire:click="nextDay">Next</x-button>
-                    <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
-                    <x-filter-select wire:model.live="statusFilter">
-                        <option value="all">All statuses</option>
-                        @foreach($statusOptions as $status)
-                            <option value="{{ $status->value }}">{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
-                        @endforeach
-                    </x-filter-select>
+                    <div class="date-nav">
+                        <x-button type="button" size="sm" variant="secondary" wire:click="previousDay">Previous</x-button>
+                        <x-button type="button" size="sm" variant="secondary" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
+                        <x-button type="button" size="sm" variant="secondary" wire:click="nextDay">Next</x-button>
+                        <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
+                        <x-filter-select wire:model.live="statusFilter">
+                            <option value="all">All statuses</option>
+                            @foreach($statusOptions as $status)
+                                <option value="{{ $status->value }}">{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
+                            @endforeach
+                        </x-filter-select>
+                    </div>
                 </x-slot:controls>
             </x-page-toolbar>
 
@@ -59,14 +61,18 @@
                         </x-table.head>
                         <tbody>
                             @forelse($logs as $log)
-                                <tr wire:key="att-{{ $log->id }}">
-                                    <x-table.td>{{ $log->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="att-{{ $log->id }}">
+                                    <x-table.td class="font-medium">{{ $log->assignedGuard?->full_name ?? '—' }}</x-table.td>
                                     <x-table.td muted>{{ $log->site?->name ?? '—' }}</x-table.td>
-                                    <x-table.td muted>{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
-                                    <x-table.td muted>{{ $log->clock_out_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                                    <x-table.td muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
+                                    <x-table.td muted class="tabular-nums">{{ $log->clock_out_at?->format('M j, H:i') ?? '—' }}</x-table.td>
                                     <x-table.td>
                                         @if($log->geofence_validated)
-                                            <span class="text-xs {{ $log->is_geofence_valid ? 'text-emerald-700' : 'text-red-600' }}">
+                                            <span @class([
+                                                'text-xs font-medium',
+                                                'text-emerald-700 dark:text-emerald-400' => $log->is_geofence_valid,
+                                                'text-red-600 dark:text-red-400' => ! $log->is_geofence_valid,
+                                            ])>
                                                 {{ $log->is_geofence_valid ? 'Valid' : 'Outside fence' }}
                                             </span>
                                         @else
@@ -105,12 +111,12 @@
                         </x-table.head>
                         <tbody>
                             @forelse($breaks as $break)
-                                <tr wire:key="br-{{ $break->id }}">
-                                    <x-table.td>{{ $break->attendanceLog?->assignedGuard?->full_name ?? 'Log #'.$break->attendance_log_id }}</x-table.td>
-                                    <x-table.td>{{ $break->type }}</x-table.td>
-                                    <x-table.td muted>{{ $break->started_at?->format('M j, H:i') }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="br-{{ $break->id }}">
+                                    <x-table.td class="font-medium">{{ $break->attendanceLog?->assignedGuard?->full_name ?? 'Log #'.$break->attendance_log_id }}</x-table.td>
+                                    <x-table.td muted>{{ ucfirst($break->type) }}</x-table.td>
+                                    <x-table.td muted class="tabular-nums">{{ $break->started_at?->format('M j, H:i') }}</x-table.td>
                                     <x-table.td align="right">
-                                        <button type="button" wire:click="deleteBreak({{ $break->id }})" wire:confirm="Remove this break?" class="text-xs text-red-600 hover:underline">Remove</button>
+                                        <button type="button" wire:click="deleteBreak({{ $break->id }})" wire:confirm="Remove this break?" class="table-action-danger">Remove</button>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -143,8 +149,8 @@
                         <option value="meal">Meal</option>
                         <option value="rest">Rest</option>
                     </x-select>
-                    <x-input wire:model="breakForm.started_at" label="Started at" type="datetime-local" required />
-                    <x-input wire:model="breakForm.ended_at" label="Ended at" type="datetime-local" class="sm:col-span-2" />
+                    <x-input wire:model="breakForm.started_at" label="Started at *" type="datetime-local" required />
+                    <x-input wire:model="breakForm.ended_at" label="Ended at" type="datetime-local" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

@@ -39,7 +39,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('guardops:deliver-client-reports')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+        // Laravel maps TokenMismatchException → HttpException(419) before render callbacks.
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            $isCsrfMismatch = $e instanceof \Illuminate\Session\TokenMismatchException
+                || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 419);
+
+            if (! $isCsrfMismatch) {
+                return null;
+            }
+
             $isLivewire = $request->hasHeader('X-Livewire') || $request->is('livewire/*');
 
             if ($request->expectsJson() || $isLivewire) {

@@ -22,6 +22,8 @@ class PatrolBoard extends Component
 
     public string $search = '';
 
+    public ?string $activeDrawer = null;
+
     public function mount(): void
     {
         $this->authorizePermission('patrols.manage');
@@ -44,6 +46,51 @@ class PatrolBoard extends Component
         'vehicle_id' => '',
     ];
 
+    public function openRouteForm(): void
+    {
+        $this->editingRouteId = null;
+        $this->routeForm = ['site_id' => '', 'name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'route';
+    }
+
+    public function openCheckpointForm(?int $routeId = null): void
+    {
+        $this->editingCheckpointId = null;
+        $this->checkpointForm = [
+            'patrol_route_id' => $routeId ? (string) $routeId : '',
+            'name' => '',
+            'code' => '',
+            'sequence' => 1,
+            'latitude' => '',
+            'longitude' => '',
+            'instructions' => '',
+        ];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'checkpoint';
+    }
+
+    public function openAssignForm(): void
+    {
+        $this->assignForm = ['patrol_route_id' => '', 'guard_id' => '', 'vehicle_id' => ''];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'assign';
+    }
+
+    public function closeDrawer(): void
+    {
+        $this->activeDrawer = null;
+        $this->editingRouteId = null;
+        $this->editingCheckpointId = null;
+        $this->routeForm = ['site_id' => '', 'name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+        $this->checkpointForm = [
+            'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
+            'latitude' => '', 'longitude' => '', 'instructions' => '',
+        ];
+        $this->assignForm = ['patrol_route_id' => '', 'guard_id' => '', 'vehicle_id' => ''];
+        $this->resetErrorBag();
+    }
+
     public function editRoute(int $id): void
     {
         $route = PatrolRoute::where('tenant_id', TenantContext::id())->findOrFail($id);
@@ -55,6 +102,8 @@ class PatrolBoard extends Component
             'expected_duration_minutes' => $route->expected_duration_minutes ?? 30,
             'status' => $route->status ?? 'active',
         ];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'route';
     }
 
     public function saveRoute(): void
@@ -77,8 +126,7 @@ class PatrolBoard extends Component
             session()->flash('status', 'Route created.');
         }
 
-        $this->editingRouteId = null;
-        $this->routeForm = ['site_id' => '', 'name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+        $this->closeDrawer();
     }
 
     public function deleteRoute(int $id): void
@@ -88,8 +136,7 @@ class PatrolBoard extends Component
         $route->checkpoints()->delete();
         $route->delete();
         if ($this->editingRouteId === $id) {
-            $this->editingRouteId = null;
-            $this->routeForm = ['site_id' => '', 'name' => '', 'description' => '', 'expected_duration_minutes' => 30, 'status' => 'active'];
+            $this->closeDrawer();
         }
         session()->flash('status', 'Route deleted.');
     }
@@ -107,6 +154,8 @@ class PatrolBoard extends Component
             'longitude' => $checkpoint->longitude !== null ? (string) $checkpoint->longitude : '',
             'instructions' => $checkpoint->instructions ?? '',
         ];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'checkpoint';
     }
 
     public function saveCheckpoint(): void
@@ -135,11 +184,7 @@ class PatrolBoard extends Component
             session()->flash('status', 'Checkpoint created.');
         }
 
-        $this->editingCheckpointId = null;
-        $this->checkpointForm = [
-            'patrol_route_id' => '', 'name' => '', 'code' => '', 'sequence' => 1,
-            'latitude' => '', 'longitude' => '', 'instructions' => '',
-        ];
+        $this->closeDrawer();
     }
 
     public function deleteCheckpoint(int $id): void
@@ -148,7 +193,7 @@ class PatrolBoard extends Component
         $checkpoint = PatrolCheckpoint::where('tenant_id', TenantContext::id())->findOrFail($id);
         $checkpoint->delete();
         if ($this->editingCheckpointId === $id) {
-            $this->editingCheckpointId = null;
+            $this->closeDrawer();
         }
         session()->flash('status', 'Checkpoint deleted.');
     }
@@ -188,7 +233,7 @@ class PatrolBoard extends Component
             return;
         }
 
-        $this->assignForm = ['patrol_route_id' => '', 'guard_id' => '', 'vehicle_id' => ''];
+        $this->closeDrawer();
         session()->flash('status', 'Patrol assigned and started.');
     }
 

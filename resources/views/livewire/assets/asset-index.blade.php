@@ -47,8 +47,8 @@
                 @forelse($items as $item)
                     <tr class="table-row-hover" wire:key="asset-{{ $item->id }}">
                         <x-table.td>
-                            <div class="font-medium">{{ $item->name }}</div>
-                            <div class="text-xs text-zinc-500">{{ $item->vendor?->name ?? '—' }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $item->vendor?->name ?? '—' }}</div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $item->assetCategory?->name ?? $item->category ?? '—' }}</x-table.td>
                         <x-table.td muted>

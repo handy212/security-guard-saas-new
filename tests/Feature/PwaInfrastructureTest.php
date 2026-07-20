@@ -19,7 +19,10 @@ class PwaInfrastructureTest extends TestCase
     public function test_service_worker_exists(): void
     {
         $this->assertFileExists(public_path('sw.js'));
-        $this->assertStringContainsString('install', file_get_contents(public_path('sw.js')));
+        $sw = file_get_contents(public_path('sw.js'));
+        $this->assertStringContainsString('install', $sw);
+        $this->assertStringContainsString("event.request.mode === 'navigate'", $sw);
+        $this->assertStringContainsString("url.pathname.startsWith('/build/')", $sw);
     }
 
     public function test_guard_mobile_route_requires_authentication(): void

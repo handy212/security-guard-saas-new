@@ -58,10 +58,10 @@
             @endif
 
             @if ($canExport && $exports->isNotEmpty())
-                <div class="mb-3 flex flex-wrap gap-2 text-xs">
+                <div class="flex flex-wrap gap-1.5">
                     @foreach ($exports->take(3) as $export)
-                        <button type="button" wire:click="downloadExport({{ $export->id }})" class="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600 hover:border-accent-300 hover:text-accent-700 dark:border-zinc-700" wire:key="export-chip-{{ $export->id }}">
-                            {{ $export->created_at?->format('M j, H:i') }} · Download
+                        <button type="button" wire:click="downloadExport({{ $export->id }})" class="status-chip status-chip-neutral" wire:key="export-chip-{{ $export->id }}">
+                            <span class="tabular-nums">{{ $export->created_at?->format('M j, H:i') }}</span> · Download
                         </button>
                     @endforeach
                 </div>
@@ -85,13 +85,13 @@
                             $balance = max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0));
                         @endphp
                         <tr class="table-row-hover" wire:key="inv-{{ $invoice->id }}">
-                            <x-table.td class="font-mono font-medium">
-                                <a href="{{ route('billing.invoices.show', $invoice) }}" wire:navigate class="text-accent-700 hover:underline">{{ $invoice->invoice_number }}</a>
+                            <x-table.td mono>
+                                <a href="{{ route('billing.invoices.show', $invoice) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $invoice->invoice_number }}</a>
                             </x-table.td>
                             <x-table.td>{{ $invoice->clientAccount?->name }}</x-table.td>
-                            <x-table.td responsive="md" muted>{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
-                            <x-table.td class="font-semibold">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
-                            <x-table.td muted>₦{{ number_format($balance, 2) }}</x-table.td>
+                            <x-table.td responsive="md" muted class="tabular-nums">{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
+                            <x-table.td muted class="tabular-nums">₦{{ number_format($balance, 2) }}</x-table.td>
                             <x-table.td><x-badge :status="$invoice->status" /></x-table.td>
                             <x-table.td align="right">
                                 <x-row-menu>

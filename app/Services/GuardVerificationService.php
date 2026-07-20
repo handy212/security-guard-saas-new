@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\GuardDutyType;
+use App\Enums\ShiftAssignmentStatus;
 use App\Models\Guard;
 use App\Models\GuardVerificationToken;
 use Illuminate\Support\Str;
@@ -170,29 +171,44 @@ class GuardVerificationService
     /**
      * Active shift assignment visible on the public verification page.
      *
-     * @return array{site_name: string, starts_at: \Illuminate\Support\Carbon, ends_at: \Illuminate\Support\Carbon, date_range: string}|null
+     * @return array{
+     *     site_name: string,
+     *     site_id: int,
+     *     shift_assignment_id: int,
+     *     starts_at: \Illuminate\Support\Carbon,
+     *     ends_at: \Illuminate\Support\Carbon,
+     *     date_range: string
+     * }|null
      */
     public function currentAssignment(Guard $guard): ?array
     {
-        if (! $guard->show_current_assignment || $guard->status !== 'active') {
+        if ($guard->status !== 'active') {
             return null;
         }
 
         $assignment = $guard->assignments()
+            ->whereIn('status', [
+                ShiftAssignmentStatus::ASSIGNED,
+                ShiftAssignmentStatus::CONFIRMED,
+                ShiftAssignmentStatus::IN_PROGRESS,
+            ])
             ->whereHas('shift', fn ($q) => $q->where('starts_at', '<=', now())->where('ends_at', '>=', now()))
             ->with('shift.site')
             ->latest('assigned_at')
             ->first();
 
         $shift = $assignment?->shift;
-        $siteName = $shift?->site?->name;
+        $site = $shift?->site;
+        $siteName = $site?->name;
 
-        if (! $shift || ! $siteName) {
+        if (! $assignment || ! $shift || ! $site || ! $siteName) {
             return null;
         }
 
         return [
             'site_name' => $siteName,
+            'site_id' => $site->id,
+            'shift_assignment_id' => $assignment->id,
             'starts_at' => $shift->starts_at,
             'ends_at' => $shift->ends_at,
             'date_range' => $this->formatAssignmentDateRange($shift->starts_at, $shift->ends_at),

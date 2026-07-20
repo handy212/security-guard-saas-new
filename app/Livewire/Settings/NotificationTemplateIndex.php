@@ -3,13 +3,14 @@
 namespace App\Livewire\Settings;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\NotificationTemplate;
 use App\Support\TenantContext;
 use Livewire\Component;
 
 class NotificationTemplateIndex extends Component
 {
-    use AuthorizesModuleAccess;
+    use AuthorizesModuleAccess, HasFormDrawer;
 
     public ?int $editingId = null;
 
@@ -24,6 +25,17 @@ class NotificationTemplateIndex extends Component
     public function mount(): void
     {
         $this->authorizePermission('settings.manage');
+    }
+
+    public function openForm(): void
+    {
+        $this->resetForm();
+        $this->showForm = true;
+    }
+
+    public function closeDrawer(): void
+    {
+        $this->resetForm();
     }
 
     public function save(): void
@@ -61,6 +73,8 @@ class NotificationTemplateIndex extends Component
             'body' => $template->body,
             'is_active' => (bool) $template->is_active,
         ];
+        $this->resetErrorBag();
+        $this->showForm = true;
     }
 
     public function toggle(int $id): void
@@ -81,15 +95,17 @@ class NotificationTemplateIndex extends Component
         session()->flash('status', 'Template deleted.');
     }
 
-    public function cancelEdit(): void
-    {
-        $this->resetForm();
-    }
-
     public function render()
     {
+        $templates = NotificationTemplate::where('tenant_id', TenantContext::id())->orderBy('code')->get();
+
         return view('livewire.settings.notification-template-index', [
-            'templates' => NotificationTemplate::where('tenant_id', TenantContext::id())->orderBy('code')->get(),
+            'templates' => $templates,
+            'stats' => [
+                'total' => $templates->count(),
+                'active' => $templates->where('is_active', true)->count(),
+                'mail' => $templates->where('channel', 'mail')->count(),
+            ],
             'suggestedCodes' => [
                 'incident.submitted',
                 'sos.raised',
@@ -105,6 +121,7 @@ class NotificationTemplateIndex extends Component
 
     private function resetForm(): void
     {
+        $this->showForm = false;
         $this->editingId = null;
         $this->form = [
             'code' => '',
@@ -113,5 +130,6 @@ class NotificationTemplateIndex extends Component
             'body' => '',
             'is_active' => true,
         ];
+        $this->resetErrorBag();
     }
 }

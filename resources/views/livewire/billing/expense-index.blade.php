@@ -60,20 +60,20 @@
                 <tbody>
                     @forelse($expenses as $expense)
                         <tr class="table-row-hover" wire:key="exp-{{ $expense->id }}">
-                            <x-table.td class="font-mono text-xs">{{ $expense->expense_number }}</x-table.td>
+                            <x-table.td mono>{{ $expense->expense_number }}</x-table.td>
                             <x-table.td>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $expense->title }}</div>
                                 @if ($expense->vendor_name)
-                                    <div class="text-xs text-zinc-500">{{ $expense->vendor_name }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $expense->vendor_name }}</div>
                                 @endif
                             </x-table.td>
                             <x-table.td responsive="md" muted>{{ $expense->category?->name ?? '—' }}</x-table.td>
-                            <x-table.td muted>{{ $expense->expense_date?->format('M j, Y') }}</x-table.td>
-                            <x-table.td class="font-semibold">₦{{ number_format($expense->amount, 2) }}</x-table.td>
+                            <x-table.td muted class="tabular-nums">{{ $expense->expense_date?->format('M j, Y') }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($expense->amount, 2) }}</x-table.td>
                             <x-table.td><x-badge :status="$expense->status" /></x-table.td>
                             <x-table.td responsive="lg">
                                 @if ($expense->receipt_path)
-                                    <a href="{{ route('files.expense-receipt', $expense) }}" class="text-xs font-medium text-accent-600 hover:underline" target="_blank" rel="noopener">View</a>
+                                    <a href="{{ route('files.expense-receipt', $expense) }}" class="page-link" target="_blank" rel="noopener">View</a>
                                 @else
                                     <span class="text-xs text-zinc-400">—</span>
                                 @endif

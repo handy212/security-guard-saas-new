@@ -1,7 +1,7 @@
 <table class="card" width="153" height="243" cellpadding="0" cellspacing="0">
     <tr style="height: 44pt">
         <td class="header-bg" align="center" valign="middle" style="padding: 10pt;">
-            @include('pdf.id-cards._company-header', ['showTagline' => true])
+            @include('pdf.id-cards._company-header', ['showTagline' => true, 'align' => 'center'])
         </td>
     </tr>
     <tr style="height: 52pt">
@@ -33,7 +33,7 @@
                 <div style="margin-top:4pt;"><span class="contact-label">Guard:</span> {{ $guard->phone }}</div>
             @endif
             @if ($verifyHost ?? null)
-                <div style="margin-top:8pt;font-size:5pt;color:#64748b;text-align:center;">Verify at {{ $verifyHost }}</div>
+                <div style="margin-top:8pt;font-size:5pt;color:#71717a;text-align:center;">Verify at {{ $verifyHost }}</div>
             @endif
         </td>
     </tr>

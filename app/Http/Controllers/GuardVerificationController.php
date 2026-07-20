@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\GuardVerificationPagePresenter;
 use App\Services\GuardVerificationService;
+use App\Services\TenantFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -13,6 +14,7 @@ class GuardVerificationController extends Controller
         Request $request,
         GuardVerificationService $verification,
         GuardVerificationPagePresenter $pagePresenter,
+        TenantFileStorageService $storage,
         ?string $tenant = null,
         ?string $token = null,
     ): View {
@@ -44,16 +46,16 @@ class GuardVerificationController extends Controller
             $guard->verification_status === 'verified',
             $guard->verified_at,
             now(),
-            $this->verificationPhotoUrl($guard, $token),
+            $this->verificationPhotoUrl($guard, $token, $storage),
         ) + [
             'isSuspended' => $isSuspended,
             'suspendedMessage' => $isSuspended ? $verification->dutyTypeSuspendedMessage($guard) : null,
         ]);
     }
 
-    private function verificationPhotoUrl($guard, string $token): ?string
+    private function verificationPhotoUrl($guard, string $token, TenantFileStorageService $storage): ?string
     {
-        if (! $guard->photo_path) {
+        if (! $guard->photo_path || ! $storage->exists($guard->photo_path)) {
             return null;
         }
 

@@ -8,6 +8,9 @@
     $backLogo = $forPdf
         ? ($backLogoSrc ?? $logoSrc ?? null)
         : ($backLogoUrl ?? ($brand['back_logo_url'] ?? $logoUrl ?? ($brand['logo_url'] ?? null)));
+    $signature = $forPdf
+        ? ($signatureSrc ?? null)
+        : ($signatureUrl ?? ($brand['signature_url'] ?? null));
     $photo = $forPdf ? ($photoSrc ?? null) : ($photoUrl ?? null);
     $isLandscape = $orientation === 'landscape' || $template === 'premium';
 @endphp
@@ -51,7 +54,16 @@
                         </div>
                     </div>
                     <div class="ls-back-premium-notice">{{ $brand['emergency_text'] ?? 'In case of emergency, please contact the company.' }}</div>
-                    <div class="ls-back-premium-sig"><span>Authorized signature</span></div>
+                    <div class="ls-back-premium-sig @if ($signature) ls-back-premium-sig--has-image @endif">
+                        <div class="ls-back-premium-sig-pad">
+                            @if ($signature)
+                                <img src="{{ $signature }}" alt="" class="ls-back-premium-sig-img">
+                            @endif
+                        </div>
+                        <div class="ls-back-premium-sig-meta">
+                            <span>Authorized signature</span>
+                        </div>
+                    </div>
                 </div>
             @else
             <div class="ls-back">
@@ -87,7 +99,16 @@
         @elseif ($template === 'premium')
             <div class="premium-back">
                 <div class="premium-mag-stripe"></div>
-                <div class="premium-sig-strip"><span>Authorized signature</span></div>
+                <div class="premium-sig-strip @if ($signature) premium-sig-strip--has-image @endif">
+                    <div class="premium-sig-pad">
+                        @if ($signature)
+                            <img src="{{ $signature }}" alt="" class="premium-sig-img">
+                        @endif
+                    </div>
+                    <div class="premium-sig-meta">
+                        <span>Authorized signature</span>
+                    </div>
+                </div>
                 <div class="premium-back-content">
                     <div class="back-header">
                         @if ($logo)

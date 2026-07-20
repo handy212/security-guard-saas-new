@@ -49,8 +49,17 @@ document.addEventListener('alpine:init', () => {
             }
             localStorage.setItem('GuardCore Pro-nav-favorites', JSON.stringify(this.favorites));
         },
+        removeFavorite(href) {
+            this.favorites = this.favorites.filter((f) => f.href !== href);
+            localStorage.setItem('GuardCore Pro-nav-favorites', JSON.stringify(this.favorites));
+        },
         isFavorite(href) {
             return this.favorites.some((f) => f.href === href);
+        },
+        isActivePath(href) {
+            const path = window.location.pathname.replace(/\/$/, '') || '/';
+            const target = String(href || '').replace(/\/$/, '') || '/';
+            return path === target || (target !== '/' && path.startsWith(target + '/'));
         },
     }));
 });

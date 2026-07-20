@@ -111,6 +111,13 @@ class DeploymentSheet extends Component
         $this->resetErrorBag();
     }
 
+    public function closeReassign(): void
+    {
+        $this->reassignAssignmentId = null;
+        $this->reassignGuardId = '';
+        $this->resetErrorBag();
+    }
+
     public function reassign(ScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);

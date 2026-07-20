@@ -40,12 +40,12 @@
             <tbody>
                 @forelse($sites as $site)
                     <tr class="table-row-hover" wire:key="site-{{ $site->id }}">
-                        <x-table.td class="font-medium">
-                            <a href="{{ route('sites.show', $site) }}" class="font-medium text-accent-700 hover:underline">{{ $site->name }}</a>
+                        <x-table.td>
+                            <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $site->clientAccount?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $site->address ?: '—' }}</x-table.td>
-                        <x-table.td><span class="text-xs text-zinc-500">{{ $site->geofence_radius_meters }}m</span></x-table.td>
+                        <x-table.td><span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $site->geofence_radius_meters }}m</span></x-table.td>
                         <x-table.td><x-badge :status="$site->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>

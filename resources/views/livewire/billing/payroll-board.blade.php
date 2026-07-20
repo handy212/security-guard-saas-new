@@ -41,17 +41,17 @@
                         @forelse($timesheets as $sheet)
                             <tr class="table-row-hover" wire:key="timesheet-{{ $sheet->id }}">
                                 <x-table.td><span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $sheet->assignedGuard?->full_name ?? '—' }}</span></x-table.td>
-                                <x-table.td muted>{{ $sheet->period_start?->format('M j') }} – {{ $sheet->period_end?->format('M j, Y') }}</x-table.td>
-                                <x-table.td muted>{{ $sheet->regular_hours }}h + {{ $sheet->overtime_hours }}h OT</x-table.td>
+                                <x-table.td muted class="tabular-nums">{{ $sheet->period_start?->format('M j') }} – {{ $sheet->period_end?->format('M j, Y') }}</x-table.td>
+                                <x-table.td muted class="tabular-nums">{{ $sheet->regular_hours }}h + {{ $sheet->overtime_hours }}h OT</x-table.td>
                                 <x-table.td><x-badge :status="$sheet->status" /></x-table.td>
                                 <x-table.td align="right">
                                     @if ($sheet->status === 'pending')
                                         <div class="table-inline-actions">
                                             <button type="button" wire:click="approveTimesheet({{ $sheet->id }})" class="table-action">Approve</button>
-                                            <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this timesheet?" class="table-action text-red-600">Reject</button>
+                                            <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this timesheet?" class="table-action-danger">Reject</button>
                                         </div>
                                     @elseif ($sheet->status === 'approved')
-                                        <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this approved timesheet?" class="table-action text-red-600">Reject</button>
+                                        <button type="button" wire:click="rejectTimesheet({{ $sheet->id }})" wire:confirm="Reject this approved timesheet?" class="table-action-danger">Reject</button>
                                     @else
                                         <span class="text-xs text-zinc-400">—</span>
                                     @endif
@@ -81,11 +81,11 @@
                     <tbody>
                         @forelse($payrollExports as $export)
                             <tr class="table-row-hover" wire:key="payroll-export-{{ $export->id }}">
-                                <x-table.td>{{ ucfirst($export->provider) }}</x-table.td>
-                                <x-table.td muted>{{ $export->period_start?->format('M j') }} – {{ $export->period_end?->format('M j, Y') }}</x-table.td>
+                                <x-table.td class="font-medium">{{ ucfirst($export->provider) }}</x-table.td>
+                                <x-table.td muted class="tabular-nums">{{ $export->period_start?->format('M j') }} – {{ $export->period_end?->format('M j, Y') }}</x-table.td>
                                 <x-table.td align="right">
                                     @if ($canExport)
-                                        <button type="button" wire:click="downloadPayrollExport({{ $export->id }})" class="text-xs font-medium text-accent-600 hover:underline">Download</button>
+                                        <button type="button" wire:click="downloadPayrollExport({{ $export->id }})" class="page-link">Download</button>
                                     @endif
                                 </x-table.td>
                             </tr>

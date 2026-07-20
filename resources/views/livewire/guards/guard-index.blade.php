@@ -61,15 +61,15 @@
                 @forelse($guards as $guard)
                     <tr class="table-row-hover" wire:key="guard-{{ $guard->id }}">
                         <x-table.td>
-                            <a href="{{ route('guards.show', $guard) }}" class="flex items-center gap-2 hover:underline">
+                            <a href="{{ route('guards.show', $guard) }}" class="group flex items-center gap-2.5">
                                 @if ($guard->photo_path)
-                                    <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="h-8 w-8 rounded-full object-cover">
+                                    <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700">
                                 @else
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600">
+                                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-[10px] font-semibold text-accent-700 ring-1 ring-accent-100 dark:bg-accent-950 dark:text-accent-300 dark:ring-accent-800/50">
                                         {{ strtoupper(substr($guard->first_name, 0, 1).substr($guard->last_name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <span class="font-medium text-zinc-900">{{ $guard->full_name }}</span>
+                                <span class="font-medium text-zinc-900 group-hover:text-accent-700 dark:text-zinc-100 dark:group-hover:text-accent-300">{{ $guard->full_name }}</span>
                             </a>
                         </x-table.td>
                         <x-table.td responsive="md" mono>{{ $guard->employee_number ?: '—' }}</x-table.td>

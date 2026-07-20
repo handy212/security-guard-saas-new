@@ -31,8 +31,8 @@
                 @forelse($items as $item)
                     <tr class="table-row-hover" wire:key="visitor-{{ $item->id }}">
                         <x-table.td>
-                            <div class="font-medium">{{ $item->visitor_name }}</div>
-                            <div class="text-xs text-zinc-500">{{ $item->company ?: $item->purpose ?: '—' }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->visitor_name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $item->company ?: $item->purpose ?: '—' }}</div>
                         </x-table.td>
                         <x-table.td muted>{{ $item->site?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="md" muted>{{ $item->checked_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>

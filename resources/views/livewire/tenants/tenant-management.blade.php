@@ -110,14 +110,14 @@
                     >
                         <x-table.td>
                             <div class="flex items-center gap-3">
-                                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-50 text-xs font-semibold text-accent-700 ring-1 ring-accent-100 dark:bg-accent-950 dark:text-accent-300 dark:ring-accent-800/50">
                                     {{ strtoupper(substr($tenant->name, 0, 2)) }}
                                 </div>
                                 <div class="min-w-0">
                                     <div class="truncate font-medium text-zinc-900 dark:text-zinc-100">{{ $tenant->name }}</div>
-                                    <div class="truncate font-mono text-[11px] text-zinc-500">{{ $tenant->slug }}</div>
+                                    <div class="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{{ $tenant->slug }}</div>
                                     @if ($trialEndingSoon)
-                                        <div class="mt-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                                        <div class="mt-0.5 text-[10px] font-medium tabular-nums text-amber-700 dark:text-amber-400">
                                             Trial ends {{ $tenant->trial_ends_at->format('M j') }}
                                         </div>
                                     @endif
@@ -125,8 +125,8 @@
                             </div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $tenant->subdomain ?: '—' }}</x-table.td>
-                        <x-table.td responsive="lg" muted>{{ number_format($tenant->users_count) }}</x-table.td>
-                        <x-table.td responsive="lg" muted>{{ number_format($tenant->guards_count) }}</x-table.td>
+                        <x-table.td responsive="lg" muted class="tabular-nums">{{ number_format($tenant->users_count) }}</x-table.td>
+                        <x-table.td responsive="lg" muted class="tabular-nums">{{ number_format($tenant->guards_count) }}</x-table.td>
                         <x-table.td responsive="xl" muted>{{ $planName ?? '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$tenant->status ?? 'active'" /></x-table.td>
                         <x-table.td align="right" wire:click.stop>

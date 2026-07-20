@@ -37,9 +37,9 @@
                 <tbody>
                     @forelse($logs as $log)
                         <tr class="table-row-hover" wire:key="attendance-{{ $log->id }}">
-                            <x-table.td><span class="font-medium text-zinc-900">{{ $log->assignedGuard?->full_name ?? '—' }}</span></x-table.td>
+                            <x-table.td><span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $log->assignedGuard?->full_name ?? '—' }}</span></x-table.td>
                             <x-table.td muted>{{ $log->site?->name ?? '—' }}</x-table.td>
-                            <x-table.td muted>{{ $log->clock_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                            <x-table.td muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') ?? '—' }}</x-table.td>
                             <x-table.td><x-badge :status="$log->status ?? 'on_time'" /></x-table.td>
                         </tr>
                     @empty

@@ -23,6 +23,7 @@ Historical UI mockups and reference materials for GuardCore Pro visual design de
 - Soft card shadows → **border-led surfaces**
 - Orange/red and cream/terracotta rebrands
 - Font Awesome CDN (Heroicons inline SVG instead)
+- Full visual redesigns that abandon the command-room system (keep enhancing the live Blade/Tailwind UI instead)
 
 ## Active system (2026 refresh)
 
@@ -30,3 +31,4 @@ Historical UI mockups and reference materials for GuardCore Pro visual design de
 - Accent ownership: **per-tenant** via CSS `--tenant-brand`
 - Shell: dark sidebar, light canvas, open page headers
 - Field PWA and client portal share the same token system
+- Shared utilities: `.card-header`, `.list-row`, `.alert-banner`, `.quick-action`, tabular nums on KPIs

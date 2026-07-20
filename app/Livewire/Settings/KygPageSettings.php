@@ -40,11 +40,10 @@ class KygPageSettings extends Component
         $this->reportConcernEmail = $stored['report_concern_email'] ?? null;
 
         $appearance = $stored['expected_appearance'] ?? $defaults['expected_appearance'] ?? [];
-        if (is_array($appearance)) {
-            $this->expectedAppearanceText = implode("\n", $appearance);
-        } else {
-            $this->expectedAppearanceText = (string) $appearance;
+        if (! is_array($appearance)) {
+            $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $appearance) ?: [])));
         }
+        $this->expectedAppearanceText = implode("\n", $this->sanitizeAppearanceItems($appearance));
     }
 
     public function save(): void
@@ -66,7 +65,9 @@ class KygPageSettings extends Component
             ->where('key', 'verification')
             ->value('value') ?? [];
 
-        $appearance = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $this->expectedAppearanceText) ?: [])));
+        $appearance = $this->sanitizeAppearanceItems(
+            array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $this->expectedAppearanceText) ?: [])))
+        );
 
         $existing['page'] = array_merge($existing['page'] ?? [], [
             'subtitle' => $this->subtitle,
@@ -89,5 +90,24 @@ class KygPageSettings extends Component
     public function render()
     {
         return view('livewire.settings.kyg-page-settings')->layout('layouts.app');
+    }
+
+    /**
+     * @param  list<string>  $items
+     * @return list<string>
+     */
+    private function sanitizeAppearanceItems(array $items): array
+    {
+        $legacyKitPlaceholders = [
+            'company radio',
+            'bodycam / guard tour device',
+            'bodycam',
+            'guard tour device',
+        ];
+
+        return array_values(array_filter(
+            $items,
+            fn ($item) => $item !== '' && ! in_array(strtolower(trim((string) $item)), $legacyKitPlaceholders, true)
+        ));
     }
 }

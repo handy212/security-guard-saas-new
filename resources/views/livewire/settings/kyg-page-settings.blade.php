@@ -7,68 +7,53 @@
             ['label' => 'Know Your Guard'],
         ]"
     >
+        <x-slot:actions>
+            <x-button variant="secondary" :href="route('settings.id-card')">ID card settings</x-button>
+            <x-button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save">
+                <span wire:loading.remove wire:target="save">Save settings</span>
+                <span wire:loading wire:target="save">Saving…</span>
+            </x-button>
+        </x-slot:actions>
+
         <x-sub-sidebar-layout>
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
-            <x-form-card title="Public page content">
-            <form wire:submit="save" class="space-y-5">
-                <div>
-                    <label class="form-label" for="subtitle">Page subtitle</label>
-                    <input id="subtitle" type="text" wire:model="subtitle" class="form-input mt-1">
-                    @error('subtitle') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
+            <x-flash-status type="success" />
 
-                <div>
-                    <label class="form-label" for="accessGuidance">Client access guidance</label>
-                    <textarea id="accessGuidance" wire:model="accessGuidance" rows="3" class="form-input mt-1"></textarea>
-                    @error('accessGuidance') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
+            <x-section-card title="Public page content" description="Copy shown when someone scans a verified guard QR code.">
+                <form wire:submit="save" class="space-y-5">
+                    <x-form-section title="Page copy">
+                        <x-input wire:model="subtitle" label="Page subtitle *" class="sm:col-span-2" />
+                        <x-textarea wire:model="accessGuidance" label="Client access guidance *" rows="3" class="sm:col-span-2" />
+                        <x-textarea wire:model="securityNotice" label="Security notice (footer) *" rows="3" class="sm:col-span-2" />
+                        <x-input wire:model="verifiedByLabel" label="Assignment verified-by label *" class="sm:col-span-2" />
+                    </x-form-section>
 
-                <div>
-                    <label class="form-label" for="securityNotice">Security notice (footer)</label>
-                    <textarea id="securityNotice" wire:model="securityNotice" rows="3" class="form-input mt-1"></textarea>
-                    @error('securityNotice') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
+                    <x-form-section
+                        title="Appearance checklist"
+                        description="Uniform / ID standards only (one per line). Radios, bodycams, and other kit appear automatically from assets issued on the current shift."
+                    >
+                        <x-textarea wire:model="expectedAppearanceText" label="Expected appearance" rows="4" class="sm:col-span-2 font-mono text-sm" placeholder="Branded uniform&#10;Visible staff ID" />
+                    </x-form-section>
 
-                <div>
-                    <label class="form-label" for="verifiedByLabel">Assignment verified-by label</label>
-                    <input id="verifiedByLabel" type="text" wire:model="verifiedByLabel" class="form-input mt-1">
-                    @error('verifiedByLabel') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
+                    <x-form-section title="Report concern contacts" description="Optional — falls back to ID card contact details.">
+                        <x-input wire:model="reportConcernPhone" label="Phone" placeholder="Optional" />
+                        <x-input wire:model="reportConcernEmail" type="email" label="Email" placeholder="Optional" />
+                    </x-form-section>
 
-                <div>
-                    <label class="form-label" for="expectedAppearanceText">Expected appearance checklist</label>
-                    <p class="mt-1 text-xs text-zinc-500">One item per line. Shown on the public verification page.</p>
-                    <textarea id="expectedAppearanceText" wire:model="expectedAppearanceText" rows="5" class="form-input mt-1 font-mono text-sm"></textarea>
-                    @error('expectedAppearanceText') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        Control room phone numbers come from <a href="{{ route('settings.id-card') }}" class="page-link">ID Card settings</a>.
+                        Company logo on the verification page uses the ID card logo upload.
+                    </p>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label class="form-label" for="reportConcernPhone">Report concern phone</label>
-                        <input id="reportConcernPhone" type="text" wire:model="reportConcernPhone" class="form-input mt-1" placeholder="Optional — defaults to ID card secondary phone">
-                        @error('reportConcernPhone') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    <div class="flex items-center gap-3">
+                        <x-button type="submit" wire:loading.attr="disabled" wire:target="save">
+                            <span wire:loading.remove wire:target="save">Save settings</span>
+                            <span wire:loading wire:target="save">Saving…</span>
+                        </x-button>
                     </div>
-                    <div>
-                        <label class="form-label" for="reportConcernEmail">Report concern email</label>
-                        <input id="reportConcernEmail" type="email" wire:model="reportConcernEmail" class="form-input mt-1" placeholder="Optional — defaults to ID card email">
-                        @error('reportConcernEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-
-                <p class="text-xs text-zinc-500">
-                    Control room phone numbers come from <a href="{{ route('settings.id-card') }}" class="font-medium text-accent-600 hover:underline">ID Card settings</a>.
-                    Company logo on the verification page uses the ID card logo upload.
-                </p>
-
-                <div class="flex items-center gap-3">
-                    <x-button type="submit">Save settings</x-button>
-                    @if (session('status'))
-                        <span class="text-sm text-emerald-700">{{ session('status') }}</span>
-                    @endif
-                </div>
-            </form>
-            </x-form-card>
+                </form>
+            </x-section-card>
         </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

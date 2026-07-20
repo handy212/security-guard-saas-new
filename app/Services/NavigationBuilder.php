@@ -83,7 +83,7 @@ class NavigationBuilder
             'Guardians' => 'guards',
             'Clients' => 'clients',
             'Live ops' => 'dispatch',
-            'Libraries' => 'reports',
+            'Libraries', 'Resources' => 'reports',
             'Back Office' => 'billing',
             'Compliance & Insights' => 'analytics',
             default => 'dashboard',
@@ -145,7 +145,8 @@ class NavigationBuilder
             'Plans' => 'Plans',
             'Subscriptions' => 'Billing',
             'Live ops' => 'Live',
-            'Libraries' => 'Libs',
+            'Libraries' => 'Res',
+            'Resources' => 'Res',
         ];
 
         return $map[$label] ?? \Illuminate\Support\Str::limit($label, 8, '');

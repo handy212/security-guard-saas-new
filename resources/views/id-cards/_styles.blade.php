@@ -574,19 +574,52 @@
     }
 
     {{ $scope }} .template-premium .premium-sig-strip {
-        height: 36px;
+        min-height: 56px;
         background: #f1f5f9;
         display: flex;
-        align-items: center;
-        padding: 0 16px;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 8px 16px 7px;
         flex-shrink: 0;
+        color: #64748b;
+        box-sizing: border-box;
     }
 
-    {{ $scope }} .template-premium .premium-sig-strip span {
-        font-size: 0.62rem;
+    {{ $scope }} .template-premium .premium-sig-strip--has-image {
+        min-height: 72px;
+    }
+
+    {{ $scope }} .template-premium .premium-sig-pad {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        min-height: 36px;
+        padding-bottom: 4px;
+    }
+
+    {{ $scope }} .template-premium .premium-sig-img {
+        display: block;
+        height: 44px;
+        max-width: 78%;
+        width: auto;
+        object-fit: contain;
+        object-position: left bottom;
+    }
+
+    {{ $scope }} .template-premium .premium-sig-meta {
+        border-top: 1px solid #cbd5e1;
+        padding-top: 4px;
+        line-height: 1;
+    }
+
+    {{ $scope }} .template-premium .premium-sig-meta span {
+        display: block;
+        font-size: 0.58rem;
         color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        font-weight: 600;
     }
 
     {{ $scope }} .template-premium .premium-back-content {

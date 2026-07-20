@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Services\GuardVerificationService;
-use Illuminate\Support\Facades\Storage;
+use App\Services\TenantFileStorageService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GuardVerificationPhotoController extends Controller
 {
-    public function __invoke(GuardVerificationService $verification, ?string $tenant = null, ?string $token = null): StreamedResponse
-    {
+    public function __invoke(
+        GuardVerificationService $verification,
+        TenantFileStorageService $storage,
+        ?string $tenant = null,
+        ?string $token = null,
+    ): StreamedResponse {
         if ($token === null) {
             $token = $tenant;
             $tenant = null;
@@ -22,8 +26,8 @@ class GuardVerificationPhotoController extends Controller
         $guard = $record->assignedGuard;
         $path = $guard?->photo_path;
 
-        abort_unless($path && Storage::disk('public')->exists($path), 404);
+        abort_unless($path && $storage->exists($path), 404);
 
-        return Storage::disk('public')->response($path);
+        return $storage->response($path);
     }
 }

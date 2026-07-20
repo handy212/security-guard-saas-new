@@ -75,6 +75,6 @@ php artisan route:cache
 php artisan view:cache
 
 echo "==> Reloading workers"
-sudo supervisorctl restart guardops-queue guardops-reverb 2>/dev/null || true
+sudo supervisorctl restart guardops-queue guardops-queue-heavy guardops-reverb 2>/dev/null || true
 
 echo "==> Done (native)"

@@ -18,6 +18,24 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
+function csrfHeaders() {
+    const headers = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    const meta = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (meta) {
+        headers['X-CSRF-TOKEN'] = meta;
+    }
+
+    return headers;
+}
+
+let subscribeInFlight = null;
+let subscribedEndpoint = null;
+
 export async function registerPushSubscription() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         return false;
@@ -28,39 +46,52 @@ export async function registerPushSubscription() {
         return false;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-        return false;
+    if (subscribeInFlight) {
+        return subscribeInFlight;
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+    subscribeInFlight = (async () => {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            return false;
+        }
 
-    if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            });
+        }
+
+        if (subscribedEndpoint === subscription.endpoint) {
+            return true;
+        }
+
+        const response = await fetch('/push/subscribe', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: csrfHeaders(),
+            body: JSON.stringify({
+                endpoint: subscription.endpoint,
+                public_key: arrayBufferToBase64(subscription.getKey('p256dh')),
+                auth_token: arrayBufferToBase64(subscription.getKey('auth')),
+                content_encoding: 'aesgcm',
+            }),
         });
-    }
 
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (response.ok) {
+            subscribedEndpoint = subscription.endpoint;
+        }
 
-    const response = await fetch('/push/subscribe', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-CSRF-TOKEN': csrf,
-        },
-        body: JSON.stringify({
-            endpoint: subscription.endpoint,
-            public_key: arrayBufferToBase64(subscription.getKey('p256dh')),
-            auth_token: arrayBufferToBase64(subscription.getKey('auth')),
-            content_encoding: 'aesgcm',
-        }),
+        return response.ok;
+    })().finally(() => {
+        subscribeInFlight = null;
     });
 
-    return response.ok;
+    return subscribeInFlight;
 }
 
 export function initPushNotifications() {

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Passdown;
 
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\Guard;
 use App\Models\PassdownLog;
 use App\Models\Site;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 class PassdownIndex extends Component
 {
+    use HasFormDrawer;
+
     public ?int $editingId = null;
 
     public array $form = ['site_id' => '', 'site_post_id' => '', 'content' => ''];
@@ -19,6 +22,14 @@ class PassdownIndex extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()->can('patrols.manage'), 403);
+    }
+
+    public function openForm(): void
+    {
+        $this->editingId = null;
+        $this->form = ['site_id' => '', 'site_post_id' => '', 'content' => ''];
+        $this->resetErrorBag();
+        $this->showForm = true;
     }
 
     public function edit(int $id): void
@@ -32,12 +43,16 @@ class PassdownIndex extends Component
             'site_post_id' => (string) ($log->site_post_id ?? ''),
             'content' => $log->content,
         ];
+        $this->resetErrorBag();
+        $this->showForm = true;
     }
 
-    public function cancelEdit(): void
+    public function closeDrawer(): void
     {
+        $this->showForm = false;
         $this->editingId = null;
         $this->form = ['site_id' => '', 'site_post_id' => '', 'content' => ''];
+        $this->resetErrorBag();
     }
 
     public function save(PassdownService $service): void
@@ -60,7 +75,7 @@ class PassdownIndex extends Component
             session()->flash('status', 'Passdown log saved.');
         }
 
-        $this->cancelEdit();
+        $this->closeDrawer();
     }
 
     public function delete(int $id, PassdownService $service): void
@@ -73,10 +88,22 @@ class PassdownIndex extends Component
 
     public function render()
     {
+        $tenantId = TenantContext::id();
+        $logs = PassdownLog::with(['site', 'sitePost', 'assignedGuard'])
+            ->where('tenant_id', $tenantId)
+            ->latest()
+            ->limit(30)
+            ->get();
+
         return view('livewire.passdown.passdown-index', [
-            'logs' => PassdownLog::with(['site', 'sitePost', 'assignedGuard'])->where('tenant_id', TenantContext::id())->latest()->limit(30)->get(),
-            'sites' => Site::orderBy('name')->get(),
-            'posts' => SitePost::orderBy('name')->get(),
+            'logs' => $logs,
+            'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
+            'posts' => SitePost::where('tenant_id', $tenantId)->orderBy('name')->get(),
+            'stats' => [
+                'total' => $logs->count(),
+                'sites' => $logs->pluck('site_id')->filter()->unique()->count(),
+                'today' => $logs->filter(fn ($l) => $l->created_at?->isToday())->count(),
+            ],
         ])->layout('layouts.app');
     }
 }

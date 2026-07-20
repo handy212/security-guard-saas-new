@@ -47,17 +47,17 @@
                 <tbody>
                     @forelse($logs as $log)
                         <tr class="table-row-hover" wire:key="recon-{{ $log->id }}">
-                            <x-table.td class="font-medium">{{ $log->assignedGuard?->full_name }}</x-table.td>
+                            <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $log->assignedGuard?->full_name }}</x-table.td>
                             <x-table.td muted>{{ $log->site?->name }}</x-table.td>
-                            <x-table.td responsive="md" muted>{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
+                            <x-table.td responsive="md" muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
                             <x-table.td><x-badge :status="$log->status" /></x-table.td>
                             <x-table.td align="right">
                                 @if (! $log->reconciled_at)
-                                    <div class="flex justify-end gap-2">
+                                    <div class="table-inline-actions justify-end">
                                         @if ($log->clock_in_at)
-                                            <a href="{{ route('schedules.index', ['date' => $log->clock_in_at->toDateString()]) }}" class="text-xs font-medium text-accent-600 hover:underline">Day roster</a>
+                                            <a href="{{ route('schedules.index', ['date' => $log->clock_in_at->toDateString()]) }}" class="table-action" wire:navigate>Day roster</a>
                                         @endif
-                                        <a href="{{ route('schedules.attendance', array_filter(['date' => $log->clock_in_at?->toDateString()])) }}" class="text-xs font-medium text-accent-600 hover:underline">Attendance</a>
+                                        <a href="{{ route('schedules.attendance', array_filter(['date' => $log->clock_in_at?->toDateString()])) }}" class="table-action" wire:navigate>Attendance</a>
                                         <x-button size="sm" wire:click="reconcile({{ $log->id }})">Reconcile</x-button>
                                     </div>
                                 @else

@@ -28,12 +28,12 @@
                 @forelse($vendors as $vendor)
                     <tr class="table-row-hover" wire:key="vendor-{{ $vendor->id }}">
                         <x-table.td>
-                            <div class="font-medium">{{ $vendor->name }}</div>
-                            <div class="text-xs text-zinc-500">{{ $vendor->email }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $vendor->name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $vendor->email }}</div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $vendor->contact_name ?? '—' }} · {{ $vendor->phone ?? '—' }}</x-table.td>
-                        <x-table.td>{{ $vendor->purchase_orders_count }}</x-table.td>
-                        <x-table.td>{{ $vendor->assets_count }}</x-table.td>
+                        <x-table.td class="tabular-nums">{{ $vendor->purchase_orders_count }}</x-table.td>
+                        <x-table.td class="tabular-nums">{{ $vendor->assets_count }}</x-table.td>
                         <x-table.td><x-badge :status="$vendor->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>

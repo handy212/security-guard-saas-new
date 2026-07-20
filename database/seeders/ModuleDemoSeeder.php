@@ -775,9 +775,11 @@ class ModuleDemoSeeder extends Seeder
                 ['tenant_id' => $tenant->id, 'equipment_asset_id' => $radioAsset->id, 'guard_id' => $guard->id],
                 [
                     'site_id' => $site->id,
-                    'issued_at' => now()->subMonths(2),
+                    'shift_assignment_id' => $assignment->id,
+                    'issued_at' => now()->subHour(),
                     'issue_notes' => 'Signed out at shift start',
                     'status' => 'issued',
+                    'returned_at' => null,
                 ]
             );
             $radioAsset->update(['status' => \App\Enums\AssetStatus::ISSUED]);

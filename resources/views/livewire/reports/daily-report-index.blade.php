@@ -43,9 +43,9 @@
                 @forelse($reports as $report)
                     <tr class="table-row-hover" wire:key="dar-{{ $report->id }}">
                         <x-table.td>
-                            <div class="font-medium text-zinc-900">{{ $report->title }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->title }}</div>
                             @if ($report->summary)
-                                <div class="mt-0.5 line-clamp-1 text-xs text-zinc-500">{{ $report->summary }}</div>
+                                <div class="mt-0.5 line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $report->summary }}</div>
                             @endif
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $report->site?->name ?? '—' }}</x-table.td>

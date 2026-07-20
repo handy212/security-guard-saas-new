@@ -12,7 +12,7 @@ class Site extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'client_account_id', 'name', 'address', 'latitude', 'longitude',
+        'tenant_id', 'client_account_id', 'supervisor_user_id', 'name', 'address', 'latitude', 'longitude',
         'geofence_radius_meters', 'status', 'instructions', 'settings',
     ];
 
@@ -28,6 +28,11 @@ class Site extends Model
     public function clientAccount(): BelongsTo
     {
         return $this->belongsTo(ClientAccount::class);
+    }
+
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'supervisor_user_id');
     }
 
     public function posts(): HasMany

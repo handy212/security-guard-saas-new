@@ -67,6 +67,14 @@ DB_DATABASE=guard_saas
 DB_USERNAME=guardops
 DB_PASSWORD=CHANGE_ME_STRONG
 
+# Sessions/cache/queues share Redis across app + workers
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+SESSION_SECURE_COOKIE=true
+SESSION_DOMAIN=.yourdomain.com
+SESSION_SAME_SITE=lax
+
 TENANCY_BASE_DOMAIN=yourdomain.com
 
 # Reverb — public host/port (browser connects via nginx TLS)
@@ -81,6 +89,10 @@ REVERB_SCHEME=https
 VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
 VITE_REVERB_HOST="${REVERB_HOST}"
 VITE_REVERB_PORT="${REVERB_PORT}"
+
+# ID-card PDFs (Browsershot) run on queue-heavy only
+ID_CARD_PDF_DRIVER=browsershot
+CHROME_PATH=/usr/bin/chromium
 
 # Optional: S3 for uploads in production
 FILESYSTEM_DISK=public
@@ -140,24 +152,24 @@ Visit `https://app.yourdomain.com`.
 | Service | Role |
 |---------|------|
 | `nginx` | Serves `public/` (proxied by host nginx) |
-| `app` | PHP 8.3-FPM |
+| `app` | PHP 8.3-FPM (slim image — no Chromium) |
 | `mysql` | Database |
 | `redis` | Cache, sessions, queues |
-| `horizon` | Queue worker (`queue:work`) |
+| `queue` | Default queue worker (`queue:work --queue=default`) |
+| `queue-heavy` | Chromium/Browsershot worker (`--queue=heavy`, ID-card PDFs) |
+| `scheduler` | `php artisan schedule:work` (analytics, patrols, reports) |
 | `reverb` | WebSockets for dispatch control room |
 
-### 3.5 Scheduler (cron)
+Chromium is installed only in `Dockerfile.heavy` / the `queue-heavy` service so PDF rendering cannot starve PHP-FPM.
 
-Laravel scheduled jobs (analytics, compliance, missed patrols) need cron on the **host**:
+### 3.5 Scheduler
 
-```bash
-crontab -e
-```
+With Docker Compose, the `scheduler` service runs the Laravel schedule — **no host cron required**.
 
-Add:
+Native installs still need host cron:
 
 ```cron
-* * * * * cd /var/www/guardops && docker compose exec -T app php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/guardops && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ---
@@ -280,15 +292,17 @@ Never run `migrate:fresh` in production.
 | Permission errors | `docker compose exec app chown -R www-data:www-data storage bootstrap/cache` |
 | WebSockets not connecting | Check `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` match public URL; verify nginx `/app` proxy |
 | Tenant subdomain 404 | Wildcard DNS `*.yourdomain.com` must point to this server |
-| Queue jobs stuck | `docker compose logs horizon` or `supervisorctl status` |
+| Queue jobs stuck | `docker compose logs queue queue-heavy` or `supervisorctl status` |
+| ID card PDF times out / 503 | Ensure `queue-heavy` is up; `docker compose logs queue-heavy` |
+| Session / Livewire “page expired” | `SESSION_DRIVER=redis`, `SESSION_SECURE_COOKIE=true`, proxy sends `X-Forwarded-Proto: https` |
 | MySQL/Redis exposed on `0.0.0.0` | Recreate with prod override: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate` |
 | nginx on public `8080` instead of `127.0.0.1` | Same — prod file uses `!reset` so dev ports are not merged in |
-| `horizon` / `reverb` missing | `docker compose ps -a` then `docker compose logs horizon reverb` |
+| `queue` / `queue-heavy` / `reverb` missing | `docker compose ps -a` then `docker compose logs queue queue-heavy reverb` |
 
 Logs:
 
 ```bash
-docker compose logs -f app horizon reverb
+docker compose logs -f app queue queue-heavy scheduler reverb
 tail -f storage/logs/laravel.log
 ```
 

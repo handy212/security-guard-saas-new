@@ -17,6 +17,8 @@ class VehiclePatrolBoard extends Component
 {
     use AuthorizesModuleAccess;
 
+    public bool $showStartForm = false;
+
     public array $form = [
         'vehicle_id' => '',
         'guard_id' => '',
@@ -38,6 +40,27 @@ class VehiclePatrolBoard extends Component
     public function mount(): void
     {
         $this->authorizePermission('patrols.manage');
+    }
+
+    public function openStartForm(): void
+    {
+        $this->endingId = null;
+        $this->form = [
+            'vehicle_id' => '',
+            'guard_id' => '',
+            'patrol_session_id' => '',
+            'start_odometer' => '',
+            'fuel_litres' => '',
+            'fuel_cost' => '',
+        ];
+        $this->resetErrorBag();
+        $this->showStartForm = true;
+    }
+
+    public function closeStartForm(): void
+    {
+        $this->showStartForm = false;
+        $this->resetErrorBag();
     }
 
     public function startTrip(FleetService $fleet): void
@@ -76,6 +99,7 @@ class VehiclePatrolBoard extends Component
             'fuel_litres' => '',
             'fuel_cost' => '',
         ];
+        $this->showStartForm = false;
 
         session()->flash('status', 'Vehicle assigned to patrol trip.');
     }
@@ -83,6 +107,7 @@ class VehiclePatrolBoard extends Component
     public function openEnd(int $id): void
     {
         $trip = VehiclePatrol::where('tenant_id', TenantContext::id())->findOrFail($id);
+        $this->showStartForm = false;
         $this->endingId = $trip->id;
         $this->endForm = [
             'end_odometer' => $trip->start_odometer !== null ? (string) $trip->start_odometer : '',
@@ -90,6 +115,13 @@ class VehiclePatrolBoard extends Component
             'fuel_cost' => '',
             'patrol_session_id' => $trip->patrol_session_id ? (string) $trip->patrol_session_id : '',
         ];
+        $this->resetErrorBag();
+    }
+
+    public function closeEndForm(): void
+    {
+        $this->endingId = null;
+        $this->resetErrorBag();
     }
 
     public function endTrip(FleetService $fleet): void

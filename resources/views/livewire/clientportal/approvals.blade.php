@@ -15,13 +15,13 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search by ID…" />
 
-        <div class="space-y-3 sm:hidden">
+        <div class="space-y-2 sm:hidden">
             @forelse($items as $item)
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900" wire:key="approval-card-{{ $item->id }}">
+                <div class="card-surface p-4" wire:key="approval-card-{{ $item->id }}">
                     <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">#{{ $item->id }}</div>
-                            <div class="text-sm text-zinc-500">{{ $item->clientAccount?->name ?? '—' }}</div>
+                        <div class="min-w-0">
+                            <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">#{{ $item->id }}</div>
+                            <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $item->clientAccount?->name ?? '—' }}</div>
                         </div>
                         <x-badge :status="$item->status" />
                     </div>
@@ -32,7 +32,7 @@
                             <x-button size="sm" variant="danger" wire:click="reject({{ $item->id }})" loading-text="…">Reject</x-button>
                         </div>
                     @else
-                        <p class="mt-2 text-xs text-zinc-500">{{ $item->approved_at?->format('M j, Y') ?? '—' }}</p>
+                        <p class="mt-2 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $item->approved_at?->format('M j, Y') ?? '—' }}</p>
                     @endif
                 </div>
             @empty
@@ -40,7 +40,7 @@
             @endforelse
         </div>
 
-        <x-data-table title="Pending approvals" class="hidden sm:block">
+        <x-data-table title="Approvals" class="hidden sm:block">
             <x-table.head>
                 <tr>
                     <x-table.th>ID</x-table.th>
@@ -53,18 +53,18 @@
             <tbody>
                 @forelse($items as $item)
                     <tr class="table-row-hover" wire:key="approval-{{ $item->id }}">
-                        <x-table.td mono>#{{ $item->id }}</x-table.td>
+                        <x-table.td mono class="tabular-nums">#{{ $item->id }}</x-table.td>
                         <x-table.td muted>{{ $item->clientAccount?->name ?? '—' }}</x-table.td>
                         <x-table.td muted>{{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}</x-table.td>
                         <x-table.td><x-badge :status="$item->status" /></x-table.td>
                         <x-table.td align="right">
                             @if($item->status === 'pending')
-                                <div class="flex justify-end gap-2">
+                                <div class="table-inline-actions justify-end">
                                     <x-button size="sm" wire:click="approve({{ $item->id }})" loading-text="…">Approve</x-button>
                                     <x-button size="sm" variant="danger" wire:click="reject({{ $item->id }})" loading-text="…">Reject</x-button>
                                 </div>
                             @else
-                                <span class="text-xs text-zinc-500">{{ $item->approved_at?->format('M j, Y') ?? '—' }}</span>
+                                <span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $item->approved_at?->format('M j, Y') ?? '—' }}</span>
                             @endif
                         </x-table.td>
                     </tr>

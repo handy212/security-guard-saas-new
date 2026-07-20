@@ -37,20 +37,25 @@
         </x-page-toolbar>
 
         @if($sosAlerts->isNotEmpty())
-            <section class="mb-4 rounded-xl border border-red-300 bg-red-50 p-4 shadow-sm">
-                <div class="mb-3 flex items-center gap-2">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-600"></span>
-                    </span>
-                    <h2 class="text-sm font-semibold text-red-900">SOS alerts require response</h2>
+            <section class="card-surface overflow-hidden border-red-200/90 dark:border-red-900/50">
+                <div class="card-header border-red-100 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/40">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5">
+                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                        </span>
+                        <div>
+                            <h2 class="card-header-title text-red-900 dark:text-red-100">SOS alerts require response</h2>
+                            <p class="card-header-meta text-red-700/90 dark:text-red-300">{{ $sosAlerts->count() }} open · acknowledge or dispatch now</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-3">
+                <div class="divide-y divide-red-100 dark:divide-red-900/40">
                     @foreach($sosAlerts as $alert)
-                        <div class="flex flex-wrap items-start justify-between gap-3 border-t border-red-200/80 pt-3 first:border-0 first:pt-0" wire:key="sos-{{ $alert->id }}">
-                            <div>
-                                <div class="font-semibold text-red-900">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
-                                <div class="text-xs text-red-700">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }} · {{ $alert->raised_at?->diffForHumans() }}</div>
+                        <div class="flex flex-wrap items-start justify-between gap-3 bg-red-50/40 px-4 py-3 dark:bg-red-950/20" wire:key="sos-{{ $alert->id }}">
+                            <div class="min-w-0">
+                                <div class="font-semibold text-red-900 dark:text-red-100">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
+                                <div class="text-xs text-red-700 dark:text-red-300">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }} · {{ $alert->raised_at?->diffForHumans() }}</div>
                             </div>
                             <div class="flex shrink-0 flex-wrap gap-2">
                                 @if($alert->status === 'open')
@@ -79,21 +84,25 @@
                             $priorityTone = match ($dispatch->priority->value ?? '') {
                                 'critical' => 'border-l-red-500',
                                 'high' => 'border-l-amber-500',
-                                'low' => 'border-l-zinc-300',
-                                default => 'border-l-sky-400',
+                                'low' => 'border-l-zinc-300 dark:border-l-zinc-600',
+                                default => 'border-l-accent-500',
                             };
                         @endphp
                         <button
                             type="button"
                             wire:click="selectDispatch({{ $dispatch->id }})"
-                            class="w-full rounded-lg border border-transparent border-l-4 {{ $priorityTone }} px-2 py-3 text-left text-sm transition hover:border-zinc-200 hover:bg-zinc-50 {{ $selectedId === $dispatch->id ? 'border-accent-200 bg-accent-50' : '' }}"
+                            @class([
+                                'board-item',
+                                $priorityTone,
+                                'board-item-active' => $selectedId === $dispatch->id,
+                            ])
                             wire:key="dispatch-{{ $dispatch->id }}"
                         >
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-zinc-900">{{ $dispatch->dispatch_number ?? '#'.$dispatch->id }}</div>
-                                    <div class="truncate text-xs text-zinc-500">{{ $dispatch->clientAccount?->name ?? '—' }} · {{ $dispatch->site?->name }}</div>
-                                    <div class="mt-1 truncate text-xs text-zinc-600">{{ $dispatch->caller_name }} — {{ $dispatch->incident_location }}</div>
+                                    <div class="board-item-title tabular-nums">{{ $dispatch->dispatch_number ?? '#'.$dispatch->id }}</div>
+                                    <div class="board-item-meta">{{ $dispatch->clientAccount?->name ?? '—' }} · {{ $dispatch->site?->name }}</div>
+                                    <div class="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-300">{{ $dispatch->caller_name }} — {{ $dispatch->incident_location }}</div>
                                     <div class="mt-1 text-[11px] text-zinc-400">
                                         {{ $dispatch->assignedGuard?->full_name ?? 'Unassigned' }}
                                         · {{ $dispatch->opened_at?->diffForHumans() ?? $dispatch->created_at?->diffForHumans() }}
@@ -126,20 +135,20 @@
                             <x-badge :status="$selected->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
                             <x-badge :status="$selected->status->value" :map="['open'=>'info','assigned'=>'info','en_route'=>'warning','on_scene'=>'warning','resolved'=>'success','closed'=>'neutral','cancelled'=>'danger']" />
                             @if ($trackingUrl)
-                                <a href="{{ $trackingUrl }}" class="text-xs font-medium text-accent-600 hover:underline">View on live map</a>
+                                <a href="{{ $trackingUrl }}" class="page-link">View on live map</a>
                             @endif
                         </div>
 
-                        <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
-                            <div class="font-medium text-zinc-900">{{ $selected->assignedGuard?->full_name ?? 'Unassigned' }}</div>
-                            <div class="text-xs text-zinc-500">{{ $selected->clientAccount?->name ?? '—' }} · {{ $selected->site?->name ?? '—' }}</div>
+                        <div class="meta-tile mb-4">
+                            <div class="meta-tile-value">{{ $selected->assignedGuard?->full_name ?? 'Unassigned' }}</div>
+                            <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ $selected->clientAccount?->name ?? '—' }} · {{ $selected->site?->name ?? '—' }}</div>
                         </div>
 
                         <ol class="mb-4 grid gap-2 sm:grid-cols-3">
                             @foreach ($timeline as $step)
-                                <li class="rounded-lg border px-2 py-1.5 text-xs {{ $step['at'] ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-zinc-200 bg-white text-zinc-400' }}">
+                                <li @class(['timeline-step', $step['at'] ? 'timeline-step-done' : 'timeline-step-pending'])>
                                     <div class="font-semibold">{{ $step['label'] }}</div>
-                                    <div>{{ $step['at']?->format('M j, H:i') ?? 'Pending' }}</div>
+                                    <div class="tabular-nums">{{ $step['at']?->format('M j, H:i') ?? 'Pending' }}</div>
                                 </li>
                             @endforeach
                         </ol>
@@ -157,40 +166,40 @@
                             </div>
                         @endif
 
-                        <dl class="mb-4 grid gap-3 text-sm sm:grid-cols-2">
-                            <div>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Caller</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ ucfirst($selected->caller_type) }} — {{ $selected->caller_name }}</dd>
+                        <dl class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+                            <div class="meta-tile">
+                                <dt class="meta-tile-label">Caller</dt>
+                                <dd class="meta-tile-value">{{ ucfirst($selected->caller_type) }} — {{ $selected->caller_name }}</dd>
                             </div>
-                            <div>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Incident</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ $incidentTypes[$selected->event_type] ?? $selected->event_type }}</dd>
+                            <div class="meta-tile">
+                                <dt class="meta-tile-label">Incident</dt>
+                                <dd class="meta-tile-value">{{ $incidentTypes[$selected->event_type] ?? $selected->event_type }}</dd>
                             </div>
-                            <div class="sm:col-span-2">
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Location</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ $selected->incident_location }}</dd>
+                            <div class="meta-tile sm:col-span-2">
+                                <dt class="meta-tile-label">Location</dt>
+                                <dd class="meta-tile-value">{{ $selected->incident_location }}</dd>
                             </div>
-                            <div>
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">When</dt>
-                                <dd class="mt-0.5 font-medium text-zinc-900">{{ $selected->incident_date?->format('M j, Y') }} {{ $selected->incident_time }}</dd>
+                            <div class="meta-tile">
+                                <dt class="meta-tile-label">When</dt>
+                                <dd class="meta-tile-value tabular-nums">{{ $selected->incident_date?->format('M j, Y') }} {{ $selected->incident_time }}</dd>
                             </div>
-                            <div class="sm:col-span-2">
-                                <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Details</dt>
-                                <dd class="mt-0.5 text-zinc-700">{{ $selected->description ?: '—' }}</dd>
+                            <div class="meta-tile sm:col-span-2">
+                                <dt class="meta-tile-label">Details</dt>
+                                <dd class="mt-0.5 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{{ $selected->description ?: '—' }}</dd>
                             </div>
                             @if ($selected->attachment_path)
-                                <div class="sm:col-span-2">
-                                    <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">Attachment</dt>
+                                <div class="meta-tile sm:col-span-2">
+                                    <dt class="meta-tile-label">Attachment</dt>
                                     <dd class="mt-0.5">
-                                        <button type="button" wire:click="downloadAttachment" class="text-sm font-medium text-accent-600 hover:underline">Download attachment</button>
+                                        <button type="button" wire:click="downloadAttachment" class="page-link text-sm">Download attachment</button>
                                     </dd>
                                 </div>
                             @endif
                         </dl>
 
                         @if($selected->isActive())
-                            <div class="mb-4 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Actions</p>
+                            <div class="mb-4 space-y-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                                <p class="meta-tile-label">Actions</p>
                                 <x-select wire:model="assignGuardId" label="Assign guard">
                                     <option value="">Select guard</option>
                                     @foreach($guards as $guard)
@@ -215,7 +224,7 @@
                                 @if ($selected->incident_id)
                                     <p class="text-xs text-zinc-500">
                                         Linked incident #{{ $selected->incident_id }}
-                                        · <a href="{{ route('incidents.index') }}" class="font-medium text-accent-600 hover:underline">Open incidents</a>
+                                        · <a href="{{ route('incidents.index') }}" class="page-link">Open incidents</a>
                                     </p>
                                 @endif
                             </div>
@@ -228,13 +237,13 @@
                             <x-button type="submit" size="sm" variant="secondary">Save notes</x-button>
                         </form>
 
-                        <div class="mt-4 border-t border-zinc-100 pt-3">
-                            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Activity</h4>
+                        <div class="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                            <h4 class="meta-tile-label mb-2">Activity</h4>
                             @forelse($selected->activityLogs as $log)
-                                <div class="border-t border-zinc-100 py-2 text-xs first:border-0" wire:key="log-{{ $log->id }}">
-                                    <span class="font-medium text-zinc-800">{{ $log->user?->name ?? 'System' }}</span>
-                                    <span class="text-zinc-500"> — {{ $log->message }}</span>
-                                    <div class="text-[10px] text-zinc-400">{{ $log->created_at->format('M j, Y H:i') }} · {{ $log->created_at->diffForHumans() }}</div>
+                                <div class="border-t border-zinc-100 py-2 text-xs first:border-0 dark:border-zinc-800" wire:key="log-{{ $log->id }}">
+                                    <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $log->user?->name ?? 'System' }}</span>
+                                    <span class="text-zinc-500 dark:text-zinc-400"> — {{ $log->message }}</span>
+                                    <div class="tabular-nums text-[10px] text-zinc-400">{{ $log->created_at->format('M j, Y H:i') }} · {{ $log->created_at->diffForHumans() }}</div>
                                 </div>
                             @empty
                                 <p class="text-xs text-zinc-500">No activity yet.</p>

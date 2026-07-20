@@ -43,7 +43,20 @@
             <tbody>
                 @forelse($guards as $guard)
                     <tr class="table-row-hover" wire:key="kyg-{{ $guard->id }}">
-                        <x-table.td><span class="font-medium text-zinc-900">{{ $guard->full_name }}</span></x-table.td>
+                        <x-table.td>
+                            <div class="flex items-center gap-2.5">
+                                @if ($guard->photo_path)
+                                    <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="h-8 w-8 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700">
+                                @else
+                                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-[10px] font-semibold text-accent-700 ring-1 ring-accent-100 dark:bg-accent-950 dark:text-accent-300 dark:ring-accent-800/50">
+                                        {{ strtoupper(substr($guard->first_name, 0, 1).substr($guard->last_name, 0, 1)) }}
+                                    </div>
+                                @endif
+                                <a href="{{ route('guards.show', $guard) }}?tab=overview" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">
+                                    {{ $guard->full_name }}
+                                </a>
+                            </div>
+                        </x-table.td>
                         <x-table.td responsive="md" muted>{{ $guard->branch?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $guard->dutyTypeLabel() }}</x-table.td>
                         <x-table.td><x-badge :status="$guard->status" /></x-table.td>
@@ -54,7 +67,16 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state title="No guards" description="No guards match this Know Your Guard filter." />
+                        <x-empty-state
+                            compact
+                            title="No guards match"
+                            description="No guards match this Know Your Guard filter."
+                        >
+                            <x-slot:actions>
+                                <x-button size="sm" variant="secondary" wire:click="$set('statusFilter', 'all')">Show all</x-button>
+                                <x-button size="sm" variant="secondary" :href="route('guards.index')">Roster</x-button>
+                            </x-slot:actions>
+                        </x-empty-state>
                     </x-table.empty>
                 @endforelse
             </tbody>

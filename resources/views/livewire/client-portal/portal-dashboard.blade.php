@@ -15,67 +15,84 @@
         </div>
 
         <div class="page-grid-2">
-            <x-section-card title="Recent shifts" description="Guard deployments at your sites">
+            <x-section-card title="Recent shifts" description="Guard deployments at your sites" flush>
                 @forelse($shifts as $shift)
-                    <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-t-0">
-                        <div>
-                            <div class="font-medium">{{ $shift->site?->name }}</div>
-                            <div class="text-sm text-zinc-500">{{ $shift->starts_at?->format('M j, Y · H:i') }}</div>
+                    <div class="list-row" wire:key="portal-shift-{{ $shift->id }}">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $shift->site?->name }}</div>
+                            <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $shift->starts_at?->format('M j, Y · H:i') }}</div>
                         </div>
-                        <span class="text-xs font-semibold text-zinc-500">{{ $shift->assignments->count() }} guard(s)</span>
+                        <span class="shrink-0 text-xs font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">{{ $shift->assignments->count() }} guard(s)</span>
                     </div>
                 @empty
-                    <x-empty-state title="No shifts" description="Scheduled shifts for your sites will appear here." />
+                    <div class="p-3">
+                        <x-empty-state title="No shifts" description="Scheduled shifts for your sites will appear here." />
+                    </div>
                 @endforelse
             </x-section-card>
 
-            <x-section-card title="Approved reports">
+            <x-section-card title="Approved reports" flush>
                 @forelse($reports as $report)
-                    <div class="border-t border-zinc-100 py-3 first:border-t-0">
-                        <div class="font-medium">{{ $report->site?->name }}</div>
-                        <div class="text-sm text-zinc-500">{{ $report->report_date?->format('M j, Y') ?? $report->created_at?->format('M j, Y') }}</div>
+                    <div class="list-row" wire:key="portal-report-{{ $report->id }}">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->site?->name }}</div>
+                            <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $report->report_date?->format('M j, Y') ?? $report->created_at?->format('M j, Y') }}</div>
+                        </div>
                     </div>
                 @empty
-                    <x-empty-state title="No reports yet" />
+                    <div class="p-3">
+                        <x-empty-state title="No reports yet" />
+                    </div>
                 @endforelse
             </x-section-card>
 
-            <x-section-card title="Incidents">
+            <x-section-card title="Incidents" flush>
                 @forelse($incidents as $incident)
-                    <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-t-0">
-                        <div>
-                            <div class="font-medium">{{ $incident->title }}</div>
-                            <div class="text-sm text-zinc-500">{{ $incident->site?->name }}</div>
+                    <div class="list-row" wire:key="portal-incident-{{ $incident->id }}">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $incident->title }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $incident->site?->name }}</div>
                         </div>
                         <x-badge :status="$incident->status" />
                     </div>
                 @empty
-                    <x-empty-state title="No incidents" />
+                    <div class="p-3">
+                        <x-empty-state title="No incidents" />
+                    </div>
                 @endforelse
             </x-section-card>
 
-            <x-section-card title="Patrol proof">
+            <x-section-card title="Patrol proof" flush>
                 @forelse($patrols as $patrol)
-                    <div class="flex items-center justify-between border-t border-zinc-100 py-3 first:border-t-0">
-                        <div>
-                            <div class="font-medium">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
-                            <div class="text-sm text-zinc-500">{{ $patrol->assignedGuard?->full_name }} · {{ $patrol->completion_percent ?? 0 }}% complete</div>
+                    <div class="list-row" wire:key="portal-patrol-{{ $patrol->id }}">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $patrol->route?->name ?? 'Patrol #'.$patrol->id }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                {{ $patrol->assignedGuard?->full_name }}
+                                · <span class="tabular-nums">{{ $patrol->completion_percent ?? 0 }}%</span> complete
+                            </div>
                         </div>
                         <x-badge :status="$patrol->status" />
                     </div>
                 @empty
-                    <x-empty-state title="No patrols" />
+                    <div class="p-3">
+                        <x-empty-state title="No patrols" />
+                    </div>
                 @endforelse
             </x-section-card>
 
-            <x-section-card title="Custom reports">
+            <x-section-card title="Custom reports" flush>
                 @forelse($customReports as $report)
-                    <div class="border-t border-zinc-100 py-3 first:border-t-0">
-                        <div class="font-medium">{{ $report->template?->name }}</div>
-                        <div class="text-sm text-zinc-500">{{ $report->site?->name }} · {{ $report->submitted_at?->format('M j, Y') }}</div>
+                    <div class="list-row" wire:key="portal-custom-{{ $report->id }}">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->template?->name }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $report->site?->name }} · {{ $report->submitted_at?->format('M j, Y') }}</div>
+                        </div>
                     </div>
                 @empty
-                    <x-empty-state title="No custom reports" />
+                    <div class="p-3">
+                        <x-empty-state title="No custom reports" />
+                    </div>
                 @endforelse
             </x-section-card>
         </div>

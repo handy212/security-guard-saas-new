@@ -118,6 +118,10 @@ class GuardIdCardRenderService
             ? $this->logos->dataUri($brand['back_logo_path'])
             : null;
 
+        $signatureSrc = ! empty($brand['signature_path'])
+            ? $this->logos->dataUri($brand['signature_path'])
+            : null;
+
         $qrPng = $this->qrPngPayload(
             $viewData['qrPath'] ?? null,
             $viewData['verifyUrl'] ?? '',
@@ -130,6 +134,7 @@ class GuardIdCardRenderService
             'photoSrc' => $photoSrc,
             'logoSrc' => $logoSrc,
             'backLogoSrc' => $backLogoSrc,
+            'signatureSrc' => $signatureSrc,
             'photoUrl' => null,
             'logoUrl' => null,
             'qrSvg' => null,

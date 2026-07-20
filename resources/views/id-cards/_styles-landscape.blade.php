@@ -799,20 +799,53 @@
     }
 
     {{ $scope }} .ls-back-premium-sig {
-        height: {{ $ls(20) }}px;
         margin: 0 {{ $ls(12) }}px {{ $ls(8) }}px;
         background: #f8fafc;
-        border-radius: {{ $ls(4) }}px;
+        border-radius: {{ $ls(5) }}px;
         display: flex;
-        align-items: center;
-        padding: 0 {{ $ls(8) }}px;
+        flex-direction: column;
+        justify-content: flex-end;
+        min-height: {{ $ls(36) }}px;
+        padding: {{ $ls(5) }}px {{ $ls(10) }}px {{ $ls(5) }}px;
         flex-shrink: 0;
+        color: #64748b;
+        box-sizing: border-box;
     }
 
-    {{ $scope }} .ls-back-premium-sig span {
-        font-size: 0.5em;
+    {{ $scope }} .ls-back-premium-sig--has-image {
+        min-height: {{ $ls(52) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-sig-pad {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        min-height: {{ $ls(28) }}px;
+        padding-bottom: {{ $ls(3) }}px;
+    }
+
+    {{ $scope }} .ls-back-premium-sig-img {
+        display: block;
+        height: {{ $ls(34) }}px;
+        max-width: 78%;
+        width: auto;
+        object-fit: contain;
+        object-position: left bottom;
+    }
+
+    {{ $scope }} .ls-back-premium-sig-meta {
+        border-top: 1px solid #cbd5e1;
+        padding-top: {{ $ls(3) }}px;
+        line-height: 1;
+    }
+
+    {{ $scope }} .ls-back-premium-sig-meta span {
+        display: block;
+        font-size: 0.48em;
         color: #94a3b8;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.45px;
+        font-weight: 600;
     }
 </style>

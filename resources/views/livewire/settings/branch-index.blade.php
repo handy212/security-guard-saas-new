@@ -25,9 +25,9 @@
                     @forelse($branches as $branch)
                         <tr class="table-row-hover" wire:key="branch-{{ $branch->id }}">
                             <x-table.td>
-                                <div class="font-medium text-zinc-900">{{ $branch->name }}</div>
+                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $branch->name }}</div>
                                 @if ($branch->phone || $branch->email)
-                                    <div class="text-xs text-zinc-500">{{ collect([$branch->phone, $branch->email])->filter()->implode(' · ') }}</div>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ collect([$branch->phone, $branch->email])->filter()->implode(' · ') }}</div>
                                 @endif
                             </x-table.td>
                             <x-table.td responsive="md" mono>{{ $branch->code ?: '—' }}</x-table.td>
@@ -57,19 +57,27 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingId ? 'Edit branch' : 'Add branch'" width="md">
+        <x-drawer
+            :title="$editingId ? 'Edit branch' : 'Add branch'"
+            :description="$editingId ? 'Update branch details used on guard assignments.' : 'Add a regional or office branch for rostering.'"
+            width="md"
+        >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update branch' : 'Create branch'">
-                <x-input wire:model="form.name" label="Name" class="sm:col-span-2" />
-                <x-input wire:model="form.code" label="Code" />
-                <x-input wire:model="form.phone" label="Phone" />
-                <x-input wire:model="form.email" label="Email" type="email" class="sm:col-span-2" />
-                <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
-                <x-input wire:model="form.city" label="City" />
-                <x-input wire:model="form.country" label="Country" />
-                <label class="flex items-center gap-2 text-sm sm:col-span-2">
-                    <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300">
-                    Active
-                </label>
+                <x-form-section title="Branch">
+                    <x-input wire:model="form.name" label="Name" class="sm:col-span-2" />
+                    <x-input wire:model="form.code" label="Code" />
+                    <x-input wire:model="form.phone" label="Phone" />
+                    <x-input wire:model="form.email" label="Email" type="email" class="sm:col-span-2" />
+                </x-form-section>
+                <x-form-section title="Location">
+                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                    <x-input wire:model="form.city" label="City" />
+                    <x-input wire:model="form.country" label="Country" />
+                    <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:col-span-2">
+                        <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20">
+                        Active
+                    </label>
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

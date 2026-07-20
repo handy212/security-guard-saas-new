@@ -65,17 +65,17 @@
                 <tbody>
                     @forelse ($payments as $payment)
                         <tr class="table-row-hover" wire:key="pay-{{ $payment->id }}">
-                            <x-table.td muted>{{ $payment->paid_at?->format('M j, Y') ?? '—' }}</x-table.td>
-                            <x-table.td class="font-mono font-medium">
+                            <x-table.td muted class="tabular-nums">{{ $payment->paid_at?->format('M j, Y') ?? '—' }}</x-table.td>
+                            <x-table.td mono>
                                 @if ($payment->invoice)
-                                    <a href="{{ route('billing.invoices.show', $payment->invoice) }}" wire:navigate class="text-accent-700 hover:underline">{{ $payment->invoice->invoice_number }}</a>
+                                    <a href="{{ route('billing.invoices.show', $payment->invoice) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $payment->invoice->invoice_number }}</a>
                                 @else
                                     —
                                 @endif
                             </x-table.td>
                             <x-table.td>{{ $payment->invoice?->clientAccount?->name ?? '—' }}</x-table.td>
-                            <x-table.td responsive="md" muted>{{ str_replace('_', ' ', $payment->payment_method) }}</x-table.td>
-                            <x-table.td class="font-semibold">₦{{ number_format($payment->amount, 2) }}</x-table.td>
+                            <x-table.td responsive="md" muted>{{ str_replace('_', ' ', ucfirst($payment->payment_method)) }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($payment->amount, 2) }}</x-table.td>
                             <x-table.td responsive="lg" muted>{{ $payment->notes ?: '—' }}</x-table.td>
                             <x-table.td align="right">
                                 @if ($payment->invoice)

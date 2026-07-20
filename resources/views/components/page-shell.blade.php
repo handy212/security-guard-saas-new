@@ -9,7 +9,7 @@
 <div class="flex min-h-full flex-col">
     @if ($showHeader)
         <div class="border-b border-zinc-200/80 dark:border-zinc-800">
-            <div class="page-content flex flex-col gap-2.5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="page-content flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
                     @if ($showCrumbs)
                         <nav class="mb-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
@@ -24,7 +24,7 @@
                             @endforeach
                         </nav>
                     @endif
-                    <h1 class="truncate text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h1>
+                    <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h1>
                     @if ($description)
                         <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                     @endif
@@ -36,7 +36,7 @@
         </div>
     @endif
 
-    <div class="page-content flex-1 space-y-3 pb-6 pt-3">
+    <div class="page-content flex-1 space-y-3.5 pb-8 pt-3.5">
         {{ $slot }}
     </div>
 </div>

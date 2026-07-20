@@ -36,12 +36,28 @@ class ReportTemplateBuilder extends Component
         $this->fields[] = ['label' => '', 'field_type' => 'text', 'is_required' => false];
     }
 
+    public function removeField(int $index): void
+    {
+        if (count($this->fields) <= 1) {
+            return;
+        }
+
+        unset($this->fields[$index]);
+        $this->fields = array_values($this->fields);
+    }
+
     public function openCreate(): void
     {
         $this->editingId = null;
         $this->form = ['name' => '', 'description' => '', 'client_account_id' => '', 'is_active' => true];
         $this->fields = [['label' => '', 'field_type' => 'text', 'is_required' => false]];
+        $this->resetErrorBag();
         $this->showForm = true;
+    }
+
+    public function closeDrawer(): void
+    {
+        $this->resetForm();
     }
 
     public function edit(int $id): void
@@ -59,6 +75,7 @@ class ReportTemplateBuilder extends Component
             'field_type' => $f->field_type,
             'is_required' => (bool) $f->is_required,
         ])->values()->all() ?: [['label' => '', 'field_type' => 'text', 'is_required' => false]];
+        $this->resetErrorBag();
         $this->showForm = true;
     }
 

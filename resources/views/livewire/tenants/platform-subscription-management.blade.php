@@ -36,12 +36,12 @@
                         <x-table.td>
                             <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $subscription->tenant?->name }}</span>
                             @if ($subscription->tenant?->slug)
-                                <div class="font-mono text-[11px] text-zinc-500">{{ $subscription->tenant->slug }}</div>
+                                <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{{ $subscription->tenant->slug }}</div>
                             @endif
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $subscription->plan?->name ?? '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$subscription->status" /></x-table.td>
-                        <x-table.td responsive="lg" muted>{{ $subscription->trial_ends_at?->format('M j, Y') ?? '—' }}</x-table.td>
+                        <x-table.td responsive="lg" muted class="tabular-nums">{{ $subscription->trial_ends_at?->format('M j, Y') ?? '—' }}</x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
                                 <x-row-menu-item wire:click="openEdit({{ $subscription->id }})">Edit subscription</x-row-menu-item>

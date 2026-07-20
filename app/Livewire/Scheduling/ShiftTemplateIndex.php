@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Scheduling;
 
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\ShiftTemplate;
 use App\Models\Site;
 use App\Services\WorkforceService;
@@ -12,7 +13,7 @@ use Livewire\Component;
 
 class ShiftTemplateIndex extends Component
 {
-    public bool $showForm = false;
+    use HasFormDrawer;
 
     public ?int $editingTemplateId = null;
 

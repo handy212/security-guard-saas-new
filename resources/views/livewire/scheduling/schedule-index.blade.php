@@ -26,41 +26,58 @@
             </div>
 
             @if ($stats['pending_confirmations'] || $stats['pending_bids'] || $stats['pending_swaps'] || $stats['pending_leave'])
-                <div class="mb-4 flex flex-wrap gap-2 text-xs">
+                <div class="flex flex-wrap gap-1.5">
                     @if ($stats['pending_confirmations'])
-                        <a href="{{ route('schedules.shift-status') }}" class="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-800 hover:bg-amber-100">{{ $stats['pending_confirmations'] }} pending confirmations</a>
+                        <a href="{{ route('schedules.shift-status') }}" class="status-chip status-chip-warning">
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_confirmations'] }}</span> confirmations
+                        </a>
                     @endif
                     @if ($stats['pending_bids'])
-                        <a href="{{ route('schedules.open-shifts') }}" class="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-800 hover:bg-blue-100">{{ $stats['pending_bids'] }} open-shift bids</a>
+                        <a href="{{ route('schedules.open-shifts') }}" class="status-chip status-chip-info">
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_bids'] }}</span> open-shift bids
+                        </a>
                     @endif
                     @if ($stats['pending_swaps'])
-                        <a href="{{ route('schedules.shift-exchange') }}" class="rounded-full bg-accent-50 px-3 py-1 font-medium text-accent-800 hover:bg-accent-100">{{ $stats['pending_swaps'] }} swap requests</a>
+                        <a href="{{ route('schedules.shift-exchange') }}" class="status-chip status-chip-info">
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_swaps'] }}</span> swap requests
+                        </a>
                     @endif
                     @if ($stats['pending_leave'])
-                        <a href="{{ route('schedules.time-off') }}" class="rounded-full bg-zinc-100 px-3 py-1 font-medium text-zinc-700 hover:bg-zinc-200">{{ $stats['pending_leave'] }} leave requests</a>
+                        <a href="{{ route('schedules.time-off') }}" class="status-chip status-chip-neutral">
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_leave'] }}</span> leave requests
+                        </a>
                     @endif
                 </div>
             @endif
 
-            <x-page-toolbar class="mb-4">
+            <x-page-toolbar>
                 <x-slot:controls>
-                    <x-button type="button" variant="secondary" size="sm" wire:click="previousDay">Previous</x-button>
-                    <x-button type="button" variant="secondary" size="sm" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
-                    <x-button type="button" variant="secondary" size="sm" wire:click="nextDay">Next</x-button>
-                    <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
+                    <div class="date-nav">
+                        <x-button type="button" variant="secondary" size="sm" wire:click="previousDay">Previous</x-button>
+                        <x-button type="button" variant="secondary" size="sm" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
+                        <x-button type="button" variant="secondary" size="sm" wire:click="nextDay">Next</x-button>
+                        <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
+                    </div>
                 </x-slot:controls>
             </x-page-toolbar>
 
             <div class="grid gap-3">
                 @forelse($shifts as $shift)
-                    <div class="card-surface p-4" wire:key="shift-{{ $shift->id }}">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    @php
+                        $activeAssignments = $shift->activeAssignments();
+                        $staffed = $activeAssignments->count() >= $shift->required_guards;
+                    @endphp
+                    <article @class([
+                        'card-surface overflow-hidden',
+                        'ring-1 ring-amber-200/80 dark:ring-amber-900/40' => ! $staffed,
+                    ]) wire:key="shift-{{ $shift->id }}">
+                        <div class="card-header">
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-sm font-semibold">{{ $shift->title }}</h3>
+                                    <h3 class="card-header-title">{{ $shift->title }}</h3>
                                     <x-badge :status="$shift->status" />
                                 </div>
-                                <p class="text-xs text-zinc-500">
+                                <p class="card-header-meta tabular-nums">
                                     {{ $shift->site?->name }}
                                     @if ($shift->sitePost)
                                         · {{ $shift->sitePost->name }}
@@ -68,16 +85,12 @@
                                     · {{ $shift->starts_at?->format('M j, H:i') }} – {{ $shift->ends_at?->format('H:i') }}
                                 </p>
                                 @if ($shift->notes)
-                                    <p class="mt-1 text-xs text-zinc-600">{{ $shift->notes }}</p>
+                                    <p class="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{{ $shift->notes }}</p>
                                 @endif
                             </div>
                             <div class="flex shrink-0 items-start gap-2">
-                                <div @class([
-                                    'rounded-md px-2 py-1 text-xs font-medium',
-                                    'bg-emerald-50 text-emerald-800' => $shift->activeAssignmentsCount() >= $shift->required_guards,
-                                    'bg-amber-50 text-amber-800' => $shift->activeAssignmentsCount() < $shift->required_guards,
-                                ])>
-                                    {{ $shift->activeAssignmentsCount() }}/{{ $shift->required_guards }} assigned
+                                <div @class(['staffing-pill', $staffed ? 'staffing-pill-ok' : 'staffing-pill-low'])>
+                                    {{ $activeAssignments->count() }}/{{ $shift->required_guards }} assigned
                                 </div>
                                 <x-row-menu>
                                     <x-row-menu-item wire:click="editShift({{ $shift->id }})">Edit</x-row-menu-item>
@@ -87,48 +100,59 @@
                             </div>
                         </div>
 
-                        @php $activeAssignments = $shift->activeAssignments(); @endphp
-                        @if ($activeAssignments->isNotEmpty())
-                            <div class="mt-2 flex flex-wrap gap-1">
-                                @foreach ($activeAssignments as $assignment)
-                                    <span class="inline-flex items-center gap-1 rounded bg-zinc-100 px-2 py-0.5 text-xs">
-                                        {{ $assignment->assignedGuard?->full_name ?? 'Guard' }}
-                                        <x-badge :status="$assignment->status" />
-                                        <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift?" class="text-zinc-400 hover:text-red-600" title="Unassign">×</button>
-                                    </span>
-                                @endforeach
-                            </div>
-                        @endif
+                        <div class="space-y-3 px-4 py-3">
+                            @if ($activeAssignments->isNotEmpty())
+                                <div>
+                                    <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Assigned</p>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach ($activeAssignments as $assignment)
+                                            <span class="guard-chip">
+                                                <span class="font-medium text-zinc-800 dark:text-zinc-100">{{ $assignment->assignedGuard?->full_name ?? 'Guard' }}</span>
+                                                <x-badge :status="$assignment->status" />
+                                                <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift?" class="ml-0.5 text-zinc-400 transition hover:text-red-600" title="Unassign" aria-label="Unassign">×</button>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">No guards assigned yet.</p>
+                            @endif
 
-                        @if($activeAssignments->count() < $shift->required_guards)
-                            <div class="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3 sm:flex-row sm:items-end">
-                                <x-select wire:model="pendingGuard.{{ $shift->id }}" label="Assign guard" class="sm:max-w-xs">
-                                    <option value="">Select guard</option>
-                                    @foreach ($guards as $guard)
-                                        <option value="{{ $guard->id }}">
-                                            {{ $guard->full_name }}{{ in_array($guard->id, $guardsOnLeaveIds, true) ? ' — on approved leave' : '' }}
-                                        </option>
-                                    @endforeach
-                                </x-select>
-                                <x-button type="button" size="sm" wire:click="assignGuard({{ $shift->id }})" wire:loading.attr="disabled" wire:target="assignGuard({{ $shift->id }})" :disabled="empty($pendingGuard[$shift->id] ?? null)">
-                                    <span wire:loading.remove wire:target="assignGuard({{ $shift->id }})">Assign</span>
-                                    <span wire:loading wire:target="assignGuard({{ $shift->id }})">Assigning…</span>
-                                </x-button>
-                            </div>
-                            @error("pendingGuard.{$shift->id}") <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                            @if(filled($pendingGuard[$shift->id] ?? null) && in_array((int) $pendingGuard[$shift->id], $guardsOnLeaveIds, true))
-                                <p class="mt-1 text-xs text-amber-700">This guard has approved leave on {{ \Carbon\Carbon::parse($date)->format('M j') }}. Assignment will be blocked.</p>
-                            @endif
-                            @if ($guards->isEmpty())
-                                <p class="mt-2 text-xs text-amber-700">
-                                    No verified guards available.
-                                    @if ($unverifiedGuardCount > 0)
-                                        <a href="{{ route('guards.kyg') }}" class="font-medium underline">Complete Know Your Guard vetting</a> for {{ $unverifiedGuardCount }} pending officer{{ $unverifiedGuardCount === 1 ? '' : 's' }}.
+                            @if (! $staffed)
+                                <div class="assign-panel">
+                                    <p class="text-xs font-medium text-amber-900 dark:text-amber-200">
+                                        Needs {{ $shift->required_guards - $activeAssignments->count() }} more guard{{ ($shift->required_guards - $activeAssignments->count()) === 1 ? '' : 's' }}
+                                    </p>
+                                    <div class="assign-panel-actions">
+                                        <x-select wire:model="pendingGuard.{{ $shift->id }}" label="Assign guard" class="sm:max-w-xs sm:flex-1">
+                                            <option value="">Select guard</option>
+                                            @foreach ($guards as $guard)
+                                                <option value="{{ $guard->id }}">
+                                                    {{ $guard->full_name }}{{ in_array($guard->id, $guardsOnLeaveIds, true) ? ' — on approved leave' : '' }}
+                                                </option>
+                                            @endforeach
+                                        </x-select>
+                                        <x-button type="button" size="sm" wire:click="assignGuard({{ $shift->id }})" wire:loading.attr="disabled" wire:target="assignGuard({{ $shift->id }})" :disabled="empty($pendingGuard[$shift->id] ?? null)">
+                                            <span wire:loading.remove wire:target="assignGuard({{ $shift->id }})">Assign</span>
+                                            <span wire:loading wire:target="assignGuard({{ $shift->id }})">Assigning…</span>
+                                        </x-button>
+                                    </div>
+                                    @error("pendingGuard.{$shift->id}") <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                    @if(filled($pendingGuard[$shift->id] ?? null) && in_array((int) $pendingGuard[$shift->id], $guardsOnLeaveIds, true))
+                                        <p class="text-xs text-amber-800 dark:text-amber-300">This guard has approved leave on {{ \Carbon\Carbon::parse($date)->format('M j') }}. Assignment will be blocked.</p>
                                     @endif
-                                </p>
+                                    @if ($guards->isEmpty())
+                                        <p class="text-xs text-amber-800 dark:text-amber-300">
+                                            No verified guards available.
+                                            @if ($unverifiedGuardCount > 0)
+                                                <a href="{{ route('guards.kyg') }}" class="page-link">Complete Know Your Guard vetting</a> for {{ $unverifiedGuardCount }} pending officer{{ $unverifiedGuardCount === 1 ? '' : 's' }}.
+                                            @endif
+                                        </p>
+                                    @endif
+                                </div>
                             @endif
-                        @endif
-                    </div>
+                        </div>
+                    </article>
                 @empty
                     <x-empty-state title="No shifts" description="Create a shift for this day after you have clients, sites, and guards.">
                         <x-slot:actions>
@@ -143,10 +167,20 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer :title="$editingShiftId ? 'Edit shift' : 'Create shift'" :description="$editingShiftId ? 'Update shift details.' : 'Pick the site, set the window, then assign guards from the day roster.'" width="lg">
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingShiftId ? 'Save changes' : 'Create shift'">
+        @php
+            $shiftDrawerDescription = $editingShiftId
+                ? 'Update location, window, and billing for this shift.'
+                : 'For '.\Carbon\Carbon::parse($date)->format('D, M j').' — pick the site and window, then assign guards on the roster.';
+        @endphp
+        <x-drawer
+            :title="$editingShiftId ? 'Edit shift' : 'Create shift'"
+            :description="$shiftDrawerDescription"
+            width="lg"
+            close-method="closeDrawer"
+        >
+            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingShiftId ? 'Save changes' : 'Create shift'" close-method="closeDrawer">
                 <x-form-section title="Location">
-                    <x-select wire:model.live="form.client_account_id" label="Client *">
+                    <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
                         <option value="">Select client</option>
                         @foreach ($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
@@ -166,11 +200,11 @@
                     </x-select>
                 </x-form-section>
 
-                <x-form-section title="Shift">
+                <x-form-section title="Shift window">
                     <x-input wire:model="form.title" label="Title *" class="sm:col-span-2" />
                     <x-input wire:model="form.starts_at" label="Starts *" type="datetime-local" />
                     <x-input wire:model="form.ends_at" label="Ends *" type="datetime-local" />
-                    <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" />
+                    <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Billing" description="Optional — used for client charging and payroll export.">

@@ -11,16 +11,18 @@
     ];
 @endphp
 
-<section class="card-surface overflow-hidden p-5">
-    <div class="mb-4">
-        <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Activity summary</h2>
-        <p class="text-xs text-zinc-500 dark:text-zinc-400">Last 7 days · tap a metric to open</p>
+<section class="card-surface overflow-hidden">
+    <div class="card-header">
+        <div>
+            <h2 class="card-header-title">Activity summary</h2>
+            <p class="card-header-meta">Last 7 days · tap a metric to open</p>
+        </div>
     </div>
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-3 gap-px bg-zinc-100 dark:bg-zinc-800">
         @foreach ($items as $item)
-            <a href="{{ $item['href'] }}" class="rounded-lg px-1 py-2 text-center transition hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+            <a href="{{ $item['href'] }}" class="bg-white px-2 py-3 text-center transition hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/80">
                 <p class="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{{ $item['label'] }}</p>
-                <p class="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ str_pad((string) ($summary[$item['key']] ?? 0), 2, '0', STR_PAD_LEFT) }}</p>
+                <p class="mt-1 text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{{ str_pad((string) ($summary[$item['key']] ?? 0), 2, '0', STR_PAD_LEFT) }}</p>
             </a>
         @endforeach
     </div>

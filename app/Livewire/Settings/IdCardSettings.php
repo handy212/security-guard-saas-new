@@ -45,6 +45,10 @@ class IdCardSettings extends Component
 
     public $backLogoFile;
 
+    public ?string $existingSignaturePath = null;
+
+    public $signatureFile;
+
     public string $previewSide = 'front';
 
     public function mount(GuardIdCardPresenter $presenter): void
@@ -71,6 +75,7 @@ class IdCardSettings extends Component
         $this->address = $settings['address'] ?? null;
         $this->existingLogoPath = $settings['logo_path'] ?? null;
         $this->existingBackLogoPath = $settings['back_logo_path'] ?? null;
+        $this->existingSignaturePath = $settings['signature_path'] ?? null;
 
         if ($this->template === 'premium') {
             $this->orientation = GuardIdCardPresenter::PREMIUM_ORIENTATION;
@@ -138,6 +143,18 @@ class IdCardSettings extends Component
         session()->flash('status', 'Back logo removed.');
     }
 
+    public function removeSignature(): void
+    {
+        if ($this->existingSignaturePath && Storage::disk('public')->exists($this->existingSignaturePath)) {
+            Storage::disk('public')->delete($this->existingSignaturePath);
+        }
+
+        $this->persistSettings($this->currentSettings(['signature_path' => null]));
+        $this->existingSignaturePath = null;
+        $this->signatureFile = null;
+        session()->flash('status', 'Authorized signature removed.');
+    }
+
     public function save(FileUploadService $files): void
     {
         abort_unless(auth()->user()->can('settings.manage'), 403);
@@ -160,10 +177,12 @@ class IdCardSettings extends Component
             'address' => 'nullable|string|max:255',
             'logoFile' => 'nullable|image|max:2048',
             'backLogoFile' => 'nullable|image|max:2048',
+            'signatureFile' => 'nullable|image|max:2048',
         ]);
 
         $logoPath = $this->existingLogoPath;
         $backLogoPath = $this->existingBackLogoPath;
+        $signaturePath = $this->existingSignaturePath;
 
         if ($this->logoFile) {
             if ($logoPath && Storage::disk('public')->exists($logoPath)) {
@@ -183,6 +202,15 @@ class IdCardSettings extends Component
             $this->backLogoFile = null;
         }
 
+        if ($this->signatureFile) {
+            if ($signaturePath && Storage::disk('public')->exists($signaturePath)) {
+                Storage::disk('public')->delete($signaturePath);
+            }
+            $signaturePath = $files->storeIdCardLogo(TenantContext::id(), $this->signatureFile);
+            $this->existingSignaturePath = $signaturePath;
+            $this->signatureFile = null;
+        }
+
         $this->persistSettings($this->currentSettings([
             'template' => $data['template'],
             'orientation' => $data['orientation'],
@@ -197,6 +225,7 @@ class IdCardSettings extends Component
             'address' => $data['address'] ?: null,
             'logo_path' => $logoPath,
             'back_logo_path' => $backLogoPath,
+            'signature_path' => $signaturePath,
         ]));
 
         session()->flash('status', 'ID card settings saved.');
@@ -225,10 +254,12 @@ class IdCardSettings extends Component
             'address' => $this->address,
             'logo_path' => $this->existingLogoPath,
             'back_logo_path' => $this->existingBackLogoPath,
+            'signature_path' => $this->existingSignaturePath,
         ]);
 
         $logoUrl = $this->resolvePreviewUrl($this->existingLogoPath, $this->logoFile, 'files.id-card-logo');
         $backLogoUrl = $this->resolvePreviewUrl($this->existingBackLogoPath, $this->backLogoFile, 'files.id-card-back-logo');
+        $signatureUrl = $this->resolvePreviewUrl($this->existingSignaturePath, $this->signatureFile, 'files.id-card-signature');
 
         return view('livewire.settings.id-card-settings', [
             'colorPresets' => $presenter->colorPresets(),
@@ -237,6 +268,7 @@ class IdCardSettings extends Component
             'previewQrSvg' => $sample['qrSvg'],
             'logoUrl' => $logoUrl,
             'backLogoUrl' => $backLogoUrl,
+            'signatureUrl' => $signatureUrl,
         ])->layout('layouts.app');
     }
 
@@ -260,6 +292,7 @@ class IdCardSettings extends Component
             'address' => $this->address ?: null,
             'logo_path' => $this->existingLogoPath,
             'back_logo_path' => $this->existingBackLogoPath,
+            'signature_path' => $this->existingSignaturePath,
         ], $overrides);
     }
 

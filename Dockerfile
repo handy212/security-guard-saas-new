@@ -3,7 +3,6 @@ FROM php:8.3-fpm
 RUN apt-get update && apt-get install -y \
     git unzip curl libzip-dev libsqlite3-dev \
     libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
-    chromium fonts-liberation \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip bcmath gd pcntl \
     && pecl install redis \

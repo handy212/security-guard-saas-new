@@ -51,7 +51,7 @@
                                     :markers="$mapMarkers"
                                 />
                             </div>
-                            <p class="border-t border-zinc-100 px-4 py-2 text-xs text-zinc-500 dark:border-zinc-800">Geofence radius: {{ $site->geofence_radius_meters ?? 150 }}m</p>
+                            <p class="border-t border-zinc-100 px-4 py-2 text-xs tabular-nums text-zinc-500 dark:border-zinc-800">Geofence radius: {{ $site->geofence_radius_meters ?? 150 }}m</p>
                         @else
                             <div class="p-4">
                                 <x-empty-state compact title="No coordinates set" description="Add latitude and longitude on the Patrol tab.">
@@ -64,33 +64,33 @@
                     </x-section-card>
 
                     <x-section-card title="General information">
-                        <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                            <div class="flex justify-between gap-4 py-2.5 first:pt-0">
-                                <dt class="text-zinc-500">Site</dt>
-                                <dd class="text-right font-medium text-zinc-900 dark:text-zinc-100">{{ $site->name }}</dd>
+                        <dl class="profile-dl">
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Site</dt>
+                                <dd class="profile-dl-value">{{ $site->name }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Client</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $site->clientAccount?->name ?? '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Client</dt>
+                                <dd class="profile-dl-value font-normal">{{ $site->clientAccount?->name ?? '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Address</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $site->address ?: '—' }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Address</dt>
+                                <dd class="profile-dl-value font-normal">{{ $site->address ?: '—' }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Posts</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $stats['posts'] }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Posts</dt>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $stats['posts'] }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Patrol routes</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $stats['patrol_routes'] }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Patrol routes</dt>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $stats['patrol_routes'] }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5">
-                                <dt class="text-zinc-500">Emergency contacts</dt>
-                                <dd class="text-right text-zinc-900 dark:text-zinc-100">{{ $site->emergencyContacts->count() }}</dd>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Emergency contacts</dt>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $site->emergencyContacts->count() }}</dd>
                             </div>
-                            <div class="flex justify-between gap-4 py-2.5 last:pb-0">
-                                <dt class="text-zinc-500">Status</dt>
+                            <div class="profile-dl-row">
+                                <dt class="profile-dl-label">Status</dt>
                                 <dd class="text-right"><x-badge :status="$site->status" /></dd>
                             </div>
                         </dl>
@@ -112,8 +112,8 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($upcomingShifts as $shift)
-                                <tr wire:key="shift-{{ $shift->id }}">
-                                    <x-table.td class="font-medium">{{ $shift->starts_at?->format('M j, Y g:i A') }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="shift-{{ $shift->id }}">
+                                    <x-table.td class="font-medium tabular-nums">{{ $shift->starts_at?->format('M j, Y H:i') }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $shift->sitePost?->name ?? '—' }}</x-table.td>
                                     <x-table.td responsive="lg" muted>
                                         {{ $shift->assignments->map(fn ($a) => $a->assignedGuard?->full_name)->filter()->join(', ') ?: '—' }}
@@ -132,12 +132,20 @@
 
         @if ($activeTab === 'profile')
             <div class="space-y-4">
-                <x-form-card title="Site profile">
+                <x-form-card title="Site profile" description="Name, client, address, and guard instructions">
                     <form wire:submit="saveProfile" class="grid gap-3 sm:grid-cols-2">
                         <x-input wire:model="profileForm.name" label="Site name" class="sm:col-span-2" />
                         <x-select wire:model="profileForm.client_account_id" label="Client" class="sm:col-span-2">
                             @foreach ($clients as $client)
                                 <option value="{{ $client->id }}">{{ $client->name }}</option>
+                            @endforeach
+                        </x-select>
+                        <x-select wire:model="profileForm.supervisor_user_id" label="Site supervisor" class="sm:col-span-2">
+                            <option value="">No supervisor assigned</option>
+                            @foreach ($supervisorCandidates as $candidate)
+                                <option value="{{ $candidate->id }}">
+                                    {{ $candidate->name }}{{ $candidate->phone ? ' · '.$candidate->phone : '' }}
+                                </option>
                             @endforeach
                         </x-select>
                         <x-input wire:model="profileForm.address" label="Address" class="sm:col-span-2" />
@@ -155,17 +163,17 @@
                     </form>
                 </x-form-card>
 
-                <x-form-card title="Site preferences">
+                <x-form-card title="Site preferences" description="Clock-in, notifications, and patrol defaults">
                     <form wire:submit="saveSettings" class="space-y-4 max-w-lg">
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="settingsForm.require_geofence_clock_in" class="rounded border-zinc-300">
                             Require geofence for clock-in
                         </label>
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="settingsForm.notify_on_incident" class="rounded border-zinc-300">
                             Notify supervisors on new incidents
                         </label>
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="settingsForm.show_in_client_portal" class="rounded border-zinc-300">
                             Show site in client portal
                         </label>
@@ -179,7 +187,7 @@
         @if ($activeTab === 'contacts')
             <div class="space-y-4">
                 <div class="page-split">
-                    <x-section-card title="Emergency contacts">
+                    <x-section-card title="Emergency contacts" description="People to call during incidents at this site">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -192,14 +200,16 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->emergencyContacts as $contact)
-                                    <tr wire:key="contact-{{ $contact->id }}">
-                                        <x-table.td class="font-medium">{{ $contact->name }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="contact-{{ $contact->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $contact->name }}</x-table.td>
                                         <x-table.td responsive="md" muted>{{ $contact->role ?: '—' }}</x-table.td>
                                         <x-table.td responsive="lg" muted>{{ $contact->phone }}</x-table.td>
-                                        <x-table.td responsive="lg" muted>{{ $contact->priority }}</x-table.td>
-                                        <x-table.td align="right" class="space-x-2">
-                                            <button type="button" wire:click="editContact({{ $contact->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deleteContact({{ $contact->id }})" wire:confirm="Remove this contact?" class="text-xs text-red-600 hover:underline">Remove</button>
+                                        <x-table.td responsive="lg" muted class="tabular-nums">{{ $contact->priority }}</x-table.td>
+                                        <x-table.td align="right">
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="editContact({{ $contact->id }})" class="table-action">Edit</button>
+                                                <button type="button" wire:click="deleteContact({{ $contact->id }})" wire:confirm="Remove this contact?" class="table-action text-red-600">Remove</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -211,7 +221,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingContactId ? 'Edit contact' : 'Add contact'">
+                    <x-form-card :title="$editingContactId ? 'Edit contact' : 'Add contact'" description="On-site or client emergency contacts">
                         <form wire:submit="saveContact" class="space-y-3">
                             <x-input wire:model="contactForm.name" label="Name" />
                             <x-input wire:model="contactForm.role" label="Role" />
@@ -224,30 +234,28 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Notes">
-                        <div class="space-y-3">
-                            @forelse ($site->notes as $note)
-                                <div wire:key="note-{{ $note->id }}" class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p class="text-sm text-zinc-800 whitespace-pre-wrap dark:text-zinc-200">{{ $note->body }}</p>
-                                            <p class="mt-2 text-xs text-zinc-500">
-                                                {{ $note->author?->name ?? 'System' }} · {{ $note->created_at->format('M j, Y g:i A') }}
-                                                @if ($note->is_internal)
-                                                    · <span class="font-medium">Internal</span>
-                                                @endif
-                                            </p>
-                                        </div>
-                                        <div class="flex shrink-0 gap-2">
-                                            <button type="button" wire:click="editNote({{ $note->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="text-xs text-red-600 hover:underline">Delete</button>
-                                        </div>
-                                    </div>
+                    <x-section-card title="Notes" description="Internal history for this site" flush>
+                        @forelse ($site->notes as $note)
+                            <div class="list-row-start" wire:key="note-{{ $note->id }}">
+                                <div class="min-w-0 flex-1">
+                                    <p class="whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">{{ $note->body }}</p>
+                                    <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ $note->author?->name ?? 'System' }} · <span class="tabular-nums">{{ $note->created_at->format('M j, Y g:i A') }}</span>
+                                        @if ($note->is_internal)
+                                            · <span class="font-medium text-zinc-600 dark:text-zinc-300">Internal</span>
+                                        @endif
+                                    </p>
                                 </div>
-                            @empty
+                                <div class="table-inline-actions shrink-0">
+                                    <button type="button" wire:click="editNote({{ $note->id }})" class="table-action">Edit</button>
+                                    <button type="button" wire:click="deleteNote({{ $note->id }})" wire:confirm="Delete this note?" class="table-action text-red-600">Delete</button>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-3">
                                 <x-empty-state compact title="No notes" description="Add internal notes about this site." />
-                            @endforelse
-                        </div>
+                            </div>
+                        @endforelse
                     </x-section-card>
 
                     <x-form-card :title="$editingNoteId ? 'Edit note' : 'Add note'">
@@ -257,7 +265,7 @@
                                 <textarea wire:model="noteForm.body" rows="5" class="form-input mt-1"></textarea>
                                 @error('noteForm.body') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
-                            <label class="flex items-center gap-2 text-sm">
+                            <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                                 <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300">
                                 Internal only
                             </label>
@@ -270,7 +278,7 @@
 
         @if ($activeTab === 'kpis')
             <div class="page-split">
-                <x-section-card title="SLA & checklist targets">
+                <x-section-card title="SLA & checklist targets" description="Compliance metrics tracked for this site">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -284,15 +292,17 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($site->slaRequirements as $sla)
-                                <tr wire:key="sla-{{ $sla->id }}">
-                                    <x-table.td class="font-medium">{{ $sla->metric }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="sla-{{ $sla->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $sla->metric }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $sla->target_value }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ ucfirst($sla->frequency) }}</x-table.td>
-                                    <x-table.td responsive="lg" muted>{{ $sla->grace_minutes }}</x-table.td>
+                                    <x-table.td responsive="lg" muted class="tabular-nums">{{ $sla->grace_minutes }}</x-table.td>
                                     <x-table.td><x-badge :status="$sla->is_active ? 'active' : 'inactive'" /></x-table.td>
-                                    <x-table.td align="right" class="space-x-2">
-                                        <button type="button" wire:click="editChecklist({{ $sla->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                        <button type="button" wire:click="deleteChecklist({{ $sla->id }})" wire:confirm="Delete this checklist item?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                    <x-table.td align="right">
+                                        <div class="table-inline-actions justify-end">
+                                            <button type="button" wire:click="editChecklist({{ $sla->id }})" class="table-action">Edit</button>
+                                            <button type="button" wire:click="deleteChecklist({{ $sla->id }})" wire:confirm="Delete this checklist item?" class="table-action text-red-600">Delete</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -304,7 +314,7 @@
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card :title="$editingChecklistId ? 'Edit checklist item' : 'Add checklist item'">
+                <x-form-card :title="$editingChecklistId ? 'Edit checklist item' : 'Add checklist item'" description="Define metric, target, and grace period">
                     <form wire:submit="addChecklist" class="space-y-3">
                         <x-input wire:model="checklistForm.metric" label="Metric" placeholder="e.g. Patrol completion rate" />
                         <x-input wire:model="checklistForm.target_value" label="Target value" placeholder="e.g. 95%" />
@@ -323,7 +333,7 @@
         @if ($activeTab === 'post_orders')
             <div class="space-y-4">
                 <div class="profile-form-split">
-                    <x-section-card title="Posts">
+                    <x-section-card title="Posts" description="Guard positions at this site">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -335,13 +345,15 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->posts as $post)
-                                    <tr wire:key="post-{{ $post->id }}">
-                                        <x-table.td class="font-medium">{{ $post->name }}</x-table.td>
-                                        <x-table.td responsive="md" muted>{{ $post->required_guards }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="post-{{ $post->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $post->name }}</x-table.td>
+                                        <x-table.td responsive="md" muted class="tabular-nums">{{ $post->required_guards }}</x-table.td>
                                         <x-table.td><x-badge :status="$post->status" /></x-table.td>
-                                        <x-table.td align="right" class="space-x-2">
-                                            <button type="button" wire:click="editPost({{ $post->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deletePost({{ $post->id }})" wire:confirm="Delete this post?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                        <x-table.td align="right">
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="editPost({{ $post->id }})" class="table-action">Edit</button>
+                                                <button type="button" wire:click="deletePost({{ $post->id }})" wire:confirm="Delete this post?" class="table-action text-red-600">Delete</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -353,7 +365,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingPostId ? 'Edit post' : 'Add post'">
+                    <x-form-card :title="$editingPostId ? 'Edit post' : 'Add post'" description="Named positions and staffing levels">
                         <form wire:submit="addPost" class="space-y-3">
                             <x-input wire:model="postForm.name" label="Post name" />
                             <x-input wire:model="postForm.required_guards" label="Required guards" type="number" min="1" />
@@ -371,7 +383,7 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Post orders">
+                    <x-section-card title="Post orders" description="Standing instructions for guards">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -383,15 +395,17 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->postOrders as $order)
-                                    <tr wire:key="order-{{ $order->id }}">
-                                        <x-table.td class="font-medium">{{ $order->title }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="order-{{ $order->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $order->title }}</x-table.td>
                                         <x-table.td responsive="md" muted>{{ $order->sitePost?->name ?? 'Site-wide' }}</x-table.td>
                                         <x-table.td>
                                             <x-badge :status="$order->is_active ? 'active' : 'inactive'" />
                                         </x-table.td>
-                                        <x-table.td align="right" class="space-x-2">
-                                            <button type="button" wire:click="editPostOrder({{ $order->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deletePostOrder({{ $order->id }})" wire:confirm="Delete this post order?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                        <x-table.td align="right">
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="editPostOrder({{ $order->id }})" class="table-action">Edit</button>
+                                                <button type="button" wire:click="deletePostOrder({{ $order->id }})" wire:confirm="Delete this post order?" class="table-action text-red-600">Delete</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -403,7 +417,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingPostOrderId ? 'Edit post order' : 'Add post order'">
+                    <x-form-card :title="$editingPostOrderId ? 'Edit post order' : 'Add post order'" description="Site-wide or post-specific instructions">
                         <form wire:submit="addPostOrder" class="space-y-3">
                             <x-select wire:model="postOrderForm.site_post_id" label="Post (optional)">
                                 <option value="">Site-wide</option>
@@ -416,7 +430,7 @@
                                 <label class="form-label">Instructions</label>
                                 <textarea wire:model="postOrderForm.instructions" rows="4" class="form-input mt-1"></textarea>
                             </div>
-                            <label class="flex items-center gap-2 text-sm">
+                            <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                                 <input type="checkbox" wire:model="postOrderForm.is_active" class="rounded border-zinc-300">
                                 Active
                             </label>
@@ -429,7 +443,7 @@
 
         @if ($activeTab === 'files')
             <div class="page-split">
-                <x-section-card title="Files">
+                <x-section-card title="Files" description="SOPs, permits, and site documents">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -442,20 +456,22 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($site->documents as $document)
-                                <tr wire:key="doc-{{ $document->id }}">
-                                    <x-table.td class="font-medium">{{ $document->title }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="doc-{{ $document->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $document->title }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ $documentTypes[$document->document_type] ?? $document->document_type }}</x-table.td>
-                                    <x-table.td responsive="lg" muted>{{ $document->expires_on?->format('M j, Y') ?? '—' }}</x-table.td>
+                                    <x-table.td responsive="lg" muted class="tabular-nums">{{ $document->expires_on?->format('M j, Y') ?? '—' }}</x-table.td>
                                     <x-table.td>
                                         @if ($document->client_visible)
-                                            <span class="text-xs font-medium text-emerald-700">Visible</span>
+                                            <span class="text-xs font-medium text-emerald-700 dark:text-emerald-400">Visible</span>
                                         @else
                                             <span class="text-xs text-zinc-400">Internal</span>
                                         @endif
                                     </x-table.td>
                                     <x-table.td align="right">
-                                        <a href="{{ route('files.site-document', $document) }}" class="text-xs font-medium text-accent-600 hover:underline">Download</a>
-                                        <button type="button" wire:click="deleteDocument({{ $document->id }})" wire:confirm="Delete this file?" class="ml-2 text-xs text-red-600 hover:underline">Delete</button>
+                                        <div class="table-inline-actions justify-end">
+                                            <a href="{{ route('files.site-document', $document) }}" class="table-action">Download</a>
+                                            <button type="button" wire:click="deleteDocument({{ $document->id }})" wire:confirm="Delete this file?" class="table-action text-red-600">Delete</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -467,7 +483,7 @@
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card title="Upload file">
+                <x-form-card title="Upload file" description="Attach documents to this site">
                     <form wire:submit="uploadDocument" class="space-y-3">
                         <x-input wire:model="documentForm.title" label="Title" />
                         <x-select wire:model="documentForm.document_type" label="Document type">
@@ -476,11 +492,11 @@
                             @endforeach
                         </x-select>
                         <x-input wire:model="documentForm.expires_on" label="Expires on" type="date" />
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="documentForm.client_visible" class="rounded border-zinc-300">
                             Visible in client portal
                         </label>
-                        <input wire:model="documentFile" type="file" class="form-input text-xs">
+                        <input wire:model="documentFile" type="file" class="form-input text-sm">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit" size="sm">Upload</x-button>
                     </form>
@@ -490,7 +506,7 @@
 
         @if ($activeTab === 'tasks')
             <div class="page-split">
-                <x-section-card title="Checkpoint tasks">
+                <x-section-card title="Checkpoint tasks" description="Questions guards answer at tour tags">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -503,16 +519,18 @@
                         </x-table.head>
                         <tbody>
                             @forelse ($tasks as $task)
-                                <tr wire:key="task-{{ $task->id }}">
-                                    <x-table.td class="font-medium">{{ $task->title }}</x-table.td>
+                                <tr class="table-row-hover" wire:key="task-{{ $task->id }}">
+                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $task->title }}</x-table.td>
                                     <x-table.td responsive="md" muted>
                                         {{ $task->checkpoint?->route?->name }} / {{ $task->checkpoint?->name }}
                                     </x-table.td>
                                     <x-table.td responsive="lg" muted>{{ str_replace('_', ' ', $task->response_type) }}</x-table.td>
                                     <x-table.td>{{ $task->is_required ? 'Yes' : 'No' }}</x-table.td>
-                                    <x-table.td align="right" class="space-x-2">
-                                        <button type="button" wire:click="editTask({{ $task->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                        <button type="button" wire:click="deleteTask({{ $task->id }})" wire:confirm="Delete this task?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                    <x-table.td align="right">
+                                        <div class="table-inline-actions justify-end">
+                                            <button type="button" wire:click="editTask({{ $task->id }})" class="table-action">Edit</button>
+                                            <button type="button" wire:click="deleteTask({{ $task->id }})" wire:confirm="Delete this task?" class="table-action text-red-600">Delete</button>
+                                        </div>
                                     </x-table.td>
                                 </tr>
                             @empty
@@ -524,7 +542,7 @@
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card :title="$editingTaskId ? 'Edit task' : 'Add task'">
+                <x-form-card :title="$editingTaskId ? 'Edit task' : 'Add task'" description="Link a prompt to a tour checkpoint">
                     <form wire:submit="addTask" class="space-y-3">
                         <x-select wire:model="taskForm.patrol_checkpoint_id" label="Tour tag">
                             <option value="">Select tag…</option>
@@ -539,7 +557,7 @@
                             <option value="number">Number</option>
                             <option value="photo">Photo</option>
                         </x-select>
-                        <label class="flex items-center gap-2 text-sm">
+                        <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model="taskForm.is_required" class="rounded border-zinc-300">
                             Required
                         </label>
@@ -548,7 +566,7 @@
                 </x-form-card>
             </div>
 
-            <x-section-card title="Recent submissions" class="mt-4">
+            <x-section-card title="Recent submissions" description="Latest checkpoint task responses" class="mt-4">
                 <x-data-table>
                     <x-table.head>
                         <tr>
@@ -561,12 +579,12 @@
                     </x-table.head>
                     <tbody>
                         @forelse ($taskSubmissions as $submission)
-                            <tr wire:key="site-sub-{{ $submission->id }}">
-                                <x-table.td class="font-medium">{{ $submission->task?->title ?? '—' }}</x-table.td>
+                            <tr class="table-row-hover" wire:key="site-sub-{{ $submission->id }}">
+                                <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $submission->task?->title ?? '—' }}</x-table.td>
                                 <x-table.td muted>{{ $submission->scan?->assignedGuard?->full_name ?? '—' }}</x-table.td>
                                 <x-table.td>{{ is_array($submission->response) ? json_encode($submission->response) : ($submission->response ?: '—') }}</x-table.td>
                                 <x-table.td responsive="md" muted>{{ $submission->notes ?: '—' }}</x-table.td>
-                                <x-table.td responsive="lg" muted>{{ $submission->created_at?->format('M j, H:i') }}</x-table.td>
+                                <x-table.td responsive="lg" muted class="tabular-nums">{{ $submission->created_at?->format('M j, H:i') }}</x-table.td>
                             </tr>
                         @empty
                             <x-table.empty colspan="5">
@@ -581,7 +599,7 @@
         @if ($activeTab === 'tours')
             <div class="space-y-4">
                 <div class="page-split">
-                    <x-section-card title="Site tours (patrol routes)">
+                    <x-section-card title="Site tours (patrol routes)" description="Named patrol paths for this site">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -594,14 +612,16 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->patrolRoutes as $route)
-                                    <tr wire:key="route-{{ $route->id }}">
-                                        <x-table.td class="font-medium">{{ $route->name }}</x-table.td>
-                                        <x-table.td responsive="md" muted>{{ $route->expected_duration_minutes }} min</x-table.td>
-                                        <x-table.td responsive="lg" muted>{{ $route->checkpoints->count() }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="route-{{ $route->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $route->name }}</x-table.td>
+                                        <x-table.td responsive="md" muted class="tabular-nums">{{ $route->expected_duration_minutes }} min</x-table.td>
+                                        <x-table.td responsive="lg" muted class="tabular-nums">{{ $route->checkpoints->count() }}</x-table.td>
                                         <x-table.td><x-badge :status="$route->status" /></x-table.td>
-                                        <x-table.td align="right" class="space-x-2">
-                                            <button type="button" wire:click="editTour({{ $route->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deleteTour({{ $route->id }})" wire:confirm="Delete this tour and all its tags?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                        <x-table.td align="right">
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="editTour({{ $route->id }})" class="table-action">Edit</button>
+                                                <button type="button" wire:click="deleteTour({{ $route->id }})" wire:confirm="Delete this tour and all its tags?" class="table-action text-red-600">Delete</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -613,7 +633,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingTourId ? 'Edit site tour' : 'Add site tour'">
+                    <x-form-card :title="$editingTourId ? 'Edit site tour' : 'Add site tour'" description="Expected duration and route status">
                         <form wire:submit="addTour" class="space-y-3">
                             <x-input wire:model="tourForm.name" label="Tour name" />
                             <x-input wire:model="tourForm.expected_duration_minutes" label="Expected duration (min)" type="number" min="5" />
@@ -631,7 +651,7 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Tour tags (QR / NFC)">
+                    <x-section-card title="Tour tags (QR / NFC)" description="Checkpoints scanned during patrols">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -645,21 +665,23 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($checkpoints as $checkpoint)
-                                    <tr wire:key="tag-{{ $checkpoint->id }}">
-                                        <x-table.td class="font-medium">{{ $checkpoint->name }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="tag-{{ $checkpoint->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $checkpoint->name }}</x-table.td>
                                         <x-table.td responsive="md" muted>{{ $checkpoint->code }}</x-table.td>
                                         <x-table.td responsive="lg" muted>{{ $checkpoint->route?->name }}</x-table.td>
-                                        <x-table.td muted>{{ $checkpoint->sequence }}</x-table.td>
-                                        <x-table.td responsive="lg" muted>
+                                        <x-table.td muted class="tabular-nums">{{ $checkpoint->sequence }}</x-table.td>
+                                        <x-table.td responsive="lg" muted class="tabular-nums">
                                             @if ($checkpoint->latitude && $checkpoint->longitude)
                                                 {{ number_format($checkpoint->latitude, 5) }}, {{ number_format($checkpoint->longitude, 5) }}
                                             @else
                                                 —
                                             @endif
                                         </x-table.td>
-                                        <x-table.td align="right" class="space-x-2">
-                                            <button type="button" wire:click="editTourTag({{ $checkpoint->id }})" class="text-xs font-medium text-accent-600 hover:underline">Edit</button>
-                                            <button type="button" wire:click="deleteTourTag({{ $checkpoint->id }})" wire:confirm="Delete this tour tag?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                        <x-table.td align="right">
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="editTourTag({{ $checkpoint->id }})" class="table-action">Edit</button>
+                                                <button type="button" wire:click="deleteTourTag({{ $checkpoint->id }})" wire:confirm="Delete this tour tag?" class="table-action text-red-600">Delete</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -671,7 +693,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingTourTagId ? 'Edit tour tag' : 'Add tour tag'">
+                    <x-form-card :title="$editingTourTagId ? 'Edit tour tag' : 'Add tour tag'" description="QR/NFC code, sequence, and optional GPS">
                         <form wire:submit="addTourTag" class="space-y-3">
                             <x-select wire:model="tagForm.patrol_route_id" label="Site tour">
                                 <option value="">Select tour…</option>
@@ -696,7 +718,7 @@
                 </div>
 
                 <div class="page-grid-2">
-                    <x-form-card title="Geo-fence settings">
+                    <x-form-card title="Geo-fence settings" description="Site center and clock-in radius">
                         <form wire:submit="saveGeofence" class="grid gap-3 sm:grid-cols-2">
                             <x-input wire:model="geofenceForm.latitude" label="Latitude" type="number" step="any" />
                             <x-input wire:model="geofenceForm.longitude" label="Longitude" type="number" step="any" />
@@ -707,7 +729,7 @@
                         </form>
                     </x-form-card>
 
-                    <x-section-card title="Map preview" wire:key="geofence-map-{{ $site->id }}">
+                    <x-section-card title="Map preview" description="Preview site location and geofence" wire:key="geofence-map-{{ $site->id }}">
                         @if (count($mapMarkers) > 0)
                             <x-map
                                 id="site-geofence-map-{{ $site->id }}"
@@ -728,7 +750,7 @@
         @if ($activeTab === 'reports')
             <div class="space-y-4">
                 <div class="page-split">
-                    <x-section-card title="Assigned report templates">
+                    <x-section-card title="Assigned report templates" description="Templates guards can submit at this site">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -739,11 +761,13 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->reportAssignments as $assignment)
-                                    <tr wire:key="assign-report-{{ $assignment->id }}">
-                                        <x-table.td class="font-medium">{{ $assignment->template?->name ?? 'Template' }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="assign-report-{{ $assignment->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $assignment->template?->name ?? 'Template' }}</x-table.td>
                                         <x-table.td responsive="md" muted>{{ $assignment->sitePost?->name ?? 'Site-wide' }}</x-table.td>
                                         <x-table.td align="right">
-                                            <button type="button" wire:click="removeReportAssignment({{ $assignment->id }})" wire:confirm="Remove this assignment?" class="text-xs text-red-600 hover:underline">Remove</button>
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="removeReportAssignment({{ $assignment->id }})" wire:confirm="Remove this assignment?" class="table-action text-red-600">Remove</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -755,7 +779,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Assign report template">
+                    <x-form-card title="Assign report template" description="Make a template available site-wide or per post">
                         <form wire:submit="assignReport" class="space-y-3">
                             <x-select wire:model="reportAssignForm.report_template_id" label="Report template">
                                 <option value="">Select template…</option>
@@ -775,7 +799,7 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Email report schedules">
+                    <x-section-card title="Email report schedules" description="Automated reports sent for this site">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -788,13 +812,15 @@
                             </x-table.head>
                             <tbody>
                                 @forelse ($site->reportSchedules as $schedule)
-                                    <tr wire:key="schedule-{{ $schedule->id }}">
-                                        <x-table.td class="font-medium">{{ $reportTypes[$schedule->report_type] ?? $schedule->report_type }}</x-table.td>
+                                    <tr class="table-row-hover" wire:key="schedule-{{ $schedule->id }}">
+                                        <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $reportTypes[$schedule->report_type] ?? $schedule->report_type }}</x-table.td>
                                         <x-table.td responsive="md" muted>{{ ucfirst($schedule->frequency) }}</x-table.td>
                                         <x-table.td responsive="lg" muted>{{ implode(', ', $schedule->recipients ?? []) }}</x-table.td>
                                         <x-table.td><x-badge :status="$schedule->is_active ? 'active' : 'inactive'" /></x-table.td>
                                         <x-table.td align="right">
-                                            <button type="button" wire:click="deleteReportSchedule({{ $schedule->id }})" wire:confirm="Delete this schedule?" class="text-xs text-red-600 hover:underline">Delete</button>
+                                            <div class="table-inline-actions justify-end">
+                                                <button type="button" wire:click="deleteReportSchedule({{ $schedule->id }})" wire:confirm="Delete this schedule?" class="table-action text-red-600">Delete</button>
+                                            </div>
                                         </x-table.td>
                                     </tr>
                                 @empty
@@ -806,7 +832,7 @@
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Add schedule">
+                    <x-form-card title="Add schedule" description="Email recurring reports to recipients">
                         <form wire:submit="addReportSchedule" class="space-y-3">
                             <x-select wire:model="reportForm.report_type" label="Report type">
                                 @foreach ($reportTypes as $value => $label)
@@ -823,7 +849,7 @@
                                 <input wire:model="reportForm.recipients" type="text" class="form-input mt-1" placeholder="ops@client.com, manager@client.com">
                                 @error('reportForm.recipients') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
-                            <label class="flex items-center gap-2 text-sm">
+                            <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                                 <input type="checkbox" wire:model="reportForm.is_active" class="rounded border-zinc-300">
                                 Active
                             </label>

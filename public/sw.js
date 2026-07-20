@@ -1,5 +1,5 @@
-const CACHE = 'guardops-field-v1';
-const PRECACHE = ['/guard', '/build/manifest.json'];
+const CACHE = 'guardops-field-v2';
+const PRECACHE = ['/build/manifest.json'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -60,7 +60,16 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
 
-    if (url.pathname.startsWith('/guard') || url.pathname.startsWith('/build/')) {
+    // Never cache HTML navigations — stale CSRF tokens cause Livewire 419s.
+    if (event.request.mode === 'navigate' || url.pathname.startsWith('/guard')) {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Cache-first only for versioned build assets.
+    if (url.pathname.startsWith('/build/')) {
         event.respondWith(
             caches.match(event.request).then((cached) => {
                 const network = fetch(event.request)

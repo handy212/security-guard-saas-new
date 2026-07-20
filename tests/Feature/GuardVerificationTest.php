@@ -39,6 +39,14 @@ class GuardVerificationTest extends TestCase
 
         $this->assertNotNull($token);
 
+        $shiftAssignment = $guard->assignments()->with('shift')->first();
+        $this->assertNotNull($shiftAssignment);
+        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->shift->update([
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHours(6),
+        ]);
+
         $response = $this->get($this->tenantVerifyPath($token));
 
         $response->assertOk()
@@ -46,6 +54,7 @@ class GuardVerificationTest extends TestCase
             ->assertSee('Demo Security Company')
             ->assertSee('Senior Officer')
             ->assertSee('Verified & authorised today')
+            ->assertSee('Current assignment', false)
             ->assertSee('Client access guidance')
             ->assertSee('Call control room')
             ->assertSee('Security notice')
@@ -81,7 +90,9 @@ class GuardVerificationTest extends TestCase
 
         $this->get($this->tenantVerifyPath($token->fresh()))
             ->assertOk()
-            ->assertSee('This Guardian is suspended')
+            ->assertSee('suspended', false)
+            ->assertSee('Do not grant access', false)
+            ->assertSee('bg-red-600/20', false)
             ->assertSee($guard->full_name);
 
         app(GuardVerificationService::class)->reinstate($guard);
@@ -439,9 +450,11 @@ class GuardVerificationTest extends TestCase
         $guard = Guard::where('employee_number', 'G-001')->first();
         $token = $guard->activeVerificationToken();
 
+        $disk = (string) config('filesystems.tenant_disk', 'tenant_private');
+        Storage::fake($disk);
         Storage::fake('public');
         $photoPath = "tenants/{$guard->tenant_id}/guards/{$guard->id}/photos/test.png";
-        Storage::disk('public')->put($photoPath, 'fake-image');
+        Storage::disk($disk)->put($photoPath, 'fake-image');
         $guard->update(['photo_path' => $photoPath]);
         $guard->load('tenant');
 
@@ -502,9 +515,10 @@ class GuardVerificationTest extends TestCase
         $guard = Guard::where('employee_number', 'G-001')->first();
         $token = $guard->activeVerificationToken();
 
-        $shift = $guard->assignments()->first()?->shift;
-        $this->assertNotNull($shift);
-        $shift->update([
+        $shiftAssignment = $guard->assignments()->with('shift')->first();
+        $this->assertNotNull($shiftAssignment);
+        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->shift->update([
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addHours(6),
         ]);
@@ -518,6 +532,81 @@ class GuardVerificationTest extends TestCase
             ->assertSee('Authorised period', false)
             ->assertSee($assignment['site_name'], false)
             ->assertSee($assignment['date_range'], false);
+    }
+
+    public function test_public_verification_page_hides_cancelled_assignment(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+
+        $shiftAssignment = $guard->assignments()->with('shift')->first();
+        $this->assertNotNull($shiftAssignment);
+        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::CANCELLED]);
+        $shiftAssignment->shift->update([
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHours(6),
+        ]);
+
+        $this->assertNull(app(GuardVerificationService::class)->currentAssignment($guard->fresh()));
+
+        $this->get($this->tenantVerifyPath($token))
+            ->assertOk()
+            ->assertSee('No site assignment', false)
+            ->assertSee('No site assigned', false)
+            ->assertSee('bg-amber-400/25', false)
+            ->assertDontSee('Authorised period', false)
+            ->assertDontSee('Verified & authorised today', false);
+    }
+
+    public function test_public_verification_page_shows_shift_assets_and_site_supervisor(): void
+    {
+        $this->seed();
+
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $token = $guard->activeVerificationToken();
+        $shiftAssignment = $guard->assignments()->with('shift.site')->first();
+        $this->assertNotNull($shiftAssignment);
+        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->shift->update([
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHours(6),
+        ]);
+
+        $supervisor = User::where('email', 'supervisor@demo.test')->first();
+        $this->assertNotNull($supervisor);
+        $shiftAssignment->shift->site->update(['supervisor_user_id' => $supervisor->id]);
+
+        $asset = \App\Models\EquipmentAsset::where('tenant_id', $guard->tenant_id)
+            ->where('asset_tag', 'RAD-001')
+            ->first();
+        $this->assertNotNull($asset);
+
+        \App\Models\EquipmentAssignment::updateOrCreate(
+            [
+                'tenant_id' => $guard->tenant_id,
+                'equipment_asset_id' => $asset->id,
+                'guard_id' => $guard->id,
+            ],
+            [
+                'site_id' => $shiftAssignment->shift->site_id,
+                'shift_assignment_id' => $shiftAssignment->id,
+                'issued_at' => now()->subMinutes(30),
+                'returned_at' => null,
+                'status' => 'issued',
+            ]
+        );
+
+        $this->get($this->tenantVerifyPath($token))
+            ->assertOk()
+            ->assertSee('Issued for this shift', false)
+            ->assertSee($asset->name, false)
+            ->assertSee('RAD-001', false)
+            ->assertSee('Site supervisor', false)
+            ->assertSee($supervisor->name, false)
+            ->assertSee('Call supervisor', false)
+            ->assertSee($supervisor->phone, false);
     }
 
     public function test_browser_pdf_view_data_embeds_qr_from_generated_file(): void
@@ -581,9 +670,11 @@ class GuardVerificationTest extends TestCase
         $token = $guard->activeVerificationToken();
         $guard->load('tenant');
 
+        $disk = (string) config('filesystems.tenant_disk', 'tenant_private');
+        Storage::fake($disk);
         Storage::fake('public');
         $photoPath = "tenants/{$guard->tenant_id}/guards/{$guard->id}/photos/test.png";
-        Storage::disk('public')->put($photoPath, 'fake-image');
+        Storage::disk($disk)->put($photoPath, 'fake-image');
         $guard->update(['photo_path' => $photoPath]);
 
         $photoUrl = route('guard.verify.photo', [

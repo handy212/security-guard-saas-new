@@ -88,6 +88,21 @@ class DemoDataSeeder extends Seeder
         );
         $provisioner->assignRole($guardUser, 'guard');
 
+        $supervisor = User::firstOrCreate(
+            ['email' => 'supervisor@demo.test'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'Ama Boateng',
+                'phone' => '+233 24 555 0101',
+                'password' => Hash::make('password'),
+                'status' => 'active',
+            ]
+        );
+        if (! $supervisor->phone) {
+            $supervisor->update(['phone' => '+233 24 555 0101']);
+        }
+        $provisioner->assignRole($supervisor, 'supervisor');
+
         $client = ClientAccount::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Gold Mine Ltd'],
             [
@@ -108,9 +123,16 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'email' => 'ops@goldmine.test'],
             ['name' => 'Kwame Asante', 'phone' => '+233 24 111 2222', 'role' => 'Security Manager']
         );
-        $site = Site::firstOrCreate(
+        $site = Site::updateOrCreate(
             ['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'name' => 'Main Gate'],
-            ['address' => 'Obuasi', 'latitude' => 6.206, 'longitude' => -1.665, 'geofence_radius_meters' => 250, 'status' => 'active']
+            [
+                'address' => 'Obuasi',
+                'latitude' => 6.206,
+                'longitude' => -1.665,
+                'geofence_radius_meters' => 250,
+                'status' => 'active',
+                'supervisor_user_id' => $supervisor->id,
+            ]
         );
         $post = SitePost::firstOrCreate(
             ['tenant_id' => $tenant->id, 'site_id' => $site->id, 'name' => 'Gatehouse A'],

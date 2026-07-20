@@ -24,7 +24,7 @@
                     <x-stat-card compact label="Staffing gaps" :value="$stats['gaps']" icon="dispatch" :tone="$stats['gaps'] ? 'danger' : 'success'" />
                 </div>
 
-                <div class="flex flex-wrap items-end gap-3 print:hidden">
+                <div class="date-nav print:hidden">
                     <x-select wire:model.live="siteFilter" label="Site filter" class="w-56">
                         <option value="all">All sites</option>
                         @foreach ($sites as $site)
@@ -34,55 +34,44 @@
                 </div>
 
                 @if ($understaffed->isNotEmpty())
-                    <section class="card-surface overflow-hidden print:hidden">
-                        <div class="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
-                            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Fill staffing gaps</h2>
-                            <p class="text-xs text-zinc-500">{{ $understaffed->count() }} understaffed shift{{ $understaffed->count() === 1 ? '' : 's' }} on this date</p>
-                        </div>
+                    <x-section-card
+                        title="Fill staffing gaps"
+                        :description="$understaffed->count().' understaffed shift'.($understaffed->count() === 1 ? '' : 's').' on this date'"
+                        class="print:hidden"
+                        flush
+                    >
                         @foreach ($understaffed as $shift)
                             @php
                                 $staffed = $shift->assignments->filter(fn ($a) => ! in_array(\App\Support\EnumHelper::value($a->status), ['cancelled', 'no_show'], true))->count();
                             @endphp
-                            <div class="flex flex-col gap-3 border-t border-zinc-100 px-4 py-3 sm:flex-row sm:items-center dark:border-zinc-800" wire:key="gap-{{ $shift->id }}">
+                            <div class="list-row-start flex-col gap-3 sm:flex-row sm:items-end" wire:key="gap-{{ $shift->id }}">
                                 <div class="min-w-0 flex-1">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $shift->title }}</div>
-                                    <div class="text-xs text-zinc-500">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $shift->title }}</div>
+                                        <span class="staffing-pill staffing-pill-low">{{ $staffed }}/{{ $shift->required_guards }}</span>
+                                    </div>
+                                    <div class="mt-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                                         {{ $shift->site?->name }}
                                         @if ($shift->sitePost) · {{ $shift->sitePost->name }} @endif
                                         · {{ $shift->starts_at->format('H:i') }}–{{ $shift->ends_at->format('H:i') }}
-                                        · {{ $staffed }}/{{ $shift->required_guards }} staffed
                                     </div>
                                     @error('pendingGuard.'.$shift->id) <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <select wire:model="pendingGuard.{{ $shift->id }}" class="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-900">
+                                <div class="assign-panel-actions w-full sm:w-auto">
+                                    <x-select wire:model="pendingGuard.{{ $shift->id }}" label="Assign guard" class="sm:w-56">
                                         <option value="">Select guard</option>
                                         @foreach ($guards as $guard)
                                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                                         @endforeach
-                                    </select>
-                                    <x-button size="sm" wire:click="assignToShift({{ $shift->id }})">Assign</x-button>
+                                    </x-select>
+                                    <x-button size="sm" wire:click="assignToShift({{ $shift->id }})" wire:loading.attr="disabled" wire:target="assignToShift({{ $shift->id }})" :disabled="empty($pendingGuard[$shift->id] ?? null)">
+                                        <span wire:loading.remove wire:target="assignToShift({{ $shift->id }})">Assign</span>
+                                        <span wire:loading wire:target="assignToShift({{ $shift->id }})">Assigning…</span>
+                                    </x-button>
                                 </div>
                             </div>
                         @endforeach
-                    </section>
-                @endif
-
-                @if ($reassignAssignmentId)
-                    <section class="card-surface space-y-3 p-4 print:hidden">
-                        <h2 class="text-sm font-semibold">Reassign guard</h2>
-                        <x-select wire:model="reassignGuardId" label="New guard">
-                            <option value="">Select guard</option>
-                            @foreach ($guards as $guard)
-                                <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
-                            @endforeach
-                        </x-select>
-                        @error('reassignGuardId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        <div class="flex gap-2">
-                            <x-button wire:click="reassign">Reassign</x-button>
-                            <x-button variant="secondary" wire:click="$set('reassignAssignmentId', null)">Cancel</x-button>
-                        </div>
-                    </section>
+                    </x-section-card>
                 @endif
 
                 <x-data-table title="Roster for {{ \Carbon\Carbon::parse($date)->format('M j, Y') }}">
@@ -100,12 +89,12 @@
                     <tbody>
                         @forelse($assignments as $assignment)
                             <tr class="table-row-hover" wire:key="deploy-{{ $assignment->id }}">
-                                <x-table.td>{{ $assignment->shift?->title ?? '—' }}</x-table.td>
-                                <x-table.td mono>{{ $assignment->shift?->starts_at?->format('H:i') }}–{{ $assignment->shift?->ends_at?->format('H:i') }}</x-table.td>
+                                <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $assignment->shift?->title ?? '—' }}</x-table.td>
+                                <x-table.td mono class="tabular-nums">{{ $assignment->shift?->starts_at?->format('H:i') }}–{{ $assignment->shift?->ends_at?->format('H:i') }}</x-table.td>
                                 <x-table.td>
-                                    <div>{{ $assignment->shift?->site?->name }}</div>
+                                    <div class="text-zinc-900 dark:text-zinc-100">{{ $assignment->shift?->site?->name }}</div>
                                     @if ($assignment->shift?->sitePost)
-                                        <div class="text-xs text-zinc-500">{{ $assignment->shift->sitePost->name }}</div>
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $assignment->shift->sitePost->name }}</div>
                                     @endif
                                     @if ($assignment->shift?->clientAccount)
                                         <div class="text-xs text-zinc-400">{{ $assignment->shift->clientAccount->name }}</div>
@@ -121,12 +110,12 @@
                                 </x-table.td>
                                 <x-table.td><x-badge :status="$assignment->status" /></x-table.td>
                                 <x-table.td class="print:hidden">
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="table-inline-actions">
                                         @if (\App\Support\EnumHelper::value($assignment->status) === 'assigned')
-                                            <button type="button" class="text-xs font-medium text-accent-600 hover:underline" wire:click="confirmAssignment({{ $assignment->id }})">Confirm</button>
+                                            <button type="button" class="table-action" wire:click="confirmAssignment({{ $assignment->id }})">Confirm</button>
                                         @endif
-                                        <button type="button" class="text-xs font-medium text-zinc-600 hover:underline" wire:click="openReassign({{ $assignment->id }})">Reassign</button>
-                                        <button type="button" class="text-xs font-medium text-red-600 hover:underline" wire:click="unassign({{ $assignment->id }})" wire:confirm="Unassign this guard and return kit?">Unassign</button>
+                                        <button type="button" class="table-action" wire:click="openReassign({{ $assignment->id }})">Reassign</button>
+                                        <button type="button" class="table-action text-red-600" wire:click="unassign({{ $assignment->id }})" wire:confirm="Unassign this guard and return kit?">Unassign</button>
                                     </div>
                                 </x-table.td>
                             </tr>
@@ -144,4 +133,19 @@
             </div>
         </x-sub-sidebar-layout>
     </x-page-shell>
+
+    @if ($reassignAssignmentId)
+        <x-drawer title="Reassign guard" description="Move this assignment to another verified guard." width="md" close-method="closeReassign">
+            <x-drawer-form wire:submit.prevent="reassign" submit-label="Reassign" close-method="closeReassign" target="reassign">
+                <x-form-section title="New assignment">
+                    <x-select wire:model="reassignGuardId" label="New guard *" class="sm:col-span-2">
+                        <option value="">Select guard</option>
+                        @foreach ($guards as $guard)
+                            <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
+                        @endforeach
+                    </x-select>
+                </x-form-section>
+            </x-drawer-form>
+        </x-drawer>
+    @endif
 </div>

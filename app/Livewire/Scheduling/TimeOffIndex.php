@@ -17,6 +17,10 @@ class TimeOffIndex extends Component
 {
     use WithPagination;
 
+    public bool $showLeaveForm = false;
+
+    public bool $showAvailabilityForm = false;
+
     public array $leaveForm = ['guard_id' => '', 'type' => 'annual', 'starts_on' => '', 'ends_on' => '', 'reason' => ''];
 
     public array $availabilityForm = ['guard_id' => '', 'weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];
@@ -44,6 +48,17 @@ class TimeOffIndex extends Component
     public function updatedGuardFilter(): void
     {
         $this->resetPage();
+    }
+
+    public function openLeaveForm(): void
+    {
+        $this->resetLeaveForm();
+        $this->showLeaveForm = true;
+    }
+
+    public function closeLeaveForm(): void
+    {
+        $this->resetLeaveForm();
     }
 
     public function submitLeave(): void
@@ -86,11 +101,8 @@ class TimeOffIndex extends Component
             'ends_on' => $request->ends_on?->format('Y-m-d') ?? '',
             'reason' => $request->reason ?? '',
         ];
-    }
-
-    public function cancelLeaveEdit(): void
-    {
-        $this->resetLeaveForm();
+        $this->showLeaveForm = true;
+        $this->showAvailabilityForm = false;
     }
 
     public function cancelLeave(int $requestId): void
@@ -129,6 +141,17 @@ class TimeOffIndex extends Component
         session()->flash('status', 'Time off rejected.');
     }
 
+    public function openAvailabilityForm(): void
+    {
+        $this->resetAvailabilityForm();
+        $this->showAvailabilityForm = true;
+    }
+
+    public function closeAvailabilityForm(): void
+    {
+        $this->resetAvailabilityForm();
+    }
+
     public function saveAvailability(): void
     {
         $data = $this->validate([
@@ -164,11 +187,8 @@ class TimeOffIndex extends Component
             'ends_at' => substr((string) $availability->ends_at, 0, 5),
             'is_available' => (bool) $availability->is_available,
         ];
-    }
-
-    public function cancelAvailabilityEdit(): void
-    {
-        $this->resetAvailabilityForm();
+        $this->showAvailabilityForm = true;
+        $this->showLeaveForm = false;
     }
 
     public function deleteAvailability(int $availabilityId): void
@@ -228,12 +248,14 @@ class TimeOffIndex extends Component
 
     private function resetLeaveForm(): void
     {
+        $this->showLeaveForm = false;
         $this->editingLeaveId = null;
         $this->leaveForm = ['guard_id' => '', 'type' => 'annual', 'starts_on' => '', 'ends_on' => '', 'reason' => ''];
     }
 
     private function resetAvailabilityForm(): void
     {
+        $this->showAvailabilityForm = false;
         $this->editingAvailabilityId = null;
         $this->availabilityForm = ['guard_id' => '', 'weekday' => 1, 'starts_at' => '08:00', 'ends_at' => '17:00', 'is_available' => true];
     }

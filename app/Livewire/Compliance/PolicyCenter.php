@@ -12,6 +12,8 @@ class PolicyCenter extends Component
 {
     use AuthorizesModuleAccess;
 
+    public ?string $activeDrawer = null;
+
     public array $escalationForm = [
         'incident_type' => '',
         'severity' => 'high',
@@ -29,6 +31,34 @@ class PolicyCenter extends Component
         $this->authorizePermission('compliance.manage');
     }
 
+    public function openEscalationForm(): void
+    {
+        $this->escalationForm = [
+            'incident_type' => '',
+            'severity' => 'high',
+            'notify_after_minutes' => 15,
+            'notify_client' => true,
+        ];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'escalation';
+    }
+
+    public function openRetentionForm(): void
+    {
+        $this->retentionForm = [
+            'record_type' => 'incidents',
+            'retention_days' => 365,
+        ];
+        $this->resetErrorBag();
+        $this->activeDrawer = 'retention';
+    }
+
+    public function closeDrawer(): void
+    {
+        $this->activeDrawer = null;
+        $this->resetErrorBag();
+    }
+
     public function saveEscalation(): void
     {
         abort_unless(auth()->user()->can('compliance.manage'), 403);
@@ -43,10 +73,13 @@ class PolicyCenter extends Component
             'is_active' => true,
         ]);
 
-        $this->reset('escalationForm');
-        $this->escalationForm['severity'] = 'high';
-        $this->escalationForm['notify_after_minutes'] = 15;
-        $this->escalationForm['notify_client'] = true;
+        $this->escalationForm = [
+            'incident_type' => '',
+            'severity' => 'high',
+            'notify_after_minutes' => 15,
+            'notify_client' => true,
+        ];
+        $this->activeDrawer = null;
 
         session()->flash('status', 'Escalation rule saved.');
     }
@@ -62,9 +95,11 @@ class PolicyCenter extends Component
             'tenant_id' => TenantContext::id(),
         ]);
 
-        $this->reset('retentionForm');
-        $this->retentionForm['record_type'] = 'incidents';
-        $this->retentionForm['retention_days'] = 365;
+        $this->retentionForm = [
+            'record_type' => 'incidents',
+            'retention_days' => 365,
+        ];
+        $this->activeDrawer = null;
 
         session()->flash('status', 'Retention policy saved.');
     }
@@ -73,12 +108,14 @@ class PolicyCenter extends Component
     {
         abort_unless(auth()->user()->can('compliance.manage'), 403);
         IncidentEscalationRule::where('tenant_id', TenantContext::id())->findOrFail($id)->delete();
+        session()->flash('status', 'Escalation rule deleted.');
     }
 
     public function deleteRetention(int $id): void
     {
         abort_unless(auth()->user()->can('compliance.manage'), 403);
         DataRetentionPolicy::where('tenant_id', TenantContext::id())->findOrFail($id)->delete();
+        session()->flash('status', 'Retention policy deleted.');
     }
 
     public function toggleEscalation(int $id): void
@@ -90,9 +127,11 @@ class PolicyCenter extends Component
 
     public function render()
     {
+        $tenantId = TenantContext::id();
+
         return view('livewire.compliance.policy-center', [
-            'escalations' => IncidentEscalationRule::latest()->get(),
-            'retention' => DataRetentionPolicy::latest()->get(),
+            'escalations' => IncidentEscalationRule::where('tenant_id', $tenantId)->latest()->get(),
+            'retention' => DataRetentionPolicy::where('tenant_id', $tenantId)->latest()->get(),
         ])->layout('layouts.app');
     }
 }

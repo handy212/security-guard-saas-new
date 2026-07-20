@@ -40,8 +40,8 @@
             <tbody>
                 @forelse($clients as $client)
                     <tr class="table-row-hover" wire:key="client-{{ $client->id }}">
-                        <x-table.td class="font-medium">
-                            <a href="{{ route('clients.show', $client) }}" class="font-medium text-accent-700 hover:underline">{{ $client->name }}</a>
+                        <x-table.td>
+                            <a href="{{ route('clients.show', $client) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $client->name }}</a>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>

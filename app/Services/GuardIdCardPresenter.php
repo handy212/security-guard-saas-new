@@ -34,6 +34,8 @@ class GuardIdCardPresenter
      *     logo_url: ?string,
      *     back_logo_path: ?string,
      *     back_logo_url: ?string,
+     *     signature_path: ?string,
+     *     signature_url: ?string,
      * }
      */
     public function branding(Tenant $tenant, ?Branch $branch = null): array
@@ -80,6 +82,8 @@ class GuardIdCardPresenter
             'logo_url' => isset($settings['logo_path']) ? route('files.id-card-logo') : null,
             'back_logo_path' => $settings['back_logo_path'] ?? null,
             'back_logo_url' => isset($settings['back_logo_path']) ? route('files.id-card-back-logo') : null,
+            'signature_path' => $settings['signature_path'] ?? null,
+            'signature_url' => isset($settings['signature_path']) ? route('files.id-card-signature') : null,
         ];
     }
 
@@ -149,6 +153,12 @@ class GuardIdCardPresenter
         if (array_key_exists('back_logo_path', $overrides)) {
             $overrides['back_logo_url'] = ! empty($overrides['back_logo_path'])
                 ? route('files.id-card-back-logo')
+                : null;
+        }
+
+        if (array_key_exists('signature_path', $overrides)) {
+            $overrides['signature_url'] = ! empty($overrides['signature_path'])
+                ? route('files.id-card-signature')
                 : null;
         }
 

@@ -27,6 +27,22 @@ class GuardIdCardPdfService
     }
 
     /**
+     * Chromium/Browsershot work should run on the queue-heavy worker, not PHP-FPM.
+     *
+     * @param  array<string, mixed>  $viewData
+     */
+    public function requiresHeavyWorker(array $viewData): bool
+    {
+        $orientation = $viewData['brand']['orientation'] ?? 'portrait';
+
+        if ($orientation === 'landscape') {
+            return true;
+        }
+
+        return config('id_card.pdf_driver') === 'browsershot';
+    }
+
+    /**
      * @param  array<string, mixed>  $viewData
      */
     public function generate(array $viewData): string
@@ -48,7 +64,7 @@ class GuardIdCardPdfService
 
             if ($orientation === 'landscape') {
                 throw new \RuntimeException(
-                    'Landscape ID card PDFs require Chrome (Browsershot). Set ID_CARD_PDF_DRIVER=browsershot and install Chromium.',
+                    'Landscape ID card PDFs require Chrome (Browsershot). Set ID_CARD_PDF_DRIVER=browsershot and install Chromium on the queue-heavy worker.',
                     0,
                     $e
                 );

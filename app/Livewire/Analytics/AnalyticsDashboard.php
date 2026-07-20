@@ -14,6 +14,23 @@ class AnalyticsDashboard extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()->can('analytics.view'), 403);
+
+        $latest = AnalyticsSnapshot::where('tenant_id', TenantContext::id())
+            ->latest('snapshot_date')
+            ->value('snapshot_date');
+
+        $this->snapshotDate = $latest
+            ? \Carbon\Carbon::parse($latest)->toDateString()
+            : today()->toDateString();
+    }
+
+    public function selectDate(string $date): void
+    {
+        $this->snapshotDate = $date;
+    }
+
+    public function goToday(): void
+    {
         $this->snapshotDate = today()->toDateString();
     }
 
@@ -31,9 +48,22 @@ class AnalyticsDashboard extends Component
     {
         $tenantId = TenantContext::id();
 
+        $snapshot = AnalyticsSnapshot::where('tenant_id', $tenantId)
+            ->whereDate('snapshot_date', $this->snapshotDate)
+            ->first();
+
+        $history = AnalyticsSnapshot::where('tenant_id', $tenantId)
+            ->orderByDesc('snapshot_date')
+            ->limit(30)
+            ->get();
+
+        $chartHistory = $history->sortBy('snapshot_date')->values();
+
         return view('livewire.analytics.analytics-dashboard', [
-            'snapshot' => AnalyticsSnapshot::where('tenant_id', $tenantId)->latest('snapshot_date')->first(),
-            'history' => AnalyticsSnapshot::where('tenant_id', $tenantId)->orderByDesc('snapshot_date')->limit(30)->get(),
+            'snapshot' => $snapshot,
+            'history' => $history,
+            'chartHistory' => $chartHistory,
+            'hasAnySnapshot' => $history->isNotEmpty(),
         ])->layout('layouts.app');
     }
 }

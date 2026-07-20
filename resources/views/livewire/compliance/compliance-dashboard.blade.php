@@ -22,16 +22,19 @@
             <x-stat-card compact label="Training due" :value="$summary['expiring_training']" icon="plan" :tone="$summary['expiring_training'] ? 'warning' : 'success'" />
         </div>
 
-        <x-section-card title="SLA coverage" class="!p-4">
-            <div class="flex flex-wrap items-center justify-between gap-4">
+        <x-section-card title="SLA coverage" description="Sites with defined service targets">
+            <div class="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <p class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ $summary['sla']['coverage_percent'] }}%</p>
-                    <p class="text-sm text-zinc-500">
+                    <p class="text-3xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-100">{{ $summary['sla']['coverage_percent'] }}%</p>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                         {{ $summary['sla']['sites_with_sla'] }} of {{ $summary['sla']['active_sites'] }} active sites have SLA targets
                         · {{ $summary['sla']['requirement_count'] }} requirements
                     </p>
                 </div>
-                <p class="text-xs text-zinc-500">Per-site SLA targets are managed on each <a href="{{ route('sites.index') }}" class="font-medium text-accent-600 hover:underline">site profile</a>.</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                    Per-site SLA targets are managed on each
+                    <a href="{{ route('sites.index') }}" class="page-link" wire:navigate>site profile</a>.
+                </p>
             </div>
         </x-section-card>
 
@@ -50,7 +53,7 @@
                             <tr class="table-row-hover" wire:key="cert-{{ $item->id }}">
                                 <x-table.td>
                                     @if ($item->assignedGuard)
-                                        <a href="{{ route('guards.show', $item->assignedGuard) }}?tab=qualifications" class="font-medium text-accent-700 hover:underline">{{ $item->assignedGuard->full_name }}</a>
+                                        <a href="{{ route('guards.show', $item->assignedGuard) }}?tab=qualifications" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $item->assignedGuard->full_name }}</a>
                                     @else
                                         —
                                     @endif
@@ -85,7 +88,7 @@
                             <tr class="table-row-hover" wire:key="doc-{{ $doc->id }}">
                                 <x-table.td>
                                     @if ($doc->assignedGuard)
-                                        <a href="{{ route('guards.show', $doc->assignedGuard) }}?tab=files" class="font-medium text-accent-700 hover:underline">{{ $doc->assignedGuard->full_name }}</a>
+                                        <a href="{{ route('guards.show', $doc->assignedGuard) }}?tab=files" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $doc->assignedGuard->full_name }}</a>
                                     @else
                                         —
                                     @endif
@@ -122,7 +125,7 @@
                             <tr class="table-row-hover" wire:key="site-doc-{{ $doc->id }}">
                                 <x-table.td>
                                     @if ($doc->site)
-                                        <a href="{{ route('sites.show', $doc->site) }}?tab=files" class="font-medium text-accent-700 hover:underline">{{ $doc->site->name }}</a>
+                                        <a href="{{ route('sites.show', $doc->site) }}?tab=files" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $doc->site->name }}</a>
                                     @else
                                         —
                                     @endif
@@ -157,7 +160,7 @@
                             <tr class="table-row-hover" wire:key="training-{{ $row->id }}">
                                 <x-table.td>
                                     @if ($row->assignedGuard)
-                                        <a href="{{ route('guards.show', $row->assignedGuard) }}?tab=qualifications" class="font-medium text-accent-700 hover:underline">{{ $row->assignedGuard->full_name }}</a>
+                                        <a href="{{ route('guards.show', $row->assignedGuard) }}?tab=qualifications" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $row->assignedGuard->full_name }}</a>
                                     @else
                                         —
                                     @endif
