@@ -119,7 +119,7 @@ class GuardIdCardRenderService
             : null;
 
         $signatureSrc = ! empty($brand['signature_path'])
-            ? $this->logos->dataUri($brand['signature_path'])
+            ? $this->logos->signatureDataUri($brand['signature_path'])
             : null;
 
         $qrPng = $this->qrPngPayload(

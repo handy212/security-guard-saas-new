@@ -41,7 +41,17 @@
                 @forelse($clients as $client)
                     <tr class="table-row-hover" wire:key="client-{{ $client->id }}">
                         <x-table.td>
-                            <a href="{{ route('clients.show', $client) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $client->name }}</a>
+                            <div class="flex items-center gap-2.5">
+                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700">
+                                    {{ strtoupper(substr($client->name, 0, 1)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <a href="{{ route('clients.show', $client) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $client->name }}</a>
+                                    @if ($client->email)
+                                        <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $client->email }}</div>
+                                    @endif
+                                </div>
+                            </div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>
@@ -75,7 +85,7 @@
             </tbody>
         </x-data-table>
 
-        <x-pagination :paginator="$clients" />
+        <x-pagination :paginator="$clients" per-page="perPage" />
     </x-page-shell>
 
     @if ($showForm)
@@ -89,6 +99,10 @@
                     <x-input wire:model="form.name" label="Client name" class="sm:col-span-2" />
                     <x-input wire:model="form.industry" label="Industry" />
                     <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
+                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </x-select>
                 </x-form-section>
 
                 <x-form-section title="Contact">

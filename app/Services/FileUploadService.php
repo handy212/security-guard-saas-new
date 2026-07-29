@@ -7,6 +7,7 @@ use App\Models\GuardDocument;
 use App\Models\Incident;
 use App\Models\IncidentMedia;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class FileUploadService
 {
@@ -79,6 +80,25 @@ class FileUploadService
     public function storeIdCardLogo(int $tenantId, UploadedFile $file): string
     {
         return $file->store("tenants/{$tenantId}/branding", 'public');
+    }
+
+    /**
+     * Store an authorized signature, trimming empty padding so ink fills the card pad.
+     */
+    public function storeIdCardSignature(int $tenantId, UploadedFile $file): string
+    {
+        $path = $file->store("tenants/{$tenantId}/branding", 'public');
+        $trimmed = app(GuardIdCardLogoService::class)->signaturePngBinary($path);
+
+        if ($trimmed === null) {
+            return $path;
+        }
+
+        $trimmedPath = "tenants/{$tenantId}/branding/signature-".uniqid('', true).'.png';
+        Storage::disk('public')->put($trimmedPath, $trimmed);
+        Storage::disk('public')->delete($path);
+
+        return $trimmedPath;
     }
 
     public function storeDispatchAttachment(int $tenantId, int $dispatchId, UploadedFile $file): string

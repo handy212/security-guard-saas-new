@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
@@ -15,6 +16,7 @@ use Livewire\WithPagination;
 
 class ExpenseIndex extends Component
 {
+    use HasPerPage;
     use WithFileUploads;
     use WithPagination;
 
@@ -237,7 +239,7 @@ class ExpenseIndex extends Component
             ->latest('expense_date');
 
         return view('livewire.billing.expense-index', [
-            'expenses' => $query->paginate(25),
+            'expenses' => $query->paginate($this->resolvedPerPage()),
             'categories' => ExpenseCategory::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get(),
             'clients' => ClientAccount::orderBy('name')->get(),
             'sites' => Site::orderBy('name')->get(),
@@ -250,5 +252,10 @@ class ExpenseIndex extends Component
             ],
             'hasActiveFilters' => filled($this->search) || $this->statusFilter !== 'all' || $this->dateFrom !== '' || $this->dateTo !== '',
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 25;
     }
 }

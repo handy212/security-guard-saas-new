@@ -3,8 +3,8 @@
     $searchableLinks = $nav->searchableLinks();
 @endphp
 
-<header class="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:border-zinc-800 dark:bg-zinc-950/90">
-    <div class="page-content flex items-center gap-3 py-2.5">
+<header class="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/90">
+    <div class="page-content flex h-[var(--app-header-height)] items-center gap-3 py-0">
         <button
             type="button"
             @click="sidebarOpen = true"

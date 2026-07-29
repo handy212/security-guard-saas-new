@@ -33,19 +33,12 @@
         @endphp
 
         @if ($hasUrgent)
-            <div class="alert-banner alert-banner-danger animate-fade-in-up">
-                <div class="flex items-center gap-3">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                    </span>
-                    <div>
-                        <p class="text-sm font-semibold">{{ $sosKpi['value'] }} active SOS alert{{ $sosKpi['value'] > 1 ? 's' : '' }}</p>
-                        <p class="text-xs text-red-700/90 dark:text-red-300">Respond from dispatch immediately.</p>
-                    </div>
-                </div>
-                <a href="{{ route('dispatch.control-room') }}" class="btn-danger shrink-0">Open dispatch</a>
-            </div>
+            <x-alert tone="danger" :title="$sosKpi['value'].' active SOS alert'.($sosKpi['value'] > 1 ? 's' : '')" class="animate-fade-in-up">
+                Respond from dispatch immediately.
+                <x-slot:action>
+                    <a href="{{ route('dispatch.control-room') }}" class="btn-danger shrink-0">Open dispatch</a>
+                </x-slot:action>
+            </x-alert>
         @endif
 
         <div class="kpi-grid animate-fade-in-up">
@@ -286,11 +279,26 @@
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">7-day patrol activity</h2>
-                            <p class="card-header-meta">{{ $weekSummary['patrols'] }} patrols · {{ $weekSummary['missed_patrols'] }} missed</p>
+                            <p class="card-header-meta">Completed vs missed checkpoints</p>
                         </div>
                         <a href="{{ route('patrols.index') }}" class="page-link shrink-0">Patrols</a>
                     </div>
-                    <div class="p-4 pt-3">
+                    @php
+                        $patrolTotal = collect($patrolTrend)->sum();
+                        $patrolValues = collect($patrolTrend)->values();
+                        $patrolRecent = $patrolValues->slice(-3)->sum();
+                        $patrolPrior = $patrolValues->slice(-6, 3)->sum();
+                        $patrolDelta = $patrolPrior > 0
+                            ? round((($patrolRecent - $patrolPrior) / $patrolPrior) * 100, 1)
+                            : ($patrolRecent > 0 ? 100.0 : null);
+                    @endphp
+                    <div class="space-y-3 p-4 pt-3">
+                        <x-dashboard.chart-metric
+                            :value="$patrolTotal"
+                            label="Patrols"
+                            :hint="$weekSummary['missed_patrols'].' missed this week'"
+                            :delta="$patrolTotal > 0 ? $patrolDelta : null"
+                        />
                         <x-dashboard.trend-chart :series="$patrolTrend" color="accent" />
                     </div>
                 </section>

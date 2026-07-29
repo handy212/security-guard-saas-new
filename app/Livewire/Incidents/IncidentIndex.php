@@ -4,6 +4,7 @@ namespace App\Livewire\Incidents;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Enums\IncidentSeverity;
 use App\Models\Incident;
 use App\Models\IncidentMedia;
@@ -23,7 +24,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncidentIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithFileUploads, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithFileUploads, WithPagination;
 
     public string $search = '';
 
@@ -299,7 +300,7 @@ class IncidentIndex extends Component
             : null;
 
         return view('livewire.incidents.incident-index', [
-            'incidents' => $this->incidentsQuery()->paginate(10),
+            'incidents' => $this->incidentsQuery()->paginate($this->resolvedPerPage()),
             'sites' => Site::orderBy('name')->get(),
             'resolvingIncident' => $this->resolvingIncidentId ? Incident::find($this->resolvingIncidentId) : null,
             'viewingIncident' => $viewing,
@@ -313,6 +314,11 @@ class IncidentIndex extends Component
             ],
             'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->severityFilter !== 'all',
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 10;
     }
 
     private function incidentsQuery()

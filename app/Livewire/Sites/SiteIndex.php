@@ -4,6 +4,7 @@ namespace App\Livewire\Sites;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Models\Site;
 use App\Support\TenantContext;
@@ -12,7 +13,7 @@ use Livewire\WithPagination;
 
 class SiteIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -122,12 +123,17 @@ class SiteIndex extends Component
         }
     }
 
+    protected function defaultPerPage(): int
+    {
+        return 10;
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();
 
         return view('livewire.sites.site-index', [
-            'sites' => $this->sitesQuery()->paginate(10),
+            'sites' => $this->sitesQuery()->paginate($this->resolvedPerPage()),
             'clients' => ClientAccount::orderBy('name')->get(),
             'siteStats' => [
                 'total' => Site::where('tenant_id', $tenantId)->count(),

@@ -80,53 +80,64 @@
             </tbody>
         </x-data-table>
 
-        <x-pagination :paginator="$items" />
+        <x-pagination :paginator="$items" per-page="perPage" />
             </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showForm)
         <x-drawer :title="$editingId ? 'Edit asset' : 'Add asset'" width="lg">
             <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Update asset' : 'Create asset'">
-                <x-select wire:model="form.asset_category_id" label="Category" class="sm:col-span-2">
-                    <option value="">Select category</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-select wire:model="form.vendor_id" label="Vendor">
-                    <option value="">None</option>
-                    @foreach($vendors as $vendor)
-                        <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-select wire:model="form.site_id" label="Site">
-                    <option value="">None</option>
-                    @foreach($sites as $site)
-                        <option value="{{ $site->id }}">{{ $site->name }}</option>
-                    @endforeach
-                </x-select>
-                <x-input wire:model="form.name" label="Name *" class="sm:col-span-2" />
-                <x-input wire:model="form.asset_tag" label="Asset tag" />
-                <x-input wire:model="form.serial_number" label="Serial number" />
-                <x-input wire:model="form.model" label="Model" />
-                <x-input wire:model="form.manufacturer" label="Manufacturer" />
-                <x-input wire:model="form.purchase_cost" type="number" step="0.01" label="Purchase cost" />
-                <x-input wire:model="form.purchase_date" type="date" label="Purchase date" />
-                <x-input wire:model="form.warranty_expires_at" type="date" label="Warranty expires" />
-                <x-input wire:model="form.location" label="Storage location" class="sm:col-span-2" />
-                <x-input wire:model="form.quantity_on_hand" type="number" min="1" label="Qty on hand" />
-                <x-select wire:model="form.condition" label="Condition">
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                </x-select>
-                <x-select wire:model="form.status" label="Status">
-                    @foreach($statuses as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </x-select>
-                <x-textarea wire:model="form.description" label="Description" rows="2" class="sm:col-span-2" />
-                <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                <x-form-section title="Basics">
+                    <x-input wire:model="form.name" label="Name *" class="sm:col-span-2" />
+                    <x-select wire:model="form.asset_category_id" label="Category" class="sm:col-span-2">
+                        <option value="">Select category</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="form.vendor_id" label="Vendor">
+                        <option value="">None</option>
+                        @foreach($vendors as $vendor)
+                            <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="form.site_id" label="Site">
+                        <option value="">None</option>
+                        @foreach($sites as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="form.status" label="Status">
+                        @foreach($statuses as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="form.condition" label="Condition">
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                        <option value="poor">Poor</option>
+                    </x-select>
+                </x-form-section>
+
+                <x-form-section title="Identifiers">
+                    <x-input wire:model="form.asset_tag" label="Asset tag" />
+                    <x-input wire:model="form.serial_number" label="Serial number" />
+                    <x-input wire:model="form.model" label="Model" />
+                    <x-input wire:model="form.manufacturer" label="Manufacturer" />
+                </x-form-section>
+
+                <x-form-section title="Purchase & stock">
+                    <x-input wire:model="form.purchase_cost" type="number" step="0.01" label="Purchase cost" />
+                    <x-input wire:model="form.purchase_date" type="date" label="Purchase date" />
+                    <x-input wire:model="form.warranty_expires_at" type="date" label="Warranty expires" />
+                    <x-input wire:model="form.quantity_on_hand" type="number" min="1" label="Qty on hand" />
+                    <x-input wire:model="form.location" label="Storage location" class="sm:col-span-2" />
+                </x-form-section>
+
+                <x-form-section title="Notes">
+                    <x-textarea wire:model="form.description" label="Description" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                </x-form-section>
             </x-drawer-form>
         </x-drawer>
     @endif

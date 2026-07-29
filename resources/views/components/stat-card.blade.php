@@ -31,8 +31,8 @@
     $shellClass = $stacked
         ? 'flex h-full min-w-0 flex-col items-center justify-center px-3 py-3 text-center'
         : ($compact
-            ? 'flex min-w-0 w-full items-center gap-3 px-3.5 py-3 text-left sm:px-4'
-            : 'flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200/90 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900');
+            ? 'flex min-w-0 w-full items-center gap-3.5 px-4 py-4 text-left sm:px-5'
+            : 'flex min-w-0 items-center gap-3 rounded-[var(--radius-card)] border border-zinc-200/80 bg-white px-4 py-3.5 shadow-[var(--shadow-card)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none');
 
     if ($active) {
         $shellClass .= $compact
@@ -41,15 +41,15 @@
     }
 
     $iconShellClass = $stacked
-        ? 'mb-1.5 flex h-7 w-7 items-center justify-center rounded-md'
-        : ($compact ? 'flex h-8 w-8 shrink-0 items-center justify-center rounded-md' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-md');
-    $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-3.5 w-3.5' : 'h-4 w-4');
+        ? 'mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg'
+        : ($compact ? 'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg' : 'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg');
+    $svgClass = $stacked ? 'h-3.5 w-3.5' : ($compact ? 'h-4 w-4' : 'h-4 w-4');
     $valueClass = $stacked
         ? 'truncate text-base font-semibold leading-tight tabular-nums text-zinc-900 dark:text-zinc-100'
-        : ($compact ? 'text-xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50' : 'truncate text-lg font-semibold leading-tight tabular-nums text-zinc-900 dark:text-zinc-100');
+        : ($compact ? 'text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50' : 'truncate text-xl font-semibold leading-tight tabular-nums text-zinc-900 dark:text-zinc-100');
     $labelClass = $stacked
         ? 'mt-0.5 truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400'
-        : ($compact ? 'mt-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400' : 'truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-400');
+        : ($compact ? 'mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400' : 'truncate text-xs font-medium text-zinc-500 dark:text-zinc-400');
 
     $isInteractive = $attributes->whereStartsWith('wire:click')->isNotEmpty();
     if ($isInteractive) {

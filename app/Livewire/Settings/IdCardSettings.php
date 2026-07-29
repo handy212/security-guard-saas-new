@@ -206,7 +206,7 @@ class IdCardSettings extends Component
             if ($signaturePath && Storage::disk('public')->exists($signaturePath)) {
                 Storage::disk('public')->delete($signaturePath);
             }
-            $signaturePath = $files->storeIdCardLogo(TenantContext::id(), $this->signatureFile);
+            $signaturePath = $files->storeIdCardSignature(TenantContext::id(), $this->signatureFile);
             $this->existingSignaturePath = $signaturePath;
             $this->signatureFile = null;
         }

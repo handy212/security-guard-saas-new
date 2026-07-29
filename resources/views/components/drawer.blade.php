@@ -15,15 +15,15 @@
         wire:click="{{ $closeMethod }}"
     ></div>
 
-    <div class="relative flex h-full w-full {{ $widthClass }} flex-col border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
+    <div class="relative flex h-full w-full {{ $widthClass }} flex-col border-l border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-5 py-5 sm:px-6 dark:border-zinc-800">
             <div class="min-w-0">
-                <h2 class="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h2>
+                <h2 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h2>
                 @if ($description)
-                    <p class="mt-1 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
+                    <p class="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                 @endif
             </div>
-            <button type="button" wire:click="{{ $closeMethod }}" class="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" aria-label="Close">
+            <button type="button" wire:click="{{ $closeMethod }}" class="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" aria-label="Close">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>

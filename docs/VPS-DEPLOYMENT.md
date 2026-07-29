@@ -2,10 +2,12 @@
 
 Deploy GuardOps on a raw Ubuntu VPS with SSH. Two supported paths:
 
-| Path | Best for |
-|------|----------|
+
+| Path                             | Best for                                                  |
+| -------------------------------- | --------------------------------------------------------- |
 | **Docker Compose** (recommended) | Fastest setup, matches local dev, includes queue + Reverb |
-| **Native stack** | No Docker, traditional nginx + PHP-FPM |
+| **Native stack**                 | No Docker, traditional nginx + PHP-FPM                    |
+
 
 **Minimum server:** Ubuntu 22.04 or 24.04, 2 GB RAM, 2 vCPU, 20 GB disk.
 
@@ -13,18 +15,22 @@ Deploy GuardOps on a raw Ubuntu VPS with SSH. Two supported paths:
 
 ## 1. DNS
 
-Point these records at your VPS public IP:
+**Point these records at your VPS public IP:**
 
-| Record | Type | Purpose |
-|--------|------|---------|
-| `app.yourdomain.com` | A | Central app / login |
-| `*.yourdomain.com` | A | Tenant subdomains (`demo-security.yourdomain.com`) |
+
+| **Record**           | **Type** | Purpose                                            |
+| -------------------- | -------- | -------------------------------------------------- |
+| `app.yourdomain.com` | A        | Central app / login                                |
+| `*.yourdomain.com`   | A        | Tenant subdomains (`demo-security.yourdomain.com`) |
+
 
 Set `TENANCY_BASE_DOMAIN=yourdomain.com` in `.env`.
 
 **Using Nginx Proxy Manager on a separate server?** See **[NPM-PROXY.md](./NPM-PROXY.md)** — DNS points at NPM, not this VPS.
 
 ---
+
+
 
 ## 2. One-time server bootstrap
 
@@ -47,7 +53,11 @@ Log out and back in so the `docker` group applies.
 
 ---
 
+
+
 ## 3. Docker path (recommended)
+
+
 
 ### 3.1 Configure environment
 
@@ -106,6 +116,8 @@ openssl rand -hex 16   # REVERB_APP_KEY
 openssl rand -hex 32   # REVERB_APP_SECRET
 ```
 
+
+
 ### 3.2 Build assets and start stack
 
 Build frontend on the server (or commit `public/build/` from CI):
@@ -149,16 +161,18 @@ Visit `https://app.yourdomain.com`.
 
 ### 3.4 What runs in Docker
 
-| Service | Role |
-|---------|------|
-| `nginx` | Serves `public/` (proxied by host nginx) |
-| `app` | PHP 8.3-FPM (slim image — no Chromium) |
-| `mysql` | Database |
-| `redis` | Cache, sessions, queues |
-| `queue` | Default queue worker (`queue:work --queue=default`) |
+
+| Service       | Role                                                        |
+| ------------- | ----------------------------------------------------------- |
+| `nginx`       | Serves `public/` (proxied by host nginx)                    |
+| `app`         | PHP 8.3-FPM (slim image — no Chromium)                      |
+| `mysql`       | Database                                                    |
+| `redis`       | Cache, sessions, queues                                     |
+| `queue`       | Default queue worker (`queue:work --queue=default`)         |
 | `queue-heavy` | Chromium/Browsershot worker (`--queue=heavy`, ID-card PDFs) |
-| `scheduler` | `php artisan schedule:work` (analytics, patrols, reports) |
-| `reverb` | WebSockets for dispatch control room |
+| `scheduler`   | `php artisan schedule:work` (analytics, patrols, reports)   |
+| `reverb`      | WebSockets for dispatch control room                        |
+
 
 Chromium is installed only in `Dockerfile.heavy` / the `queue-heavy` service so PDF rendering cannot starve PHP-FPM.
 
@@ -174,6 +188,8 @@ Native installs still need host cron:
 
 ---
 
+
+
 ## 4. Native path (no Docker)
 
 Bootstrap:
@@ -181,6 +197,8 @@ Bootstrap:
 ```bash
 sudo bash deploy/bootstrap-server.sh --native
 ```
+
+
 
 ### 4.1 MySQL
 
@@ -195,6 +213,8 @@ GRANT ALL ON guard_saas.* TO 'guardops'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
+
+
 
 ### 4.2 App setup
 
@@ -227,6 +247,8 @@ sudo chown -R www-data:www-data storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 ```
 
+
+
 ### 4.3 nginx + Supervisor
 
 Edit `deploy/nginx/guardops.conf`: comment out the Docker `proxy_pass` blocks and uncomment the native `root` / `php-fpm` block. Then:
@@ -251,6 +273,8 @@ Cron:
 
 ---
 
+
+
 ## 5. Updates after deployment
 
 From the app directory:
@@ -272,32 +296,39 @@ Never run `migrate:fresh` in production.
 
 ---
 
+
+
 ## 6. Optional production hardening
 
 - **Object storage:** set `FILESYSTEM_DISK=s3` and `TENANT_FILES_DISK=s3` with AWS credentials
 - **Mail:** configure SMTP in `.env` for incident/SOS notifications
-- **Paystack:** set `PAYSTACK_*` keys for billing
+- **Paystack:** set `PAYSTACK_`* keys for billing
 - **Fail2ban:** installed by bootstrap script; tune jails for nginx
 - **Backups:** automate daily `mysqldump` + `storage/` sync to S3
 - **Monitoring:** hit `/up` from an external uptime checker
 
 ---
 
+
+
 ## 7. Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| 502 Bad Gateway | `docker compose ps` — ensure `app` and `nginx` are up |
-| 500 after deploy | `docker compose exec app php artisan config:clear` then re-cache |
-| Permission errors | `docker compose exec app chown -R www-data:www-data storage bootstrap/cache` |
-| WebSockets not connecting | Check `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` match public URL; verify nginx `/app` proxy |
-| Tenant subdomain 404 | Wildcard DNS `*.yourdomain.com` must point to this server |
-| Queue jobs stuck | `docker compose logs queue queue-heavy` or `supervisorctl status` |
-| ID card PDF times out / 503 | Ensure `queue-heavy` is up; `docker compose logs queue-heavy` |
-| Session / Livewire “page expired” | `SESSION_DRIVER=redis`, `SESSION_SECURE_COOKIE=true`, proxy sends `X-Forwarded-Proto: https` |
-| MySQL/Redis exposed on `0.0.0.0` | Recreate with prod override: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate` |
-| nginx on public `8080` instead of `127.0.0.1` | Same — prod file uses `!reset` so dev ports are not merged in |
-| `queue` / `queue-heavy` / `reverb` missing | `docker compose ps -a` then `docker compose logs queue queue-heavy reverb` |
+
+| Symptom                                           | Fix                                                                                                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 502 Bad Gateway                                   | `docker compose ps` — ensure `app` and `nginx` are up                                                                                                                   |
+| 500 after deploy                                  | `docker compose exec app php artisan config:clear` then re-cache                                                                                                        |
+| Permission errors                                 | `docker compose exec app chown -R www-data:www-data storage bootstrap/cache`                                                                                            |
+| WebSockets not connecting                         | Check `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` match public URL; verify nginx `/app` proxy                                                                       |
+| Tenant subdomain 404                              | Wildcard DNS `*.yourdomain.com` must point to this server                                                                                                               |
+| Queue jobs stuck                                  | `docker compose logs queue queue-heavy` or `supervisorctl status`                                                                                                       |
+| ID card PDF times out / 503                       | Ensure `queue-heavy` is up; `docker compose logs queue-heavy`                                                                                                           |
+| Session / Livewire “page expired”                 | `SESSION_DRIVER=redis`, `SESSION_SECURE_COOKIE=true`, proxy sends `X-Forwarded-Proto: https`                                                                            |
+| MySQL/Redis exposed on `0.0.0.0`                  | Recreate with prod override: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate`                                                   |
+| nginx on public `8080` instead of `127.0.0.1`     | Same — prod file uses `!reset` so dev ports are not merged in                                                                                                           |
+| Offline after reboot (Docker up, containers down) | Containers need `restart: unless-stopped`. Redeploy once: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`. Also: `sudo systemctl enable docker` |
+| `queue` / `queue-heavy` / `reverb` missing        | `docker compose ps -a` then `docker compose logs queue queue-heavy reverb`                                                                                              |
+
 
 Logs:
 
@@ -307,6 +338,8 @@ tail -f storage/logs/laravel.log
 ```
 
 ---
+
+
 
 ## Quick reference
 
@@ -323,3 +356,4 @@ docker compose down
 # Shell into app
 docker compose exec app bash
 ```
+

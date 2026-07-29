@@ -219,6 +219,16 @@
         border-bottom: 2px solid #f1f5f9;
     }
 
+    {{ $scope }} .template-creative .card-header .photo-circle {
+        width: 108px;
+        height: 108px;
+        flex-shrink: 0;
+    }
+
+    {{ $scope }} .template-creative .card-header .photo-circle.initials {
+        font-size: 1.75rem;
+    }
+
     {{ $scope }} .template-creative .company-name {
         font-size: 0.8rem;
         font-weight: 700;
@@ -574,8 +584,8 @@
     }
 
     {{ $scope }} .template-premium .premium-sig-strip {
-        min-height: 56px;
-        background: #f1f5f9;
+        height: 88px;
+        background: #fff;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -583,43 +593,48 @@
         flex-shrink: 0;
         color: #64748b;
         box-sizing: border-box;
+        border-bottom: 1px solid #e2e8f0;
     }
 
     {{ $scope }} .template-premium .premium-sig-strip--has-image {
-        min-height: 72px;
+        height: 88px;
     }
 
     {{ $scope }} .template-premium .premium-sig-pad {
         flex: 1;
         display: flex;
         align-items: flex-end;
-        justify-content: flex-start;
-        min-height: 36px;
-        padding-bottom: 4px;
+        justify-content: center;
+        width: 100%;
+        min-height: 0;
+        padding-bottom: 3px;
     }
 
     {{ $scope }} .template-premium .premium-sig-img {
         display: block;
-        height: 44px;
-        max-width: 78%;
+        max-height: 56px;
+        max-width: 70%;
         width: auto;
+        height: auto;
         object-fit: contain;
-        object-position: left bottom;
+        object-position: center bottom;
     }
 
     {{ $scope }} .template-premium .premium-sig-meta {
-        border-top: 1px solid #cbd5e1;
+        border-top: 1px solid #94a3b8;
         padding-top: 4px;
         line-height: 1;
+        width: 100%;
     }
 
     {{ $scope }} .template-premium .premium-sig-meta span {
         display: block;
-        font-size: 0.58rem;
-        color: #94a3b8;
+        font-size: 0.62rem;
+        color: #475569;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
+        letter-spacing: 0.8px;
+        font-weight: 700;
+        text-align: center;
     }
 
     {{ $scope }} .template-premium .premium-back-content {

@@ -71,7 +71,7 @@
                 <x-table.head>
                     <tr>
                         <x-table.th>Invoice #</x-table.th>
-                        <x-table.th>Client</x-table.th>
+                        <x-table.th responsive="md">Client</x-table.th>
                         <x-table.th responsive="md">Date</x-table.th>
                         <x-table.th>Total</x-table.th>
                         <x-table.th>Balance</x-table.th>
@@ -86,9 +86,12 @@
                         @endphp
                         <tr class="table-row-hover" wire:key="inv-{{ $invoice->id }}">
                             <x-table.td mono>
-                                <a href="{{ route('billing.invoices.show', $invoice) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $invoice->invoice_number }}</a>
+                                <div class="min-w-0">
+                                    <a href="{{ route('billing.invoices.show', $invoice) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $invoice->invoice_number }}</a>
+                                    <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $invoice->clientAccount?->name }}</div>
+                                </div>
                             </x-table.td>
-                            <x-table.td>{{ $invoice->clientAccount?->name }}</x-table.td>
+                            <x-table.td responsive="md">{{ $invoice->clientAccount?->name }}</x-table.td>
                             <x-table.td responsive="md" muted class="tabular-nums">{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
                             <x-table.td class="font-semibold tabular-nums">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
                             <x-table.td muted class="tabular-nums">₦{{ number_format($balance, 2) }}</x-table.td>
@@ -133,7 +136,7 @@
                 </tbody>
             </x-data-table>
 
-            <x-pagination :paginator="$invoices" />
+            <x-pagination :paginator="$invoices" per-page="perPage" />
         </x-sub-sidebar-layout>
     </x-page-shell>
 

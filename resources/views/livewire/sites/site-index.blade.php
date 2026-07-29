@@ -41,7 +41,10 @@
                 @forelse($sites as $site)
                     <tr class="table-row-hover" wire:key="site-{{ $site->id }}">
                         <x-table.td>
-                            <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
+                            <div class="min-w-0">
+                                <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
+                                <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $site->clientAccount?->name ?? 'No client' }}</div>
+                            </div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $site->clientAccount?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $site->address ?: '—' }}</x-table.td>
@@ -76,7 +79,7 @@
             </tbody>
         </x-data-table>
 
-        <x-pagination :paginator="$sites" />
+        <x-pagination :paginator="$sites" per-page="perPage" />
     </x-page-shell>
 
     @if ($showForm)
@@ -93,7 +96,11 @@
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.name" label="Site name" class="sm:col-span-2" placeholder="Main Gate" />
+                    <x-input wire:model="form.name" label="Site name" placeholder="Main Gate" />
+                    <x-select wire:model="form.status" label="Status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </x-select>
                     <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
                 </x-form-section>
 

@@ -9,10 +9,6 @@
     >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('settings.id-card')">ID card settings</x-button>
-            <x-button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save">
-                <span wire:loading.remove wire:target="save">Save settings</span>
-                <span wire:loading wire:target="save">Saving…</span>
-            </x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
@@ -21,7 +17,7 @@
             <x-flash-status type="success" />
 
             <x-section-card title="Public page content" description="Copy shown when someone scans a verified guard QR code.">
-                <form wire:submit="save" class="space-y-5">
+                <form id="kyg-settings-form" wire:submit="save" class="space-y-5">
                     <x-form-section title="Page copy">
                         <x-input wire:model="subtitle" label="Page subtitle *" class="sm:col-span-2" />
                         <x-textarea wire:model="accessGuidance" label="Client access guidance *" rows="3" class="sm:col-span-2" />
@@ -45,14 +41,15 @@
                         Control room phone numbers come from <a href="{{ route('settings.id-card') }}" class="page-link">ID Card settings</a>.
                         Company logo on the verification page uses the ID card logo upload.
                     </p>
-
-                    <div class="flex items-center gap-3">
-                        <x-button type="submit" wire:loading.attr="disabled" wire:target="save">
-                            <span wire:loading.remove wire:target="save">Save settings</span>
-                            <span wire:loading wire:target="save">Saving…</span>
-                        </x-button>
-                    </div>
                 </form>
+
+                <x-slot:footer>
+                    <x-button variant="secondary" :href="route('settings.index')">Cancel</x-button>
+                    <x-button type="submit" form="kyg-settings-form" wire:loading.attr="disabled" wire:target="save">
+                        <span wire:loading.remove wire:target="save">Save settings</span>
+                        <span wire:loading wire:target="save">Saving…</span>
+                    </x-button>
+                </x-slot:footer>
             </x-section-card>
         </x-sub-sidebar-layout>
     </x-page-shell>

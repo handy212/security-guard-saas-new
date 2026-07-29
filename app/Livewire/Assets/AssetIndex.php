@@ -5,6 +5,7 @@ namespace App\Livewire\Assets;
 use App\Enums\AssetStatus;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\AssetCategory;
 use App\Models\AssetVendor;
 use App\Models\EquipmentAsset;
@@ -18,7 +19,7 @@ use Livewire\WithPagination;
 
 class AssetIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -240,13 +241,18 @@ class AssetIndex extends Component
                 ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
                 ->when($this->categoryFilter, fn ($q) => $q->where('asset_category_id', (int) $this->categoryFilter))
                 ->latest()
-                ->paginate(25),
+                ->paginate($this->resolvedPerPage()),
             'categories' => AssetCategory::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get(),
             'vendors' => AssetVendor::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'guards' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->orderBy('first_name')->get(),
             'statuses' => config('assets.statuses'),
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 25;
     }
 
     private function normalizeForm(): void

@@ -56,6 +56,7 @@ if [[ "$MODE" == "docker" ]]; then
         curl -fsSL https://get.docker.com | sh
     fi
     usermod -aG docker "$DEPLOY_USER" || true
+    systemctl enable --now docker
 
     echo "==> Installing host nginx + Certbot (TLS termination)"
     apt-get install -y nginx certbot python3-certbot-nginx

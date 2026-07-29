@@ -4,6 +4,7 @@ namespace App\Livewire\Visitors;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\Guard;
 use App\Models\Site;
 use App\Models\VisitorLog;
@@ -16,7 +17,7 @@ use RuntimeException;
 
 class VisitorLogIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -144,7 +145,7 @@ class VisitorLogIndex extends Component
                 ->when($this->search, fn ($q) => $q->where('visitor_name', 'like', '%'.$this->search.'%'))
                 ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
                 ->latest()
-                ->paginate(25),
+                ->paginate($this->resolvedPerPage()),
             'sites' => Site::orderBy('name')->get(),
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
             'stats' => [
@@ -154,6 +155,11 @@ class VisitorLogIndex extends Component
                 'sites' => Site::where('tenant_id', $tenantId)->count(),
             ],
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 25;
     }
 
     private function blankForm(): array

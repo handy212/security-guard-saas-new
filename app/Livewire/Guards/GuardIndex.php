@@ -5,6 +5,7 @@ namespace App\Livewire\Guards;
 use App\Enums\GuardDutyType;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\Branch;
 use App\Models\Guard;
 use App\Models\Tenant;
@@ -15,7 +16,7 @@ use Livewire\WithPagination;
 
 class GuardIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -153,12 +154,17 @@ class GuardIndex extends Component
         }
     }
 
+    protected function defaultPerPage(): int
+    {
+        return 15;
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();
 
         return view('livewire.guards.guard-index', [
-            'guards' => $this->guardsQuery()->paginate(15),
+            'guards' => $this->guardsQuery()->paginate($this->resolvedPerPage()),
             'branches' => Branch::orderBy('name')->get(),
             'dutyTypes' => GuardDutyType::options(),
             'guardStats' => [

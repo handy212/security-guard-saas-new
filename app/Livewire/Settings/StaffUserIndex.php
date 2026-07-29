@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\TenantRoleProvisioner;
@@ -16,7 +17,7 @@ use Spatie\Permission\Models\Role;
 
 class StaffUserIndex extends Component
 {
-    use HasFormDrawer, WithPagination;
+    use HasFormDrawer, HasPerPage, WithPagination;
 
     private const HIDDEN_ROLES = ['super-admin', 'client'];
 
@@ -174,7 +175,7 @@ class StaffUserIndex extends Component
                     ->orWhere('email', 'like', '%'.$this->search.'%');
             }))
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate($this->resolvedPerPage());
 
         return view('livewire.settings.staff-user-index', [
             'users' => $users,

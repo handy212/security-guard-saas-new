@@ -84,7 +84,7 @@
                     @endforelse
                 </div>
                 <div class="border-t border-zinc-100 px-2 dark:border-zinc-800">
-                    <x-pagination :paginator="$incidents" />
+                    <x-pagination :paginator="$incidents" per-page="perPage" />
                 </div>
                 </div>
             </x-section-card>

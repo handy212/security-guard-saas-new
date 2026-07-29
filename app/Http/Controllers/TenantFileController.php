@@ -71,7 +71,7 @@ class TenantFileController extends Controller
         return $this->storage->response($path);
     }
 
-    public function idCardSignature(): StreamedResponse
+    public function idCardSignature(\App\Services\GuardIdCardLogoService $logos): \Symfony\Component\HttpFoundation\Response
     {
         abort_unless(auth()->user()->can('guards.manage') || auth()->user()->can('settings.manage'), 403);
 
@@ -82,6 +82,14 @@ class TenantFileController extends Controller
 
         abort_unless($path, 404);
         abort_unless($this->storage->exists($path), 404);
+
+        $trimmed = $logos->signaturePngBinary($path);
+        if ($trimmed !== null) {
+            return response($trimmed, 200, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'private, max-age=300',
+            ]);
+        }
 
         return $this->storage->response($path);
     }

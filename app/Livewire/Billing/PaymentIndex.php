@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class PaymentIndex extends Component
 {
-    use WithPagination;
+    use HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -88,7 +89,7 @@ class PaymentIndex extends Component
             ->latest('paid_at');
 
         return view('livewire.billing.payment-index', [
-            'payments' => $query->paginate(25),
+            'payments' => $query->paginate($this->resolvedPerPage()),
             'clients' => ClientAccount::orderBy('name')->get(),
             'stats' => [
                 'total' => (clone $base)->count(),
@@ -102,6 +103,11 @@ class PaymentIndex extends Component
                 || $this->methodFilter !== 'all'
                 || $this->hasAdvancedFilters(),
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 25;
     }
 
     private function hasAdvancedFilters(): bool

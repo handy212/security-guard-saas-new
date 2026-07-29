@@ -306,8 +306,8 @@
     }
 
     {{ $scope }} .ls-creative-photo {
-        width: {{ $ls(68) }}px;
-        height: {{ $ls(68) }}px;
+        width: {{ $ls(76) }}px;
+        height: {{ $ls(76) }}px;
         border-radius: 50%;
         border: {{ $ls(3) }}px solid #fff;
         box-shadow: 0 {{ $ls(2) }}px {{ $ls(8) }}px rgba(0, 0, 0, 0.12);
@@ -320,13 +320,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.35em;
+        font-size: 1.5em;
         font-weight: 700;
         color: #94a3b8;
     }
 
     {{ $scope }} .ls-creative-header-logo {
-        height: {{ $ls(18) }}px;
+        height: {{ $ls(22) }}px;
         margin-bottom: {{ $ls(3) }}px;
         display: block;
     }
@@ -355,7 +355,7 @@
         flex: 1;
         display: flex;
         align-items: center;
-        padding: {{ $ls(6) }}px {{ $ls(14) }}px;
+        padding: {{ $ls(10) }}px {{ $ls(14) }}px;
         min-height: 0;
     }
 
@@ -364,11 +364,16 @@
         align-items: center;
         gap: {{ $ls(10) }}px;
         width: 100%;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: {{ $ls(3) }}px solid var(--theme-color);
+        border-radius: {{ $ls(8) }}px;
+        padding: {{ $ls(10) }}px {{ $ls(12) }}px;
     }
 
     {{ $scope }} .ls-creative-id-icon {
-        width: {{ $ls(28) }}px;
-        height: {{ $ls(28) }}px;
+        width: {{ $ls(32) }}px;
+        height: {{ $ls(32) }}px;
         border-radius: {{ $ls(6) }}px;
         background: color-mix(in srgb, var(--theme-color) 12%, white);
         color: var(--theme-color);
@@ -406,7 +411,7 @@
         width: auto;
         max-width: 100%;
         object-fit: contain;
-        object-position: left center;
+        object-position: center;
         margin-bottom: {{ $ls(6) }}px;
         display: block;
         flex-shrink: 0;
@@ -432,6 +437,10 @@
         padding: {{ $ls(8) }}px;
         font-size: 0.62em;
         line-height: 1.4;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+        overflow: hidden;
     }
 
     {{ $scope }} .ls-back-right {
@@ -681,7 +690,7 @@
     }
 
     {{ $scope }} .ls-back-premium-stripe {
-        height: {{ $ls(22) }}px;
+        height: {{ $ls(18) }}px;
         background: #111827;
         flex-shrink: 0;
         border-bottom: {{ $ls(2) }}px solid rgba(255, 255, 255, 0.12);
@@ -691,7 +700,7 @@
         display: flex;
         flex: 1;
         min-height: 0;
-        padding: {{ $ls(10) }}px {{ $ls(12) }}px {{ $ls(6) }}px;
+        padding: {{ $ls(8) }}px {{ $ls(12) }}px {{ $ls(4) }}px;
         gap: {{ $ls(10) }}px;
     }
 
@@ -707,7 +716,7 @@
     }
 
     {{ $scope }} .ls-back-premium-logo {
-        height: {{ $ls(34) }}px;
+        height: {{ $ls(32) }}px;
         width: auto;
         max-width: 100%;
         object-fit: contain;
@@ -736,6 +745,7 @@
         padding: {{ $ls(8) }}px {{ $ls(10) }}px;
         box-shadow: 0 {{ $ls(4) }}px {{ $ls(14) }}px rgba(0, 0, 0, 0.14);
         min-width: 0;
+        overflow: hidden;
     }
 
     {{ $scope }} .ls-back-premium-panel-title {
@@ -744,7 +754,7 @@
         text-transform: uppercase;
         letter-spacing: 0.6px;
         color: var(--theme-color-dark);
-        margin-bottom: {{ $ls(6) }}px;
+        margin-bottom: {{ $ls(5) }}px;
         padding-bottom: {{ $ls(4) }}px;
         border-bottom: 1px solid #e2e8f0;
     }
@@ -752,7 +762,7 @@
     {{ $scope }} .ls-back-premium-contacts {
         display: flex;
         flex-direction: column;
-        gap: {{ $ls(4) }}px;
+        gap: {{ $ls(3) }}px;
     }
 
     {{ $scope }} .ls-back-premium-contact-row {
@@ -760,7 +770,7 @@
         justify-content: space-between;
         gap: {{ $ls(6) }}px;
         font-size: 0.56em;
-        line-height: 1.35;
+        line-height: 1.3;
     }
 
     {{ $scope }} .ls-back-premium-contact-row span {
@@ -789,63 +799,72 @@
     }
 
     {{ $scope }} .ls-back-premium-notice {
-        margin: 0 {{ $ls(12) }}px {{ $ls(6) }}px;
+        margin: 0 {{ $ls(12) }}px {{ $ls(5) }}px;
         background: rgba(0, 0, 0, 0.22);
         border-radius: {{ $ls(6) }}px;
-        padding: {{ $ls(6) }}px {{ $ls(8) }}px;
+        padding: {{ $ls(5) }}px {{ $ls(8) }}px;
         font-size: 0.54em;
-        line-height: 1.4;
+        line-height: 1.35;
         flex-shrink: 0;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
     }
 
     {{ $scope }} .ls-back-premium-sig {
         margin: 0 {{ $ls(12) }}px {{ $ls(8) }}px;
-        background: #f8fafc;
-        border-radius: {{ $ls(5) }}px;
+        background: #fff;
+        border-radius: {{ $ls(6) }}px;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
-        min-height: {{ $ls(36) }}px;
-        padding: {{ $ls(5) }}px {{ $ls(10) }}px {{ $ls(5) }}px;
+        height: {{ $ls(72) }}px;
+        padding: {{ $ls(6) }}px {{ $ls(14) }}px {{ $ls(5) }}px;
         flex-shrink: 0;
         color: #64748b;
         box-sizing: border-box;
+        box-shadow: 0 {{ $ls(2) }}px {{ $ls(8) }}px rgba(0, 0, 0, 0.08);
     }
 
     {{ $scope }} .ls-back-premium-sig--has-image {
-        min-height: {{ $ls(52) }}px;
+        height: {{ $ls(72) }}px;
     }
 
     {{ $scope }} .ls-back-premium-sig-pad {
         flex: 1;
         display: flex;
         align-items: flex-end;
-        justify-content: flex-start;
-        min-height: {{ $ls(28) }}px;
-        padding-bottom: {{ $ls(3) }}px;
+        justify-content: center;
+        width: 100%;
+        min-height: 0;
+        padding-bottom: {{ $ls(2) }}px;
     }
 
     {{ $scope }} .ls-back-premium-sig-img {
         display: block;
-        height: {{ $ls(34) }}px;
-        max-width: 78%;
+        max-height: {{ $ls(48) }}px;
+        max-width: 70%;
         width: auto;
+        height: auto;
         object-fit: contain;
-        object-position: left bottom;
+        object-position: center bottom;
     }
 
     {{ $scope }} .ls-back-premium-sig-meta {
-        border-top: 1px solid #cbd5e1;
+        border-top: 1px solid #94a3b8;
         padding-top: {{ $ls(3) }}px;
         line-height: 1;
+        width: 100%;
     }
 
     {{ $scope }} .ls-back-premium-sig-meta span {
         display: block;
-        font-size: 0.48em;
-        color: #94a3b8;
+        font-size: 0.52em;
+        color: #475569;
         text-transform: uppercase;
-        letter-spacing: 0.45px;
-        font-weight: 600;
+        letter-spacing: 0.8px;
+        font-weight: 700;
+        text-align: center;
     }
 </style>

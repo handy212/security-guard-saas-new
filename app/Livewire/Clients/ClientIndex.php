@@ -4,6 +4,7 @@ namespace App\Livewire\Clients;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class ClientIndex extends Component
 {
-    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
+    use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -143,12 +144,17 @@ class ClientIndex extends Component
         ];
     }
 
+    protected function defaultPerPage(): int
+    {
+        return 10;
+    }
+
     public function render()
     {
         $tenantId = TenantContext::id();
 
         return view('livewire.clients.client-index', [
-            'clients' => $this->clientsQuery()->paginate(10),
+            'clients' => $this->clientsQuery()->paginate($this->resolvedPerPage()),
             'clientStats' => [
                 'total' => ClientAccount::where('tenant_id', $tenantId)->count(),
                 'active' => ClientAccount::where('tenant_id', $tenantId)->where('status', 'active')->count(),

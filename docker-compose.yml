@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
     command: ["php-fpm"]
     volumes:
@@ -11,6 +12,7 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    restart: unless-stopped
     ports:
       - "8080:80"
     volumes:
@@ -21,6 +23,7 @@ services:
 
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: guard_saas
       MYSQL_USER: guardops
@@ -33,11 +36,13 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
 
   queue:
     build: .
+    restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
     command: php artisan queue:work redis --queue=default --sleep=1 --tries=3
     volumes:
@@ -50,6 +55,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.heavy
+    restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
     command: php artisan queue:work redis --queue=heavy --sleep=1 --tries=3 --timeout=180
     volumes:
@@ -63,6 +69,7 @@ services:
 
   scheduler:
     build: .
+    restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
     command: php artisan schedule:work
     volumes:
@@ -73,6 +80,7 @@ services:
 
   reverb:
     build: .
+    restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
     command: php artisan reverb:start --host=0.0.0.0 --port=8081
     ports:

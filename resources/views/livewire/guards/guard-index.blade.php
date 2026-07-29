@@ -104,7 +104,7 @@
             </tbody>
         </x-data-table>
 
-        <x-pagination :paginator="$guards" />
+        <x-pagination :paginator="$guards" per-page="perPage" />
     </x-page-shell>
 
     @if ($showForm)

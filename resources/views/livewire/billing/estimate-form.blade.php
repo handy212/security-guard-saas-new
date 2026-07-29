@@ -15,7 +15,7 @@
 
         <x-flash-status type="success" />
 
-        <form wire:submit="save" class="mx-auto max-w-3xl space-y-4">
+        <form id="estimate-form" wire:submit="save" class="mx-auto max-w-3xl space-y-4">
             <x-form-card title="Client" description="Who this estimate is for">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-select wire:model="form.client_account_id" label="Client *" class="sm:col-span-2">
@@ -49,12 +49,12 @@
                         </div>
                     @endforeach
                 </div>
-            </x-form-card>
 
-            <div class="flex justify-end gap-2">
-                <x-button type="button" variant="secondary" :href="route('billing.estimates')">Cancel</x-button>
-                <x-button type="submit">{{ $isEditing ? 'Save changes' : 'Create estimate' }}</x-button>
-            </div>
+                <x-slot:footer>
+                    <x-button type="button" variant="secondary" :href="route('billing.estimates')">Cancel</x-button>
+                    <x-button type="submit" form="estimate-form">{{ $isEditing ? 'Save changes' : 'Create estimate' }}</x-button>
+                </x-slot:footer>
+            </x-form-card>
         </form>
     </x-page-shell>
 </div>

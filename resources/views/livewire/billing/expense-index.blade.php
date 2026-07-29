@@ -118,7 +118,7 @@
                 </tbody>
             </x-data-table>
 
-            <x-pagination :paginator="$expenses" />
+            <x-pagination :paginator="$expenses" per-page="perPage" />
         </x-sub-sidebar-layout>
     </x-page-shell>
 

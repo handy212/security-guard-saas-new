@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\AccountingExport;
 use App\Models\ClientAccount;
 use App\Models\Invoice;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InvoiceIndex extends Component
 {
-    use WithPagination;
+    use HasPerPage, WithPagination;
 
     public string $month;
 
@@ -250,7 +251,7 @@ class InvoiceIndex extends Component
             : null;
 
         return view('livewire.billing.invoice-index', [
-            'invoices' => $query->paginate(25),
+            'invoices' => $query->paginate($this->resolvedPerPage()),
             'clients' => ClientAccount::orderBy('name')->get(),
             'exports' => AccountingExport::where('tenant_id', $tenantId)->latest()->limit(10)->get(),
             'canExport' => auth()->user()->can('exports.manage'),
@@ -266,6 +267,11 @@ class InvoiceIndex extends Component
                 'amount_due' => $open->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0))),
             ],
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 25;
     }
 
     private function hasAdvancedFilters(): bool

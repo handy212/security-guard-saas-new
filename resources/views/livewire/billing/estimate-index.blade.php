@@ -54,7 +54,7 @@
                 <x-table.head>
                     <tr>
                         <x-table.th>Estimate #</x-table.th>
-                        <x-table.th>Client</x-table.th>
+                        <x-table.th responsive="md">Client</x-table.th>
                         <x-table.th responsive="md">Valid until</x-table.th>
                         <x-table.th>Total</x-table.th>
                         <x-table.th>Status</x-table.th>
@@ -65,9 +65,12 @@
                     @forelse($estimates as $estimate)
                         <tr class="table-row-hover" wire:key="estimate-{{ $estimate->id }}">
                             <x-table.td mono>
-                                <a href="{{ route('billing.estimates.show', $estimate) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $estimate->estimate_number }}</a>
+                                <div class="min-w-0">
+                                    <a href="{{ route('billing.estimates.show', $estimate) }}" wire:navigate class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $estimate->estimate_number }}</a>
+                                    <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $estimate->clientAccount?->name }}</div>
+                                </div>
                             </x-table.td>
-                            <x-table.td>{{ $estimate->clientAccount?->name }}</x-table.td>
+                            <x-table.td responsive="md">{{ $estimate->clientAccount?->name }}</x-table.td>
                             <x-table.td responsive="md" muted class="tabular-nums">{{ $estimate->valid_until?->format('M j, Y') ?? '—' }}</x-table.td>
                             <x-table.td class="font-semibold tabular-nums">₦{{ number_format($estimate->grand_total, 2) }}</x-table.td>
                             <x-table.td><x-badge :status="$estimate->status" /></x-table.td>
@@ -114,7 +117,7 @@
                 </tbody>
             </x-data-table>
 
-            <x-pagination :paginator="$estimates" />
+            <x-pagination :paginator="$estimates" per-page="perPage" />
         </x-sub-sidebar-layout>
     </x-page-shell>
 

@@ -32,6 +32,7 @@
                         @php
                             setPermissionsTeamId($user->tenant_id);
                             $roleName = $user->getRoleNames()->reject(fn ($name) => in_array($name, ['super-admin', 'client'], true))->first();
+                            $roleLabel = $roleLabels[$roleName] ?? ($roleName ? str($roleName)->headline() : null);
                         @endphp
                         <tr class="table-row-hover" wire:key="staff-user-{{ $user->id }}">
                             <x-table.td>
@@ -41,6 +42,7 @@
                                     </div>
                                     <div class="min-w-0">
                                         <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $user->name }}</div>
+                                        <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $user->email }}</div>
                                         @if ((int) $user->id === (int) auth()->id())
                                             <div class="text-xs text-zinc-500 dark:text-zinc-400">You</div>
                                         @endif
@@ -48,7 +50,13 @@
                                 </div>
                             </x-table.td>
                             <x-table.td responsive="md" muted>{{ $user->email }}</x-table.td>
-                            <x-table.td responsive="lg" muted>{{ $roleLabels[$roleName] ?? ($roleName ? str($roleName)->headline() : '—') }}</x-table.td>
+                            <x-table.td responsive="lg">
+                                @if ($roleLabel)
+                                    <span class="status-chip status-chip-neutral">{{ $roleLabel }}</span>
+                                @else
+                                    <span class="text-sm text-zinc-400">—</span>
+                                @endif
+                            </x-table.td>
                             <x-table.td><x-badge :status="$user->status" /></x-table.td>
                             <x-table.td align="right">
                                 <x-row-menu>
@@ -76,7 +84,7 @@
                 </tbody>
             </x-data-table>
 
-            <x-pagination :paginator="$users" />
+            <x-pagination :paginator="$users" per-page="perPage" />
         </x-sub-sidebar-layout>
     </x-page-shell>
 

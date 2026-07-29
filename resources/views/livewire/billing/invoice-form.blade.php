@@ -15,7 +15,7 @@
 
         <x-flash-status type="success" />
 
-        <form wire:submit="save" class="mx-auto max-w-3xl space-y-4">
+        <form id="invoice-form" wire:submit="save" class="mx-auto max-w-3xl space-y-4">
             <x-form-card title="Invoice details" description="Client and billing dates">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-select wire:model="form.client_account_id" label="Client *" class="sm:col-span-2">
@@ -50,12 +50,12 @@
                         </div>
                     @endforeach
                 </div>
-            </x-form-card>
 
-            <div class="flex justify-end gap-2">
-                <x-button type="button" variant="secondary" :href="route('billing.invoices')">Cancel</x-button>
-                <x-button type="submit">{{ $isEditing ? 'Save changes' : 'Create invoice' }}</x-button>
-            </div>
+                <x-slot:footer>
+                    <x-button type="button" variant="secondary" :href="route('billing.invoices')">Cancel</x-button>
+                    <x-button type="submit" form="invoice-form">{{ $isEditing ? 'Save changes' : 'Create invoice' }}</x-button>
+                </x-slot:footer>
+            </x-form-card>
         </form>
     </x-page-shell>
 </div>

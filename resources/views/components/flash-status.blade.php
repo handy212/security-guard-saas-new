@@ -1,27 +1,31 @@
 @props(['type' => 'info'])
 
-@php
-    $styles = [
-        'info' => 'border-accent-200 bg-accent-50 text-accent-900 dark:border-accent-800/50 dark:bg-accent-950/40 dark:text-accent-100',
-        'success' => 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-100',
-        'warning' => 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100',
-        'error' => 'border-red-200 bg-red-50 text-red-900 dark:border-red-800/50 dark:bg-red-950/40 dark:text-red-100',
-    ];
-@endphp
-
-@if(session('error'))
-    <div {{ $attributes->merge(['class' => 'mb-4 rounded-lg border px-4 py-3 text-sm '.($styles['error'])]) }} role="alert">
-        {{ session('error') }}
+@if (session('error'))
+    <div {{ $attributes->class(['mb-4']) }}>
+        <x-alert tone="danger" title="Something went wrong">
+            {{ session('error') }}
+        </x-alert>
     </div>
 @endif
 
-@if(session('status'))
-    <div {{ $attributes->merge(['class' => 'mb-4 rounded-lg border px-4 py-3 text-sm '.($styles[$type] ?? $styles['info'])]) }} role="alert">
-        <div class="flex items-center gap-2">
-            @if($type === 'success')
-                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            @endif
+@if (session('status'))
+    @php
+        $tone = match ($type) {
+            'success' => 'success',
+            'warning' => 'warning',
+            'error', 'danger' => 'danger',
+            default => 'info',
+        };
+        $title = match ($type) {
+            'success' => 'Saved successfully',
+            'warning' => 'Attention needed',
+            'error', 'danger' => 'Something went wrong',
+            default => null,
+        };
+    @endphp
+    <div {{ $attributes->class(['mb-4']) }}>
+        <x-alert :tone="$tone" :title="$title">
             {{ session('status') }}
-        </div>
+        </x-alert>
     </div>
 @endif

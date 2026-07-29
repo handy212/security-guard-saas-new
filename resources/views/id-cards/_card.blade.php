@@ -81,7 +81,7 @@
                             <div><strong>Tel:</strong> {{ $brand['phone'] }}</div>
                         @endif
                         @if ($brand['phone_secondary'] ?? null)
-                            <div>{{ $brand['phone_secondary'] }}</div>
+                            <div><strong>Alt:</strong> {{ $brand['phone_secondary'] }}</div>
                         @endif
                         @if ($brand['address'] ?? null)
                             <div class="mt-2"><strong>Address:</strong> {{ $brand['address'] }}</div>
@@ -123,7 +123,7 @@
                             <div><strong>Tel:</strong> {{ $brand['phone'] }}</div>
                         @endif
                         @if ($brand['phone_secondary'] ?? null)
-                            <div>{{ $brand['phone_secondary'] }}</div>
+                            <div><strong>Alt:</strong> {{ $brand['phone_secondary'] }}</div>
                         @endif
                         @if ($brand['address'] ?? null)
                             <div class="mt-2"><strong>Address:</strong> {{ $brand['address'] }}</div>
@@ -152,7 +152,7 @@
                         <div><strong>Tel:</strong> {{ $brand['phone'] }}</div>
                     @endif
                     @if ($brand['phone_secondary'] ?? null)
-                        <div>{{ $brand['phone_secondary'] }}</div>
+                        <div><strong>Alt:</strong> {{ $brand['phone_secondary'] }}</div>
                     @endif
                     @if ($brand['address'] ?? null)
                         <div class="mt-2"><strong>Address:</strong> {{ $brand['address'] }}</div>
@@ -192,7 +192,6 @@
                     </div>
                     <div class="ls-footer">
                         <div>
-                            <div class="ls-footer-id">{{ $card['employee_id'] }}</div>
                             <div class="ls-footer-meta">Issued {{ $card['issue_date'] }}</div>
                             <div class="ls-footer-meta">Scan to verify</div>
                         </div>
@@ -231,7 +230,6 @@
             </div>
             <div class="card-footer">
                 <div>
-                    <div class="id-number">{{ $card['employee_id'] }}</div>
                     <div class="issue-date-footer">Issued {{ $card['issue_date'] }}</div>
                     <div class="scan-hint">Scan to verify</div>
                 </div>
@@ -389,8 +387,8 @@
                 </div>
                 <div class="ls-footer ls-footer--dark">
                     <div>
-                        <div>{{ $card['employee_id'] }}</div>
                         <div class="ls-footer-meta">Issued {{ $card['issue_date'] }}</div>
+                        <div class="ls-footer-meta">Scan to verify</div>
                     </div>
                     @if ($forPdf && ($qrPng ?? null))
                         <div class="ls-qr qr-box"><img src="data:image/png;base64,{{ $qrPng }}" width="48" height="48" alt=""></div>
@@ -403,9 +401,9 @@
             <div class="side-accent"></div>
             <div class="card-header">
                 @if ($photo)
-                    <img src="{{ $photo }}" alt="" class="photo-circle" style="width:108px;height:108px;flex-shrink:0;">
+                    <img src="{{ $photo }}" alt="" class="photo-circle">
                 @else
-                    <div class="photo-circle initials" style="width:108px;height:108px;font-size:1.75rem;flex-shrink:0;">{{ $card['initial'] }}</div>
+                    <div class="photo-circle initials">{{ $card['initial'] }}</div>
                 @endif
                 <div>
                     @if ($logo)
@@ -429,8 +427,7 @@
             </div>
             <div class="card-footer">
                 <div>
-                    <span>{{ $card['employee_id'] }}</span>
-                    <div class="issue-date-footer" style="color:#64748b;margin-top:2px;">Issued {{ $card['issue_date'] }}</div>
+                    <div class="issue-date-footer" style="color:#64748b;">Issued {{ $card['issue_date'] }}</div>
                 </div>
                 @if ($forPdf && ($qrPng ?? null))
                     <div class="qr-box"><img src="data:image/png;base64,{{ $qrPng }}" width="56" height="56" alt=""></div>

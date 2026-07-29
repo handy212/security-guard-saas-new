@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Models\Estimate;
 use App\Services\EstimateDeliveryService;
@@ -15,7 +16,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EstimateIndex extends Component
 {
-    use WithPagination;
+    use HasPerPage, WithPagination;
 
     public string $search = '';
 
@@ -183,7 +184,7 @@ class EstimateIndex extends Component
             ->latest();
 
         return view('livewire.billing.estimate-index', [
-            'estimates' => $query->paginate(20),
+            'estimates' => $query->paginate($this->resolvedPerPage()),
             'clients' => ClientAccount::orderBy('name')->get(),
             'sendingEstimate' => $this->sendingEstimateId
                 ? Estimate::with('clientAccount')->find($this->sendingEstimateId)
@@ -198,6 +199,11 @@ class EstimateIndex extends Component
             'hasActiveFilters' => filled($this->search) || $this->statusFilter !== 'all' || $this->hasAdvancedFilters(),
             'hasAdvancedFilters' => $this->hasAdvancedFilters(),
         ])->layout('layouts.app');
+    }
+
+    protected function defaultPerPage(): int
+    {
+        return 20;
     }
 
     private function hasAdvancedFilters(): bool

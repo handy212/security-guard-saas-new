@@ -13,7 +13,12 @@
             <button type="button" @click="open = !open" class="page-link shrink-0" x-text="open ? 'Hide' : 'Show'"></button>
         @endif
     </div>
-    <div class="p-4" @if($collapsible) x-show="open" x-cloak @endif>
+    <div class="p-5 sm:p-6" @if($collapsible) x-show="open" x-cloak @endif>
         {{ $slot }}
     </div>
+    @isset($footer)
+        <div class="form-card-footer" @if($collapsible) x-show="open" x-cloak @endif>
+            {{ $footer }}
+        </div>
+    @endisset
 </div>

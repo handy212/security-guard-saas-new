@@ -8,6 +8,7 @@
         ]"
     >
         <x-slot:actions>
+            <x-button variant="secondary" :href="route('settings.index')">Cancel</x-button>
             <x-button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save">
                 <span wire:loading.remove wire:target="save">Save settings</span>
                 <span wire:loading wire:target="save">Saving…</span>
@@ -157,16 +158,16 @@
 
                         <div>
                             <label class="form-label">Authorized signature</label>
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">PNG with a transparent background works best. Appears above the signature line on the Premium card back.</p>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">PNG with a transparent background works best. Empty padding is trimmed automatically. Appears above the signature line on the Premium card back.</p>
                             <div class="mt-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-                                <div class="flex h-20 items-end justify-start border-b border-zinc-300 pb-1 dark:border-zinc-700">
+                                <div class="flex h-24 items-end justify-center border-b border-slate-400 pb-1 dark:border-slate-500">
                                     @if ($signatureUrl)
-                                        <img src="{{ $signatureUrl }}" alt="" class="h-16 max-w-[80%] object-contain object-left-bottom">
+                                        <img src="{{ $signatureUrl }}" alt="" class="max-h-[3.5rem] max-w-[70%] object-contain object-bottom">
                                     @else
                                         <span class="pb-1 text-[11px] text-zinc-400">No signature uploaded</span>
                                     @endif
                                 </div>
-                                <p class="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Authorized signature</p>
+                                <p class="mt-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-zinc-500">Authorized signature</p>
                                 <div class="mt-3 flex flex-col gap-1.5">
                                     <input wire:model="signatureFile" type="file" accept="image/*" class="form-input text-xs">
                                     @if ($signatureUrl)

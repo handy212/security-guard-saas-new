@@ -12,7 +12,10 @@
             <div class="flex shrink-0 items-center gap-2">{{ $actions }}</div>
         @endif
     </div>
-    <div @class(['min-h-0 flex-1', $flush ? 'p-0' : 'p-4'])>
+    <div @class(['min-h-0 flex-1', $flush ? 'p-0' : 'p-5 sm:p-6'])>
         {{ $slot }}
     </div>
+    @isset($footer)
+        <div class="form-card-footer shrink-0">{{ $footer }}</div>
+    @endisset
 </section>

@@ -21,8 +21,7 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body
-    class="bg-zinc-50 antialiased text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
+<body class="bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
     x-data="{
         sidebarOpen: false,
         sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
