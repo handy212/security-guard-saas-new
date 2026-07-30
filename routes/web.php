@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\GuardIdCardBulkDownloadController;
 use App\Http\Controllers\GuardIdCardController;
 use App\Http\Controllers\GuardIdCardPreviewController;
 use App\Http\Controllers\GuardIdCardPrintController;
@@ -153,6 +154,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/guards', GuardIndex::class)->name('guards.index');
     Route::get('/guards/know-your-guard', KnowYourGuardQueue::class)->name('guards.kyg');
     Route::get('/guards/applications', GuardApplicationQueue::class)->name('guards.applications');
+    Route::get('/guards/id-cards/bulk', GuardIdCardBulkDownloadController::class)->name('guards.id-cards.bulk');
     Route::get('/guards/{guard}', GuardProfile::class)->name('guards.show');
     Route::get('/guards/{guard}/id-card', GuardIdCardController::class)->name('guards.id-card');
     Route::get('/guards/{guard}/id-card/print', GuardIdCardPrintController::class)->name('guards.id-card.print');

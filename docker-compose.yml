@@ -57,11 +57,13 @@ services:
       dockerfile: Dockerfile.heavy
     restart: unless-stopped
     entrypoint: ["/bin/sh", "/var/www/html/docker/entrypoint.sh"]
-    command: php artisan queue:work redis --queue=heavy --sleep=1 --tries=3 --timeout=180
+    command: php artisan queue:work redis --queue=heavy --sleep=1 --tries=3 --timeout=600
     volumes:
       - .:/var/www/html
     environment:
       CHROME_PATH: /usr/bin/chromium
+      NODE_BINARY: /usr/bin/node
+      NPM_PATH: /usr/bin/npm
       ID_CARD_PDF_DRIVER: browsershot
     depends_on:
       - redis

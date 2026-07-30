@@ -54,6 +54,21 @@
             cursor: pointer;
         }
 
+        .print-toolbar a.print-toolbar-link {
+            appearance: none;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #d4d4d8;
+            border-radius: 8px;
+            background: #fff;
+            color: #18181b;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 18px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         .print-toolbar button.secondary {
             background: #fff;
             color: #18181b;
@@ -137,10 +152,13 @@
 <body>
     <div class="print-toolbar no-print">
         <button type="button" onclick="window.print()">Print ID card</button>
+        <a class="print-toolbar-link" href="{{ route('guards.id-card', ['guard' => $guard, 'format' => 'pdf']) }}">Download PDF</a>
+        <a class="print-toolbar-link" href="{{ route('guards.id-card', ['guard' => $guard, 'format' => 'png']) }}">Download PNG</a>
         <button type="button" class="secondary" onclick="window.close()">Close</button>
         <p>
             <strong>{{ ucfirst($orientation) }}</strong> CR80 —
-            set paper to <strong>{{ $cardWidthMm }} × {{ $cardHeightMm }} mm</strong>.
+            <strong>{{ $layout['width_in'] }}" × {{ $layout['height_in'] }}"</strong>
+            ({{ $cardWidthMm }} × {{ $cardHeightMm }} mm).
             Page 1 = front, page 2 = back.
         </p>
     </div>

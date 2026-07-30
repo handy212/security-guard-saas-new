@@ -1,16 +1,22 @@
 FROM php:8.3-cli
 
+# Chromium renders ID cards; Node + puppeteer are required by Spatie Browsershot.
+# Skip Puppeteer's bundled Chromium — we use the system chromium binary.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN apt-get update && apt-get install -y \
     git unzip curl libzip-dev libsqlite3-dev \
     libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
     chromium fonts-liberation \
+    nodejs npm \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip bcmath gd pcntl \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && npm install -g puppeteer \
+    && node -v && npm -v \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
-CMD ["php", "artisan", "queue:work", "redis", "--queue=heavy", "--sleep=1", "--tries=3", "--timeout=180"]
+CMD ["php", "artisan", "queue:work", "redis", "--queue=heavy", "--sleep=1", "--tries=3", "--timeout=600"]

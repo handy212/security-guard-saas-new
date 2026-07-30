@@ -10,7 +10,7 @@
     };
 @endphp
 <style>
-    /* Landscape CR80 — 445 × 280 design canvas */
+    /* Landscape CR80 — 3.375" × 2.125" (445 × 280 design canvas) */
     {{ $scope }} .orientation-landscape.id-card {
         width: {{ $ls(445) }}px;
         height: {{ $ls(280) }}px;

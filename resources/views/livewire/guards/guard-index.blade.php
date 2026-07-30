@@ -5,6 +5,10 @@
         :breadcrumbs="[['label' => 'Guards']]"
     >
         <x-slot:actions>
+            @if ($verifiedIdCardCount > 0)
+                <x-button variant="secondary" :href="route('guards.id-cards.bulk', ['format' => 'pdf'])">Download ID cards (PDF)</x-button>
+                <x-button variant="secondary" :href="route('guards.id-cards.bulk', ['format' => 'png'])">Download ID cards (PNG)</x-button>
+            @endif
             <x-button variant="secondary" :href="route('guards.applications')">Applications</x-button>
             <x-button variant="secondary" :href="route('guards.kyg')">KYG queue</x-button>
             <x-button wire:click="openCreate">Add guard</x-button>

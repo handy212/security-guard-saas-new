@@ -10,6 +10,8 @@
         <x-slot:actions>
             @if ($idCardEligibility['can_download'])
                 <x-button variant="secondary" :href="route('guards.id-card.print', $guard)" target="_blank">Print ID card</x-button>
+                <x-button variant="secondary" :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])">Download PDF</x-button>
+                <x-button variant="secondary" :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])">Download PNG</x-button>
             @elseif ($idCardEligibility['action'])
                 <x-button variant="secondary" wire:click="setTab('overview')" title="{{ $idCardEligibility['message'] }}">Set up ID card</x-button>
             @endif
@@ -177,7 +179,11 @@
                             <div class="flex justify-center" wire:key="card-{{ $idCardPreviewSide }}-{{ $guard->id }}">
                                 <x-guard-id-card-preview :brand="$idCardBrand" :card="$idCardData" :side="$idCardPreviewSide" :photo-url="$photoUrl" :logo-url="$idCardBrand['logo_url']" :qr-svg="$qrSvg" />
                             </div>
-                            <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="mt-4 w-full justify-center" size="sm">Print ID card</x-button>
+                            <div class="mt-4 flex flex-col gap-2">
+                                <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="w-full justify-center" size="sm">Print ID card</x-button>
+                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])" variant="secondary" class="w-full justify-center" size="sm">Download PDF</x-button>
+                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])" variant="secondary" class="w-full justify-center" size="sm">Download PNG</x-button>
+                            </div>
                         @else
                             <x-empty-state compact :title="$idCardEligibility['message'] ?? 'ID card unavailable'" description="Complete KYG verification to enable ID cards." />
                         @endif

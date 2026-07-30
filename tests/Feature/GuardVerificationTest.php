@@ -261,6 +261,9 @@ class GuardVerificationTest extends TestCase
             ->get(route('guards.id-card.print', $guard))
             ->assertOk()
             ->assertSee('Print ID card')
+            ->assertSee('Download PDF')
+            ->assertSee('Download PNG')
+            ->assertSee('3.375')
             ->assertSee($guard->full_name);
     }
 
@@ -282,6 +285,76 @@ class GuardVerificationTest extends TestCase
         $this->assertStringContainsString('%PDF', $content);
         $this->assertMatchesRegularExpression('/\/Count\s+[2-9]\b/', $content);
         $this->assertStringContainsString('/Subtype /Image', $content);
+    }
+
+    public function test_id_card_layout_uses_cr80_inches(): void
+    {
+        $presenter = app(GuardIdCardPresenter::class);
+
+        $landscape = $presenter->layout('landscape');
+        $this->assertSame(3.375, $landscape['width_in']);
+        $this->assertSame(2.125, $landscape['height_in']);
+        $this->assertEqualsWithDelta(3.375 * 25.4, $landscape['width_mm'], 0.01);
+        $this->assertEqualsWithDelta(2.125 * 25.4, $landscape['height_mm'], 0.01);
+
+        $portrait = $presenter->layout('portrait');
+        $this->assertSame(2.125, $portrait['width_in']);
+        $this->assertSame(3.375, $portrait['height_in']);
+    }
+
+    public function test_guard_id_card_png_downloads_zip_of_front_and_back(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+
+        $fakePng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+        $zip = (new \App\Support\ZipBuilder)
+            ->add('guard-id-G-001-front.png', $fakePng)
+            ->add('guard-id-G-001-back.png', $fakePng)
+            ->build();
+
+        $this->partialMock(\App\Services\GuardIdCardPdfService::class, function ($mock) use ($zip) {
+            $mock->shouldReceive('requiresHeavyWorker')->andReturn(false);
+            $mock->shouldReceive('generatePngZip')->once()->andReturn($zip);
+        });
+
+        $response = $this->actingAs($admin)
+            ->get(route('guards.id-card', ['guard' => $guard, 'format' => 'png']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/zip');
+        $this->assertStringStartsWith('PK', $response->getContent());
+    }
+
+    public function test_bulk_download_verified_id_cards_zip(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+
+        $response = $this->actingAs($admin)
+            ->get(route('guards.id-cards.bulk', ['format' => 'pdf']));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/zip');
+        $this->assertStringStartsWith('PK', $response->getContent());
+        $this->assertStringContainsString('attachment; filename="verified-id-cards-', $response->headers->get('content-disposition'));
+    }
+
+    public function test_guards_index_shows_bulk_id_card_download(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+
+        $this->actingAs($admin)
+            ->get(route('guards.index'))
+            ->assertOk()
+            ->assertSee('Download ID cards (PDF)')
+            ->assertSee('Download ID cards (PNG)')
+            ->assertSee(route('guards.id-cards.bulk', ['format' => 'pdf'], false), false);
     }
 
     public function test_premium_template_forces_landscape_and_renders(): void

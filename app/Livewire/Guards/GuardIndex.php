@@ -163,10 +163,22 @@ class GuardIndex extends Component
     {
         $tenantId = TenantContext::id();
 
+        $verifiedIdCardCount = Guard::query()
+            ->where('tenant_id', $tenantId)
+            ->where('verification_status', 'verified')
+            ->whereHas('verificationTokens', function ($query) {
+                $query->whereNull('revoked_at')
+                    ->where(function ($query) {
+                        $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                    });
+            })
+            ->count();
+
         return view('livewire.guards.guard-index', [
             'guards' => $this->guardsQuery()->paginate($this->resolvedPerPage()),
             'branches' => Branch::orderBy('name')->get(),
             'dutyTypes' => GuardDutyType::options(),
+            'verifiedIdCardCount' => $verifiedIdCardCount,
             'guardStats' => [
                 'total' => Guard::where('tenant_id', $tenantId)->count(),
                 'active' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->count(),

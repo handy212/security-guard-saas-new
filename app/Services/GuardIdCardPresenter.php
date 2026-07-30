@@ -202,29 +202,40 @@ class GuardIdCardPresenter
     }
 
     /**
-     * CR80 layout dimensions for portrait or landscape.
+     * CR80 / ISO ID-1 layout — 3.375" × 2.125" (landscape); portrait swaps axes.
      *
-     * @return array{width_mm: float, height_mm: float, design_width_px: int, design_height_px: int}
+     * @return array{
+     *     width_in: float,
+     *     height_in: float,
+     *     width_mm: float,
+     *     height_mm: float,
+     *     design_width_px: int,
+     *     design_height_px: int
+     * }
      */
     public function layout(string $orientation = 'portrait'): array
     {
-        $portraitWidthMm = (float) config('id_card.paper_width_mm');
-        $portraitHeightMm = (float) config('id_card.paper_height_mm');
+        $landscapeWidthIn = (float) config('id_card.width_in', 3.375);
+        $landscapeHeightIn = (float) config('id_card.height_in', 2.125);
         $portraitDesignW = (int) config('id_card.design_width_px');
         $portraitDesignH = (int) config('id_card.design_height_px');
 
         if ($orientation === 'landscape') {
             return [
-                'width_mm' => $portraitHeightMm,
-                'height_mm' => $portraitWidthMm,
+                'width_in' => $landscapeWidthIn,
+                'height_in' => $landscapeHeightIn,
+                'width_mm' => round($landscapeWidthIn * 25.4, 3),
+                'height_mm' => round($landscapeHeightIn * 25.4, 3),
                 'design_width_px' => $portraitDesignH,
                 'design_height_px' => $portraitDesignW,
             ];
         }
 
         return [
-            'width_mm' => $portraitWidthMm,
-            'height_mm' => $portraitHeightMm,
+            'width_in' => $landscapeHeightIn,
+            'height_in' => $landscapeWidthIn,
+            'width_mm' => round($landscapeHeightIn * 25.4, 3),
+            'height_mm' => round($landscapeWidthIn * 25.4, 3),
             'design_width_px' => $portraitDesignW,
             'design_height_px' => $portraitDesignH,
         ];

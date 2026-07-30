@@ -64,7 +64,7 @@
                                         </button>
                                     @endforeach
                                 </div>
-                                <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">Landscape uses horizontal CR80 (85.6 × 54 mm). Applies to preview, print, and PDF export.</p>
+                                <p class="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">Landscape uses horizontal CR80 (3.375" × 2.125"). Applies to preview, print, PDF, and PNG export.</p>
                             </div>
                         @endif
 

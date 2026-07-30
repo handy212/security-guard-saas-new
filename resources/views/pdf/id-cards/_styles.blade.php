@@ -13,8 +13,8 @@
     .page-break { page-break-before: always; }
 
     .card {
-        width: 153pt;
-        height: 243pt;
+        width: 153pt; /* 2.125" */
+        height: 243pt; /* 3.375" */
         border: 0.5pt solid #d4d4d8;
     }
 
