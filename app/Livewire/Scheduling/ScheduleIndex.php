@@ -24,6 +24,8 @@ use RuntimeException;
 
 class ScheduleIndex extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     use AuthorizesModuleAccess, HasFormDrawer;
 
     public string $date = '';
@@ -60,6 +62,7 @@ class ScheduleIndex extends Component
 
     public function openForm(): void
     {
+        $this->resetValidation();
         $this->editingShiftId = null;
         $this->resetFormDefaults();
         $this->showForm = true;
@@ -70,6 +73,7 @@ class ScheduleIndex extends Component
         $shift = Shift::findOrFail($shiftId);
         $this->authorize('update', $shift);
 
+        $this->resetValidation();
         $this->editingShiftId = $shift->id;
         $this->form = [
             'client_account_id' => (string) ($shift->client_account_id ?? ''),
@@ -165,7 +169,7 @@ class ScheduleIndex extends Component
     public function render(SchedulingService $scheduling)
     {
         $tenantId = TenantContext::id();
-        $shifts = Shift::with(['site', 'sitePost', 'assignments.assignedGuard'])
+        $shifts = Shift::with(['site', 'sitePost', 'assignments.assignedGuard', 'assignments.confirmations', 'assignments.attendanceLogs'])
             ->where('tenant_id', $tenantId)
             ->whereDate('starts_at', $this->date)
             ->where('status', '!=', ShiftStatus::CANCELLED->value)
@@ -223,7 +227,12 @@ class ScheduleIndex extends Component
         ])['form'];
 
         $site = Site::findOrFail($data['site_id']);
-        abort_unless((int) $site->client_account_id === (int) $data['client_account_id'], 422, 'Selected site does not belong to the client.');
+        if ((int) $site->client_account_id !== (int) $data['client_account_id']) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['form.site_id' => 'Selected site does not belong to this client.']);
+        }
+        if (filled($data['site_post_id'] ?? null) && ! SitePost::where('site_id', $site->id)->whereKey($data['site_post_id'])->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['form.site_post_id' => 'Selected post does not belong to this site.']);
+        }
 
         $data['site_post_id'] = filled($data['site_post_id'] ?? null) ? $data['site_post_id'] : null;
         $data['billable_hours'] = filled($data['billable_hours'] ?? null) ? $data['billable_hours'] : null;

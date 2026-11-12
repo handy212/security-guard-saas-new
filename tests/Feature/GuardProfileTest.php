@@ -26,6 +26,38 @@ class GuardProfileTest extends TestCase
         app()->instance('currentTenant', $this->admin->tenant);
     }
 
+    public function test_qualification_drawer_validates_saves_and_closes(): void
+    {
+        $guard = Guard::first();
+        Livewire::actingAs($this->admin)->test(GuardProfile::class, ['guard' => $guard])
+            ->call('setTab', 'qualifications')
+            ->assertDontSee('wire:submit="saveCertification"', false)
+            ->call('openQualificationDrawer', 'certification')
+            ->assertSet('qualificationDrawer', 'certification')
+            ->call('saveCertification')->assertHasErrors(['certForm.name'])
+            ->assertSet('qualificationDrawer', 'certification')
+            ->set('certForm.name', 'Radio operations')
+            ->call('saveCertification')->assertHasNoErrors()
+            ->assertSet('qualificationDrawer', null)
+            ->assertSee('Radio operations')
+            ->call('openQualificationDrawer', 'training')
+            ->call('closeQualificationDrawer')
+            ->assertSet('qualificationDrawer', null);
+    }
+
+    public function test_mobile_tab_change_clears_qualification_drawer_and_validation(): void
+    {
+        Livewire::actingAs($this->admin)->test(GuardProfile::class, ['guard' => Guard::first()])
+            ->call('setTab', 'qualifications')
+            ->call('openQualificationDrawer', 'certification')
+            ->call('saveCertification')->assertHasErrors(['certForm.name'])
+            ->set('activeTab', 'hr')
+            ->assertSet('qualificationDrawer', null)
+            ->assertHasNoErrors()
+            ->set('activeTab', 'qualifications')
+            ->assertDontSee('wire:submit="saveCertification"', false);
+    }
+
     public function test_guard_profile_page_loads_with_overview(): void
     {
         $guard = Guard::first();
@@ -49,6 +81,25 @@ class GuardProfileTest extends TestCase
             ->call('setTab', 'notes')
             ->assertSet('activeTab', 'hr')
             ->assertSee('Add note');
+    }
+
+
+    public function test_expired_certifications_are_labeled_expired(): void
+    {
+        $guard = Guard::first();
+        \App\Models\GuardCertification::create([
+            'tenant_id' => $guard->tenant_id,
+            'guard_id' => $guard->id,
+            'name' => 'First aid',
+            'issuer' => 'Training provider',
+            'expires_at' => now()->subDay()->toDateString(),
+            'status' => 'active',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(GuardProfile::class, ['guard' => $guard])
+            ->call('setTab', 'qualifications')
+            ->assertSee('Expired');
     }
 
     public function test_guard_note_crud_via_profile(): void

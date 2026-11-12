@@ -140,16 +140,16 @@
 
     @if ($activeForm === 'skill')
         <x-drawer title="Add skill" description="Record a guard competency and level." width="md" close-method="closeForm">
-            <x-drawer-form wire:submit.prevent="saveSkill" submit-label="Save skill" close-method="closeForm" target="saveSkill">
+            <x-drawer-form wire:submit="saveSkill" submit-label="Save skill" close-method="closeForm" target="saveSkill">
                 <x-form-section title="Skill">
-                    <x-select wire:model="skillForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="skillForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="skillForm.skill" label="Skill *" placeholder="First aid, CCTV…" class="sm:col-span-2" />
-                    <x-input wire:model="skillForm.level" label="Level *" placeholder="Basic, advanced…" class="sm:col-span-2" />
+                    <x-input wire:model.live="skillForm.skill" label="Skill *" placeholder="First aid, CCTV…" class="sm:col-span-2" />
+                    <x-input wire:model.live="skillForm.level" label="Level *" placeholder="Basic, advanced…" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -157,17 +157,17 @@
 
     @if ($activeForm === 'document')
         <x-drawer title="Upload document" description="Attach an HR file to a guard profile." width="md" close-method="closeForm">
-            <x-drawer-form wire:submit.prevent="uploadDocument" submit-label="Upload" close-method="closeForm" target="uploadDocument">
+            <x-drawer-form wire:submit="uploadDocument" submit-label="Upload" close-method="closeForm" target="uploadDocument">
                 <x-form-section title="Document">
-                    <x-select wire:model="documentForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="documentForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="documentForm.type" label="Document type *" placeholder="ID, contract, license…" class="sm:col-span-2" />
-                    <x-input wire:model="documentForm.expires_at" type="date" label="Expires" class="sm:col-span-2" />
-                    <x-file-input wire:model="documentFile" label="File *" class="sm:col-span-2" />
+                    <x-input wire:model.live="documentForm.type" label="Document type *" placeholder="ID, contract, license…" class="sm:col-span-2" />
+                    <x-input wire:model.live="documentForm.expires_at" type="date" label="Expires" class="sm:col-span-2" />
+                    <x-file-input wire:model.live="documentFile" label="File *" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -175,17 +175,17 @@
 
     @if ($activeForm === 'training')
         <x-drawer title="Add training" description="Log a completed or scheduled course." width="md" close-method="closeForm">
-            <x-drawer-form wire:submit.prevent="saveTraining" submit-label="Save training" close-method="closeForm" target="saveTraining">
+            <x-drawer-form wire:submit="saveTraining" submit-label="Save training" close-method="closeForm" target="saveTraining">
                 <x-form-section title="Course">
-                    <x-select wire:model="trainingForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="trainingForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="trainingForm.course_name" label="Course name *" class="sm:col-span-2" />
-                    <x-input wire:model="trainingForm.completed_on" type="date" label="Completed" />
-                    <x-input wire:model="trainingForm.expires_on" type="date" label="Expires" />
+                    <x-input wire:model.live="trainingForm.course_name" label="Course name *" class="sm:col-span-2" />
+                    <x-input wire:model.live="trainingForm.completed_on" type="date" label="Completed" />
+                    <x-input wire:model.live="trainingForm.expires_on" type="date" label="Expires" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -193,18 +193,18 @@
 
     @if ($activeForm === 'disciplinary')
         <x-drawer title="Log disciplinary" description="Record a warning or disciplinary action." width="md" close-method="closeForm">
-            <x-drawer-form wire:submit.prevent="saveDisciplinary" submit-label="Save record" close-method="closeForm" target="saveDisciplinary">
+            <x-drawer-form wire:submit="saveDisciplinary" submit-label="Save record" close-method="closeForm" target="saveDisciplinary">
                 <x-form-section title="Incident">
-                    <x-select wire:model="disciplinaryForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="disciplinaryForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="disciplinaryForm.occurred_on" type="date" label="Occurred on *" />
-                    <x-input wire:model="disciplinaryForm.type" label="Type *" placeholder="Warning, suspension…" />
-                    <x-textarea wire:model="disciplinaryForm.description" label="Description *" rows="3" class="sm:col-span-2" />
-                    <x-textarea wire:model="disciplinaryForm.action_taken" label="Action taken *" rows="2" class="sm:col-span-2" />
+                    <x-input wire:model.live="disciplinaryForm.occurred_on" type="date" label="Occurred on *" />
+                    <x-input wire:model.live="disciplinaryForm.type" label="Type *" placeholder="Warning, suspension…" />
+                    <x-textarea wire:model.live="disciplinaryForm.description" label="Description *" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="disciplinaryForm.action_taken" label="Action taken *" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

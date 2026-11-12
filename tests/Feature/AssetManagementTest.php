@@ -10,9 +10,12 @@ use App\Livewire\Assets\VendorIndex;
 use App\Models\AssetCategory;
 use App\Models\AssetVendor;
 use App\Models\EquipmentAsset;
+use App\Models\EquipmentAssignment;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AssetManagementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -28,6 +31,7 @@ class AssetManagementTest extends TestCase
         $this->seed();
         $this->admin = User::where('email', 'admin@demo.test')->first();
         app()->instance('currentTenant', $this->admin->tenant);
+        setPermissionsTeamId($this->admin->tenant_id);
     }
 
     public function test_assets_overview_loads(): void
@@ -110,5 +114,74 @@ class AssetManagementTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('equipment_assets', ['name' => 'Duty shirt', 'quantity_on_hand' => 10]);
+    }
+
+
+    public function test_return_drawer_shows_assignment_details_and_confirms_the_existing_return_action(): void
+    {
+        $assignment = EquipmentAssignment::query()
+            ->where('tenant_id', $this->admin->tenant_id)
+            ->where('status', 'issued')
+            ->firstOrFail()
+            ->load(['asset', 'assignedGuard', 'site']);
+
+        Livewire::actingAs($this->admin)
+            ->test(AssetIndex::class)
+            ->call('openReturn', $assignment->id)
+            ->assertSet('showReturnForm', true)
+            ->assertSee('Assignment details')
+            ->assertSee($assignment->asset->name)
+            ->assertSee($assignment->assignedGuard->full_name)
+            ->set('returnNotes', 'Radio checked and returned.')
+            ->call('returnAssignment')
+            ->assertSee('Asset returned.');
+
+        $this->assertDatabaseHas('equipment_assignments', [
+            'id' => $assignment->id,
+            'status' => 'returned',
+            'return_notes' => 'Radio checked and returned.',
+        ]);
+    }
+
+
+    public function test_asset_list_does_not_expose_an_assignment_scoped_to_another_tenant(): void
+    {
+        $assignment = EquipmentAssignment::query()
+            ->where('tenant_id', $this->admin->tenant_id)
+            ->where('status', 'issued')
+            ->firstOrFail();
+        $otherTenant = Tenant::create([
+            'name' => 'Other Asset Tenant',
+            'slug' => 'other-asset-tenant',
+            'status' => 'active',
+        ]);
+        DB::table('equipment_assignments')
+            ->where('id', $assignment->id)
+            ->update(['tenant_id' => $otherTenant->id]);
+
+        Livewire::actingAs($this->admin)
+            ->test(AssetIndex::class)
+            ->assertDontSee('Return');
+    }
+
+    public function test_return_action_cannot_open_an_assignment_from_another_tenant(): void
+    {
+        $assignment = EquipmentAssignment::query()
+            ->where('tenant_id', $this->admin->tenant_id)
+            ->where('status', 'issued')
+            ->firstOrFail();
+        $otherTenant = Tenant::create([
+            'name' => 'Other Return Tenant',
+            'slug' => 'other-return-tenant',
+            'status' => 'active',
+        ]);
+        DB::table('equipment_assignments')
+            ->where('id', $assignment->id)
+            ->update(['tenant_id' => $otherTenant->id]);
+
+        $this->actingAs($this->admin);
+        setPermissionsTeamId($this->admin->tenant_id);
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        (new AssetIndex())->openReturn($assignment->id);
     }
 }

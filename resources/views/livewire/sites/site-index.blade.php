@@ -1,4 +1,4 @@
-<div>
+<div class="directory-page sites-page">
     <x-page-shell
         title="Sites & Geofences"
         description="Client locations with GPS and geofence radius."
@@ -15,6 +15,7 @@
             <x-stat-card compact label="Inactive" :value="$siteStats['inactive']" icon="pause" wire:click="applyStatFilter('inactive')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'inactive'" />
         </div>
 
+        <section class="directory-panel" aria-label="Site directory">
         <x-page-toolbar search="search" searchPlaceholder="Search sites…">
             <x-slot:tabs>
                 <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'inactive' => 'Inactive']" />
@@ -32,7 +33,7 @@
                     <x-table.th>Site</x-table.th>
                     <x-table.th responsive="md">Client</x-table.th>
                     <x-table.th responsive="lg">Address</x-table.th>
-                    <x-table.th>Geofence</x-table.th>
+                    <x-table.th responsive="md">Geofence</x-table.th>
                     <x-table.th>Status</x-table.th>
                     <x-table.th align="right" class="w-12"></x-table.th>
                 </tr>
@@ -44,11 +45,12 @@
                             <div class="min-w-0">
                                 <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
                                 <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $site->clientAccount?->name ?? 'No client' }}</div>
+                                <div class="text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $site->geofence_radius_meters }}m geofence</div>
                             </div>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $site->clientAccount?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $site->address ?: '—' }}</x-table.td>
-                        <x-table.td><span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $site->geofence_radius_meters }}m</span></x-table.td>
+                        <x-table.td responsive="md"><span class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $site->geofence_radius_meters }}m</span></x-table.td>
                         <x-table.td><x-badge :status="$site->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
@@ -80,6 +82,7 @@
         </x-data-table>
 
         <x-pagination :paginator="$sites" per-page="perPage" />
+        </section>
     </x-page-shell>
 
     @if ($showForm)
@@ -90,24 +93,24 @@
         >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update site' : 'Create site'">
                 <x-form-section title="Site">
-                    <x-select wire:model="form.client_account_id" label="Client" class="sm:col-span-2" hint="Create the client first if they are not listed.">
+                    <x-select wire:model.live="form.client_account_id" label="Client" class="sm:col-span-2" hint="Create the client first if they are not listed.">
                         <option value="">Select client</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.name" label="Site name" placeholder="Main Gate" />
-                    <x-select wire:model="form.status" label="Status">
+                    <x-input wire:model.live="form.name" label="Site name" placeholder="Main Gate" />
+                    <x-select wire:model.live="form.status" label="Status">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>
-                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.address" label="Address" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Geofence" description="Used for clock-in validation and live map.">
-                    <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
-                    <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
-                    <x-input wire:model="form.geofence_radius_meters" label="Radius (meters)" type="number" class="sm:col-span-2" hint="Typical coverage is 100–300m." />
+                    <x-input wire:model.live="form.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model.live="form.longitude" label="Longitude" type="number" step="any" />
+                    <x-input wire:model.live="form.geofence_radius_meters" label="Radius (meters)" type="number" class="sm:col-span-2" hint="Typical coverage is 100–300m." />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

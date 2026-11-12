@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Schedules;
 
+use App\Exceptions\AssignmentException;
 use App\Models\ClientAccount;
 use App\Models\EquipmentAsset;
 use App\Models\Guard;
@@ -16,12 +17,16 @@ use App\Services\WorkforceService;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use RuntimeException;
 
 class DeployWizard extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     public int $step = 1;
 
     public string $date = '';
@@ -56,13 +61,17 @@ class DeployWizard extends Component
     protected $queryString = [
         'date' => ['except' => ''],
         'site_id' => ['except' => '', 'as' => 'site'],
-        'step' => ['except' => 1],
     ];
 
     public function mount(): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
+        $this->step = 1;
         $this->date = $this->date ?: today()->toDateString();
+        $this->validate(['date' => 'required|date_format:Y-m-d']);
+        if ($this->site_id) {
+            $this->updatedSiteId();
+        }
         $this->resetShiftTimes();
     }
 
@@ -71,6 +80,7 @@ class DeployWizard extends Component
         $this->site_id = '';
         $this->site_post_id = '';
         $this->shift_id = '';
+        $this->selectedAssetIds = [];
     }
 
     public function updatedSiteId(): void
@@ -88,6 +98,7 @@ class DeployWizard extends Component
 
     public function updatedDate(): void
     {
+        $this->validateAtStep(1, ['date' => 'required|date_format:Y-m-d']);
         $this->resetShiftTimes();
         $this->shift_id = '';
     }
@@ -102,32 +113,23 @@ class DeployWizard extends Component
         }
     }
 
-    public function nextStep(): void
+    public function nextStep(ScheduleService $schedules): void
     {
+        $this->resetErrorBag();
         if ($this->step === 1) {
-            $this->validate([
-                'client_account_id' => ['required', TenantValidation::exists('client_accounts')],
-                'site_id' => ['required', TenantValidation::exists('sites')],
-                'site_post_id' => ['nullable', TenantValidation::exists('site_posts')],
-                'date' => 'required|date',
-            ]);
+            $this->validateSiteDetails();
             $this->step = 2;
 
             return;
         }
 
         if ($this->step === 2) {
-            if ($this->shift_mode === 'existing') {
-                $this->validate([
-                    'shift_id' => ['required', TenantValidation::exists('shifts')],
-                ]);
-            } else {
-                $this->validate([
-                    'title' => 'required|string|max:255',
-                    'starts_at' => 'required|date',
-                    'ends_at' => 'required|date|after:starts_at',
-                    'required_guards' => 'required|integer|min:1|max:50',
-                ]);
+            try {
+                $schedules->validateShiftCapacity($this->deploymentShift());
+            } catch (AssignmentException $e) {
+                $this->assignmentError($e);
+
+                return;
             }
             $this->step = 3;
 
@@ -135,16 +137,23 @@ class DeployWizard extends Component
         }
 
         if ($this->step === 3) {
-            $this->validate([
+            $this->validateAtStep(3, [
                 'guard_id' => ['required', TenantValidation::exists('guards')],
             ]);
+            try {
+                $schedules->validateGuardAssignment($this->deploymentShift(), Guard::findOrFail((int) $this->guard_id));
+            } catch (AssignmentException $e) {
+                $this->assignmentError($e);
+
+                return;
+            }
             $this->step = 4;
 
             return;
         }
 
         if ($this->step === 4) {
-            $this->validate([
+            $this->validateAtStep(4, [
                 'selectedAssetIds' => 'array',
                 'selectedAssetIds.*' => ['integer', TenantValidation::exists('equipment_assets')],
             ]);
@@ -161,39 +170,21 @@ class DeployWizard extends Component
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
 
-        $this->validate([
-            'client_account_id' => ['required', TenantValidation::exists('client_accounts')],
-            'site_id' => ['required', TenantValidation::exists('sites')],
+        $this->resetErrorBag();
+        $this->validateSiteDetails();
+        $this->validateAtStep(3, [
             'guard_id' => ['required', TenantValidation::exists('guards')],
+        ]);
+        $this->validateAtStep(4, [
             'selectedAssetIds' => 'array',
             'selectedAssetIds.*' => ['integer', TenantValidation::exists('equipment_assets')],
         ]);
 
-        $tenantId = TenantContext::id();
-
         try {
-            $assignment = DB::transaction(function () use ($schedules, $workforce, $assets, $tenantId) {
-                if ($this->shift_mode === 'existing') {
-                    $shift = Shift::where('tenant_id', $tenantId)->findOrFail($this->shift_id);
-                } else {
-                    $this->validate([
-                        'title' => 'required|string|max:255',
-                        'starts_at' => 'required|date',
-                        'ends_at' => 'required|date|after:starts_at',
-                        'required_guards' => 'required|integer|min:1|max:50',
-                    ]);
-
-                    $shift = $schedules->createShift([
-                        'tenant_id' => $tenantId,
-                        'client_account_id' => (int) $this->client_account_id,
-                        'site_id' => (int) $this->site_id,
-                        'site_post_id' => $this->site_post_id ?: null,
-                        'title' => $this->title,
-                        'starts_at' => $this->starts_at,
-                        'ends_at' => $this->ends_at,
-                        'required_guards' => $this->required_guards,
-                        'status' => 'open',
-                    ]);
+            $assignment = DB::transaction(function () use ($schedules, $workforce, $assets) {
+                $shift = $this->deploymentShift();
+                if (! $shift->exists) {
+                    $shift = $schedules->createShift($shift->getAttributes());
                 }
 
                 $assignment = $schedules->assignGuard($shift, Guard::findOrFail((int) $this->guard_id));
@@ -205,33 +196,27 @@ class DeployWizard extends Component
                     }
                 }
 
-                $assets->issueKitForAssignment(
-                    $assignment->load('shift'),
-                    array_map('intval', $this->selectedAssetIds),
-                );
+                try {
+                    $assets->issueKitForAssignment(
+                        $assignment->load('shift'),
+                        array_map('intval', $this->selectedAssetIds),
+                    );
+                } catch (RuntimeException $e) {
+                    $this->step = 4;
+                    throw ValidationException::withMessages(['selectedAssetIds' => $e->getMessage()]);
+                }
 
                 return $assignment;
             });
-        } catch (RuntimeException $e) {
-            $message = $e->getMessage();
-            $field = str_contains(strtolower($message), 'available') || str_contains(strtolower($message), 'issue')
-                ? 'selectedAssetIds'
-                : 'guard_id';
-            $this->addError($field, $message);
-            $this->step = $field === 'selectedAssetIds' ? 4 : 3;
+        } catch (AssignmentException $e) {
+            $this->assignmentError($e);
 
             return;
         }
 
         $this->createdAssignmentId = $assignment->id;
         $this->step = 6;
-        $kitCount = count($this->selectedAssetIds);
-        session()->flash(
-            'status',
-            $kitCount > 0
-                ? "Guard deployed with {$kitCount} kit item".($kitCount === 1 ? '' : 's').'.'
-                : 'Guard deployed to site.'
-        );
+        session()->flash('status', $this->confirm_now ? 'Assignment confirmed.' : 'Assignment created. Awaiting confirmation.');
     }
 
     public function resetWizard(): void
@@ -262,13 +247,13 @@ class DeployWizard extends Component
             : collect();
 
         $shifts = $this->site_id
-            ? Shift::with(['assignments.assignedGuard', 'sitePost'])
-                ->where('tenant_id', $tenantId)
-                ->where('site_id', $this->site_id)
-                ->whereDate('starts_at', $this->date)
+            ? $this->shiftQuery()
+                ->with(['assignments.assignedGuard', 'sitePost'])
                 ->whereNotIn('status', ['cancelled', 'completed'])
                 ->orderBy('starts_at')
                 ->get()
+                ->filter(fn (Shift $shift) => $shift->activeAssignmentsCount() < $shift->required_guards)
+                ->values()
             : collect();
 
         $guards = Guard::where('tenant_id', $tenantId)
@@ -294,6 +279,9 @@ class DeployWizard extends Component
             ->values();
 
         return view('livewire.schedules.deploy-wizard', [
+            'selectedShift' => $this->shift_id
+                ? Shift::with(['site', 'sitePost'])->where('tenant_id', $tenantId)->find($this->shift_id)
+                : null,
             'clients' => ClientAccount::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'sites' => $sitesQuery->get(),
             'posts' => $posts,
@@ -311,6 +299,75 @@ class DeployWizard extends Component
                 6 => 'Done',
             ],
         ])->layout('layouts.app');
+    }
+
+    private function validateAtStep(int $step, array $rules): void
+    {
+        try {
+            $this->validate($rules);
+        } catch (ValidationException $e) {
+            $this->step = $step;
+            throw $e;
+        }
+    }
+
+    private function validateSiteDetails(): void
+    {
+        $this->validateAtStep(1, [
+            'client_account_id' => ['required', TenantValidation::exists('client_accounts')],
+            'site_id' => ['required', TenantValidation::exists('sites')->where('client_account_id', $this->client_account_id)],
+            'site_post_id' => ['nullable', TenantValidation::exists('site_posts')->where('site_id', $this->site_id)],
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+    }
+
+    private function shiftQuery(): Builder
+    {
+        return Shift::where('tenant_id', TenantContext::id())
+            ->where('client_account_id', $this->client_account_id)
+            ->where('site_id', $this->site_id)
+            ->whereDate('starts_at', $this->date)
+            ->when($this->site_post_id, fn ($q) => $q->where('site_post_id', $this->site_post_id));
+    }
+
+    private function deploymentShift(): Shift
+    {
+        $this->validateAtStep(2, ['shift_mode' => 'required|in:existing,new']);
+        if ($this->shift_mode === 'existing') {
+            $this->validateAtStep(2, ['shift_id' => 'required|integer']);
+            $shift = $this->shiftQuery()->find($this->shift_id);
+            if (! $shift) {
+                $this->step = 2;
+                throw ValidationException::withMessages(['shift_id' => 'Select a shift matching this client, site, post, and date.']);
+            }
+
+            return $shift;
+        }
+
+        $this->validateAtStep(2, [
+            'title' => 'required|string|max:255',
+            'starts_at' => ['required', 'date', 'after_or_equal:'.$this->date.' 00:00', 'before:'.Carbon::parse($this->date)->addDay()->toDateString().' 00:00'],
+            'ends_at' => 'required|date|after:starts_at',
+            'required_guards' => 'required|integer|min:1|max:50',
+        ]);
+
+        return new Shift([
+            'tenant_id' => TenantContext::id(),
+            'client_account_id' => (int) $this->client_account_id,
+            'site_id' => (int) $this->site_id,
+            'site_post_id' => $this->site_post_id ?: null,
+            'title' => $this->title,
+            'starts_at' => $this->starts_at,
+            'ends_at' => $this->ends_at,
+            'required_guards' => $this->required_guards,
+            'status' => 'open',
+        ]);
+    }
+
+    private function assignmentError(AssignmentException $e): void
+    {
+        $this->step = $e->field === 'shift_id' ? 2 : 3;
+        $this->addError($e->field, $e->getMessage());
     }
 
     private function resetShiftTimes(): void

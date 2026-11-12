@@ -1,19 +1,21 @@
 <div>
-    <x-page-shell title="Time Off" description="Manage leave requests and weekly guard availability.">
+    <x-page-shell :embedded="$embedded" title="Time Off" description="Manage leave requests and weekly guard availability.">
         <x-slot:actions>
             <x-button variant="secondary" wire:click="openAvailabilityForm">Add availability</x-button>
             <x-button wire:click="openLeaveForm">Request time off</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
             <div class="stat-grid">
                 <x-stat-card compact label="Pending review" :value="$pendingCount" icon="pause" :tone="$pendingCount ? 'warning' : 'success'" />
-                <x-stat-card compact label="On this page" :value="$leaveRequests->total()" icon="users" />
-                <x-stat-card compact label="Availability rows" :value="$availabilities->count()" icon="schedules" tone="info" />
+                <x-stat-card compact label="Leave requests" :value="$leaveRequests->total()" icon="users" />
+                <x-stat-card compact label="Weekly availability" :value="$availabilities->count()" icon="schedules" tone="info" />
             </div>
 
             <x-section-card title="Leave requests" :description="$pendingCount ? $pendingCount.' pending approval' : 'No pending requests'">
@@ -22,7 +24,7 @@
                         <x-segment-control field="leaveFilter" :active="$leaveFilter" :options="collect($leaveStatuses)->prepend('All', 'all')->all()" />
                     </x-slot:tabs>
                     <x-slot:controls>
-                        <x-filter-select wire:model.live="guardFilter">
+                        <x-filter-select aria-label="Filter leave by guard" wire:model.live="guardFilter">
                             <option value="">All guards</option>
                             @foreach($guards as $g)
                                 <option value="{{ $g->id }}">{{ $g->full_name }}</option>
@@ -31,7 +33,7 @@
                     </x-slot:controls>
                 </x-page-toolbar>
 
-                <x-data-table>
+                <x-data-table class="scheduler-table">
                     <x-table.head>
                         <tr>
                             <x-table.th>Guard</x-table.th>
@@ -50,11 +52,16 @@
                                 $conflicts = $conflict['count'];
                             @endphp
                             <tr class="table-row-hover" wire:key="leave-{{ $req->id }}">
-                                <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $req->assignedGuard?->full_name ?? '—' }}</x-table.td>
-                                <x-table.td muted>{{ $leaveTypes[$req->type] ?? ucfirst($req->type ?? 'leave') }}</x-table.td>
-                                <x-table.td muted class="tabular-nums">{{ $req->starts_on?->format('M j') }} – {{ $req->ends_on?->format('M j, Y') }}</x-table.td>
-                                <x-table.td muted>{{ Str::limit($req->reason, 40) ?: '—' }}</x-table.td>
-                                <x-table.td>
+                                <x-table.td data-label="Guard" class="font-medium text-zinc-900 dark:text-zinc-100">{{ $req->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                <x-table.td data-label="Type" muted>{{ $leaveTypes[$req->type] ?? ucfirst($req->type ?? 'leave') }}</x-table.td>
+                                <x-table.td data-label="Dates" muted class="tabular-nums">
+                                    <div>{{ $req->starts_on?->format('M j') }} – {{ $req->ends_on?->format('M j, Y') }}</div>
+                                    @if ($req->starts_on)
+                                        <a href="{{ route('schedules.index', ['date' => $req->starts_on->toDateString()]) }}" class="page-link mt-1 inline-block text-xs" wire:navigate>View affected roster</a>
+                                    @endif
+                                </x-table.td>
+                                <x-table.td data-label="Reason" muted>{{ Str::limit($req->reason, 40) ?: '—' }}</x-table.td>
+                                <x-table.td data-label="Conflicts">
                                     @if($conflicts > 0)
                                         @if($conflict['scheduleUrl'])
                                             <a href="{{ $conflict['scheduleUrl'] }}" class="text-xs font-medium text-amber-700 underline hover:text-amber-900 dark:text-amber-400">{{ $conflicts }} shift{{ $conflicts === 1 ? '' : 's' }}</a>
@@ -65,8 +72,8 @@
                                         <span class="text-xs text-zinc-400">None</span>
                                     @endif
                                 </x-table.td>
-                                <x-table.td><x-badge :status="$req->status" /></x-table.td>
-                                <x-table.td align="right">
+                                <x-table.td data-label="Status"><x-badge :status="$req->status" /></x-table.td>
+                                <x-table.td data-label="Actions" align="right">
                                     @if(\App\Support\EnumHelper::is($req->status, 'pending'))
                                         <div class="table-inline-actions justify-end">
                                             <x-button size="sm" variant="secondary" wire:click="editLeave({{ $req->id }})">Edit</x-button>
@@ -81,7 +88,7 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="7">
-                                <x-empty-state compact title="No time off requests" description="Submit a leave request to block scheduling conflicts.">
+                                <x-empty-state class="scheduler-empty-state" compact title="No time off requests" description="Submit a leave request to block scheduling conflicts.">
                                     <x-slot:actions>
                                         <x-button size="sm" wire:click="openLeaveForm">Request time off</x-button>
                                     </x-slot:actions>
@@ -102,7 +109,7 @@
                         @endforeach
                     </x-filter-select>
                 </div>
-                <x-data-table>
+                <x-data-table class="scheduler-table">
                     <x-table.head>
                         <tr>
                             <x-table.th>Guard</x-table.th>
@@ -115,17 +122,17 @@
                     <tbody>
                         @forelse($availabilities as $a)
                             <tr class="table-row-hover" wire:key="avail-{{ $a->id }}">
-                                <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $a->assignedGuard?->full_name }}</x-table.td>
-                                <x-table.td muted>{{ $weekdays[$a->weekday] ?? $a->weekday }}</x-table.td>
-                                <x-table.td muted class="tabular-nums">{{ substr((string) $a->starts_at, 0, 5) }} – {{ substr((string) $a->ends_at, 0, 5) }}</x-table.td>
-                                <x-table.td>
+                                <x-table.td data-label="Guard" class="font-medium text-zinc-900 dark:text-zinc-100">{{ $a->assignedGuard?->full_name }}</x-table.td>
+                                <x-table.td data-label="Day" muted>{{ $weekdays[$a->weekday] ?? $a->weekday }}</x-table.td>
+                                <x-table.td data-label="Window" muted class="tabular-nums">{{ substr((string) $a->starts_at, 0, 5) }} – {{ substr((string) $a->ends_at, 0, 5) }}</x-table.td>
+                                <x-table.td data-label="Available">
                                     @if($a->is_available)
                                         <span class="text-xs font-medium text-emerald-700 dark:text-emerald-400">Yes</span>
                                     @else
                                         <span class="text-xs text-zinc-500">Unavailable</span>
                                     @endif
                                 </x-table.td>
-                                <x-table.td align="right">
+                                <x-table.td data-label="Actions" align="right">
                                     <div class="table-inline-actions justify-end">
                                         <button type="button" wire:click="editAvailability({{ $a->id }})" class="table-action">Edit</button>
                                         <button type="button" wire:click="deleteAvailability({{ $a->id }})" wire:confirm="Remove this availability?" class="table-action-danger">Remove</button>
@@ -134,7 +141,7 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="5">
-                                <x-empty-state compact title="No availability on file" description="Add weekly availability windows for staffing.">
+                                <x-empty-state class="scheduler-empty-state" compact title="No availability on file" description="Add weekly availability windows for staffing.">
                                     <x-slot:actions>
                                         <x-button size="sm" wire:click="openAvailabilityForm">Add availability</x-button>
                                     </x-slot:actions>
@@ -154,22 +161,22 @@
             width="md"
             close-method="closeLeaveForm"
         >
-            <x-drawer-form wire:submit.prevent="submitLeave" :submit-label="$editingLeaveId ? 'Save changes' : 'Submit request'" close-method="closeLeaveForm" target="submitLeave">
+            <x-drawer-form wire:submit="submitLeave" :submit-label="$editingLeaveId ? 'Save changes' : 'Submit request'" close-method="closeLeaveForm" target="submitLeave">
                 <x-form-section title="Request">
-                    <x-select wire:model="leaveForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="leaveForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select</option>
                         @foreach($guards as $g)
                             <option value="{{ $g->id }}">{{ $g->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="leaveForm.type" label="Type *" class="sm:col-span-2">
+                    <x-select wire:model.live="leaveForm.type" label="Type *" class="sm:col-span-2">
                         @foreach($leaveTypes as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="leaveForm.starts_on" type="date" label="Starts *" />
-                    <x-input wire:model="leaveForm.ends_on" type="date" label="Ends *" />
-                    <x-textarea wire:model="leaveForm.reason" label="Reason" class="sm:col-span-2" rows="2" />
+                    <x-input wire:model.live="leaveForm.starts_on" type="date" label="Starts *" />
+                    <x-input wire:model.live="leaveForm.ends_on" type="date" label="Ends *" />
+                    <x-textarea wire:model.live="leaveForm.reason" label="Reason" class="sm:col-span-2" rows="2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -182,23 +189,23 @@
             width="md"
             close-method="closeAvailabilityForm"
         >
-            <x-drawer-form wire:submit.prevent="saveAvailability" :submit-label="$editingAvailabilityId ? 'Update availability' : 'Save availability'" close-method="closeAvailabilityForm" target="saveAvailability">
+            <x-drawer-form wire:submit="saveAvailability" :submit-label="$editingAvailabilityId ? 'Update availability' : 'Save availability'" close-method="closeAvailabilityForm" target="saveAvailability">
                 <x-form-section title="Weekly window">
-                    <x-select wire:model="availabilityForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="availabilityForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select</option>
                         @foreach($guards as $g)
                             <option value="{{ $g->id }}">{{ $g->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="availabilityForm.weekday" label="Day *" class="sm:col-span-2">
+                    <x-select wire:model.live="availabilityForm.weekday" label="Day *" class="sm:col-span-2">
                         @foreach($weekdays as $d => $label)
                             <option value="{{ $d }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="availabilityForm.starts_at" type="time" label="From *" />
-                    <x-input wire:model="availabilityForm.ends_at" type="time" label="To *" />
+                    <x-input wire:model.live="availabilityForm.starts_at" type="time" label="From *" />
+                    <x-input wire:model.live="availabilityForm.ends_at" type="time" label="To *" />
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                        <input type="checkbox" wire:model="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
+                        <input type="checkbox" wire:model.live="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
                         Available during this window
                     </label>
                 </x-form-section>

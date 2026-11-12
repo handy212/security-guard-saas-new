@@ -18,6 +18,8 @@ class GuardIndex extends Component
 {
     use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
 
+    public string $activeTab = 'directory';
+
     public string $search = '';
 
     public string $statusFilter = 'all';
@@ -37,6 +39,7 @@ class GuardIndex extends Component
     ];
 
     protected $queryString = [
+        'activeTab' => ['except' => 'directory', 'as' => 'tab', 'history' => false],
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
         'verificationFilter' => ['except' => 'all', 'as' => 'kyg'],
@@ -47,6 +50,19 @@ class GuardIndex extends Component
     public function mount(): void
     {
         $this->authorizePolicy('viewAny', Guard::class);
+        $this->setTab($this->activeTab);
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = in_array($tab, ['directory', 'applications', 'verification'], true) ? $tab : 'directory';
+        $this->closeDrawer();
+        $this->resetValidation();
+    }
+
+    public function updatedActiveTab(string $tab): void
+    {
+        $this->setTab($tab);
     }
 
     protected function rules(): array

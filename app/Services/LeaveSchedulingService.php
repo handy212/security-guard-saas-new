@@ -37,8 +37,8 @@ class LeaveSchedulingService
         return LeaveRequest::query()
             ->where('guard_id', $guard->id)
             ->where('status', LeaveStatus::APPROVED)
-            ->where('starts_on', '<=', $shiftEnd->toDateString())
-            ->where('ends_on', '>=', $shiftStart->toDateString())
+            ->whereDate('starts_on', '<=', $shiftEnd->toDateString())
+            ->whereDate('ends_on', '>=', $shiftStart->toDateString())
             ->exists();
     }
 
@@ -48,8 +48,8 @@ class LeaveSchedulingService
         return LeaveRequest::query()
             ->where('guard_id', $guardId)
             ->where('status', LeaveStatus::APPROVED)
-            ->where('starts_on', '<=', $date)
-            ->where('ends_on', '>=', $date)
+            ->whereDate('starts_on', '<=', $date)
+            ->whereDate('ends_on', '>=', $date)
             ->get();
     }
 }

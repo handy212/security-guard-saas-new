@@ -1,4 +1,4 @@
-<div>
+<div class="site-profile-page">
     <x-page-shell
         :title="$site->name"
         :description="$site->clientAccount?->name ?? 'Post site'"
@@ -44,7 +44,7 @@
                             <div class="p-0">
                                 <x-map
                                     id="site-overview-map-{{ $site->id }}"
-                                    height="280px"
+                                    height="220px"
                                     :lat="$mapCenter['lat']"
                                     :lng="$mapCenter['lng']"
                                     :zoom="$mapCenter['zoom']"
@@ -121,7 +121,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="3">
-                                    <x-empty-state compact title="No upcoming shifts" description="Schedule shifts from the Schedules module." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No upcoming shifts.</span> Schedule shifts from the Schedules module.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
@@ -134,13 +134,13 @@
             <div class="space-y-4">
                 <x-form-card title="Site profile" description="Name, client, address, and guard instructions">
                     <form wire:submit="saveProfile" class="grid gap-3 sm:grid-cols-2">
-                        <x-input wire:model="profileForm.name" label="Site name" class="sm:col-span-2" />
-                        <x-select wire:model="profileForm.client_account_id" label="Client" class="sm:col-span-2">
+                        <x-input wire:model.live="profileForm.name" label="Site name" class="sm:col-span-2" />
+                        <x-select wire:model.live="profileForm.client_account_id" label="Client" class="sm:col-span-2">
                             @foreach ($clients as $client)
                                 <option value="{{ $client->id }}">{{ $client->name }}</option>
                             @endforeach
                         </x-select>
-                        <x-select wire:model="profileForm.supervisor_user_id" label="Site supervisor" class="sm:col-span-2">
+                        <x-select wire:model.live="profileForm.supervisor_user_id" label="Site supervisor" class="sm:col-span-2">
                             <option value="">No supervisor assigned</option>
                             @foreach ($supervisorCandidates as $candidate)
                                 <option value="{{ $candidate->id }}">
@@ -148,14 +148,14 @@
                                 </option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="profileForm.address" label="Address" class="sm:col-span-2" />
-                        <x-select wire:model="profileForm.status" label="Status">
+                        <x-input wire:model.live="profileForm.address" label="Address" class="sm:col-span-2" />
+                        <x-select wire:model.live="profileForm.status" label="Status">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </x-select>
                         <div class="sm:col-span-2">
-                            <label class="form-label">Site instructions</label>
-                            <textarea wire:model="profileForm.instructions" rows="4" class="form-input mt-1"></textarea>
+                            <label for="site-profileForm-instructions" class="form-label">Site instructions</label>
+                            <textarea id="site-profileForm-instructions" wire:model.live="profileForm.instructions" rows="4" class="form-input mt-1"></textarea>
                         </div>
                         <div class="sm:col-span-2">
                             <x-button type="submit">Save profile</x-button>
@@ -166,18 +166,18 @@
                 <x-form-card title="Site preferences" description="Clock-in, notifications, and patrol defaults">
                     <form wire:submit="saveSettings" class="space-y-4 max-w-lg">
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="settingsForm.require_geofence_clock_in" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="settingsForm.require_geofence_clock_in" class="rounded border-zinc-300">
                             Require geofence for clock-in
                         </label>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="settingsForm.notify_on_incident" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="settingsForm.notify_on_incident" class="rounded border-zinc-300">
                             Notify supervisors on new incidents
                         </label>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="settingsForm.show_in_client_portal" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="settingsForm.show_in_client_portal" class="rounded border-zinc-300">
                             Show site in client portal
                         </label>
-                        <x-input wire:model="settingsForm.patrol_reminder_minutes" label="Patrol reminder (minutes before due)" type="number" min="0" max="240" />
+                        <x-input wire:model.live="settingsForm.patrol_reminder_minutes" label="Patrol reminder (minutes before due)" type="number" min="0" max="240" />
                         <x-button type="submit">Save settings</x-button>
                     </form>
                 </x-form-card>
@@ -186,7 +186,7 @@
 
         @if ($activeTab === 'contacts')
             <div class="space-y-4">
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Emergency contacts" description="People to call during incidents at this site">
                         <x-data-table>
                             <x-table.head>
@@ -214,26 +214,26 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="5">
-                                        <x-empty-state compact title="No contacts" description="Add emergency contacts for this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No contacts.</span> Add emergency contacts for this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingContactId ? 'Edit contact' : 'Add contact'" description="On-site or client emergency contacts">
+                    <x-form-card collapsible :open="(bool) $editingContactId" wire:key="site-form-editingContactId-{{ $editingContactId ?? 'new' }}" :title="$editingContactId ? 'Edit contact' : 'Add contact'" description="On-site or client emergency contacts">
                         <form wire:submit="saveContact" class="space-y-3">
-                            <x-input wire:model="contactForm.name" label="Name" />
-                            <x-input wire:model="contactForm.role" label="Role" />
-                            <x-input wire:model="contactForm.phone" label="Phone" />
-                            <x-input wire:model="contactForm.email" label="Email" type="email" />
-                            <x-input wire:model="contactForm.priority" label="Priority (1 = highest)" type="number" min="1" max="10" />
+                            <x-input wire:model.live="contactForm.name" label="Name" />
+                            <x-input wire:model.live="contactForm.role" label="Role" />
+                            <x-input wire:model.live="contactForm.phone" label="Phone" />
+                            <x-input wire:model.live="contactForm.email" label="Email" type="email" />
+                            <x-input wire:model.live="contactForm.priority" label="Priority (1 = highest)" type="number" min="1" max="10" />
                             <x-button type="submit" size="sm">{{ $editingContactId ? 'Update' : 'Add' }} contact</x-button>
                         </form>
                     </x-form-card>
                 </div>
 
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Notes" description="Internal history for this site" flush>
                         @forelse ($site->notes as $note)
                             <div class="list-row-start" wire:key="note-{{ $note->id }}">
@@ -253,20 +253,20 @@
                             </div>
                         @empty
                             <div class="p-3">
-                                <x-empty-state compact title="No notes" description="Add internal notes about this site." />
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No notes.</span> Add internal notes about this site.</p>
                             </div>
                         @endforelse
                     </x-section-card>
 
-                    <x-form-card :title="$editingNoteId ? 'Edit note' : 'Add note'">
+                    <x-form-card collapsible :open="(bool) $editingNoteId" wire:key="site-form-editingNoteId-{{ $editingNoteId ?? 'new' }}" :title="$editingNoteId ? 'Edit note' : 'Add note'">
                         <form wire:submit="addNote" class="space-y-3">
                             <div>
-                                <label class="form-label">Note</label>
-                                <textarea wire:model="noteForm.body" rows="5" class="form-input mt-1"></textarea>
+                                <label for="site-noteForm-body" class="form-label">Note</label>
+                            <textarea id="site-noteForm-body" wire:model.live="noteForm.body" rows="5" class="form-input mt-1"></textarea>
                                 @error('noteForm.body') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300">
+                                <input type="checkbox" wire:model.live="noteForm.is_internal" class="rounded border-zinc-300">
                                 Internal only
                             </label>
                             <x-button type="submit" size="sm">{{ $editingNoteId ? 'Update' : 'Add' }} note</x-button>
@@ -277,7 +277,7 @@
         @endif
 
         @if ($activeTab === 'kpis')
-            <div class="page-split">
+            <div class="page-split site-records-layout">
                 <x-section-card title="SLA & checklist targets" description="Compliance metrics tracked for this site">
                     <x-data-table>
                         <x-table.head>
@@ -307,23 +307,23 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="6">
-                                    <x-empty-state compact title="No SLA targets" description="Add checklist items to define compliance targets for this site." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No SLA targets.</span> Add checklist items to define compliance targets for this site.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card :title="$editingChecklistId ? 'Edit checklist item' : 'Add checklist item'" description="Define metric, target, and grace period">
+                <x-form-card collapsible :open="(bool) $editingChecklistId" wire:key="site-form-editingChecklistId-{{ $editingChecklistId ?? 'new' }}" :title="$editingChecklistId ? 'Edit checklist item' : 'Add checklist item'" description="Define metric, target, and grace period">
                     <form wire:submit="addChecklist" class="space-y-3">
-                        <x-input wire:model="checklistForm.metric" label="Metric" placeholder="e.g. Patrol completion rate" />
-                        <x-input wire:model="checklistForm.target_value" label="Target value" placeholder="e.g. 95%" />
-                        <x-select wire:model="checklistForm.frequency" label="Frequency">
+                        <x-input wire:model.live="checklistForm.metric" label="Metric" placeholder="e.g. Patrol completion rate" />
+                        <x-input wire:model.live="checklistForm.target_value" label="Target value" placeholder="e.g. 95%" />
+                        <x-select wire:model.live="checklistForm.frequency" label="Frequency">
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
                             <option value="monthly">Monthly</option>
                         </x-select>
-                        <x-input wire:model="checklistForm.grace_minutes" label="Grace period (minutes)" type="number" min="0" />
+                        <x-input wire:model.live="checklistForm.grace_minutes" label="Grace period (minutes)" type="number" min="0" />
                         <x-button type="submit" size="sm">{{ $editingChecklistId ? 'Update' : 'Add' }} item</x-button>
                     </form>
                 </x-form-card>
@@ -332,7 +332,7 @@
 
         @if ($activeTab === 'post_orders')
             <div class="space-y-4">
-                <div class="profile-form-split">
+                <div class="profile-form-split site-records-layout">
                     <x-section-card title="Posts" description="Guard positions at this site">
                         <x-data-table>
                             <x-table.head>
@@ -358,31 +358,31 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="4">
-                                        <x-empty-state compact title="No posts" description="Add guard posts for this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No posts.</span> Add guard posts for this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingPostId ? 'Edit post' : 'Add post'" description="Named positions and staffing levels">
+                    <x-form-card collapsible :open="(bool) $editingPostId" wire:key="site-form-editingPostId-{{ $editingPostId ?? 'new' }}" :title="$editingPostId ? 'Edit post' : 'Add post'" description="Named positions and staffing levels">
                         <form wire:submit="addPost" class="space-y-3">
-                            <x-input wire:model="postForm.name" label="Post name" />
-                            <x-input wire:model="postForm.required_guards" label="Required guards" type="number" min="1" />
-                            <x-select wire:model="postForm.status" label="Status">
+                            <x-input wire:model.live="postForm.name" label="Post name" />
+                            <x-input wire:model.live="postForm.required_guards" label="Required guards" type="number" min="1" />
+                            <x-select wire:model.live="postForm.status" label="Status">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </x-select>
                             <div>
-                                <label class="form-label">Description</label>
-                                <textarea wire:model="postForm.description" rows="2" class="form-input mt-1"></textarea>
+                                <label for="site-postForm-description" class="form-label">Description</label>
+                            <textarea id="site-postForm-description" wire:model.live="postForm.description" rows="2" class="form-input mt-1"></textarea>
                             </div>
                             <x-button type="submit" size="sm">{{ $editingPostId ? 'Update' : 'Add' }} post</x-button>
                         </form>
                     </x-form-card>
                 </div>
 
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Post orders" description="Standing instructions for guards">
                         <x-data-table>
                             <x-table.head>
@@ -410,28 +410,28 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="4">
-                                        <x-empty-state compact title="No post orders" description="Add standing orders for guards at this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No post orders.</span> Add standing orders for guards at this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingPostOrderId ? 'Edit post order' : 'Add post order'" description="Site-wide or post-specific instructions">
+                    <x-form-card collapsible :open="(bool) $editingPostOrderId" wire:key="site-form-editingPostOrderId-{{ $editingPostOrderId ?? 'new' }}" :title="$editingPostOrderId ? 'Edit post order' : 'Add post order'" description="Site-wide or post-specific instructions">
                         <form wire:submit="addPostOrder" class="space-y-3">
-                            <x-select wire:model="postOrderForm.site_post_id" label="Post (optional)">
+                            <x-select wire:model.live="postOrderForm.site_post_id" label="Post (optional)">
                                 <option value="">Site-wide</option>
                                 @foreach ($site->posts as $post)
                                     <option value="{{ $post->id }}">{{ $post->name }}</option>
                                 @endforeach
                             </x-select>
-                            <x-input wire:model="postOrderForm.title" label="Title" />
+                            <x-input wire:model.live="postOrderForm.title" label="Title" />
                             <div>
-                                <label class="form-label">Instructions</label>
-                                <textarea wire:model="postOrderForm.instructions" rows="4" class="form-input mt-1"></textarea>
+                                <label for="site-postOrderForm-instructions" class="form-label">Instructions</label>
+                            <textarea id="site-postOrderForm-instructions" wire:model.live="postOrderForm.instructions" rows="4" class="form-input mt-1"></textarea>
                             </div>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="postOrderForm.is_active" class="rounded border-zinc-300">
+                                <input type="checkbox" wire:model.live="postOrderForm.is_active" class="rounded border-zinc-300">
                                 Active
                             </label>
                             <x-button type="submit" size="sm">{{ $editingPostOrderId ? 'Update' : 'Add' }} post order</x-button>
@@ -442,7 +442,7 @@
         @endif
 
         @if ($activeTab === 'files')
-            <div class="page-split">
+            <div class="page-split site-records-layout">
                 <x-section-card title="Files" description="SOPs, permits, and site documents">
                     <x-data-table>
                         <x-table.head>
@@ -476,27 +476,27 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="5">
-                                    <x-empty-state compact title="No files" description="Upload SOPs, permits, and site documents." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No files.</span> Upload SOPs, permits, and site documents.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card title="Upload file" description="Attach documents to this site">
+                <x-form-card collapsible :open="false" title="Upload file" description="Attach documents to this site">
                     <form wire:submit="uploadDocument" class="space-y-3">
-                        <x-input wire:model="documentForm.title" label="Title" />
-                        <x-select wire:model="documentForm.document_type" label="Document type">
+                        <x-input wire:model.live="documentForm.title" label="Title" />
+                        <x-select wire:model.live="documentForm.document_type" label="Document type">
                             @foreach ($documentTypes as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="documentForm.expires_on" label="Expires on" type="date" />
+                        <x-input wire:model.live="documentForm.expires_on" label="Expires on" type="date" />
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="documentForm.client_visible" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="documentForm.client_visible" class="rounded border-zinc-300">
                             Visible in client portal
                         </label>
-                        <input wire:model="documentFile" type="file" class="form-input text-sm">
+                        <input aria-label="Site document" wire:model.live="documentFile" type="file" class="form-input text-sm">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit" size="sm">Upload</x-button>
                     </form>
@@ -505,7 +505,7 @@
         @endif
 
         @if ($activeTab === 'tasks')
-            <div class="page-split">
+            <div class="page-split site-records-layout">
                 <x-section-card title="Checkpoint tasks" description="Questions guards answer at tour tags">
                     <x-data-table>
                         <x-table.head>
@@ -535,30 +535,30 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="5">
-                                    <x-empty-state compact title="No tasks" description="Add tasks linked to tour tags." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No tasks.</span> Add tasks linked to tour tags.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card :title="$editingTaskId ? 'Edit task' : 'Add task'" description="Link a prompt to a tour checkpoint">
+                <x-form-card collapsible :open="(bool) $editingTaskId" wire:key="site-form-editingTaskId-{{ $editingTaskId ?? 'new' }}" :title="$editingTaskId ? 'Edit task' : 'Add task'" description="Link a prompt to a tour checkpoint">
                     <form wire:submit="addTask" class="space-y-3">
-                        <x-select wire:model="taskForm.patrol_checkpoint_id" label="Tour tag">
+                        <x-select wire:model.live="taskForm.patrol_checkpoint_id" label="Tour tag">
                             <option value="">Select tag…</option>
                             @foreach ($checkpoints as $checkpoint)
                                 <option value="{{ $checkpoint->id }}">{{ $checkpoint->route?->name }} — {{ $checkpoint->name }}</option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="taskForm.title" label="Task title" />
-                        <x-select wire:model="taskForm.response_type" label="Response type">
+                        <x-input wire:model.live="taskForm.title" label="Task title" />
+                        <x-select wire:model.live="taskForm.response_type" label="Response type">
                             <option value="yes_no">Yes / No</option>
                             <option value="text">Text</option>
                             <option value="number">Number</option>
                             <option value="photo">Photo</option>
                         </x-select>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="taskForm.is_required" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="taskForm.is_required" class="rounded border-zinc-300">
                             Required
                         </label>
                         <x-button type="submit" size="sm">{{ $editingTaskId ? 'Update' : 'Add' }} task</x-button>
@@ -588,7 +588,7 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="5">
-                                <x-empty-state compact title="No submissions yet" description="Responses from checkpoint tasks will appear here." />
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No submissions yet.</span> Responses from checkpoint tasks will appear here.</p>
                             </x-table.empty>
                         @endforelse
                     </tbody>
@@ -598,7 +598,7 @@
 
         @if ($activeTab === 'tours')
             <div class="space-y-4">
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Site tours (patrol routes)" description="Named patrol paths for this site">
                         <x-data-table>
                             <x-table.head>
@@ -626,31 +626,31 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="5">
-                                        <x-empty-state compact title="No tours" description="Create patrol routes for this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No tours.</span> Create patrol routes for this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingTourId ? 'Edit site tour' : 'Add site tour'" description="Expected duration and route status">
+                    <x-form-card collapsible :open="(bool) $editingTourId" wire:key="site-form-editingTourId-{{ $editingTourId ?? 'new' }}" :title="$editingTourId ? 'Edit site tour' : 'Add site tour'" description="Expected duration and route status">
                         <form wire:submit="addTour" class="space-y-3">
-                            <x-input wire:model="tourForm.name" label="Tour name" />
-                            <x-input wire:model="tourForm.expected_duration_minutes" label="Expected duration (min)" type="number" min="5" />
-                            <x-select wire:model="tourForm.status" label="Status">
+                            <x-input wire:model.live="tourForm.name" label="Tour name" />
+                            <x-input wire:model.live="tourForm.expected_duration_minutes" label="Expected duration (min)" type="number" min="5" />
+                            <x-select wire:model.live="tourForm.status" label="Status">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </x-select>
                             <div>
-                                <label class="form-label">Description</label>
-                                <textarea wire:model="tourForm.description" rows="2" class="form-input mt-1"></textarea>
+                                <label for="site-tourForm-description" class="form-label">Description</label>
+                            <textarea id="site-tourForm-description" wire:model.live="tourForm.description" rows="2" class="form-input mt-1"></textarea>
                             </div>
                             <x-button type="submit" size="sm">{{ $editingTourId ? 'Update' : 'Create' }} tour</x-button>
                         </form>
                     </x-form-card>
                 </div>
 
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Tour tags (QR / NFC)" description="Checkpoints scanned during patrols">
                         <x-data-table>
                             <x-table.head>
@@ -686,31 +686,31 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="6">
-                                        <x-empty-state compact title="No tour tags" description="Add QR/NFC checkpoint tags to patrol routes." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No tour tags.</span> Add QR/NFC checkpoint tags to patrol routes.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card :title="$editingTourTagId ? 'Edit tour tag' : 'Add tour tag'" description="QR/NFC code, sequence, and optional GPS">
+                    <x-form-card collapsible :open="(bool) $editingTourTagId" wire:key="site-form-editingTourTagId-{{ $editingTourTagId ?? 'new' }}" :title="$editingTourTagId ? 'Edit tour tag' : 'Add tour tag'" description="QR/NFC code, sequence, and optional GPS">
                         <form wire:submit="addTourTag" class="space-y-3">
-                            <x-select wire:model="tagForm.patrol_route_id" label="Site tour">
+                            <x-select wire:model.live="tagForm.patrol_route_id" label="Site tour">
                                 <option value="">Select tour…</option>
                                 @foreach ($site->patrolRoutes as $route)
                                     <option value="{{ $route->id }}">{{ $route->name }}</option>
                                 @endforeach
                             </x-select>
-                            <x-input wire:model="tagForm.name" label="Tag name" />
-                            <x-input wire:model="tagForm.code" label="Code (QR/NFC)" />
-                            <x-input wire:model="tagForm.sequence" label="Sequence" type="number" min="1" />
+                            <x-input wire:model.live="tagForm.name" label="Tag name" />
+                            <x-input wire:model.live="tagForm.code" label="Code (QR/NFC)" />
+                            <x-input wire:model.live="tagForm.sequence" label="Sequence" type="number" min="1" />
                             <div class="grid grid-cols-2 gap-3">
-                                <x-input wire:model="tagForm.latitude" label="Latitude" type="number" step="any" />
-                                <x-input wire:model="tagForm.longitude" label="Longitude" type="number" step="any" />
+                                <x-input wire:model.live="tagForm.latitude" label="Latitude" type="number" step="any" />
+                                <x-input wire:model.live="tagForm.longitude" label="Longitude" type="number" step="any" />
                             </div>
                             <div>
-                                <label class="form-label">Instructions</label>
-                                <textarea wire:model="tagForm.instructions" rows="2" class="form-input mt-1"></textarea>
+                                <label for="site-tagForm-instructions" class="form-label">Instructions</label>
+                            <textarea id="site-tagForm-instructions" wire:model.live="tagForm.instructions" rows="2" class="form-input mt-1"></textarea>
                             </div>
                             <x-button type="submit" size="sm">{{ $editingTourTagId ? 'Update' : 'Add' }} tag</x-button>
                         </form>
@@ -720,9 +720,9 @@
                 <div class="page-grid-2">
                     <x-form-card title="Geo-fence settings" description="Site center and clock-in radius">
                         <form wire:submit="saveGeofence" class="grid gap-3 sm:grid-cols-2">
-                            <x-input wire:model="geofenceForm.latitude" label="Latitude" type="number" step="any" />
-                            <x-input wire:model="geofenceForm.longitude" label="Longitude" type="number" step="any" />
-                            <x-input wire:model="geofenceForm.geofence_radius_meters" label="Radius (meters)" type="number" min="10" max="5000" class="sm:col-span-2" />
+                            <x-input wire:model.live="geofenceForm.latitude" label="Latitude" type="number" step="any" />
+                            <x-input wire:model.live="geofenceForm.longitude" label="Longitude" type="number" step="any" />
+                            <x-input wire:model.live="geofenceForm.geofence_radius_meters" label="Radius (meters)" type="number" min="10" max="5000" class="sm:col-span-2" />
                             <div class="sm:col-span-2">
                                 <x-button type="submit">Save geofence</x-button>
                             </div>
@@ -733,14 +733,14 @@
                         @if (count($mapMarkers) > 0)
                             <x-map
                                 id="site-geofence-map-{{ $site->id }}"
-                                height="280px"
+                                height="220px"
                                 :lat="$mapCenter['lat']"
                                 :lng="$mapCenter['lng']"
                                 :zoom="$mapCenter['zoom']"
                                 :markers="$mapMarkers"
                             />
                         @else
-                            <x-empty-state compact title="Set coordinates" description="Enter latitude and longitude to preview the site on the map." />
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">Set coordinates.</span> Enter latitude and longitude to preview the site on the map.</p>
                         @endif
                     </x-section-card>
                 </div>
@@ -749,7 +749,7 @@
 
         @if ($activeTab === 'reports')
             <div class="space-y-4">
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Assigned report templates" description="Templates guards can submit at this site">
                         <x-data-table>
                             <x-table.head>
@@ -772,22 +772,22 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="3">
-                                        <x-empty-state compact title="No reports assigned" description="Assign report templates to this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No reports assigned.</span> Assign report templates to this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Assign report template" description="Make a template available site-wide or per post">
+                    <x-form-card collapsible :open="false" title="Assign report template" description="Make a template available site-wide or per post">
                         <form wire:submit="assignReport" class="space-y-3">
-                            <x-select wire:model="reportAssignForm.report_template_id" label="Report template">
+                            <x-select wire:model.live="reportAssignForm.report_template_id" label="Report template">
                                 <option value="">Select template…</option>
                                 @foreach ($reportTemplates as $template)
                                     <option value="{{ $template->id }}">{{ $template->name }}</option>
                                 @endforeach
                             </x-select>
-                            <x-select wire:model="reportAssignForm.site_post_id" label="Post (optional)">
+                            <x-select wire:model.live="reportAssignForm.site_post_id" label="Post (optional)">
                                 <option value="">Site-wide</option>
                                 @foreach ($site->posts as $post)
                                     <option value="{{ $post->id }}">{{ $post->name }}</option>
@@ -798,7 +798,7 @@
                     </x-form-card>
                 </div>
 
-                <div class="page-split">
+                <div class="page-split site-records-layout">
                     <x-section-card title="Email report schedules" description="Automated reports sent for this site">
                         <x-data-table>
                             <x-table.head>
@@ -825,32 +825,32 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="5">
-                                        <x-empty-state compact title="No schedules" description="Set up automated email reports for this site." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No schedules.</span> Set up automated email reports for this site.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Add schedule" description="Email recurring reports to recipients">
+                    <x-form-card collapsible :open="false" title="Add schedule" description="Email recurring reports to recipients">
                         <form wire:submit="addReportSchedule" class="space-y-3">
-                            <x-select wire:model="reportForm.report_type" label="Report type">
+                            <x-select wire:model.live="reportForm.report_type" label="Report type">
                                 @foreach ($reportTypes as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
                             </x-select>
-                            <x-select wire:model="reportForm.frequency" label="Frequency">
+                            <x-select wire:model.live="reportForm.frequency" label="Frequency">
                                 @foreach ($frequencies as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
                             </x-select>
                             <div>
-                                <label class="form-label">Recipients</label>
-                                <input wire:model="reportForm.recipients" type="text" class="form-input mt-1" placeholder="ops@client.com, manager@client.com">
+                                <label for="site-report-recipients" class="form-label">Recipients</label>
+                                <input id="site-report-recipients" wire:model.live="reportForm.recipients" type="text" class="form-input mt-1" placeholder="ops@client.com, manager@client.com">
                                 @error('reportForm.recipients') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="reportForm.is_active" class="rounded border-zinc-300">
+                                <input type="checkbox" wire:model.live="reportForm.is_active" class="rounded border-zinc-300">
                                 Active
                             </label>
                             <x-button type="submit" size="sm">Add schedule</x-button>

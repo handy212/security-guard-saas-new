@@ -10,6 +10,8 @@ use Livewire\Component;
 
 class CalendarView extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     public string $view = 'month';
 
     public string $cursorDate;
@@ -19,7 +21,7 @@ class CalendarView extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $this->cursorDate = now()->toDateString();
+        $this->cursorDate = $this->cursorDate ?? now()->toDateString();
     }
 
     public function previous(): void

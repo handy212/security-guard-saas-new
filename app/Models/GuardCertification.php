@@ -21,6 +21,6 @@ class GuardCertification extends Model
 
     public function assignedGuard(): BelongsTo
     {
-        return $this->belongsTo(Guard::class);
+        return $this->belongsTo(Guard::class, 'guard_id');
     }
 }

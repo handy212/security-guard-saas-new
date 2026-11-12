@@ -69,18 +69,18 @@
         <x-drawer title="Edit subscription" description="Update plan and billing status." width="md" closeMethod="closeDrawer">
             <x-drawer-form wire:submit="save" submit-label="Save subscription">
                 <x-form-section title="Billing">
-                    <x-select wire:model="form.subscription_plan_id" label="Plan" class="sm:col-span-2">
+                    <x-select wire:model.live="form.subscription_plan_id" label="Plan" class="sm:col-span-2">
                         @foreach ($plans as $plan)
                             <option value="{{ $plan->id }}">{{ $plan->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.status" label="Status">
+                    <x-select wire:model.live="form.status" label="Status">
                         <option value="active">Active</option>
                         <option value="trial">Trial</option>
                         <option value="cancelled">Cancelled</option>
                         <option value="past_due">Past due</option>
                     </x-select>
-                    <x-input wire:model="form.trial_ends_at" label="Trial ends" type="date" />
+                    <x-input wire:model.live="form.trial_ends_at" label="Trial ends" type="date" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

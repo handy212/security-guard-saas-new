@@ -9,7 +9,52 @@
     };
 @endphp
 
-<div class="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true">
+<div class="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="{{ $title }}"
+    x-data="{
+        previousFocus: null,
+        previousAction: null,
+        previousScope: null,
+        init() {
+            const owner = this.$el.closest('[wire\\:id]');
+            this.previousFocus = document.activeElement;
+            if (!owner?.contains(this.previousFocus) || this.previousFocus === document.body) {
+                this.previousFocus = [...(owner?.querySelectorAll('button') || [])]
+                    .find(button => /^(open|edit)/.test(button.getAttribute('wire:click') || '')) || this.previousFocus;
+            }
+            this.previousAction = this.previousFocus?.getAttribute('wire:click');
+            this.previousScope = this.previousFocus?.closest('[wire\\:id]')?.getAttribute('wire:id');
+            this.$nextTick(() => this.$el.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button')?.focus());
+        },
+        destroy() {
+            const opener = this.previousFocus;
+            const action = this.previousAction;
+            const scope = this.previousScope;
+            this.$nextTick(() => {
+                if (opener?.isConnected) {
+                    opener.focus();
+                } else if (action) {
+                    const owner = document.querySelector('[wire\\:id=' + CSS.escape(scope) + ']') || document;
+                    owner.querySelector('[wire\\:click=' + CSS.escape(action) + ']')?.focus();
+                }
+            });
+        },
+        trapTab(event) {
+            const controls = [...this.$el.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+                .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && (document.activeElement === first || !this.$el.contains(document.activeElement))) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !this.$el.contains(document.activeElement))) {
+                event.preventDefault();
+                first?.focus();
+            }
+        }
+    }"
+    x-on:keydown.tab.window="trapTab($event)"
+    x-on:keydown.escape.window.prevent.stop="$wire.{{ $closeMethod }}()"
+>
     <div
         class="absolute inset-0 bg-zinc-950/40 backdrop-blur-[2px]"
         wire:click="{{ $closeMethod }}"

@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell
+    <x-page-shell :embedded="$embedded"
         title="Attendance reconciliation"
         description="Review late arrivals, early leaves, and no-shows."
         :breadcrumbs="[
@@ -12,7 +12,9 @@
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
@@ -34,7 +36,7 @@
                 </x-slot:controls>
             </x-page-toolbar>
 
-            <x-data-table>
+            <x-data-table class="scheduler-table">
                 <x-table.head>
                     <tr>
                         <x-table.th>Guard</x-table.th>
@@ -47,11 +49,11 @@
                 <tbody>
                     @forelse($logs as $log)
                         <tr class="table-row-hover" wire:key="recon-{{ $log->id }}">
-                            <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $log->assignedGuard?->full_name }}</x-table.td>
-                            <x-table.td muted>{{ $log->site?->name }}</x-table.td>
-                            <x-table.td responsive="md" muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
-                            <x-table.td><x-badge :status="$log->status" /></x-table.td>
-                            <x-table.td align="right">
+                            <x-table.td data-label="Guard" class="font-medium text-zinc-900 dark:text-zinc-100">{{ $log->assignedGuard?->full_name }}</x-table.td>
+                            <x-table.td data-label="Site" muted>{{ $log->site?->name }}</x-table.td>
+                            <x-table.td data-label="Clock in" responsive="md" muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
+                            <x-table.td data-label="Status"><x-badge :status="$log->status" /></x-table.td>
+                            <x-table.td data-label="Actions" align="right">
                                 @if (! $log->reconciled_at)
                                     <div class="table-inline-actions justify-end">
                                         @if ($log->clock_in_at)
@@ -67,7 +69,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="5">
-                            <x-empty-state
+                            <x-empty-state class="scheduler-empty-state"
                                 compact
                                 :title="$statusFilter === 'needs_review' ? 'Nothing to reconcile' : 'No matching records'"
                                 :description="$statusFilter === 'needs_review' ? 'All attendance exceptions are up to date.' : 'Try adjusting your filters.'"

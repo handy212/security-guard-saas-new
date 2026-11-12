@@ -332,7 +332,7 @@
                                                     <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Reset password</p>
                                                     <p class="text-xs text-zinc-500">{{ $user->name }} · {{ $user->email }}</p>
                                                 </div>
-                                                <x-input wire:model="resetPassword" label="New password" type="password" hint="Min. 12 characters." />
+                                                <x-input wire:model.live="resetPassword" label="New password" type="password" hint="Min. 12 characters." />
                                                 <div class="flex gap-2">
                                                     <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="resetAdminPassword">Save</x-button>
                                                     <x-button type="button" size="sm" variant="secondary" wire:click="cancelResetPassword">Cancel</x-button>
@@ -365,10 +365,10 @@
                             <form wire:submit="inviteAdmin({{ $viewingTenant->id }})" class="mt-4 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Invite company admin</p>
                                 <div class="grid gap-3 sm:grid-cols-2">
-                                    <x-input wire:model="inviteForm.name" label="Name" placeholder="Jane Admin" />
-                                    <x-input wire:model="inviteForm.email" label="Email" type="email" placeholder="admin@acme.test" />
+                                    <x-input wire:model.live="inviteForm.name" label="Name" placeholder="Jane Admin" />
+                                    <x-input wire:model.live="inviteForm.email" label="Email" type="email" placeholder="admin@acme.test" />
                                 </div>
-                                <x-input wire:model="inviteForm.password" label="Password" type="password" hint="Min. 12 characters." />
+                                <x-input wire:model.live="inviteForm.password" label="Password" type="password" hint="Min. 12 characters." />
                                 <div class="flex gap-2">
                                     <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="inviteAdmin">Send invite</x-button>
                                     <x-button type="button" size="sm" variant="secondary" wire:click="$set('showInviteForm', false)">Cancel</x-button>
@@ -405,18 +405,18 @@
             <x-drawer-form wire:submit="saveTenant" :submit-label="$editingTenantId ? 'Save tenant' : 'Create tenant'">
                 <x-form-section title="Company">
                     <x-input wire:model.live="tenantForm.name" label="Company name" placeholder="Acme Security Ltd" class="sm:col-span-2" />
-                    <x-input wire:model="tenantForm.slug" label="Slug" placeholder="acme-security" />
-                    <x-input wire:model="tenantForm.subdomain" label="Subdomain" placeholder="acme-security" />
-                    <x-input wire:model="tenantForm.domain" label="Custom domain" placeholder="security.acme.com" class="sm:col-span-2" />
+                    <x-input wire:model.live="tenantForm.slug" label="Slug" placeholder="acme-security" />
+                    <x-input wire:model.live="tenantForm.subdomain" label="Subdomain" placeholder="acme-security" />
+                    <x-input wire:model.live="tenantForm.domain" label="Custom domain" placeholder="security.acme.com" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Access">
-                    <x-select wire:model="tenantForm.status" label="Status">
+                    <x-select wire:model.live="tenantForm.status" label="Status">
                         <option value="active">Active</option>
                         <option value="suspended">Suspended</option>
                     </x-select>
-                    <x-input wire:model="tenantForm.trial_ends_at" label="Trial ends" type="date" />
-                    <x-select wire:model="tenantForm.plan_id" label="Subscription plan" class="sm:col-span-2">
+                    <x-input wire:model.live="tenantForm.trial_ends_at" label="Trial ends" type="date" />
+                    <x-select wire:model.live="tenantForm.plan_id" label="Subscription plan" class="sm:col-span-2">
                         <option value="">No plan yet</option>
                         @foreach ($plans as $plan)
                             <option value="{{ $plan->id }}">{{ $plan->name }}</option>
@@ -426,9 +426,9 @@
 
                 @if (! $editingTenantId)
                     <x-form-section title="Company admin" description="Optional — invite an admin when creating the tenant.">
-                        <x-input wire:model="tenantForm.admin_name" label="Name" placeholder="Jane Admin" />
-                        <x-input wire:model="tenantForm.admin_email" label="Email" type="email" placeholder="admin@acme.test" />
-                        <x-input wire:model="tenantForm.admin_password" label="Password" type="password" hint="Min. 12 characters when inviting an admin." class="sm:col-span-2" />
+                        <x-input wire:model.live="tenantForm.admin_name" label="Name" placeholder="Jane Admin" />
+                        <x-input wire:model.live="tenantForm.admin_email" label="Email" type="email" placeholder="admin@acme.test" />
+                        <x-input wire:model.live="tenantForm.admin_password" label="Password" type="password" hint="Min. 12 characters when inviting an admin." class="sm:col-span-2" />
                     </x-form-section>
                 @endif
             </x-drawer-form>

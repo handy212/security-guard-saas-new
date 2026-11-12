@@ -7,6 +7,7 @@ use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
 use App\Models\Guard;
 use App\Models\Site;
+use App\Models\SosAlert;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DispatchService;
@@ -208,7 +209,9 @@ class DispatchSystemTest extends TestCase
             ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
             ->call('selectDispatch', $event->id)
             ->call('advanceStatus')
-            ->assertHasErrors('assignGuardId');
+            ->assertHasErrors('assignGuardId')
+            ->assertSet('selectedId', $event->id)
+            ->assertSee('Assign a guard before advancing this dispatch.');
 
         $this->assertSame(DispatchStatus::OPEN, $event->fresh()->status);
     }
@@ -235,11 +238,91 @@ class DispatchSystemTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
             ->call('selectDispatch', $event->id)
+            ->assertSee("wire:click=\"selectDispatch({$event->id})\"\n                            aria-pressed=\"true\"", false)
             ->set('assignGuardId', $guard->id)
             ->call('assignGuard')
             ->call('advanceStatus')
             ->assertHasNoErrors();
 
         $this->assertSame(DispatchStatus::EN_ROUTE, $event->fresh()->status);
+    }
+
+    public function test_queue_lists_most_urgent_priority_before_newer_lower_priority(): void
+    {
+        $client = ClientAccount::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+
+        $payload = [
+            'tenant_id' => $this->tenant->id,
+            'client_account_id' => $client->id,
+            'site_id' => $site->id,
+            'created_by_user_id' => $this->admin->id,
+            'event_type' => 'alarm',
+            'caller_type' => 'client',
+            'caller_name' => 'Front desk',
+            'incident_location' => 'Gate',
+            'description' => 'Alarm sounding',
+        ];
+
+        $critical = app(DispatchService::class)->createDispatch($payload + ['priority' => 'critical']);
+        $normal = app(DispatchService::class)->createDispatch($payload + ['priority' => 'normal']);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->assertViewHas('dispatches', function ($dispatches) use ($critical, $normal) {
+                $ids = $dispatches->pluck('id');
+                $criticalPosition = $ids->search($critical->id);
+                $normalPosition = $ids->search($normal->id);
+
+                return $criticalPosition !== false
+                    && $normalPosition !== false
+                    && $criticalPosition < $normalPosition
+                    && $dispatches->first()->priority->value === 'critical';
+            });
+    }
+
+    public function test_filtered_empty_queue_explains_how_to_recover(): void
+    {
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->set('search', 'no matching dispatch exists')
+            ->assertSee('No matching dispatches')
+            ->assertSee('Try changing or clearing the filters.')
+            ->assertSee('Clear filters')
+            ->assertDontSee('Create a dispatch when a client or site needs response.');
+    }
+
+    public function test_dispatch_board_exposes_accessible_loading_feedback(): void
+    {
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->assertSee('Updating dispatch view', false)
+            ->assertSee('role="status"', false);
+    }
+
+
+    public function test_sos_status_precedes_routine_metrics_and_is_textually_clear(): void
+    {
+        $guard = Guard::where('tenant_id', $this->tenant->id)->first();
+        $site = Site::where('tenant_id', $this->tenant->id)->first();
+
+        SosAlert::create([
+            'tenant_id' => $this->tenant->id,
+            'guard_id' => $guard->id,
+            'site_id' => $site->id,
+            'message' => 'Need immediate assistance',
+            'status' => 'open',
+            'raised_at' => now(),
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Dispatch\DispatcherBoard::class)
+            ->assertSeeInOrder([
+                'SOS alerts require response',
+                'Open — response needed',
+                'Active',
+                'Dispatch queue',
+            ])
+            ->assertSee('Acknowledge');
     }
 }

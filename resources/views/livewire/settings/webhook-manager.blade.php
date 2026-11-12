@@ -71,10 +71,10 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="create" :submit-label="$editingId ? 'Save changes' : 'Add webhook'" close-method="closeDrawer" target="create">
+            <x-drawer-form wire:submit="create" :submit-label="$editingId ? 'Save changes' : 'Add webhook'" close-method="closeDrawer" target="create">
                 <x-form-section title="Subscription">
-                    <x-input wire:model="event" label="Event code *" placeholder="incident.created" class="sm:col-span-2" />
-                    <x-input wire:model="targetUrl" label="Target URL *" placeholder="https://example.com/webhooks" class="sm:col-span-2" />
+                    <x-input wire:model.live="event" label="Event code *" placeholder="incident.created" class="sm:col-span-2" />
+                    <x-input wire:model.live="targetUrl" label="Target URL *" placeholder="https://example.com/webhooks" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

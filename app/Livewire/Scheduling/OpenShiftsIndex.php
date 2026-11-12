@@ -13,6 +13,8 @@ use RuntimeException;
 
 class OpenShiftsIndex extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     use AuthorizesModuleAccess;
 
     public string $bidFilter = 'pending';

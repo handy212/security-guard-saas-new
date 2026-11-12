@@ -7,9 +7,9 @@ use App\Models\OpenShiftBid;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\ShiftSwapRequest;
+use App\Support\EnumHelper;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use App\Support\EnumHelper;
 use RuntimeException;
 
 class EnterpriseScheduleService
@@ -81,22 +81,21 @@ class EnterpriseScheduleService
     public function approveSwap(ShiftSwapRequest $swap, int $approvedBy): void
     {
         DB::transaction(function () use ($swap, $approvedBy) {
-            $swap->update(['status' => 'approved', 'approved_by' => $approvedBy, 'approved_at' => now()]);
-
+            $swap = ShiftSwapRequest::whereKey($swap->id)->lockForUpdate()->firstOrFail();
+            if (! EnumHelper::is($swap->status, 'pending')) {
+                throw new RuntimeException('This swap request has already been reviewed.');
+            }
             $assignment = $swap->shiftAssignment;
+            if (! $assignment || $assignment->guard_id !== $swap->requested_by_guard_id || EnumHelper::isOneOf($assignment->status, ['cancelled', 'completed', 'in_progress', 'no_show'])) {
+                throw new RuntimeException('This assignment is no longer available for a swap.');
+            }
             $schedule = app(ScheduleService::class);
-
             if ($swap->replacement_guard_id) {
-                $assignment->update([
-                    'guard_id' => $swap->replacement_guard_id,
-                    'status' => 'assigned',
-                    'assigned_at' => now(),
-                    'confirmed_at' => null,
-                ]);
-                app(WorkforceService::class)->requestConfirmation($assignment->fresh());
+                $schedule->reassignGuard($assignment, Guard::findOrFail($swap->replacement_guard_id));
             } else {
                 $schedule->unassignGuard($assignment);
             }
+            $swap->update(['status' => 'approved', 'approved_by' => $approvedBy, 'approved_at' => now()]);
         });
     }
 
@@ -142,45 +141,22 @@ class EnterpriseScheduleService
     public function approveBid(OpenShiftBid $bid): ShiftAssignment
     {
         return DB::transaction(function () use ($bid) {
-            $bid->load(['shift.assignments', 'assignedGuard']);
-            $shift = $bid->shift;
-            $guard = $bid->assignedGuard;
-
-            if (! $shift || ! $guard) {
+            $bid = OpenShiftBid::whereKey($bid->id)->lockForUpdate()->firstOrFail();
+            if (! EnumHelper::is($bid->status, 'pending')) {
+                throw new RuntimeException('This bid has already been reviewed.');
+            }
+            $bid->load(['shift', 'assignedGuard']);
+            if (! $bid->shift || ! $bid->assignedGuard) {
                 throw new RuntimeException('Bid is missing shift or guard details.');
             }
-
-            if ($guard->verification_status !== 'verified') {
-                throw new RuntimeException('Guard must be verified before assignment.');
-            }
-
-            $schedule = app(ScheduleService::class);
-
-            if ($schedule->hasConflict($guard, $shift->starts_at, $shift->ends_at, $shift->id)) {
-                throw new RuntimeException('Guard has a scheduling conflict for this shift.');
-            }
-
-            if ($shift->assignments()->whereNotIn('status', ['cancelled', 'completed'])->count() >= $shift->required_guards) {
-                throw new RuntimeException('This shift is already fully staffed.');
-            }
-
+            $assignment = app(ScheduleService::class)->assignGuard($bid->shift, $bid->assignedGuard);
+            $shift = $bid->shift;
             $bid->update(['status' => 'approved']);
 
             OpenShiftBid::where('shift_id', $shift->id)
                 ->where('id', '!=', $bid->id)
                 ->where('status', 'pending')
                 ->update(['status' => 'rejected']);
-
-            $assignment = ShiftAssignment::create([
-                'tenant_id' => $bid->tenant_id,
-                'shift_id' => $bid->shift_id,
-                'guard_id' => $bid->guard_id,
-                'status' => 'assigned',
-                'assigned_at' => now(),
-            ]);
-
-            app(WorkforceService::class)->requestConfirmation($assignment);
-            $schedule->refreshShiftStaffingStatus($shift);
 
             return $assignment;
         });

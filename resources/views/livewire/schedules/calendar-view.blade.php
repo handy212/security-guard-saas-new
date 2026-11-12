@@ -1,12 +1,14 @@
 <div>
-    <x-page-shell title="Calendar" description="Plan shifts by week or month, then open a day to staff them.">
+    <x-page-shell :embedded="$embedded" title="Calendar" description="Plan shifts by week or month, then open a day to staff them.">
         <x-slot:actions>
             <x-button variant="secondary" size="sm" :href="route('schedules.index')">Day roster</x-button>
             <x-button size="sm" :href="route('schedules.index', ['date' => today()->toDateString()])">Create for today</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <div class="stat-grid">
                 <x-stat-card compact label="In range" :value="$stats['total']" icon="schedules" />
@@ -69,7 +71,7 @@
                     @php $day->addDay(); @endphp
                 @endwhile
                 @if ($shifts->isEmpty())
-                    <x-empty-state
+                    <x-empty-state class="scheduler-empty-state"
                         title="No shifts in range"
                         description="Create a shift on the day roster, or open a day to staff coverage."
                     >

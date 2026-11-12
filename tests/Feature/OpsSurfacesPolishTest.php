@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Assets\Overview as AssetsOverview;
+use App\Livewire\Dashboard\Overview as DashboardOverview;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Messenger\MessengerIndex;
 use App\Models\Incident;
@@ -106,5 +107,12 @@ class OpsSurfacesPolishTest extends TestCase
             ->test(MessengerIndex::class)
             ->assertSee('Messenger')
             ->assertSee('New thread');
+    }
+
+    public function test_dashboard_prioritizes_the_roster_and_dispatch_before_quick_actions(): void
+    {
+        Livewire::actingAs($this->admin)
+            ->test(DashboardOverview::class)
+            ->assertSeeInOrder(["Today's schedule", 'Open dispatches', 'Quick actions']);
     }
 }

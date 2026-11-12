@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell title="Deploy to site" description="Guided flow: site → shift → guard → kit → confirm.">
+    <x-page-shell :embedded="$embedded" title="Deploy to site" description="Guided flow: site → shift → guard → kit → confirm.">
         <x-slot:actions>
             <x-button variant="secondary" href="{{ route('schedules.deployment-sheet', ['date' => $date]) }}">Deployment sheet</x-button>
             <x-button variant="secondary" href="{{ route('schedules.index', ['date' => $date]) }}">Day roster</x-button>
@@ -8,12 +8,14 @@
         <x-flash-status />
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
-            <div class="space-y-3.5">
+            <div class="space-y-3.5" x-data x-effect="$wire.step; $nextTick(() => $el.querySelector('[data-deploy-heading]')?.focus())">
                 <nav class="flex flex-wrap gap-1.5" aria-label="Deploy steps">
                     @foreach ($steps as $n => $label)
-                        <div @class([
+                        <div @if ($step === $n) aria-current="step" @endif @class([
                             'status-chip',
                             'border-accent-300 bg-accent-50 text-accent-800 dark:border-accent-700 dark:bg-accent-950/40 dark:text-accent-200' => $step === $n,
                             'status-chip-neutral opacity-70' => $step !== $n && $step < $n,
@@ -23,13 +25,15 @@
                         </div>
                     @endforeach
                 </nav>
+                <p wire:loading.delay role="status" aria-live="polite" class="text-sm text-zinc-500">Updating deployment...</p>
 
                 @if ($step === 1)
                     <section class="card-surface overflow-hidden">
                         <div class="card-header">
                             <div>
-                                <h2 class="card-header-title">Where are they going?</h2>
-                                <p class="card-header-meta">Pick client, site, and optional post for {{ \Carbon\Carbon::parse($date)->format('M j, Y') }}.</p>
+                                <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Where are they going?</h2>
+                                <p class="card-header-meta">Pick a client, site, date, and optional post.</p>
+                                <p class="card-header-meta">Refreshing restarts at Site. Selections are not saved until you deploy.</p>
                             </div>
                         </div>
                         <div class="space-y-4 p-4">
@@ -65,22 +69,22 @@
                     <section class="card-surface overflow-hidden">
                         <div class="card-header">
                             <div>
-                                <h2 class="card-header-title">Which shift?</h2>
+                                <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Which shift?</h2>
                                 <p class="card-header-meta">Use an existing open shift or create one for this deployment.</p>
                             </div>
                         </div>
                         <div class="space-y-4 p-4">
                             <div class="flex flex-wrap gap-1.5">
-                                <button type="button" wire:click="$set('shift_mode', 'existing')" @class(['status-chip', $shift_mode === 'existing' ? 'border-accent-300 bg-accent-50 text-accent-800 dark:border-accent-700 dark:bg-accent-950/40 dark:text-accent-200' : 'status-chip-neutral'])>Existing shift</button>
-                                <button type="button" wire:click="$set('shift_mode', 'new')" @class(['status-chip', $shift_mode === 'new' ? 'border-accent-300 bg-accent-50 text-accent-800 dark:border-accent-700 dark:bg-accent-950/40 dark:text-accent-200' : 'status-chip-neutral'])>Create new shift</button>
+                                <button type="button" wire:click="$set('shift_mode', 'existing')" aria-pressed="{{ $shift_mode === 'existing' ? 'true' : 'false' }}" @class(['status-chip', $shift_mode === 'existing' ? 'border-accent-300 bg-accent-50 text-accent-800 dark:border-accent-700 dark:bg-accent-950/40 dark:text-accent-200' : 'status-chip-neutral'])>Existing shift</button>
+                                <button type="button" wire:click="$set('shift_mode', 'new')" aria-pressed="{{ $shift_mode === 'new' ? 'true' : 'false' }}" @class(['status-chip', $shift_mode === 'new' ? 'border-accent-300 bg-accent-50 text-accent-800 dark:border-accent-700 dark:bg-accent-950/40 dark:text-accent-200' : 'status-chip-neutral'])>Create new shift</button>
                             </div>
 
                             @if ($shift_mode === 'existing')
-                                <x-select wire:model="shift_id" label="Shift" required>
+                                <x-select wire:model.live="shift_id" label="Shift" required>
                                     <option value="">Select shift</option>
                                     @foreach ($shifts as $shift)
                                         @php
-                                            $staffed = $shift->assignments->filter(fn ($a) => ! in_array(\App\Support\EnumHelper::value($a->status), ['cancelled', 'no_show'], true))->count();
+                                            $staffed = $shift->activeAssignmentsCount();
                                         @endphp
                                         <option value="{{ $shift->id }}">
                                             {{ $shift->starts_at->format('H:i') }}–{{ $shift->ends_at->format('H:i') }}
@@ -91,14 +95,14 @@
                                     @endforeach
                                 </x-select>
                                 @if ($shifts->isEmpty())
-                                    <p class="text-xs text-amber-700 dark:text-amber-400">No shifts on this site for this date. Create a new shift instead.</p>
+                                    <p role="status" class="text-xs text-amber-700 dark:text-amber-400">No shifts need guards for this site, post, and date. Choose another date or post, or create a new shift.</p>
                                 @endif
                             @else
                                 <div class="grid gap-4 md:grid-cols-2">
-                                    <x-input wire:model="title" label="Shift title" required class="md:col-span-2" />
-                                    <x-input wire:model="starts_at" type="datetime-local" label="Starts" required />
-                                    <x-input wire:model="ends_at" type="datetime-local" label="Ends" required />
-                                    <x-input wire:model="required_guards" type="number" min="1" label="Required guards" />
+                                    <x-input wire:model.live="title" label="Shift title" required class="md:col-span-2" />
+                                    <x-input wire:model.live="starts_at" type="datetime-local" label="Starts" required />
+                                    <x-input wire:model.live="ends_at" type="datetime-local" label="Ends" required />
+                                    <x-input wire:model.live="required_guards" type="number" min="1" label="Required guards" />
                                 </div>
                             @endif
 
@@ -114,12 +118,12 @@
                     <section class="card-surface overflow-hidden">
                         <div class="card-header">
                             <div>
-                                <h2 class="card-header-title">Who is deploying?</h2>
-                                <p class="card-header-meta">Only verified active guards are listed.</p>
+                                <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Who is deploying?</h2>
+                                <p class="card-header-meta">Only verified active guards are listed. Availability, leave, and overlapping shifts are checked before continuing.</p>
                             </div>
                         </div>
                         <div class="space-y-4 p-4">
-                            <x-select wire:model="guard_id" label="Guard" required>
+                            <x-select wire:model.live="guard_id" label="Guard" required>
                                 <option value="">Select guard</option>
                                 @foreach ($guards as $guard)
                                     <option value="{{ $guard->id }}">
@@ -129,7 +133,6 @@
                                     </option>
                                 @endforeach
                             </x-select>
-                            @error('guard_id') <p class="form-error">{{ $message }}</p> @enderror
                             <div class="flex justify-between">
                                 <x-button variant="secondary" wire:click="previousStep">Back</x-button>
                                 <x-button wire:click="nextStep">Continue</x-button>
@@ -142,13 +145,13 @@
                     <section class="card-surface overflow-hidden">
                         <div class="card-header">
                             <div>
-                                <h2 class="card-header-title">Issue kit (optional)</h2>
-                                <p class="card-header-meta">Vehicles, motors, radios, and bodycams from Assets. Skip if none needed.</p>
+                                <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Issue kit (optional)</h2>
+                                <p class="card-header-meta">Selected kit is issued immediately when you deploy, even for a future or pending assignment. Skip if handover will happen later.</p>
                             </div>
                         </div>
                         <div class="space-y-4 p-4">
                             @if ($kitGrouped->isEmpty())
-                                <x-empty-state
+                                <x-empty-state class="scheduler-empty-state"
                                     compact
                                     title="No available kit assets"
                                     description="Add Vehicles, Motors, Radios, or Bodycams under Assets — or create fleet units (they sync into Assets)."
@@ -169,6 +172,7 @@
                                                     <button
                                                         type="button"
                                                         wire:click="toggleAsset({{ $asset->id }})"
+                                                        aria-pressed="{{ $checked ? 'true' : 'false' }}"
                                                         @class([
                                                             'rounded-md border px-3 py-2.5 text-left text-sm transition',
                                                             'border-accent-400 bg-accent-50 text-accent-900 dark:border-accent-600 dark:bg-accent-950/40 dark:text-accent-100' => $checked,
@@ -203,7 +207,7 @@
                     <section class="card-surface overflow-hidden">
                         <div class="card-header">
                             <div>
-                                <h2 class="card-header-title">Confirm deployment</h2>
+                                <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Confirm deployment</h2>
                                 <p class="card-header-meta">Review and deploy. Confirmation marks the assignment ready for the field.</p>
                             </div>
                         </div>
@@ -211,19 +215,23 @@
                             <dl class="grid gap-2 text-sm md:grid-cols-2">
                                 <div class="meta-tile">
                                     <dt class="meta-tile-label">Site</dt>
-                                    <dd class="meta-tile-value">{{ $sites->firstWhere('id', (int) $site_id)?->name }}</dd>
+                                    <dd class="meta-tile-value">{{ $shift_mode === 'existing' ? $selectedShift?->site?->name : $sites->firstWhere('id', (int) $site_id)?->name }}</dd>
                                 </div>
                                 <div class="meta-tile">
                                     <dt class="meta-tile-label">Post</dt>
-                                    <dd class="meta-tile-value">{{ $posts->firstWhere('id', (int) $site_post_id)?->name ?? 'Site-wide' }}</dd>
+                                    <dd class="meta-tile-value">{{ ($shift_mode === 'existing' ? $selectedShift?->sitePost?->name : $posts->firstWhere('id', (int) $site_post_id)?->name) ?? 'Site-wide' }}</dd>
                                 </div>
                                 <div class="meta-tile">
                                     <dt class="meta-tile-label">Shift</dt>
                                     <dd class="meta-tile-value">
                                         @if ($shift_mode === 'existing')
-                                            {{ $shifts->firstWhere('id', (int) $shift_id)?->title ?? 'Selected shift' }}
+                                            {{ $selectedShift?->title ?? 'No shift selected' }}
+                                            @if ($selectedShift)
+                                                <div class="tabular-nums text-xs">{{ $selectedShift->starts_at->format('M j, Y H:i') }} – {{ $selectedShift->ends_at->format('M j, Y H:i') }}</div>
+                                            @endif
                                         @else
-                                            {{ $title }} · <span class="tabular-nums">{{ \Carbon\Carbon::parse($starts_at)->format('H:i') }}–{{ \Carbon\Carbon::parse($ends_at)->format('H:i') }}</span>
+                                            {{ $title }}
+                                            <div class="tabular-nums text-xs">{{ \Carbon\Carbon::parse($starts_at)->format('M j, Y H:i') }} – {{ \Carbon\Carbon::parse($ends_at)->format('M j, Y H:i') }}</div>
                                         @endif
                                     </dd>
                                 </div>
@@ -242,14 +250,24 @@
                                     </dd>
                                 </div>
                             </dl>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                                @if ($shift_mode === 'existing' && $selectedShift)
+                                    {{ $selectedShift->activeAssignmentsCount() }} of {{ $selectedShift->required_guards }} positions currently filled.
+                                @else
+                                    This creates a shift requiring {{ $required_guards }} {{ $required_guards === 1 ? 'guard' : 'guards' }} and assigns one guard.
+                                @endif
+                                @if (count($selectedAssetIds))
+                                    Selected kit will be issued immediately.
+                                @endif
+                            </p>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="confirm_now" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20" />
+                                <input type="checkbox" wire:model.live="confirm_now" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20" />
                                 Confirm assignment now (skip pending confirmation)
                             </label>
                             @error('guard_id') <p class="form-error">{{ $message }}</p> @enderror
                             <div class="flex justify-between">
                                 <x-button variant="secondary" wire:click="previousStep">Back</x-button>
-                                <x-button wire:click="deploy">Deploy guard</x-button>
+                                <x-button wire:click="deploy" wire:target="deploy" loading-text="Creating assignment...">Deploy guard</x-button>
                             </div>
                         </div>
                     </section>
@@ -259,11 +277,28 @@
                     <section class="card-surface overflow-hidden border-emerald-200/90 dark:border-emerald-900/50">
                         <div class="card-header border-emerald-100 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/30">
                             <div>
-                                <h2 class="card-header-title text-emerald-900 dark:text-emerald-100">Deployed</h2>
+                                <h2 class="card-header-title text-emerald-900 dark:text-emerald-100" tabindex="-1" data-deploy-heading>
+                                    {{ \App\Support\EnumHelper::is($assignment->status, 'confirmed') ? 'Assignment confirmed' : 'Awaiting confirmation' }}
+                                </h2>
                                 <p class="card-header-meta text-emerald-800/90 dark:text-emerald-300">{{ $assignment->assignedGuard?->full_name }} → {{ $assignment->shift?->site?->name }}</p>
                             </div>
                         </div>
                         <div class="space-y-4 p-4">
+                            @php
+                                $filled = $assignment->shift->activeAssignmentsCount();
+                                $remaining = max(0, $assignment->shift->required_guards - $filled);
+                            @endphp
+                            <p role="status" class="text-sm">
+                                {{ $filled }} of {{ $assignment->shift->required_guards }} positions filled.
+                                @if ($remaining)
+                                    {{ $remaining }} {{ $remaining === 1 ? 'position still needs a guard' : 'positions still need guards' }}.
+                                @else
+                                    All positions are filled.
+                                @endif
+                            </p>
+                            @if (\App\Support\EnumHelper::is($assignment->status, 'assigned'))
+                                <p class="text-sm text-zinc-600 dark:text-zinc-400">Use the deployment sheet to review and confirm this assignment.</p>
+                            @endif
                             @if ($assignment->equipmentAssignments->isNotEmpty())
                                 <div class="meta-tile">
                                     <dt class="meta-tile-label">Kit issued</dt>

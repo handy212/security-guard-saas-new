@@ -273,6 +273,8 @@ class DispatcherBoard extends Component
                         ->orWhere('description', 'like', '%'.$this->search.'%');
                 });
             })
+            // Queue ordering rule: most urgent priority first, then newest. Covered by DispatchSystemTest.
+            ->orderByRaw("case priority when 'critical' then 0 when 'high' then 1 when 'normal' then 2 else 3 end")
             ->latest()
             ->limit(50)
             ->get();
@@ -328,6 +330,8 @@ class DispatcherBoard extends Component
             'critical' => DispatchEvent::where('tenant_id', $tenantId)->where('priority', DispatchPriority::CRITICAL)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])->count(),
             'en_route' => DispatchEvent::where('tenant_id', $tenantId)->where('status', DispatchStatus::EN_ROUTE)->count(),
             'sos' => $sosAlerts->where('status', 'open')->count(),
+            'all' => DispatchEvent::where('tenant_id', $tenantId)->count(),
+            'closed' => DispatchEvent::where('tenant_id', $tenantId)->whereIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])->count(),
         ];
 
         return view('livewire.dispatch.dispatcher-board', [

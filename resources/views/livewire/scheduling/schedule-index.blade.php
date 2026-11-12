@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell
+    <x-page-shell :embedded="$embedded"
         title="Day roster"
         description="Create shifts, assign guards, and staff the selected day."
         :breadcrumbs="[
@@ -14,7 +14,9 @@
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
@@ -29,42 +31,41 @@
                 <div class="flex flex-wrap gap-1.5">
                     @if ($stats['pending_confirmations'])
                         <a href="{{ route('schedules.shift-status') }}" class="status-chip status-chip-warning">
-                            <span class="tabular-nums font-semibold">{{ $stats['pending_confirmations'] }}</span> confirmations
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_confirmations'] }}</span> {{ $stats['pending_confirmations'] === 1 ? 'confirmation' : 'confirmations' }}
                         </a>
                     @endif
                     @if ($stats['pending_bids'])
                         <a href="{{ route('schedules.open-shifts') }}" class="status-chip status-chip-info">
-                            <span class="tabular-nums font-semibold">{{ $stats['pending_bids'] }}</span> open-shift bids
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_bids'] }}</span> {{ $stats['pending_bids'] === 1 ? 'open-shift bid' : 'open-shift bids' }}
                         </a>
                     @endif
                     @if ($stats['pending_swaps'])
                         <a href="{{ route('schedules.shift-exchange') }}" class="status-chip status-chip-info">
-                            <span class="tabular-nums font-semibold">{{ $stats['pending_swaps'] }}</span> swap requests
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_swaps'] }}</span> {{ $stats['pending_swaps'] === 1 ? 'swap request' : 'swap requests' }}
                         </a>
                     @endif
                     @if ($stats['pending_leave'])
                         <a href="{{ route('schedules.time-off') }}" class="status-chip status-chip-neutral">
-                            <span class="tabular-nums font-semibold">{{ $stats['pending_leave'] }}</span> leave requests
+                            <span class="tabular-nums font-semibold">{{ $stats['pending_leave'] }}</span> {{ $stats['pending_leave'] === 1 ? 'leave request' : 'leave requests' }}
                         </a>
                     @endif
                 </div>
             @endif
 
-            <x-page-toolbar>
-                <x-slot:controls>
-                    <div class="date-nav">
-                        <x-button type="button" variant="secondary" size="sm" wire:click="previousDay">Previous</x-button>
-                        <x-button type="button" variant="secondary" size="sm" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
-                        <x-button type="button" variant="secondary" size="sm" wire:click="nextDay">Next</x-button>
-                        <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
-                    </div>
-                </x-slot:controls>
-            </x-page-toolbar>
+            <div class="flex flex-wrap items-center justify-between gap-3" aria-label="Roster date navigation">
+                <h2 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{{ \Carbon\Carbon::parse($date)->format('l, M j, Y') }}</h2>
+                <div class="date-nav">
+                    <x-button type="button" variant="secondary" size="sm" wire:click="previousDay" aria-label="Previous day">Previous</x-button>
+                    <x-button type="button" variant="secondary" size="sm" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
+                    <x-button type="button" variant="secondary" size="sm" wire:click="nextDay" aria-label="Next day">Next</x-button>
+                    <x-input wire:model.live="date" type="date" aria-label="Roster date" class="w-auto text-sm" />
+                </div>
+            </div>
 
             <div class="grid gap-3">
                 @forelse($shifts as $shift)
                     @php
-                        $activeAssignments = $shift->activeAssignments();
+                        $activeAssignments = $shift->activeAssignments()->unique('guard_id');
                         $staffed = $activeAssignments->count() >= $shift->required_guards;
                     @endphp
                     <article @class([
@@ -82,7 +83,7 @@
                                     @if ($shift->sitePost)
                                         · {{ $shift->sitePost->name }}
                                     @endif
-                                    · {{ $shift->starts_at?->format('M j, H:i') }} – {{ $shift->ends_at?->format('H:i') }}
+                                    · {{ $shift->starts_at?->format('M j, H:i') }} → {{ $shift->ends_at?->format($shift->starts_at?->isSameDay($shift->ends_at) ? 'H:i' : 'M j, H:i') }}
                                 </p>
                                 @if ($shift->notes)
                                     <p class="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{{ $shift->notes }}</p>
@@ -104,13 +105,47 @@
                             @if ($activeAssignments->isNotEmpty())
                                 <div>
                                     <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Assigned</p>
-                                    <div class="flex flex-wrap gap-1.5">
+                                    <div class="grid gap-2">
                                         @foreach ($activeAssignments as $assignment)
-                                            <span class="guard-chip">
-                                                <span class="font-medium text-zinc-800 dark:text-zinc-100">{{ $assignment->assignedGuard?->full_name ?? 'Guard' }}</span>
-                                                <x-badge :status="$assignment->status" />
-                                                <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift?" class="ml-0.5 text-zinc-400 transition hover:text-red-600" title="Unassign" aria-label="Unassign">×</button>
-                                            </span>
+                                            <div class="flex min-w-0 flex-col gap-3 rounded-md border border-zinc-200/90 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/60 sm:flex-row sm:items-center sm:justify-between">
+                                                <div class="flex min-w-0 flex-wrap items-center gap-2 text-xs">
+                                                    <span class="font-medium text-zinc-800 dark:text-zinc-100">{{ $assignment->assignedGuard?->full_name ?? 'Guard' }}</span>
+                                                    @php
+                                                        $confirmation = $assignment->confirmations->sortByDesc('created_at')->first();
+                                                        $attendance = $assignment->attendanceLogs->sortByDesc('recorded_at')->first();
+                                                        $confirmationStatus = $confirmation?->status?->value ?? $confirmation?->status;
+                                                        $attendanceStatus = (string) ($attendance?->status?->value ?? $attendance?->status ?? '');
+                                                        $attendanceLabel = match ($attendanceStatus) {
+                                                            'late' => 'Late arrival',
+                                                            'no_show' => 'Absent',
+                                                            'early_leave' => 'Early leave',
+                                                            'on_time' => 'On time',
+                                                            'scheduled' => 'Scheduled',
+                                                            'completed' => 'Completed',
+                                                            '' => 'No attendance recorded',
+                                                            default => str_replace('_', ' ', ucfirst($attendanceStatus)),
+                                                        };
+                                                    @endphp
+                                                    @if ($confirmationStatus !== ($assignment->status?->value ?? $assignment->status))
+                                                        <x-badge :status="$assignment->status" />
+                                                    @endif
+                                                    <span @class(['status-chip', 'status-chip-warning' => $confirmationStatus === 'pending', 'status-chip-info' => $confirmationStatus === 'confirmed', 'status-chip-neutral' => ! in_array($confirmationStatus, ['pending', 'confirmed'], true)])>
+                                                        {{ $confirmationStatus === 'pending' ? 'Confirmation pending' : ($confirmationStatus ? ucfirst($confirmationStatus) : 'Confirmation not recorded') }}
+                                                    </span>
+                                                    <span @class(['status-chip', 'status-chip-warning' => in_array($attendanceStatus, ['late', 'early_leave'], true), 'status-chip-warning' => $attendanceStatus === 'no_show', 'status-chip-info' => in_array($attendanceStatus, ['on_time', 'completed'], true), 'status-chip-neutral' => ! in_array($attendanceStatus, ['late', 'early_leave', 'no_show', 'on_time', 'completed'], true)])>
+                                                        Attendance: {{ $attendanceLabel }}
+                                                    </span>
+                                                </div>
+                                                <div class="flex shrink-0 flex-wrap items-center gap-3">
+                                                    @can('guards.manage')
+                                                        @if ($assignment->assignedGuard)
+                                                            <a href="{{ route('guards.show', ['guard' => $assignment->assignedGuard, 'tab' => 'qualifications']) }}" class="page-link text-xs" wire:navigate aria-label="View qualifications for {{ $assignment->assignedGuard->full_name }}">Qualifications</a>
+                                                            <a href="{{ route('guards.show', ['guard' => $assignment->assignedGuard, 'tab' => 'availability']) }}" class="page-link text-xs" wire:navigate aria-label="View availability for {{ $assignment->assignedGuard->full_name }}">Availability</a>
+                                                        @endif
+                                                    @endcan
+                                                    <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift? Issued kit stays with this guard until its physical return is recorded in Assets." class="text-xs text-zinc-500 transition hover:text-red-600 dark:text-zinc-400" title="Unassign" aria-label="Unassign {{ $assignment->assignedGuard?->full_name ?? 'guard' }}">Remove</button>
+                                                </div>
+                                            </div>
                                         @endforeach
                                     </div>
                                 </div>
@@ -124,7 +159,7 @@
                                         Needs {{ $shift->required_guards - $activeAssignments->count() }} more guard{{ ($shift->required_guards - $activeAssignments->count()) === 1 ? '' : 's' }}
                                     </p>
                                     <div class="assign-panel-actions">
-                                        <x-select wire:model="pendingGuard.{{ $shift->id }}" label="Assign guard" class="sm:max-w-xs sm:flex-1">
+                                        <x-select wire:model.live="pendingGuard.{{ $shift->id }}" label="Assign guard" class="sm:max-w-xs sm:flex-1">
                                             <option value="">Select guard</option>
                                             @foreach ($guards as $guard)
                                                 <option value="{{ $guard->id }}">
@@ -154,7 +189,7 @@
                         </div>
                     </article>
                 @empty
-                    <x-empty-state title="No shifts" description="Create a shift for this day after you have clients, sites, and guards.">
+                    <x-empty-state class="scheduler-empty-state" title="No shifts" description="Create a shift for this day after you have clients, sites, and guards.">
                         <x-slot:actions>
                             <x-button size="sm" wire:click="openForm">Create shift</x-button>
                             <x-button size="sm" variant="secondary" :href="route('schedules.templates')">Templates</x-button>
@@ -178,7 +213,7 @@
             width="lg"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingShiftId ? 'Save changes' : 'Create shift'" close-method="closeDrawer">
+            <x-drawer-form wire:submit="save" :submit-label="$editingShiftId ? 'Save changes' : 'Create shift'" close-method="closeDrawer">
                 <x-form-section title="Location">
                     <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
                         <option value="">Select client</option>
@@ -192,7 +227,7 @@
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.site_post_id" label="Post" :disabled="! $form['site_id']">
+                    <x-select wire:model.live="form.site_post_id" label="Post" :disabled="! $form['site_id']">
                         <option value="">None</option>
                         @foreach ($postsForSite as $post)
                             <option value="{{ $post->id }}">{{ $post->name }}</option>
@@ -201,16 +236,16 @@
                 </x-form-section>
 
                 <x-form-section title="Shift window">
-                    <x-input wire:model="form.title" label="Title *" class="sm:col-span-2" />
-                    <x-input wire:model="form.starts_at" label="Starts *" type="datetime-local" />
-                    <x-input wire:model="form.ends_at" label="Ends *" type="datetime-local" />
-                    <x-input wire:model="form.required_guards" label="Required guards" type="number" min="1" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.title" label="Title *" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.starts_at" label="Starts *" type="datetime-local" />
+                    <x-input wire:model.live="form.ends_at" label="Ends *" type="datetime-local" />
+                    <x-input wire:model.live="form.required_guards" label="Required guards" type="number" min="1" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Billing" description="Optional — used for client charging and payroll export.">
-                    <x-input wire:model="form.billing_rate" label="Shift charge" type="number" step="0.01" hint="Fixed amount billed for this shift" />
-                    <x-input wire:model="form.billable_hours" label="Billable hours" type="number" step="0.25" min="0" hint="Optional override for payroll export" />
-                    <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.billing_rate" label="Shift charge" type="number" step="0.01" hint="Fixed amount billed for this shift" />
+                    <x-input wire:model.live="form.billable_hours" label="Billable hours" type="number" step="0.25" min="0" hint="Optional override for payroll export" />
+                    <x-textarea wire:model.live="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

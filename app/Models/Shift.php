@@ -57,19 +57,19 @@ class Shift extends Model
 
     public function activeAssignmentsCount(): int
     {
-        return $this->activeAssignments()->count();
+        return $this->activeAssignments()->unique('guard_id')->count();
     }
 
     public function activeAssignments(): Collection
     {
         if (! $this->relationLoaded('assignments')) {
             return $this->assignments()
-                ->whereNotIn('status', ['cancelled', 'completed'])
+                ->whereNotIn('status', ['cancelled', 'completed', 'no_show'])
                 ->get();
         }
 
         return $this->assignments
-            ->filter(fn (ShiftAssignment $assignment) => EnumHelper::isNotOneOf($assignment->status, ['cancelled', 'completed']))
+            ->filter(fn (ShiftAssignment $assignment) => EnumHelper::isNotOneOf($assignment->status, ['cancelled', 'completed', 'no_show']))
             ->values();
     }
 }

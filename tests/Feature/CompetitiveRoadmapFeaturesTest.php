@@ -98,7 +98,7 @@ class CompetitiveRoadmapFeaturesTest extends TestCase
         ];
 
         foreach ($routes as $route) {
-            $this->actingAs($this->admin)->get($route)->assertOk();
+            $this->actingAs($this->admin)->followingRedirects()->get($route)->assertOk();
         }
     }
 

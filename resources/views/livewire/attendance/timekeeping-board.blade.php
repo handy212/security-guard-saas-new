@@ -13,13 +13,13 @@
 
         <x-form-card title="Log break">
             <form wire:submit="saveBreak" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <x-input wire:model="breakForm.attendance_log_id" label="Attendance log ID" required />
-                <x-select wire:model="breakForm.type" label="Break type">
+                <x-input wire:model.live="breakForm.attendance_log_id" label="Attendance log ID" required />
+                <x-select wire:model.live="breakForm.type" label="Break type">
                     <option value="meal">Meal</option>
                     <option value="rest">Rest</option>
                 </x-select>
-                <x-input wire:model="breakForm.started_at" label="Started at" type="datetime-local" required />
-                <x-input wire:model="breakForm.ended_at" label="Ended at" type="datetime-local" />
+                <x-input wire:model.live="breakForm.started_at" label="Started at" type="datetime-local" required />
+                <x-input wire:model.live="breakForm.ended_at" label="Ended at" type="datetime-local" />
                 <div class="xl:col-span-4"><x-button type="submit">Save break</x-button></div>
             </form>
         </x-form-card>

@@ -18,6 +18,8 @@ use RuntimeException;
 
 class DeploymentSheet extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     public string $date = '';
 
     public string $siteFilter = 'all';
@@ -173,13 +175,7 @@ class DeploymentSheet extends Component
             ->whereNotIn('status', ['cancelled', 'completed'])
             ->when($this->siteFilter !== 'all', fn ($q) => $q->where('site_id', $this->siteFilter))
             ->get()
-            ->filter(function (Shift $shift) {
-                $staffed = $shift->assignments
-                    ->filter(fn ($a) => ! in_array(EnumHelper::value($a->status), ['cancelled', 'no_show'], true))
-                    ->count();
-
-                return $staffed < (int) $shift->required_guards;
-            })
+            ->filter(fn (Shift $shift) => $shift->activeAssignmentsCount() < (int) $shift->required_guards)
             ->values();
 
         $sites = Site::where('tenant_id', $tenantId)->orderBy('name')->get();

@@ -13,6 +13,8 @@ use Livewire\Component;
 
 class ShiftTemplateIndex extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     use HasFormDrawer;
 
     public ?int $editingTemplateId = null;
@@ -146,7 +148,12 @@ class ShiftTemplateIndex extends Component
         $count = $service->applyTemplate($template, $weekStart);
         session()->flash('status', "{$count} shifts created from template.");
 
-        $this->redirect(route('schedules.index', ['date' => $weekStart->toDateString()]), navigate: true);
+        $rosterDate = $weekStart->copy()->addDays((int) $template->items->min('day_of_week'))->toDateString();
+        if ($this->embedded) {
+            $this->dispatch('scheduler-open-panel', tab: 'roster', date: $rosterDate);
+            return;
+        }
+        $this->redirect(route('schedules.index', ['date' => $rosterDate]), navigate: true);
     }
 
     public function render()

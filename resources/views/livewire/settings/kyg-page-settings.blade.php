@@ -19,22 +19,22 @@
             <x-section-card title="Public page content" description="Copy shown when someone scans a verified guard QR code.">
                 <form id="kyg-settings-form" wire:submit="save" class="space-y-5">
                     <x-form-section title="Page copy">
-                        <x-input wire:model="subtitle" label="Page subtitle *" class="sm:col-span-2" />
-                        <x-textarea wire:model="accessGuidance" label="Client access guidance *" rows="3" class="sm:col-span-2" />
-                        <x-textarea wire:model="securityNotice" label="Security notice (footer) *" rows="3" class="sm:col-span-2" />
-                        <x-input wire:model="verifiedByLabel" label="Assignment verified-by label *" class="sm:col-span-2" />
+                        <x-input wire:model.live="subtitle" label="Page subtitle *" class="sm:col-span-2" />
+                        <x-textarea wire:model.live="accessGuidance" label="Client access guidance *" rows="3" class="sm:col-span-2" />
+                        <x-textarea wire:model.live="securityNotice" label="Security notice (footer) *" rows="3" class="sm:col-span-2" />
+                        <x-input wire:model.live="verifiedByLabel" label="Assignment verified-by label *" class="sm:col-span-2" />
                     </x-form-section>
 
                     <x-form-section
                         title="Appearance checklist"
                         description="Uniform / ID standards only (one per line). Radios, bodycams, and other kit appear automatically from assets issued on the current shift."
                     >
-                        <x-textarea wire:model="expectedAppearanceText" label="Expected appearance" rows="4" class="sm:col-span-2 font-mono text-sm" placeholder="Branded uniform&#10;Visible staff ID" />
+                        <x-textarea wire:model.live="expectedAppearanceText" label="Expected appearance" rows="4" class="sm:col-span-2 font-mono text-sm" placeholder="Branded uniform&#10;Visible staff ID" />
                     </x-form-section>
 
                     <x-form-section title="Report concern contacts" description="Optional — falls back to ID card contact details.">
-                        <x-input wire:model="reportConcernPhone" label="Phone" placeholder="Optional" />
-                        <x-input wire:model="reportConcernEmail" type="email" label="Email" placeholder="Optional" />
+                        <x-input wire:model.live="reportConcernPhone" label="Phone" placeholder="Optional" />
+                        <x-input wire:model.live="reportConcernEmail" type="email" label="Email" placeholder="Optional" />
                     </x-form-section>
 
                     <p class="text-xs text-zinc-500 dark:text-zinc-400">

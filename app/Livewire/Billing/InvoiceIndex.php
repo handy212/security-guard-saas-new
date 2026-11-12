@@ -264,6 +264,8 @@ class InvoiceIndex extends Component
                 'sent' => (clone $all)->where('status', 'sent')->count(),
                 'paid' => (clone $all)->where('status', 'paid')->count(),
                 'partial' => (clone $all)->where('status', 'partial')->count(),
+                'void' => (clone $all)->where('status', 'void')->count(),
+                'overdue' => (clone $all)->where('status', 'overdue')->count(),
                 'amount_due' => $open->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0))),
             ],
         ])->layout('layouts.app');

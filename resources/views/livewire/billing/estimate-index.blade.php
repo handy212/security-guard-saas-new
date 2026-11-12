@@ -130,8 +130,8 @@
         >
             <x-drawer-form wire:submit="sendEstimate" submit-label="Send email" close-method="closeSend" target="sendEstimate">
                 <x-form-section title="Recipients" description="Comma-separated emails.">
-                    <x-textarea wire:model="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
-                    <x-textarea wire:model="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

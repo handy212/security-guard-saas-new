@@ -93,6 +93,8 @@ class GuardProfile extends Component
 
     public ?int $editingTrainingId = null;
 
+    public ?string $qualificationDrawer = null;
+
     public function mount(Guard $guard): void
     {
         abort_unless(auth()->user()->can('guards.manage'), 403);
@@ -109,7 +111,13 @@ class GuardProfile extends Component
 
     public function setTab(string $tab): void
     {
+        $this->closeQualificationDrawer();
         $this->activeTab = $this->resolveTab($tab);
+    }
+
+    public function updatedActiveTab(string $tab): void
+    {
+        $this->setTab($tab);
     }
 
     public function setIdCardPreviewSide(string $side): void
@@ -379,6 +387,23 @@ class GuardProfile extends Component
         $this->previewDocumentId = null;
     }
 
+    public function openQualificationDrawer(string $section): void
+    {
+        $this->authorize('update', $this->guard);
+        abort_unless(in_array($section, ['certification', 'skill', 'training'], true), 404);
+        $this->closeQualificationDrawer();
+        $this->qualificationDrawer = $section;
+    }
+
+    public function closeQualificationDrawer(): void
+    {
+        $this->qualificationDrawer = null;
+        $this->resetValidation();
+        $this->certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
+        $this->skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
+        $this->resetTrainingForm();
+    }
+
     public function saveCertification(): void
     {
         $this->authorize('update', $this->guard);
@@ -392,7 +417,7 @@ class GuardProfile extends Component
         $data['expires_at'] = $data['expires_at'] ?: null;
 
         GuardCertification::create($data + ['tenant_id' => TenantContext::id(), 'guard_id' => $this->guard->id, 'status' => 'valid']);
-        $this->certForm = ['name' => '', 'issuer' => '', 'issued_at' => '', 'expires_at' => ''];
+        $this->closeQualificationDrawer();
         $this->reloadGuard();
         session()->flash('status', 'Certification added.');
     }
@@ -419,7 +444,7 @@ class GuardProfile extends Component
             'tenant_id' => TenantContext::id(),
             'guard_id' => $this->guard->id,
         ]);
-        $this->skillForm = ['skill' => '', 'skill_custom' => '', 'level' => 'basic'];
+        $this->closeQualificationDrawer();
         $this->reloadGuard();
         session()->flash('status', 'Skill added.');
     }
@@ -457,7 +482,7 @@ class GuardProfile extends Component
             session()->flash('status', 'Training record added.');
         }
 
-        $this->resetTrainingForm();
+        $this->closeQualificationDrawer();
         $this->reloadGuard();
     }
 
@@ -465,10 +490,12 @@ class GuardProfile extends Component
     {
         $this->authorize('update', $this->guard);
         $record = TrainingRecord::query()->where('guard_id', $this->guard->id)->findOrFail($id);
+        $this->closeQualificationDrawer();
+        $this->qualificationDrawer = 'training';
         $this->editingTrainingId = $record->id;
         $this->trainingForm = [
-            'course_name' => $record->course_name,
-            'course_custom' => '',
+            'course_name' => in_array($record->course_name, config('guard_hr.training_courses', []), true) ? $record->course_name : '_other',
+            'course_custom' => in_array($record->course_name, config('guard_hr.training_courses', []), true) ? '' : $record->course_name,
             'provider' => $record->provider ?? '',
             'completed_on' => $record->completed_on?->format('Y-m-d') ?? '',
             'expires_on' => $record->expires_on?->format('Y-m-d') ?? '',

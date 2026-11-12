@@ -11,14 +11,19 @@ class KnowYourGuardQueue extends Component
 {
     use AuthorizesModuleAccess, WithPagination;
 
+    public bool $embedded = false;
+
     public string $search = '';
 
     public string $statusFilter = 'queue';
 
-    protected $queryString = [
-        'search' => ['except' => ''],
-        'statusFilter' => ['except' => 'queue', 'as' => 'status'],
-    ];
+    protected function queryString(): array
+    {
+        return $this->embedded ? [] : [
+            'search' => ['except' => ''],
+            'statusFilter' => ['except' => 'queue', 'as' => 'status'],
+        ];
+    }
 
     public function mount(): void
     {
@@ -27,12 +32,12 @@ class KnowYourGuardQueue extends Component
 
     public function updatingSearch(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'verificationPage' : 'page');
     }
 
     public function updatingStatusFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'verificationPage' : 'page');
     }
 
     public function render()
@@ -62,7 +67,7 @@ class KnowYourGuardQueue extends Component
             }))
             ->orderByRaw("CASE verification_status WHEN 'pending' THEN 1 WHEN 'unverified' THEN 2 WHEN 'suspended' THEN 3 WHEN 'verified' THEN 4 ELSE 5 END")
             ->orderBy('first_name')
-            ->paginate(15);
+            ->paginate(15, ['*'], $this->embedded ? 'verificationPage' : 'page');
 
         return view('livewire.guards.know-your-guard-queue', [
             'guards' => $guards,

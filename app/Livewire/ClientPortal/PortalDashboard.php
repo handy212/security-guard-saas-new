@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ClientPortal;
 
+use App\Models\ClientReportApproval;
 use App\Models\CustomReportSubmission;
 use App\Models\DailyActivityReport;
 use App\Models\Incident;
@@ -41,8 +42,23 @@ class PortalDashboard extends Component
             ->when($clientId, fn ($q) => $q->where('client_account_id', $clientId))
             ->count();
 
+        $pendingApprovals = ClientReportApproval::with(['clientAccount', 'approvable'])
+            ->where('tenant_id', $tenantId)
+            ->when($clientId, fn ($q) => $q->where('client_account_id', $clientId))
+            ->where('status', 'pending')
+            ->oldest()
+            ->limit(5)
+            ->get();
+
+        $pendingApprovalCount = ClientReportApproval::where('tenant_id', $tenantId)
+            ->when($clientId, fn ($q) => $q->where('client_account_id', $clientId))
+            ->where('status', 'pending')
+            ->count();
+
         return view('livewire.client-portal.portal-dashboard', [
             'clientAccount' => $clientAccount,
+            'pendingApprovals' => $pendingApprovals,
+            'pendingApprovalCount' => $pendingApprovalCount,
             'shifts' => $shiftQuery->latest()->limit(10)->get(),
             'reports' => $reportQuery->latest()->limit(10)->get(),
             'incidents' => $incidentQuery->latest()->limit(10)->get(),

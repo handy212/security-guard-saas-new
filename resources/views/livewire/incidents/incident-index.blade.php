@@ -222,7 +222,7 @@
         <x-drawer :title="$editingId ? 'Edit incident' : 'Report incident'" description="Capture what happened so ops can review and resolve." width="lg">
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Save changes' : 'Submit report'">
                 <x-form-section title="Where">
-                    <x-select wire:model="form.site_id" label="Site" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_id" label="Site" class="sm:col-span-2">
                         <option value="">Select site</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -230,20 +230,20 @@
                     </x-select>
                 </x-form-section>
                 <x-form-section title="Incident">
-                    <x-input wire:model="form.title" label="Title" class="sm:col-span-2" />
-                    <x-select wire:model="form.type" label="Type">
+                    <x-input wire:model.live="form.title" label="Title" class="sm:col-span-2" />
+                    <x-select wire:model.live="form.type" label="Type">
                         <option value="">Select type</option>
                         @foreach($incidentTypes as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.severity" label="Severity">
+                    <x-select wire:model.live="form.severity" label="Severity">
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                         <option value="critical">Critical</option>
                     </x-select>
-                    <x-textarea wire:model="form.description" label="Description" rows="4" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Description" rows="4" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -252,13 +252,13 @@
     @if ($showMediaForm)
         <x-drawer title="Attach media" width="md" close-method="closeMediaDrawer">
             <x-drawer-form wire:submit="uploadMedia" submit-label="Upload" close-method="closeMediaDrawer" target="uploadMedia">
-                <x-select wire:model="uploadIncidentId" label="Incident" class="sm:col-span-2">
+                <x-select wire:model.live="uploadIncidentId" label="Incident" class="sm:col-span-2">
                     <option value="">Select incident</option>
                     @foreach($allIncidentsForMedia as $incident)
                         <option value="{{ $incident->id }}">#{{ $incident->id }} — {{ $incident->title }}</option>
                     @endforeach
                 </x-select>
-                <x-file-input wire:model="mediaFile" label="Media file" class="sm:col-span-2" />
+                <x-file-input wire:model.live="mediaFile" label="Media file" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
     @endif
@@ -273,7 +273,7 @@
             <x-drawer-form wire:submit="submitResolution" :submit-label="$resolutionAction === 'reject' ? 'Reject' : 'Close incident'" close-method="closeResolution">
                 <x-form-section :title="$resolutionAction === 'reject' ? 'Rejection' : 'Resolution'">
                     <x-textarea
-                        wire:model="resolutionNotes"
+                        wire:model.live="resolutionNotes"
                         :label="$resolutionAction === 'reject' ? 'Rejection reason *' : 'Resolution notes *'"
                         rows="5"
                         class="sm:col-span-2"

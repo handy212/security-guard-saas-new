@@ -15,17 +15,17 @@ class SchedulingService
     public function overviewStats(int $tenantId, ?string $date = null): array
     {
         $date = $date ?? today()->toDateString();
-        $shifts = Shift::where('tenant_id', $tenantId)->whereDate('starts_at', $date)->with('assignments')->get();
+        $shifts = Shift::where('tenant_id', $tenantId)->whereDate('starts_at', $date)->where('status', '!=', 'cancelled')->with('assignments')->get();
 
         return [
             'shifts_today' => $shifts->count(),
-            'open_shifts' => $this->openShifts($tenantId, $date)->count(),
+            'open_shifts' => $shifts->filter(fn (Shift $s) => $s->status->value !== 'completed' && $this->activeAssignmentCount($s) < $s->required_guards)->count(),
             'staffed' => $shifts->filter(fn (Shift $s) => $this->activeAssignmentCount($s) >= $s->required_guards)->count(),
             'pending_confirmations' => ShiftConfirmation::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'pending_leave' => LeaveRequest::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'pending_swaps' => ShiftSwapRequest::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'pending_bids' => OpenShiftBid::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
-            'on_duty' => AttendanceLog::where('tenant_id', $tenantId)->whereNull('clock_out_at')->count(),
+            'on_duty' => AttendanceLog::where('tenant_id', $tenantId)->whereNotNull('clock_in_at')->whereNull('clock_out_at')->whereDate('clock_in_at', $date)->count(),
         ];
     }
 

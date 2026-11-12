@@ -19,3 +19,4 @@ storage/logs/laravel.log
 storage/app/private/livewire-tmp/iM3j9tOJbGAwucJFzU6gwpOIej89qO-metacmVzcG9uc2Utb25lLWJsYWNrLTEwMjR4NDA0LmpwZw==-.jpg
 storage/logs/laravel.log
 /storage/*
+/tasks/*

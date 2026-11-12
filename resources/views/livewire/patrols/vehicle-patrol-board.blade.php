@@ -77,9 +77,9 @@
 
     @if ($showStartForm)
         <x-drawer title="Start trip" description="Pick a fleet unit, optional driver, and in-progress patrol session." width="lg" close-method="closeStartForm">
-            <x-drawer-form wire:submit.prevent="startTrip" submit-label="Start trip" close-method="closeStartForm" target="startTrip">
+            <x-drawer-form wire:submit="startTrip" submit-label="Start trip" close-method="closeStartForm" target="startTrip">
                 <x-form-section title="Assignment">
-                    <x-select wire:model="form.vehicle_id" label="Vehicle / motor *" class="sm:col-span-2">
+                    <x-select wire:model.live="form.vehicle_id" label="Vehicle / motor *" class="sm:col-span-2">
                         <option value="">Select vehicle</option>
                         @foreach ($availableFleet as $vehicle)
                             <option value="{{ $vehicle->id }}">
@@ -88,13 +88,13 @@
                             </option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.guard_id" label="Driver (guard)">
+                    <x-select wire:model.live="form.guard_id" label="Driver (guard)">
                         <option value="">Optional</option>
                         @foreach ($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.patrol_session_id" label="Patrol session">
+                    <x-select wire:model.live="form.patrol_session_id" label="Patrol session">
                         <option value="">None yet</option>
                         @foreach ($sessions as $session)
                             <option value="{{ $session->id }}">
@@ -104,9 +104,9 @@
                     </x-select>
                 </x-form-section>
                 <x-form-section title="Trip meters">
-                    <x-input wire:model="form.start_odometer" label="Start odometer" type="number" hint="Uses fleet odometer if blank" />
-                    <x-input wire:model="form.fuel_litres" label="Fuel (litres)" type="number" step="0.1" />
-                    <x-input wire:model="form.fuel_cost" label="Fuel cost" type="number" step="0.01" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.start_odometer" label="Start odometer" type="number" hint="Uses fleet odometer if blank" />
+                    <x-input wire:model.live="form.fuel_litres" label="Fuel (litres)" type="number" step="0.1" />
+                    <x-input wire:model.live="form.fuel_cost" label="Fuel cost" type="number" step="0.01" class="sm:col-span-2" />
                 </x-form-section>
                 @if ($availableFleet->isEmpty())
                     <p class="sm:col-span-2 text-xs text-amber-700 dark:text-amber-400">
@@ -120,17 +120,17 @@
 
     @if ($endingId)
         <x-drawer title="End trip" description="Record end odometer and optional fuel before closing the trip." width="md" close-method="closeEndForm">
-            <x-drawer-form wire:submit.prevent="endTrip" submit-label="Complete trip" close-method="closeEndForm" target="endTrip">
+            <x-drawer-form wire:submit="endTrip" submit-label="Complete trip" close-method="closeEndForm" target="endTrip">
                 <x-form-section title="Close out">
-                    <x-input wire:model="endForm.end_odometer" label="End odometer *" type="number" class="sm:col-span-2" />
-                    <x-select wire:model="endForm.patrol_session_id" label="Link session" class="sm:col-span-2">
+                    <x-input wire:model.live="endForm.end_odometer" label="End odometer *" type="number" class="sm:col-span-2" />
+                    <x-select wire:model.live="endForm.patrol_session_id" label="Link session" class="sm:col-span-2">
                         <option value="">None</option>
                         @foreach ($sessions as $session)
                             <option value="{{ $session->id }}">#{{ $session->id }} · {{ $session->route?->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="endForm.fuel_litres" label="Fuel (litres)" type="number" step="0.1" />
-                    <x-input wire:model="endForm.fuel_cost" label="Fuel cost" type="number" step="0.01" />
+                    <x-input wire:model.live="endForm.fuel_litres" label="Fuel (litres)" type="number" step="0.1" />
+                    <x-input wire:model.live="endForm.fuel_cost" label="Fuel cost" type="number" step="0.01" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

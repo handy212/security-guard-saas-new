@@ -6,9 +6,9 @@
     @endif
     {{ $slot }}
     @if($hint && ! $error)
-        <p class="form-hint">{{ $hint }}</p>
+        <p @if($for) id="{{ $for }}-hint" @endif class="form-hint">{{ $hint }}</p>
     @endif
     @if($error)
-        <p class="form-error">{{ $error }}</p>
+        <p @if($for) id="{{ $for }}-error" @endif class="form-error" role="alert">{{ $error }}</p>
     @endif
 </div>

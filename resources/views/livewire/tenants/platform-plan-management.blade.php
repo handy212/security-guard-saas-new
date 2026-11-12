@@ -86,13 +86,13 @@
             <x-drawer-form wire:submit="save" :submit-label="$editingPlanId ? 'Save changes' : 'Create plan'">
                 <x-form-section title="Plan">
                     <x-input wire:model.live="form.name" label="Plan name" class="sm:col-span-2" />
-                    <x-input wire:model="form.slug" label="Slug" />
-                    <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
-                    <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
-                    <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
-                    <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
-                    <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
-                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+                    <x-input wire:model.live="form.slug" label="Slug" />
+                    <x-input wire:model.live="form.paystack_plan_code" label="Paystack plan code" />
+                    <x-input wire:model.live="form.monthly_price" label="Monthly price" type="number" step="0.01" />
+                    <x-input wire:model.live="form.annual_price" label="Annual price" type="number" step="0.01" />
+                    <x-input wire:model.live="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
+                    <x-input wire:model.live="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
+                    <x-select wire:model.live="form.status" label="Status" class="sm:col-span-2">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>
@@ -106,7 +106,7 @@
                                 <div class="space-y-2">
                                     @foreach ($features as $feature)
                                         <label class="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600 dark:bg-zinc-900" />
+                                            <input type="checkbox" wire:model.live="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600 dark:bg-zinc-900" />
                                             <span>{{ $feature['label'] }}</span>
                                         </label>
                                     @endforeach

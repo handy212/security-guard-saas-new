@@ -1,4 +1,4 @@
-<div>
+<div class="directory-page clients-page">
     <x-page-shell
         title="Clients"
         description="Manage client accounts, billing rates, and contacts."
@@ -8,16 +8,10 @@
             <x-button wire:click="openCreate">Add client</x-button>
         </x-slot:actions>
 
-        <div class="stat-grid">
-            <x-stat-card compact label="Total" :value="$clientStats['total']" icon="users" wire:click="applyStatFilter('total')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'all' && $search === ''" />
-            <x-stat-card compact label="Active" :value="$clientStats['active']" icon="check" tone="success" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active'" />
-            <x-stat-card compact label="With email" :value="$clientStats['with_email']" icon="billing" tone="info" class="text-left" />
-            <x-stat-card compact label="Inactive" :value="$clientStats['inactive']" icon="pause" wire:click="applyStatFilter('inactive')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'inactive'" />
-        </div>
-
+        <section class="directory-panel" aria-label="Client directory">
         <x-page-toolbar search="search" searchPlaceholder="Search clients…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'inactive' => 'Inactive']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All ('.$clientStats['total'].')', 'active' => 'Active ('.$clientStats['active'].')', 'inactive' => 'Inactive ('.$clientStats['inactive'].')']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
@@ -29,12 +23,11 @@
         <x-data-table>
             <x-table.head>
                 <tr>
-                    <x-table.th>Name</x-table.th>
-                    <x-table.th responsive="md">Email</x-table.th>
-                    <x-table.th responsive="lg">Phone</x-table.th>
-                    <x-table.th>Rate</x-table.th>
+                    <x-table.th>Client</x-table.th>
+                    <x-table.th responsive="md">Contact</x-table.th>
+                    <x-table.th responsive="lg">Monthly rate</x-table.th>
                     <x-table.th>Status</x-table.th>
-                    <x-table.th align="right" class="w-12"></x-table.th>
+                    <x-table.th align="right" class="w-12"><span class="sr-only">Actions</span></x-table.th>
                 </tr>
             </x-table.head>
             <tbody>
@@ -47,15 +40,20 @@
                                 </div>
                                 <div class="min-w-0">
                                     <a href="{{ route('clients.show', $client) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $client->name }}</a>
+                                    @if ($client->industry)
+                                        <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $client->industry }}</div>
+                                    @endif
                                     @if ($client->email)
                                         <div class="truncate text-xs text-zinc-500 md:hidden dark:text-zinc-400">{{ $client->email }}</div>
                                     @endif
                                 </div>
                             </div>
                         </x-table.td>
-                        <x-table.td responsive="md" muted>{{ $client->email ?: '—' }}</x-table.td>
-                        <x-table.td responsive="lg" muted>{{ $client->phone ?: '—' }}</x-table.td>
-                        <x-table.td muted>{{ $client->default_monthly_rate ? number_format($client->default_monthly_rate, 2) : '—' }}</x-table.td>
+                        <x-table.td responsive="md">
+                            <div class="text-sm text-zinc-700 dark:text-zinc-300">{{ $client->email ?: 'No email added' }}</div>
+                            <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $client->phone ?: 'No phone added' }}</div>
+                        </x-table.td>
+                        <x-table.td responsive="lg" muted>{{ $client->default_monthly_rate ? number_format($client->default_monthly_rate, 2) : '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$client->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
@@ -66,7 +64,7 @@
                         </x-table.td>
                     </tr>
                 @empty
-                    <x-table.empty colspan="6">
+                    <x-table.empty colspan="5">
                         <x-empty-state
                             compact
                             :title="$hasActiveFilters ? 'No matching clients' : 'No clients yet'"
@@ -86,6 +84,7 @@
         </x-data-table>
 
         <x-pagination :paginator="$clients" per-page="perPage" />
+        </section>
     </x-page-shell>
 
     @if ($showForm)
@@ -95,26 +94,29 @@
             width="lg"
         >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update client' : 'Create client'">
-                <x-form-section title="Company">
-                    <x-input wire:model="form.name" label="Client name" class="sm:col-span-2" />
-                    <x-input wire:model="form.industry" label="Industry" />
-                    <x-input wire:model="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
-                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+                <x-form-section title="Account details" description="Add the company and its default billing details.">
+                    <x-input wire:model.live="form.name" label="Client name" required autocomplete="organization" placeholder="Company or organization name" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.industry" label="Industry" />
+                    <x-input wire:model.live="form.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
+                    <x-select wire:model.live="form.status" label="Status" class="sm:col-span-2">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>
                 </x-form-section>
 
                 <x-form-section title="Contact">
-                    <x-input wire:model="form.email" label="Email" type="email" />
-                    <x-input wire:model="form.phone" label="Phone" />
-                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.email" label="Email" type="email" />
+                    <x-input wire:model.live="form.phone" label="Phone" />
+                    <x-input wire:model.live="form.address" label="Address" class="sm:col-span-2" />
                 </x-form-section>
 
-                <x-form-section title="HQ coordinates" description="Optional — used on the client map overview.">
-                    <x-input wire:model="form.latitude" label="Latitude" type="number" step="any" />
-                    <x-input wire:model="form.longitude" label="Longitude" type="number" step="any" />
-                </x-form-section>
+                <details class="directory-disclosure" @if ($errors->hasAny(['form.latitude', 'form.longitude'])) open @endif>
+                    <summary>Map location <span>Optional</span></summary>
+                    <div class="mt-5">                <x-form-section title="HQ coordinates" description="Optional — used on the client map overview.">
+                    <x-input wire:model.live="form.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model.live="form.longitude" label="Longitude" type="number" step="any" />
+                </x-form-section></div>
+                </details>
             </x-drawer-form>
         </x-drawer>
     @endif

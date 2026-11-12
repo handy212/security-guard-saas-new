@@ -86,33 +86,33 @@
 
     @if ($showForm)
         <x-drawer :title="$editingId ? 'Edit asset' : 'Add asset'" width="lg">
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Update asset' : 'Create asset'">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update asset' : 'Create asset'">
                 <x-form-section title="Basics">
-                    <x-input wire:model="form.name" label="Name *" class="sm:col-span-2" />
-                    <x-select wire:model="form.asset_category_id" label="Category" class="sm:col-span-2">
+                    <x-input wire:model.live="form.name" label="Name *" class="sm:col-span-2" />
+                    <x-select wire:model.live="form.asset_category_id" label="Category" class="sm:col-span-2">
                         <option value="">Select category</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.vendor_id" label="Vendor">
+                    <x-select wire:model.live="form.vendor_id" label="Vendor">
                         <option value="">None</option>
                         @foreach($vendors as $vendor)
                             <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.site_id" label="Site">
+                    <x-select wire:model.live="form.site_id" label="Site">
                         <option value="">None</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.status" label="Status">
+                    <x-select wire:model.live="form.status" label="Status">
                         @foreach($statuses as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.condition" label="Condition">
+                    <x-select wire:model.live="form.condition" label="Condition">
                         <option value="good">Good</option>
                         <option value="fair">Fair</option>
                         <option value="poor">Poor</option>
@@ -120,23 +120,23 @@
                 </x-form-section>
 
                 <x-form-section title="Identifiers">
-                    <x-input wire:model="form.asset_tag" label="Asset tag" />
-                    <x-input wire:model="form.serial_number" label="Serial number" />
-                    <x-input wire:model="form.model" label="Model" />
-                    <x-input wire:model="form.manufacturer" label="Manufacturer" />
+                    <x-input wire:model.live="form.asset_tag" label="Asset tag" />
+                    <x-input wire:model.live="form.serial_number" label="Serial number" />
+                    <x-input wire:model.live="form.model" label="Model" />
+                    <x-input wire:model.live="form.manufacturer" label="Manufacturer" />
                 </x-form-section>
 
                 <x-form-section title="Purchase & stock">
-                    <x-input wire:model="form.purchase_cost" type="number" step="0.01" label="Purchase cost" />
-                    <x-input wire:model="form.purchase_date" type="date" label="Purchase date" />
-                    <x-input wire:model="form.warranty_expires_at" type="date" label="Warranty expires" />
-                    <x-input wire:model="form.quantity_on_hand" type="number" min="1" label="Qty on hand" />
-                    <x-input wire:model="form.location" label="Storage location" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.purchase_cost" type="number" step="0.01" label="Purchase cost" />
+                    <x-input wire:model.live="form.purchase_date" type="date" label="Purchase date" />
+                    <x-input wire:model.live="form.warranty_expires_at" type="date" label="Warranty expires" />
+                    <x-input wire:model.live="form.quantity_on_hand" type="number" min="1" label="Qty on hand" />
+                    <x-input wire:model.live="form.location" label="Storage location" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Notes">
-                    <x-textarea wire:model="form.description" label="Description" rows="2" class="sm:col-span-2" />
-                    <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Description" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -144,28 +144,51 @@
 
     @if ($showIssueForm)
         <x-drawer title="Issue asset" width="md" close-method="closeIssueForm">
-            <x-drawer-form wire:submit.prevent="issue" submit-label="Issue asset" close-method="closeIssueForm" target="issue">
-                <x-select wire:model="issueForm.guard_id" label="Guard" class="sm:col-span-2">
+            <x-drawer-form wire:submit="issue" submit-label="Issue asset" close-method="closeIssueForm" target="issue">
+                <x-select wire:model.live="issueForm.guard_id" label="Guard" class="sm:col-span-2">
                     <option value="">Select guard</option>
                     @foreach($guards as $guard)
                         <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                     @endforeach
                 </x-select>
-                <x-select wire:model="issueForm.site_id" label="Site" class="sm:col-span-2">
+                <x-select wire:model.live="issueForm.site_id" label="Site" class="sm:col-span-2">
                     <option value="">Select site</option>
                     @foreach($sites as $site)
                         <option value="{{ $site->id }}">{{ $site->name }}</option>
                     @endforeach
                 </x-select>
-                <x-textarea wire:model="issueForm.issue_notes" label="Issue notes" rows="3" class="sm:col-span-2" />
+                <x-textarea wire:model.live="issueForm.issue_notes" label="Issue notes" rows="3" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
     @endif
 
     @if ($showReturnForm)
         <x-drawer title="Return asset" width="md" close-method="closeReturnForm">
-            <x-drawer-form wire:submit.prevent="returnAssignment" submit-label="Confirm return" close-method="closeReturnForm" target="returnAssignment">
-                <x-textarea wire:model="returnNotes" label="Return notes (optional)" rows="3" class="sm:col-span-2" />
+            <x-drawer-form wire:submit="returnAssignment" submit-label="Confirm return" close-method="closeReturnForm" target="returnAssignment">
+                @if ($returningAssignment)
+                    <section class="mb-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700" aria-labelledby="return-assignment-details">
+                        <h3 id="return-assignment-details" class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Assignment details</h3>
+                        <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Asset</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-zinc-100">{{ $returningAssignment->asset?->name ?? 'Asset unavailable' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Assigned to</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-zinc-100">{{ $returningAssignment->assignedGuard?->full_name ?? 'Not assigned to a guard' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Site</dt>
+                                <dd class="text-zinc-700 dark:text-zinc-200">{{ $returningAssignment->site?->name ?? 'Not specified' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Issued</dt>
+                                <dd class="tabular-nums text-zinc-700 dark:text-zinc-200">{{ $returningAssignment->issued_at?->format('M j, Y g:i A') ?? 'Not recorded' }}</dd>
+                            </div>
+                        </dl>
+                    </section>
+                @endif
+                <x-textarea wire:model.live="returnNotes" label="Return notes (optional)" rows="3" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
     @endif

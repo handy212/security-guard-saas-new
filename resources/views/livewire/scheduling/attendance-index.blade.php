@@ -1,10 +1,10 @@
 <div>
     @php
         $exceptions = $logs->filter(fn ($log) => in_array((string) ($log->status?->value ?? $log->status), ['late', 'no_show', 'early_leave'], true))->count();
-        $onDuty = $logs->where('clock_out_at', null)->count();
+        $onDuty = $logs->whereNotNull('clock_in_at')->whereNull('clock_out_at')->count();
     @endphp
 
-    <x-page-shell
+    <x-page-shell :embedded="$embedded"
         title="Attendance"
         description="Clock events, geofence validation, and breaks."
         :breadcrumbs="[
@@ -14,11 +14,13 @@
     >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('schedules.reconciliation')">Reconciliation</x-button>
-            <x-button wire:click="openBreakForm">Log break</x-button>
+            <x-button wire:click="openBreakForm" :disabled="$logs->whereNotNull('clock_in_at')->isEmpty()">Log break</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
@@ -35,8 +37,8 @@
                         <x-button type="button" size="sm" variant="secondary" wire:click="previousDay">Previous</x-button>
                         <x-button type="button" size="sm" variant="secondary" wire:click="goToday" :disabled="$date === today()->toDateString()">Today</x-button>
                         <x-button type="button" size="sm" variant="secondary" wire:click="nextDay">Next</x-button>
-                        <x-input wire:model.live="date" type="date" label="Date" class="w-auto text-sm" />
-                        <x-filter-select wire:model.live="statusFilter">
+                        <x-input wire:model.live="date" type="date" aria-label="Attendance date" class="w-auto text-sm" />
+                        <x-filter-select aria-label="Attendance status" wire:model.live="statusFilter">
                             <option value="all">All statuses</option>
                             @foreach($statusOptions as $status)
                                 <option value="{{ $status->value }}">{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
@@ -48,7 +50,7 @@
 
             <div class="page-grid-2">
                 <x-section-card title="Clock events" description="Geofence shows whether the guard was inside the site boundary at clock-in.">
-                    <x-data-table>
+                    <x-data-table class="scheduler-table">
                         <x-table.head>
                             <tr>
                                 <x-table.th>Guard</x-table.th>
@@ -62,12 +64,12 @@
                         <tbody>
                             @forelse($logs as $log)
                                 <tr class="table-row-hover" wire:key="att-{{ $log->id }}">
-                                    <x-table.td class="font-medium">{{ $log->assignedGuard?->full_name ?? '—' }}</x-table.td>
-                                    <x-table.td muted>{{ $log->site?->name ?? '—' }}</x-table.td>
-                                    <x-table.td muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') }}</x-table.td>
-                                    <x-table.td muted class="tabular-nums">{{ $log->clock_out_at?->format('M j, H:i') ?? '—' }}</x-table.td>
-                                    <x-table.td>
-                                        @if($log->geofence_validated)
+                                    <x-table.td data-label="Guard" class="font-medium">{{ $log->assignedGuard?->full_name ?? '—' }}</x-table.td>
+                                    <x-table.td data-label="Site" muted>{{ $log->site?->name ?? '—' }}</x-table.td>
+                                    <x-table.td data-label="Clock in" muted class="tabular-nums">{{ $log->clock_in_at?->format('M j, H:i') ?? 'Not clocked in' }}</x-table.td>
+                                    <x-table.td data-label="Clock out" muted class="tabular-nums">{{ $log->clock_out_at?->format('M j, H:i') ?? '—' }}</x-table.td>
+                                    <x-table.td data-label="Geofence">
+                                        @if($log->clock_in_at)
                                             <span @class([
                                                 'text-xs font-medium',
                                                 'text-emerald-700 dark:text-emerald-400' => $log->is_geofence_valid,
@@ -79,11 +81,11 @@
                                             <span class="text-xs text-zinc-400">—</span>
                                         @endif
                                     </x-table.td>
-                                    <x-table.td><x-badge :status="$log->status ?? 'on_time'" /></x-table.td>
+                                    <x-table.td data-label="Status"><x-badge :status="$log->status ?? 'on_time'" /></x-table.td>
                                 </tr>
                             @empty
                                 <x-table.empty colspan="6">
-                                    <x-empty-state
+                                    <x-empty-state class="scheduler-empty-state"
                                         compact
                                         title="No clock events"
                                         description="Attendance for this day appears when guards clock in."
@@ -100,7 +102,7 @@
                 </x-section-card>
 
                 <x-section-card title="Break logs">
-                    <x-data-table>
+                    <x-data-table class="scheduler-table">
                         <x-table.head>
                             <tr>
                                 <x-table.th>Guard / log</x-table.th>
@@ -112,18 +114,18 @@
                         <tbody>
                             @forelse($breaks as $break)
                                 <tr class="table-row-hover" wire:key="br-{{ $break->id }}">
-                                    <x-table.td class="font-medium">{{ $break->attendanceLog?->assignedGuard?->full_name ?? 'Log #'.$break->attendance_log_id }}</x-table.td>
-                                    <x-table.td muted>{{ ucfirst($break->type) }}</x-table.td>
-                                    <x-table.td muted class="tabular-nums">{{ $break->started_at?->format('M j, H:i') }}</x-table.td>
-                                    <x-table.td align="right">
+                                    <x-table.td data-label="Guard / log" class="font-medium">{{ $break->attendanceLog?->assignedGuard?->full_name ?? 'Log #'.$break->attendance_log_id }}</x-table.td>
+                                    <x-table.td data-label="Type" muted>{{ ucfirst($break->type) }}</x-table.td>
+                                    <x-table.td data-label="Started" muted class="tabular-nums">{{ $break->started_at?->format('M j, H:i') }}</x-table.td>
+                                    <x-table.td data-label="Actions" align="right">
                                         <button type="button" wire:click="deleteBreak({{ $break->id }})" wire:confirm="Remove this break?" class="table-action-danger">Remove</button>
                                     </x-table.td>
                                 </tr>
                             @empty
                                 <x-table.empty colspan="4">
-                                    <x-empty-state compact title="No breaks" description="Log a meal or rest break against a clock-in.">
+                                    <x-empty-state class="scheduler-empty-state" compact title="No breaks" description="Log a meal or rest break against a clock-in.">
                                         <x-slot:actions>
-                                            <x-button size="sm" wire:click="openBreakForm" :disabled="$logs->isEmpty()">Log break</x-button>
+                                            <x-button size="sm" wire:click="openBreakForm" :disabled="$logs->whereNotNull('clock_in_at')->isEmpty()">Log break</x-button>
                                         </x-slot:actions>
                                     </x-empty-state>
                                 </x-table.empty>
@@ -136,21 +138,21 @@
     </x-page-shell>
 
     @if ($showBreakForm)
-        <x-drawer title="Log break" description="Attach a meal or rest break to an active clock-in." width="md" close-method="closeBreakForm">
-            <x-drawer-form wire:submit.prevent="saveBreak" submit-label="Save break" close-method="closeBreakForm">
+        <x-drawer title="Log break" description="Attach a meal or rest break to a recorded clock-in." width="md" close-method="closeBreakForm">
+            <x-drawer-form wire:submit="saveBreak" submit-label="Save break" target="saveBreak" close-method="closeBreakForm">
                 <x-form-section title="Break">
-                    <x-select wire:model="breakForm.attendance_log_id" label="Attendance record *" class="sm:col-span-2">
+                    <x-select wire:model.live="breakForm.attendance_log_id" label="Attendance record *" class="sm:col-span-2">
                         <option value="">Select clock-in</option>
-                        @foreach($logs as $log)
-                            <option value="{{ $log->id }}">#{{ $log->id }} — {{ $log->assignedGuard?->full_name }} · {{ $log->clock_in_at?->format('M j, H:i') }}</option>
+                        @foreach($logs->whereNotNull('clock_in_at') as $log)
+                            <option value="{{ $log->id }}">#{{ $log->id }} — {{ $log->assignedGuard?->full_name }} · {{ $log->clock_in_at?->format('M j, H:i') ?? 'Not clocked in' }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="breakForm.type" label="Break type">
+                    <x-select wire:model.live="breakForm.type" label="Break type">
                         <option value="meal">Meal</option>
                         <option value="rest">Rest</option>
                     </x-select>
-                    <x-input wire:model="breakForm.started_at" label="Started at *" type="datetime-local" required />
-                    <x-input wire:model="breakForm.ended_at" label="Ended at" type="datetime-local" />
+                    <x-input wire:model.live="breakForm.started_at" label="Started at *" type="datetime-local" required />
+                    <x-input wire:model.live="breakForm.ended_at" label="Ended at" type="datetime-local" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

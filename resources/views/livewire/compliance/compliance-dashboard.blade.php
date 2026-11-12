@@ -46,6 +46,7 @@
                             <x-table.th>Guard</x-table.th>
                             <x-table.th>Certification</x-table.th>
                             <x-table.th>Expires</x-table.th>
+                            <x-table.th>Next action</x-table.th>
                         </tr>
                     </x-table.head>
                     <tbody>
@@ -60,9 +61,16 @@
                                 </x-table.td>
                                 <x-table.td muted>{{ $item->name }}</x-table.td>
                                 <x-table.td mono>{{ $item->expires_at?->format('M j, Y') }}</x-table.td>
+                                <x-table.td align="right">
+                                    @if ($item->assignedGuard)
+                                        <a href="{{ route('guards.show', $item->assignedGuard) }}?tab=qualifications" class="page-link text-sm" wire:navigate aria-label="Review qualifications for {{ $item->assignedGuard->full_name }}">Review qualification</a>
+                                    @else
+                                        <span class="text-xs text-zinc-500 dark:text-zinc-400">No guard record</span>
+                                    @endif
+                                </x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3">
+                            <x-table.empty colspan="4">
                                 <x-empty-state compact title="No expiring certifications" description="Nothing due in the next {{ $windowDays }} days.">
                                     <x-slot:actions>
                                         <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
@@ -81,6 +89,7 @@
                             <x-table.th>Guard</x-table.th>
                             <x-table.th>Type</x-table.th>
                             <x-table.th>Expires</x-table.th>
+                            <x-table.th>Next action</x-table.th>
                         </tr>
                     </x-table.head>
                     <tbody>
@@ -93,11 +102,18 @@
                                         —
                                     @endif
                                 </x-table.td>
-                                <x-table.td muted>{{ $doc->type }}</x-table.td>
+                                <x-table.td muted>{{ $doc->typeLabel() }}</x-table.td>
                                 <x-table.td mono>{{ $doc->expires_at?->format('M j, Y') }}</x-table.td>
+                                <x-table.td align="right">
+                                    @if ($doc->assignedGuard)
+                                        <a href="{{ route('guards.show', $doc->assignedGuard) }}?tab=files" class="page-link text-sm" wire:navigate aria-label="Review guard files for {{ $doc->assignedGuard->full_name }}">Review file</a>
+                                    @else
+                                        <span class="text-xs text-zinc-500 dark:text-zinc-400">No guard record</span>
+                                    @endif
+                                </x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3">
+                            <x-table.empty colspan="4">
                                 <x-empty-state compact title="No expiring documents" description="Guard files with expiry dates will appear here.">
                                     <x-slot:actions>
                                         <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
@@ -118,6 +134,7 @@
                             <x-table.th>Site</x-table.th>
                             <x-table.th>Document</x-table.th>
                             <x-table.th>Expires</x-table.th>
+                            <x-table.th>Next action</x-table.th>
                         </tr>
                     </x-table.head>
                     <tbody>
@@ -132,9 +149,16 @@
                                 </x-table.td>
                                 <x-table.td muted>{{ $doc->title }}</x-table.td>
                                 <x-table.td mono>{{ $doc->expires_on?->format('M j, Y') }}</x-table.td>
+                                <x-table.td align="right">
+                                    @if ($doc->site)
+                                        <a href="{{ route('sites.show', $doc->site) }}?tab=files" class="page-link text-sm" wire:navigate aria-label="Review site documents for {{ $doc->site->name }}">Review site document</a>
+                                    @else
+                                        <span class="text-xs text-zinc-500 dark:text-zinc-400">No site record</span>
+                                    @endif
+                                </x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3">
+                            <x-table.empty colspan="4">
                                 <x-empty-state compact title="No expiring site documents" description="Upload permits and SOPs on each site profile.">
                                     <x-slot:actions>
                                         <x-button size="sm" :href="route('sites.index')">Manage sites</x-button>
@@ -153,6 +177,7 @@
                             <x-table.th>Guard</x-table.th>
                             <x-table.th>Course</x-table.th>
                             <x-table.th>Expires</x-table.th>
+                            <x-table.th>Next action</x-table.th>
                         </tr>
                     </x-table.head>
                     <tbody>
@@ -167,9 +192,16 @@
                                 </x-table.td>
                                 <x-table.td muted>{{ $row->course_name }}</x-table.td>
                                 <x-table.td mono>{{ $row->expires_on?->format('M j, Y') }}</x-table.td>
+                                <x-table.td align="right">
+                                    @if ($row->assignedGuard)
+                                        <a href="{{ route('guards.show', $row->assignedGuard) }}?tab=qualifications" class="page-link text-sm" wire:navigate aria-label="Review training for {{ $row->assignedGuard->full_name }}">Review training record</a>
+                                    @else
+                                        <span class="text-xs text-zinc-500 dark:text-zinc-400">No guard record</span>
+                                    @endif
+                                </x-table.td>
                             </tr>
                         @empty
-                            <x-table.empty colspan="3">
+                            <x-table.empty colspan="4">
                                 <x-empty-state compact title="No expiring training" description="Record guard training and renewal dates on guard profiles.">
                                     <x-slot:actions>
                                         <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>

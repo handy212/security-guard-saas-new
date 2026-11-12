@@ -38,7 +38,10 @@ class DashboardOverviewTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(Overview::class)
             ->assertSuccessful()
-            ->assertSee('Operations overview')
+            ->assertSee('Operations desk')
+            ->assertSee('Coverage & response')
+            ->assertSee('High priority')
+            ->assertSee('This week in review')
             ->assertSee('Quick actions')
             ->assertSee('Open dispatches')
             ->assertSeeHtml("Today's schedule");

@@ -56,17 +56,17 @@
 
     @if ($showForm)
         <x-drawer :title="$editingId ? 'Edit category' : 'Add category'" width="md">
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Update' : 'Create'">
-                <x-input wire:model="form.name" label="Name *" class="sm:col-span-2" />
-                <x-select wire:model="form.type" label="Type *" class="sm:col-span-2">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update' : 'Create'">
+                <x-input wire:model.live="form.name" label="Name *" class="sm:col-span-2" />
+                <x-select wire:model.live="form.type" label="Type *" class="sm:col-span-2">
                     @foreach($types as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </x-select>
-                <x-input wire:model="form.min_stock_level" type="number" min="0" label="Min stock level" class="sm:col-span-2" />
-                <x-textarea wire:model="form.description" label="Description" rows="3" class="sm:col-span-2" />
+                <x-input wire:model.live="form.min_stock_level" type="number" min="0" label="Min stock level" class="sm:col-span-2" />
+                <x-textarea wire:model.live="form.description" label="Description" rows="3" class="sm:col-span-2" />
                 <label class="flex items-center gap-2 text-sm sm:col-span-2">
-                    <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300">
+                    <input type="checkbox" wire:model.live="form.is_active" class="rounded border-zinc-300">
                     Active
                 </label>
             </x-drawer-form>

@@ -93,8 +93,6 @@ class AssetManagementService
 
     public function availableDeployKit(int $tenantId, ?int $siteId = null): Collection
     {
-        $this->ensureDeployKitCatalog($tenantId);
-
         $categories = config('assets.deploy_kit_categories', []);
 
         return EquipmentAsset::query()
@@ -122,7 +120,7 @@ class AssetManagementService
      *
      * @return Collection<int, AssetCategory>
      */
-    public function ensureDeployKitCatalog(int $tenantId, bool $withSamples = true): Collection
+    public function ensureDeployKitCatalog(int $tenantId, bool $withSamples = false): Collection
     {
         $defs = [
             'Vehicles' => ['type' => 'serialized', 'description' => 'Patrol cars and vans for deploy / patrol'],

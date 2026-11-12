@@ -100,8 +100,8 @@
         >
             <x-drawer-form wire:submit="sendInvoice" submit-label="Send email" close-method="closeSend" target="sendInvoice">
                 <x-form-section title="Recipients" description="Comma-separated emails.">
-                    <x-textarea wire:model="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
-                    <x-textarea wire:model="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -116,15 +116,15 @@
         >
             <x-drawer-form wire:submit="recordPayment" submit-label="Save payment" close-method="closePayment" target="recordPayment">
                 <x-form-section title="Payment">
-                    <x-input wire:model="paymentForm.amount" label="Amount *" type="number" step="0.01" min="0.01" />
-                    <x-select wire:model="paymentForm.payment_method" label="Method *">
+                    <x-input wire:model.live="paymentForm.amount" label="Amount *" type="number" step="0.01" min="0.01" />
+                    <x-select wire:model.live="paymentForm.payment_method" label="Method *">
                         <option value="cash">Cash</option>
                         <option value="bank_transfer">Bank transfer</option>
                         <option value="mobile_money">Mobile money</option>
                         <option value="card">Card</option>
                         <option value="cheque">Cheque</option>
                     </x-select>
-                    <x-textarea wire:model="paymentForm.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="paymentForm.notes" label="Notes" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

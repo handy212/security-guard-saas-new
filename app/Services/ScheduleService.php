@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ShiftStatus;
+use App\Exceptions\AssignmentException;
 use App\Models\Guard;
 use App\Models\GuardAvailability;
 use App\Models\Shift;
@@ -12,7 +13,6 @@ use App\Support\EnumHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 class ScheduleService
 {
@@ -66,45 +66,69 @@ class ScheduleService
 
     public function assignGuard(Shift $shift, Guard $guard): ShiftAssignment
     {
+        return DB::transaction(function () use ($shift, $guard) {
+            $shift = Shift::whereKey($shift->id)->lockForUpdate()->firstOrFail();
+            $guard = Guard::whereKey($guard->id)->lockForUpdate()->firstOrFail();
+            $this->validateGuardAssignment($shift, $guard);
+
+            $assignment = ShiftAssignment::create([
+                'tenant_id' => $shift->tenant_id,
+                'shift_id' => $shift->id,
+                'guard_id' => $guard->id,
+                'status' => 'assigned',
+                'assigned_at' => now(),
+            ]);
+
+            app(WorkforceService::class)->requestConfirmation($assignment);
+            $this->refreshShiftStaffingStatus($shift);
+
+            return $assignment;
+        });
+    }
+
+    public function validateGuardAssignment(Shift $shift, Guard $guard): void
+    {
+        $this->validateShiftCapacity($shift);
+
+        if ($guard->tenant_id !== $shift->tenant_id || $guard->status !== 'active') {
+            throw new AssignmentException('Guard must be active and belong to this tenant before assignment.');
+        }
+
         if ($guard->verification_status !== 'verified') {
-            throw new RuntimeException('Guard must be verified before assignment. Complete Know Your Guard vetting first.');
+            throw new AssignmentException('Guard must be verified before assignment. Complete Know Your Guard vetting first.');
+        }
+
+        if ($shift->activeAssignments()->contains('guard_id', $guard->id)) {
+            throw new AssignmentException('Guard is already assigned to this shift. Pick another guard.');
         }
 
         if (app(LeaveSchedulingService::class)->hasApprovedLeaveConflict($guard, $shift->starts_at, $shift->ends_at)) {
-            throw new RuntimeException('Guard has approved leave during this shift. Reschedule the shift or update the leave request first.');
+            throw new AssignmentException('Guard has approved leave during this shift. Reschedule the shift or update the leave request first.');
         }
 
         if (! $this->isAvailableForShift($guard, $shift)) {
-            throw new RuntimeException('Guard is not available for this shift window. Update weekly availability or pick another guard.');
+            throw new AssignmentException('Guard is not available for this shift window. Update weekly availability or pick another guard.');
         }
 
         if ($this->hasConflict($guard, $shift->starts_at, $shift->ends_at, $shift->id)) {
-            throw new RuntimeException('Guard has another assignment in this time range.');
+            throw new AssignmentException('Guard has another assignment in this time range.');
+        }
+    }
+
+    public function validateShiftCapacity(Shift $shift): void
+    {
+        if (EnumHelper::isOneOf($shift->status, ['cancelled', 'completed'])) {
+            throw new AssignmentException('A cancelled or completed shift cannot receive assignments.', 'shift_id');
         }
 
-        if ($shift->assignments()->whereNotIn('status', ['cancelled', 'completed'])->count() >= $shift->required_guards) {
-            throw new RuntimeException('This shift already has the required number of guards.');
+        if ($shift->activeAssignmentsCount() >= $shift->required_guards) {
+            throw new AssignmentException('This shift already has the required number of guards. Select another shift.', 'shift_id');
         }
-
-        $assignment = ShiftAssignment::create([
-            'tenant_id' => $shift->tenant_id,
-            'shift_id' => $shift->id,
-            'guard_id' => $guard->id,
-            'status' => 'assigned',
-            'assigned_at' => now(),
-        ]);
-
-        app(WorkforceService::class)->requestConfirmation($assignment);
-        $this->refreshShiftStaffingStatus($shift);
-
-        return $assignment;
     }
 
     public function unassignGuard(ShiftAssignment $assignment): void
     {
         $shift = $assignment->shift;
-
-        app(AssetManagementService::class)->returnOpenForAssignment($assignment);
 
         $assignment->update(['status' => 'cancelled']);
         ShiftConfirmation::where('shift_assignment_id', $assignment->id)->delete();
@@ -189,7 +213,7 @@ class ScheduleService
         $assignments = $shift->assignments()->where('status', '!=', 'cancelled')->get();
         $inProgress = $assignments->filter(fn ($a) => EnumHelper::is($a->status, 'in_progress'))->count();
         $completed = $assignments->filter(fn ($a) => EnumHelper::is($a->status, 'completed'))->count();
-        $staffing = $assignments->filter(fn ($a) => EnumHelper::isNotOneOf($a->status, ['completed', 'no_show']))->count();
+        $staffing = $shift->activeAssignmentsCount();
 
         if ($inProgress > 0) {
             $shift->update(['status' => ShiftStatus::IN_PROGRESS->value]);

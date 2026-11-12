@@ -56,13 +56,13 @@
 
     @if ($showForm)
         <x-drawer :title="$editingId ? 'Edit vendor' : 'Add vendor'" width="md">
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Update' : 'Create'">
-                <x-input wire:model="form.name" label="Company name *" class="sm:col-span-2" />
-                <x-input wire:model="form.contact_name" label="Contact name" />
-                <x-input wire:model="form.phone" label="Phone" />
-                <x-input wire:model="form.email" type="email" label="Email" class="sm:col-span-2" />
-                <x-textarea wire:model="form.address" label="Address" rows="2" class="sm:col-span-2" />
-                <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update' : 'Create'">
+                <x-input wire:model.live="form.name" label="Company name *" class="sm:col-span-2" />
+                <x-input wire:model.live="form.contact_name" label="Contact name" />
+                <x-input wire:model.live="form.phone" label="Phone" />
+                <x-input wire:model.live="form.email" type="email" label="Email" class="sm:col-span-2" />
+                <x-textarea wire:model.live="form.address" label="Address" rows="2" class="sm:col-span-2" />
+                <x-select wire:model.live="form.status" label="Status" class="sm:col-span-2">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                 </x-select>

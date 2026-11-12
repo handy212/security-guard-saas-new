@@ -21,7 +21,7 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body class="bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+<body class="workspace-app bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
     x-data="{
         sidebarOpen: false,
         sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
@@ -45,9 +45,9 @@
 
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-800 bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
+        class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
-        <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-800/80 px-3">
+        <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
             <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant()
                 ? route('saas.tenants')
                 : app(\App\Services\UserHomeRouteService::class)->resolve(auth()->user()) }}"
@@ -55,14 +55,14 @@
                :class="sidebarCollapsed ? 'justify-center' : ''">
                 <x-brand-mark />
                 <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="truncate text-sm font-semibold tracking-tight text-white">{{ $tenantBranding['name'] ?? 'GuardCore Pro' }}</div>
+                    <div class="truncate text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $tenantBranding['name'] ?? 'GuardCore Pro' }}</div>
                     <div class="truncate text-[11px] text-zinc-500">{{ $tenantBranding['tagline'] ?? 'Security operations' }}</div>
                 </div>
             </a>
             <button
                 type="button"
                 @click="toggleSidebarCollapse()"
-                class="hidden rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 lg:inline-flex"
+                class="hidden rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 lg:inline-flex"
                 :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                 aria-label="Toggle sidebar"
             >
@@ -75,7 +75,7 @@
         <x-sidebar-nav />
 
         @auth
-            <div class="shrink-0 border-t border-zinc-800 p-2" x-show="sidebarCollapsed" x-cloak>
+            <div class="shrink-0 border-t border-zinc-200 p-2 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak>
                 <div class="flex justify-center">
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/20 text-xs font-semibold text-accent-300" title="{{ auth()->user()->name }}">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
@@ -85,7 +85,8 @@
         @endauth
     </aside>
 
-    <div class="main-offset min-h-screen">
+    <div class="main-offset workspace-main min-h-screen">
+        <div class="workspace-frame">
         <div
             wire:loading
             class="loading-bar-offset fixed inset-x-0 top-0 z-[70] h-0.5 bg-accent-600"
@@ -116,6 +117,7 @@
         <main>
             {{ $slot }}
         </main>
+        </div>
     </div>
 </div>
 @livewireScripts

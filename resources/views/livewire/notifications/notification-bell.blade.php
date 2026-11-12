@@ -1,4 +1,4 @@
-<div class="relative" x-data="{ open: @entangle('open') }" @click.outside="open = false">
+<div class="relative" x-data="{ open: @entangle('open').live }" @click.outside="open = false">
     <button
         type="button"
         @click="open = !open"

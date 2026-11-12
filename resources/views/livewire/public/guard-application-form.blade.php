@@ -32,28 +32,28 @@
             </div>
             <div class="space-y-4 p-4 sm:p-5">
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <x-input wire:model="first_name" label="First name" required />
-                    <x-input wire:model="last_name" label="Last name" required />
+                    <x-input wire:model.live="first_name" label="First name" required />
+                    <x-input wire:model.live="last_name" label="Last name" required />
                 </div>
-                <x-input wire:model="phone" label="Phone" autocomplete="tel" />
-                <x-input wire:model="email" label="Email" type="email" autocomplete="email" />
-                <x-select wire:model="duty_type" label="Duty type">
+                <x-input wire:model.live="phone" label="Phone" autocomplete="tel" />
+                <x-input wire:model.live="email" label="Email" type="email" autocomplete="email" />
+                <x-select wire:model.live="duty_type" label="Duty type">
                     @foreach($dutyTypes as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </x-select>
                 @if ($branches->isNotEmpty())
-                    <x-select wire:model="branch_id" label="Preferred branch">
+                    <x-select wire:model.live="branch_id" label="Preferred branch">
                         <option value="">No preference</option>
                         @foreach($branches as $branch)
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
                     </x-select>
                 @endif
-                <x-textarea wire:model="notes" label="Notes (optional)" rows="3" />
+                <x-textarea wire:model.live="notes" label="Notes (optional)" rows="3" />
                 <div>
                     <label class="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">Photo (optional)</label>
-                    <input type="file" wire:model="photo" accept="image/*" class="form-input w-full text-sm">
+                    <input type="file" wire:model.live="photo" accept="image/*" class="form-input w-full text-sm">
                     <p class="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">Clear headshot preferred. Max 5 MB.</p>
                     @error('photo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>

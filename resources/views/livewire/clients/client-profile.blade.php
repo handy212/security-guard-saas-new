@@ -1,4 +1,4 @@
-<div>
+<div class="client-profile-page">
     <x-page-shell
         :title="$clientAccount->name"
         :description="$clientAccount->industry ?: 'Client account'"
@@ -40,7 +40,7 @@
                         @if (count($mapMarkers) > 0)
                             <x-map
                                 id="client-overview-map-{{ $clientAccount->id }}"
-                                height="280px"
+                                height="220px"
                                 :lat="$mapCenter['lat']"
                                 :lng="$mapCenter['lng']"
                                 :zoom="$mapCenter['zoom']"
@@ -111,7 +111,7 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No shifts scheduled yet.</p>
+                            <p class="px-4 py-3 text-sm text-zinc-500">No shifts scheduled yet.</p>
                         @endforelse
                     </x-section-card>
 
@@ -126,7 +126,7 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No patrol activity yet.</p>
+                            <p class="px-4 py-3 text-sm text-zinc-500">No patrol activity yet.</p>
                         @endforelse
                     </x-section-card>
 
@@ -139,7 +139,7 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="px-4 py-6 text-center text-sm text-zinc-500">No incidents reported.</p>
+                            <p class="px-4 py-3 text-sm text-zinc-500">No incidents reported.</p>
                         @endforelse
                     </x-section-card>
                 </div>
@@ -149,18 +149,18 @@
         @if ($activeTab === 'profile')
             <x-form-card title="Client profile" description="Company details used across scheduling and billing">
                 <form wire:submit="saveProfile" class="grid gap-3 sm:grid-cols-2">
-                    <x-input wire:model="profileForm.name" label="Client name" class="sm:col-span-2" />
-                    <x-input wire:model="profileForm.industry" label="Industry" />
-                    <x-select wire:model="profileForm.status" label="Status">
+                    <x-input wire:model.live="profileForm.name" label="Client name" class="sm:col-span-2" />
+                    <x-input wire:model.live="profileForm.industry" label="Industry" />
+                    <x-select wire:model.live="profileForm.status" label="Status">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>
-                    <x-input wire:model="profileForm.email" label="Email" type="email" />
-                    <x-input wire:model="profileForm.phone" label="Phone" />
-                    <x-input wire:model="profileForm.address" label="Address" class="sm:col-span-2" />
-                    <x-input wire:model="profileForm.latitude" label="Latitude" type="number" step="any" />
-                    <x-input wire:model="profileForm.longitude" label="Longitude" type="number" step="any" />
-                    <x-input wire:model="profileForm.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
+                    <x-input wire:model.live="profileForm.email" label="Email" type="email" />
+                    <x-input wire:model.live="profileForm.phone" label="Phone" />
+                    <x-input wire:model.live="profileForm.address" label="Address" class="sm:col-span-2" />
+                    <x-input wire:model.live="profileForm.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model.live="profileForm.longitude" label="Longitude" type="number" step="any" />
+                    <x-input wire:model.live="profileForm.default_monthly_rate" label="Default monthly rate" type="number" step="0.01" />
                     <div class="sm:col-span-2">
                         <x-button type="submit">Save profile</x-button>
                     </div>
@@ -169,7 +169,7 @@
         @endif
 
         @if ($activeTab === 'contacts')
-            <div class="page-split">
+            <div class="page-split client-records-layout">
                 <x-section-card title="Contacts" description="Key people at this client">
                     <x-data-table>
                         <x-table.head>
@@ -197,19 +197,19 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="5">
-                                    <x-empty-state compact title="No contacts" description="Add key client contacts on the right." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No contacts.</span> Add the people you work with at this client.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card :title="$editingContactId ? 'Edit contact' : 'Add contact'">
+                <x-form-card collapsible :open="(bool) $editingContactId" wire:key="contact-form-{{ $editingContactId ?? 'new' }}" :title="$editingContactId ? 'Edit contact' : 'Add contact'">
                     <form wire:submit="saveContact" class="space-y-3">
-                        <x-input wire:model="contactForm.name" label="Name" />
-                        <x-input wire:model="contactForm.role" label="Role" />
-                        <x-input wire:model="contactForm.email" label="Email" type="email" />
-                        <x-input wire:model="contactForm.phone" label="Phone" />
+                        <x-input wire:model.live="contactForm.name" label="Name" />
+                        <x-input wire:model.live="contactForm.role" label="Role" />
+                        <x-input wire:model.live="contactForm.email" label="Email" type="email" />
+                        <x-input wire:model.live="contactForm.phone" label="Phone" />
                         <div class="flex gap-2">
                             <x-button type="submit" size="sm">{{ $editingContactId ? 'Update' : 'Add' }} contact</x-button>
                             @if ($editingContactId)
@@ -222,7 +222,7 @@
         @endif
 
         @if ($activeTab === 'notes')
-            <div class="page-split">
+            <div class="page-split client-records-layout">
                 <x-section-card title="Notes" description="Internal history for this account" flush>
                     @forelse ($clientAccount->notes as $note)
                         <div class="list-row-start" wire:key="note-{{ $note->id }}">
@@ -242,20 +242,20 @@
                         </div>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No notes" description="Add internal notes about this client." />
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No notes.</span> Add internal notes about this client.</p>
                         </div>
                     @endforelse
                 </x-section-card>
 
-                <x-form-card :title="$editingNoteId ? 'Edit note' : 'Add note'">
+                <x-form-card collapsible :open="(bool) $editingNoteId" wire:key="note-form-{{ $editingNoteId ?? 'new' }}" :title="$editingNoteId ? 'Edit note' : 'Add note'">
                     <form wire:submit="addNote" class="space-y-3">
                         <div>
-                            <label class="form-label">Note</label>
-                            <textarea wire:model="noteForm.body" rows="5" class="form-input mt-1"></textarea>
+                            <label for="client-note" class="form-label">Note</label>
+                            <textarea id="client-note" wire:model.live="noteForm.body" rows="5" class="form-input mt-1"></textarea>
                             @error('noteForm.body') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="noteForm.is_internal" class="rounded border-zinc-300">
                             Internal only (not visible in portal)
                         </label>
                         <x-button type="submit" size="sm">{{ $editingNoteId ? 'Update' : 'Add' }} note</x-button>
@@ -265,7 +265,7 @@
         @endif
 
         @if ($activeTab === 'files')
-            <div class="page-split">
+            <div class="page-split client-records-layout">
                 <x-section-card title="Files" description="Contracts, SOWs, and client documents">
                     <x-data-table>
                         <x-table.head>
@@ -299,27 +299,27 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="5">
-                                    <x-empty-state compact title="No files" description="Upload contracts, SOWs, and other client documents." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No files.</span> Upload contracts, SOWs, and other client documents.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card title="Upload file">
+                <x-form-card collapsible :open="false" title="Upload file">
                     <form wire:submit="uploadDocument" class="space-y-3">
-                        <x-input wire:model="documentForm.title" label="Title" />
-                        <x-select wire:model="documentForm.document_type" label="Document type">
+                        <x-input wire:model.live="documentForm.title" label="Title" />
+                        <x-select wire:model.live="documentForm.document_type" label="Document type">
                             @foreach ($documentTypes as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="documentForm.expires_on" label="Expires on" type="date" />
+                        <x-input wire:model.live="documentForm.expires_on" label="Expires on" type="date" />
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="documentForm.client_visible" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="documentForm.client_visible" class="rounded border-zinc-300">
                             Visible in client portal
                         </label>
-                        <input wire:model="documentFile" type="file" class="form-input text-sm">
+                        <input aria-label="Client document" wire:model.live="documentFile" type="file" class="form-input text-sm">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit" size="sm">Upload</x-button>
                     </form>
@@ -368,7 +368,7 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="5">
-                                <x-empty-state compact title="No post sites" description="Add sites where guards are deployed for this client." />
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No post sites.</span> Add sites where guards are deployed for this client.</p>
                             </x-table.empty>
                         @endforelse
                     </tbody>
@@ -376,19 +376,19 @@
 
                 @if ($showSiteForm)
                 <x-drawer :title="$editingSiteId ? 'Edit post site' : 'Add post site'" width="lg" close-method="closeSiteForm">
-                    <x-drawer-form wire:submit="saveSite" submit-label="Save site">
-                        <x-input wire:model="siteForm.name" label="Site name" class="sm:col-span-2" />
-                        <x-input wire:model="siteForm.address" label="Address" class="sm:col-span-2" />
-                        <x-input wire:model="siteForm.latitude" label="Latitude" type="number" step="any" />
-                        <x-input wire:model="siteForm.longitude" label="Longitude" type="number" step="any" />
-                        <x-input wire:model="siteForm.geofence_radius_meters" label="Geofence radius (m)" type="number" />
-                        <x-select wire:model="siteForm.status" label="Status">
+                    <x-drawer-form wire:submit="saveSite" submit-label="Save site" target="saveSite" close-method="closeSiteForm">
+                        <x-input wire:model.live="siteForm.name" label="Site name" class="sm:col-span-2" />
+                        <x-input wire:model.live="siteForm.address" label="Address" class="sm:col-span-2" />
+                        <x-input wire:model.live="siteForm.latitude" label="Latitude" type="number" step="any" />
+                        <x-input wire:model.live="siteForm.longitude" label="Longitude" type="number" step="any" />
+                        <x-input wire:model.live="siteForm.geofence_radius_meters" label="Geofence radius (m)" type="number" />
+                        <x-select wire:model.live="siteForm.status" label="Status">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </x-select>
                         <div class="sm:col-span-2">
-                            <label class="form-label">Instructions</label>
-                            <textarea wire:model="siteForm.instructions" rows="3" class="form-input mt-1"></textarea>
+                            <label for="client-site-instructions" class="form-label">Instructions</label>
+                            <textarea id="client-site-instructions" wire:model.live="siteForm.instructions" rows="3" class="form-input mt-1"></textarea>
                         </div>
                     </x-drawer-form>
                 </x-drawer>
@@ -401,12 +401,12 @@
                 <x-form-card title="Client portal settings" description="Access and welcome message for portal users">
                     <form wire:submit="savePortal" class="space-y-4">
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="portalForm.portal_enabled" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="portalForm.portal_enabled" class="rounded border-zinc-300">
                             Enable client portal for this account
                         </label>
                         <div>
-                            <label class="form-label">Welcome message</label>
-                            <textarea wire:model="portalForm.portal_welcome_message" rows="4" class="form-input mt-1" placeholder="Shown when portal users sign in…"></textarea>
+                            <label for="client-welcome" class="form-label">Welcome message</label>
+                            <textarea id="client-welcome" wire:model.live="portalForm.portal_welcome_message" rows="4" class="form-input mt-1" placeholder="Shown when portal users sign in…"></textarea>
                         </div>
                         <x-button type="submit">Save portal settings</x-button>
                     </form>
@@ -438,7 +438,7 @@
         @endif
 
         @if ($activeTab === 'users')
-            <div class="page-split">
+            <div class="page-split client-records-layout">
                 <x-section-card title="Portal users" description="People who can sign into the client portal">
                     <x-data-table>
                         <x-table.head>
@@ -465,23 +465,23 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="4">
-                                    <x-empty-state compact title="No portal users" description="Invite a client contact to access the portal." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No portal users.</span> Invite a client contact to access the portal.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card title="Invite portal user">
+                <x-form-card collapsible :open="false" title="Invite portal user">
                     @if (! $clientAccount->portal_enabled)
                         <p class="mb-3 rounded-md border border-amber-200/90 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
                             Enable the portal on the Client Portal tab before creating users.
                         </p>
                     @endif
                     <form wire:submit="invitePortalUser" class="space-y-3">
-                        <x-input wire:model="userForm.name" label="Name" />
-                        <x-input wire:model="userForm.email" label="Email" type="email" />
-                        <x-input wire:model="userForm.password" label="Temporary password" type="password" />
+                        <x-input wire:model.live="userForm.name" label="Name" />
+                        <x-input wire:model.live="userForm.email" label="Email" type="email" />
+                        <x-input wire:model.live="userForm.password" label="Temporary password" type="password" />
                         @error('userForm.email') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         @error('userForm.password') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit" size="sm">Create user</x-button>
@@ -491,7 +491,7 @@
         @endif
 
         @if ($activeTab === 'reports')
-            <div class="page-split">
+            <div class="page-split client-records-layout">
                 <x-section-card title="Email report schedules" description="Automated reports sent to this client">
                     <x-data-table>
                         <x-table.head>
@@ -525,32 +525,32 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="6">
-                                    <x-empty-state compact title="No schedules" description="Set up automated email reports for this client." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No schedules.</span> Set up automated email reports for this client.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
 
-                <x-form-card title="Add schedule">
+                <x-form-card collapsible :open="false" title="Add schedule">
                     <form wire:submit="addReportSchedule" class="space-y-3">
-                        <x-select wire:model="reportForm.report_type" label="Report type">
+                        <x-select wire:model.live="reportForm.report_type" label="Report type">
                             @foreach ($reportTypes as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
-                        <x-select wire:model="reportForm.frequency" label="Frequency">
+                        <x-select wire:model.live="reportForm.frequency" label="Frequency">
                             @foreach ($frequencies as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
                         <div>
-                            <label class="form-label">Recipients</label>
-                            <input wire:model="reportForm.recipients" type="text" class="form-input mt-1" placeholder="email@client.com, ops@client.com">
+                            <label for="client-report-recipients" class="form-label">Recipients</label>
+                            <input id="client-report-recipients" wire:model.live="reportForm.recipients" type="text" class="form-input mt-1" placeholder="email@client.com, ops@client.com">
                             @error('reportForm.recipients') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <label class="flex items-center gap-2 text-sm">
-                            <input type="checkbox" wire:model="reportForm.is_active" class="rounded border-zinc-300">
+                            <input type="checkbox" wire:model.live="reportForm.is_active" class="rounded border-zinc-300">
                             Active
                         </label>
                         <x-button type="submit" size="sm">Add schedule</x-button>

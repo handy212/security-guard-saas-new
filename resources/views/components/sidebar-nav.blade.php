@@ -138,8 +138,8 @@
             </template>
 
             @if ($pinned->isNotEmpty() && $groups->isNotEmpty())
-                <div class="my-3 border-t border-zinc-800" x-show="!sidebarCollapsed" x-cloak></div>
-                <div class="my-2 border-t border-zinc-800" x-show="sidebarCollapsed" x-cloak></div>
+                <div class="my-3 border-t border-zinc-200 dark:border-zinc-800" x-show="!sidebarCollapsed" x-cloak></div>
+                <div class="my-2 border-t border-zinc-200 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak></div>
                 <p class="mb-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-500" x-show="sidebarCollapsed" x-cloak>More</p>
             @endif
 
@@ -238,7 +238,7 @@
     </div>
 
     @if ($footer->isNotEmpty())
-        <div class="shrink-0 border-t border-zinc-800 p-1.5 lg:p-2">
+        <div class="shrink-0 border-t border-zinc-200 dark:border-zinc-800 p-1.5 lg:p-2">
             @foreach ($footer as $link)
                 @php
                     $active = $nav->isLinkActive($link);

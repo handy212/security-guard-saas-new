@@ -28,6 +28,30 @@
             </x-slot:controls>
         </x-page-toolbar>
 
+        <section class="card-surface mb-4 p-3" aria-label="Daily report filters">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                    <label for="daily-report-site-filter" class="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-300">Site</label>
+                    <select id="daily-report-site-filter" wire:model.live="siteFilter" class="field-input w-full">
+                        <option value="">All sites</option>
+                        @foreach ($sites as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('siteFilter')
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400" role="alert">{{ $message }}</p>
+                    @enderror
+                </div>
+                <x-input wire:model.live="dateFrom" type="date" label="From date" />
+                <x-input wire:model.live="dateTo" type="date" label="To date" />
+            </div>
+            @if ($activeFilterLabels !== [])
+                <p class="mt-3 text-xs text-zinc-600 dark:text-zinc-300" role="status">
+                    Active filters: {{ implode(' · ', $activeFilterLabels) }}
+                </p>
+            @endif
+        </section>
+
         <x-data-table>
             <x-table.head>
                 <tr>

@@ -117,7 +117,7 @@
                                     <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-[10px] text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">No logo</div>
                                 @endif
                                 <div class="flex flex-col gap-1">
-                                    <input wire:model="logoFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="logoFile" type="file" accept="image/*" class="form-input text-xs">
                                     @if ($logoUrl)
                                         <button type="button" wire:click="removeLogo" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove front logo</button>
                                     @endif
@@ -147,7 +147,7 @@
                                     <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-[10px] text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">Default</div>
                                 @endif
                                 <div class="flex flex-col gap-1">
-                                    <input wire:model="backLogoFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="backLogoFile" type="file" accept="image/*" class="form-input text-xs">
                                     @if ($backLogoUrl)
                                         <button type="button" wire:click="removeBackLogo" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove back logo</button>
                                     @endif
@@ -169,7 +169,7 @@
                                 </div>
                                 <p class="mt-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-zinc-500">Authorized signature</p>
                                 <div class="mt-3 flex flex-col gap-1.5">
-                                    <input wire:model="signatureFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="signatureFile" type="file" accept="image/*" class="form-input text-xs">
                                     @if ($signatureUrl)
                                         <button type="button" wire:click="removeSignature" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove signature</button>
                                     @endif
@@ -179,11 +179,11 @@
                         </div>
 
                         <x-textarea wire:model.live="emergencyText" label="Emergency notice" rows="3" placeholder="This card is the property of..." />
-                        <x-input wire:model="phone" label="Contact phone" />
-                        <x-input wire:model="phoneSecondary" label="Secondary phone" />
-                        <x-input wire:model="email" label="Contact email" type="email" />
-                        <x-input wire:model="website" label="Website" placeholder="www.example.com" />
-                        <x-textarea wire:model="address" label="Address" rows="2" />
+                        <x-input wire:model.live="phone" label="Contact phone" />
+                        <x-input wire:model.live="phoneSecondary" label="Secondary phone" />
+                        <x-input wire:model.live="email" label="Contact email" type="email" />
+                        <x-input wire:model.live="website" label="Website" placeholder="www.example.com" />
+                        <x-textarea wire:model.live="address" label="Address" rows="2" />
                         <x-button type="submit" variant="secondary" class="w-full" wire:loading.attr="disabled" wire:target="save">
                             <span wire:loading.remove wire:target="save">Save contact details</span>
                             <span wire:loading wire:target="save">Saving…</span>

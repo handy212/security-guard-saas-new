@@ -15,6 +15,8 @@ use Livewire\WithPagination;
 
 class TimeOffIndex extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     use WithPagination;
 
     public bool $showLeaveForm = false;
@@ -42,12 +44,12 @@ class TimeOffIndex extends Component
 
     public function updatedLeaveFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'leavePage' : 'page');
     }
 
     public function updatedGuardFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'leavePage' : 'page');
     }
 
     public function openLeaveForm(): void
@@ -209,7 +211,7 @@ class TimeOffIndex extends Component
             ->when(filled($this->guardFilter), fn ($q) => $q->where('guard_id', $this->guardFilter))
             ->latest();
 
-        $leaveRequests = $leaveQuery->paginate(15);
+        $leaveRequests = $leaveQuery->paginate(15, ['*'], $this->embedded ? 'leavePage' : 'page');
 
         $conflictMeta = $leaveRequests->getCollection()->mapWithKeys(function (LeaveRequest $request) use ($leaves) {
             if (! EnumHelper::is($request->status, 'pending')) {

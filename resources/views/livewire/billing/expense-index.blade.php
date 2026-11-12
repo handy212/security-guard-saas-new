@@ -126,39 +126,39 @@
         <x-drawer :title="$editingId ? 'Edit expense' : 'Add expense'" description="Record a vendor bill or reimbursement." width="lg" close-method="closeForm">
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Save changes' : 'Save expense'" close-method="closeForm">
                 <x-form-section title="Expense">
-                    <x-input wire:model="form.title" label="Title *" class="sm:col-span-2" />
-                    <x-select wire:model="form.expense_category_id" label="Category">
+                    <x-input wire:model.live="form.title" label="Title *" class="sm:col-span-2" />
+                    <x-select wire:model.live="form.expense_category_id" label="Category">
                         <option value="">Uncategorized</option>
                         @foreach ($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.expense_date" type="date" label="Date *" />
-                    <x-input wire:model="form.amount" type="number" step="0.01" min="0.01" label="Amount (₦) *" />
-                    <x-input wire:model="form.vendor_name" label="Vendor" />
-                    <x-select wire:model="form.payment_method" label="Payment method">
+                    <x-input wire:model.live="form.expense_date" type="date" label="Date *" />
+                    <x-input wire:model.live="form.amount" type="number" step="0.01" min="0.01" label="Amount (₦) *" />
+                    <x-input wire:model.live="form.vendor_name" label="Vendor" />
+                    <x-select wire:model.live="form.payment_method" label="Payment method">
                         <option value="cash">Cash</option>
                         <option value="bank_transfer">Bank transfer</option>
                         <option value="mobile_money">Mobile money</option>
                         <option value="card">Card</option>
                         <option value="cheque">Cheque</option>
                     </x-select>
-                    <x-file-input wire:model="receiptFile" label="Receipt (optional)" hint="JPG, PNG, or PDF up to 10MB" class="sm:col-span-2" />
+                    <x-file-input wire:model.live="receiptFile" label="Receipt (optional)" hint="JPG, PNG, or PDF up to 10MB" class="sm:col-span-2" />
                 </x-form-section>
                 <x-form-section title="Allocation" description="Optional — link spend to a client or site.">
-                    <x-select wire:model="form.client_account_id" label="Client" class="sm:col-span-2">
+                    <x-select wire:model.live="form.client_account_id" label="Client" class="sm:col-span-2">
                         <option value="">None</option>
                         @foreach ($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.site_id" label="Site" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_id" label="Site" class="sm:col-span-2">
                         <option value="">None</option>
                         @foreach ($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-textarea wire:model="form.description" label="Notes" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Notes" rows="3" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

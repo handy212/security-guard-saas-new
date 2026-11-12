@@ -18,13 +18,13 @@
         <form id="estimate-form" wire:submit="save" class="mx-auto max-w-3xl space-y-4">
             <x-form-card title="Client" description="Who this estimate is for">
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <x-select wire:model="form.client_account_id" label="Client *" class="sm:col-span-2">
+                    <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
                         <option value="">Select client</option>
                         @foreach ($clients as $c)
                             <option value="{{ $c->id }}">{{ $c->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.valid_until" type="date" label="Valid until" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.valid_until" type="date" label="Valid until" class="sm:col-span-2" />
                 </div>
             </x-form-card>
 
@@ -42,9 +42,9 @@
                                 @endif
                             </div>
                             <div class="grid gap-3 sm:grid-cols-2">
-                                <x-input wire:model="items.{{ $i }}.description" label="Description *" class="sm:col-span-2" />
-                                <x-input wire:model="items.{{ $i }}.quantity" type="number" step="0.01" label="Qty *" />
-                                <x-input wire:model="items.{{ $i }}.unit_price" type="number" step="0.01" label="Unit price (₦) *" />
+                                <x-input wire:model.live="items.{{ $i }}.description" label="Description *" class="sm:col-span-2" />
+                                <x-input wire:model.live="items.{{ $i }}.quantity" type="number" step="0.01" label="Qty *" />
+                                <x-input wire:model.live="items.{{ $i }}.unit_price" type="number" step="0.01" label="Unit price (₦) *" />
                             </div>
                         </div>
                     @endforeach

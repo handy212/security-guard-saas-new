@@ -12,6 +12,8 @@ use Livewire\WithPagination;
 
 class ShiftStatusIndex extends Component
 {
+    use \App\Livewire\Concerns\EmbedsInScheduler;
+
     use WithPagination;
 
     public string $confirmationFilter = 'all';
@@ -20,7 +22,7 @@ class ShiftStatusIndex extends Component
 
     public function updatedConfirmationFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'confirmationsPage' : 'page');
     }
 
     public function confirmShift(int $confirmationId, WorkforceService $service): void
@@ -50,7 +52,7 @@ class ShiftStatusIndex extends Component
                 ->where('tenant_id', $tenantId)
                 ->when($this->confirmationFilter !== 'all', fn ($q) => $q->where('status', $this->confirmationFilter))
                 ->latest()
-                ->paginate(20),
+                ->paginate(20, ['*'], $this->embedded ? 'confirmationsPage' : 'page'),
             'assignments' => ShiftAssignment::with(['assignedGuard', 'shift.site'])
                 ->where('tenant_id', $tenantId)
                 ->whereNotIn('status', ['cancelled', 'completed'])

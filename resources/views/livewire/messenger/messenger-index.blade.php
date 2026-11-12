@@ -100,9 +100,9 @@
                         </div>
 
                         <form wire:submit="send" class="chat-compose">
-                            <x-textarea wire:model="newMessage" placeholder="Type a message…" rows="2" />
+                            <x-textarea wire:model.live="newMessage" placeholder="Type a message…" rows="2" />
                             <div class="flex flex-wrap items-end gap-2">
-                                <x-file-input wire:model="attachmentFile" label="Attachment (optional)" class="min-w-0 flex-1" />
+                                <x-file-input wire:model.live="attachmentFile" label="Attachment (optional)" class="min-w-0 flex-1" />
                                 <x-button type="submit" wire:loading.attr="disabled" wire:target="send">
                                     <span wire:loading.remove wire:target="send">Send</span>
                                     <span wire:loading wire:target="send">Sending…</span>
@@ -129,8 +129,8 @@
         <x-drawer title="New thread" description="Start a site conversation with back-office participants." width="md" close-method="closeDrawer">
             <x-drawer-form wire:submit="createThread" submit-label="Create thread" close-method="closeDrawer" target="createThread">
                 <x-form-section title="Thread">
-                    <x-input wire:model="threadForm.subject" label="Subject *" class="sm:col-span-2" />
-                    <x-select wire:model="threadForm.site_id" label="Site *" class="sm:col-span-2">
+                    <x-input wire:model.live="threadForm.subject" label="Subject *" class="sm:col-span-2" />
+                    <x-select wire:model.live="threadForm.site_id" label="Site *" class="sm:col-span-2">
                         <option value="">Select site</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -141,7 +141,7 @@
                     <div class="sm:col-span-2 max-h-48 space-y-0.5 overflow-y-auto rounded-md border border-zinc-200/90 p-1.5 dark:border-zinc-700">
                         @forelse($staff as $user)
                             <label class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/60">
-                                <input type="checkbox" wire:model="threadForm.participant_ids" value="{{ $user->id }}" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600">
+                                <input type="checkbox" wire:model.live="threadForm.participant_ids" value="{{ $user->id }}" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600">
                                 {{ $user->name }}
                             </label>
                         @empty

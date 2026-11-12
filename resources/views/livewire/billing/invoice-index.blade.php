@@ -29,7 +29,7 @@
 
             <x-page-toolbar search="search" searchPlaceholder="Search invoices…">
                 <x-slot:tabs>
-                    <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'partial' => 'Partial', 'paid' => 'Paid', 'void' => 'Void', 'overdue' => 'Overdue']" />
+                    <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All ('.$stats['total'].')', 'draft' => 'Draft ('.$stats['draft'].')', 'sent' => 'Sent ('.$stats['sent'].')', 'partial' => 'Partial ('.$stats['partial'].')', 'paid' => 'Paid ('.$stats['paid'].')', 'void' => 'Void ('.$stats['void'].')', 'overdue' => 'Overdue ('.$stats['overdue'].')']" />
                 </x-slot:tabs>
                 <x-slot:controls>
                     <button type="button" wire:click="toggleFilters" class="table-action">
@@ -144,13 +144,13 @@
         <x-drawer title="Generate invoice" description="Create a monthly invoice from client coverage." width="md" close-method="closeGenerate">
             <x-drawer-form wire:submit="generate" submit-label="Generate invoice" close-method="closeGenerate" target="generate">
                 <x-form-section title="Invoice">
-                    <x-select wire:model="clientId" label="Client *" class="sm:col-span-2">
+                    <x-select wire:model.live="clientId" label="Client *" class="sm:col-span-2">
                         <option value="">Select client</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="month" label="Month *" type="month" class="sm:col-span-2" />
+                    <x-input wire:model.live="month" label="Month *" type="month" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -165,8 +165,8 @@
         >
             <x-drawer-form wire:submit="sendInvoice" submit-label="Send email" close-method="closeSend" target="sendInvoice">
                 <x-form-section title="Recipients" description="Comma-separated emails. Defaults to client and contact emails.">
-                    <x-textarea wire:model="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
-                    <x-textarea wire:model="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendEmails" label="To *" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="sendMessage" label="Optional message" rows="3" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -181,15 +181,15 @@
         >
             <x-drawer-form wire:submit="recordPayment" submit-label="Save payment" close-method="closePayment" target="recordPayment">
                 <x-form-section title="Payment">
-                    <x-input wire:model="paymentForm.amount" label="Amount *" type="number" step="0.01" min="0.01" />
-                    <x-select wire:model="paymentForm.payment_method" label="Method *">
+                    <x-input wire:model.live="paymentForm.amount" label="Amount *" type="number" step="0.01" min="0.01" />
+                    <x-select wire:model.live="paymentForm.payment_method" label="Method *">
                         <option value="cash">Cash</option>
                         <option value="bank_transfer">Bank transfer</option>
                         <option value="mobile_money">Mobile money</option>
                         <option value="card">Card</option>
                         <option value="cheque">Cheque</option>
                     </x-select>
-                    <x-textarea wire:model="paymentForm.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="paymentForm.notes" label="Notes" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

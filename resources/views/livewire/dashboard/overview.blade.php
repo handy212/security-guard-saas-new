@@ -1,7 +1,7 @@
-<div wire:poll.30s>
+<div wire:poll.30s class="operations-home">
     <x-page-shell
-        :title="$greeting.', '.auth()->user()->name"
-        :description="now()->format('l, F j').' · Operations overview'"
+        title="Operations desk"
+        :description="now()->format('l, j F Y').' · '.auth()->user()->tenant?->name"
     >
         <x-slot:actions>
             @can('schedules.manage')
@@ -41,50 +41,30 @@
             </x-alert>
         @endif
 
-        <div class="kpi-grid animate-fade-in-up">
+        <section class="ops-summary" aria-label="Operations at a glance">
             @foreach ($displayKpis as $kpi)
-                <x-stat-card
-                    compact
+                <x-dashboard.kpi
+                    class="ops-summary-card"
                     :label="$kpi['label']"
                     :value="$kpi['value']"
                     :hint="$kpi['hint']"
                     :tone="$kpi['tone']"
-                    :icon="match($kpi['key']) {
-                        'reports' => 'plan',
-                        'incidents' => 'incidents',
-                        'patrols' => 'patrols',
-                        'guards' => 'guards',
-                        'shifts' => 'shifts',
-                        'alerts' => 'dispatch',
-                        default => 'chart',
-                    }"
                     :href="url($kpi['href'])"
+                    :icon="$kpi['key']"
                 />
             @endforeach
+        </section>
+
+        <div class="ops-section-heading">
+            <div>
+                <p class="ops-eyebrow">Today’s operations</p>
+                <h2>Coverage &amp; response</h2>
+            </div>
+            <p class="ops-period">Updates every 30 seconds</p>
         </div>
 
-        @if (count($quickActions))
-            <section class="section-block !gap-2">
-                <div class="flex items-end justify-between gap-3">
-                    <div>
-                        <h2 class="section-heading">Quick actions</h2>
-                        <p class="section-subheading">Jump into the most used modules</p>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-1.5">
-                    @foreach ($quickActions as $action)
-                        <a href="{{ $action['href'] }}" class="quick-action">
-                            <x-nav-icon :name="$action['icon']" class="h-3.5 w-3.5 text-zinc-500" />
-                            {{ $action['label'] }}
-                        </a>
-                    @endforeach
-                </div>
-            </section>
-        @endif
-
-        <div class="page-dashboard">
-            <div class="space-y-3">
-                <section class="card-surface overflow-hidden">
+        <div class="page-grid-2 ops-primary-grid">
+            <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">Today's schedule</h2>
@@ -95,7 +75,7 @@
                                 @endif
                             </p>
                         </div>
-                        <a href="{{ route('schedules.index', ['date' => today()->toDateString()]) }}" class="page-link shrink-0">View all</a>
+                        <a href="{{ route('schedules.index', ['date' => today()->toDateString()]) }}" class="page-link shrink-0">Day roster</a>
                     </div>
 
                     @forelse ($todayShifts as $shift)
@@ -114,7 +94,7 @@
                                 <div class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $shift->title }}</div>
                                 <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $shift->site?->name ?? 'No site' }}</div>
                             </div>
-                            <div class="hidden shrink-0 text-right tabular-nums sm:block">
+                            <div class="shrink-0 text-right tabular-nums">
                                 <div @class([
                                     'text-xs',
                                     'font-medium text-amber-700 dark:text-amber-400' => $shift->is_understaffed,
@@ -123,7 +103,7 @@
                                     {{ $shift->staffed_count }}/{{ $shift->required_guards }} staffed
                                 </div>
                             </div>
-                            <x-badge :status="$shift->status" />
+                            <span class="hidden sm:inline-flex"><x-badge :status="$shift->status" /></span>
                         </a>
                     @empty
                         <div class="p-3">
@@ -147,7 +127,7 @@
                             <h2 class="card-header-title">Open dispatches</h2>
                             <p class="card-header-meta">Active control-room events</p>
                         </div>
-                        <a href="{{ route('dispatch.control-room') }}" class="page-link shrink-0">View all</a>
+                        <a href="{{ route('dispatch.control-room') }}" class="page-link shrink-0">Control room</a>
                     </div>
 
                     @forelse ($openDispatches as $dispatch)
@@ -171,7 +151,10 @@
                                     · {{ $dispatch->created_at->diffForHumans() }}
                                 </div>
                             </div>
-                            <x-badge :status="$dispatch->status" />
+                            <div class="ops-event-status">
+                                <span @class(['ops-priority', 'ops-priority-urgent' => in_array(\App\Support\EnumHelper::value($dispatch->priority), ['critical', 'high'], true)])>{{ ucfirst(\App\Support\EnumHelper::value($dispatch->priority)) }} priority</span>
+                                <x-badge :status="$dispatch->status" />
+                            </div>
                         </a>
                     @empty
                         <div class="p-3">
@@ -187,7 +170,10 @@
                         </div>
                     @endforelse
                 </section>
+        </div>
 
+        <div class="ops-secondary-grid">
+            <div class="space-y-3">
                 <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
@@ -273,8 +259,19 @@
                     @endforelse
                 </section>
 
-                <x-dashboard.activity-summary :summary="$activitySummary" />
 
+            </div>
+        </div>
+
+        <section class="ops-reporting" aria-labelledby="ops-reporting-title">
+            <div class="ops-section-heading">
+                <div>
+                    <p class="ops-eyebrow">The wider picture</p>
+                    <h2 id="ops-reporting-title">This week in review</h2>
+                </div>
+                <span class="ops-period">Last 7 days</span>
+            </div>
+            <div class="ops-report-grid">
                 <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
@@ -302,12 +299,30 @@
                         <x-dashboard.trend-chart :series="$patrolTrend" color="accent" />
                     </div>
                 </section>
+                <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
+                <x-dashboard.incident-bar-chart :series="$incidentTrend" />
             </div>
-        </div>
+            <x-dashboard.activity-summary :summary="$activitySummary" />
+        </section>
 
-        <div class="page-grid-2">
-            <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
-            <x-dashboard.incident-bar-chart :series="$incidentTrend" />
-        </div>
+        @if (count($quickActions))
+            <section class="ops-tools">
+                <div class="flex items-end justify-between gap-3">
+                    <div>
+                        <h2 class="section-heading">Quick actions</h2>
+                        <p class="section-subheading">Open a workspace</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach ($quickActions as $action)
+                        <a href="{{ $action['href'] }}" class="quick-action">
+                            <x-nav-icon :name="$action['icon']" class="h-3.5 w-3.5 text-zinc-500" />
+                            {{ $action['label'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
     </x-page-shell>
 </div>

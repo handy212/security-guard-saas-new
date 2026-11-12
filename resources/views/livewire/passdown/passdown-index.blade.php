@@ -58,15 +58,15 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Save changes' : 'Save passdown'" close-method="closeDrawer" target="save">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Save changes' : 'Save passdown'" close-method="closeDrawer" target="save">
                 <x-form-section title="Location">
-                    <x-select wire:model="form.site_id" label="Site *" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_id" label="Site *" class="sm:col-span-2">
                         <option value="">Select</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.site_post_id" label="Post (optional)" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_post_id" label="Post (optional)" class="sm:col-span-2">
                         <option value="">Any</option>
                         @foreach($posts as $post)
                             <option value="{{ $post->id }}">{{ $post->name }}</option>
@@ -74,7 +74,7 @@
                     </x-select>
                 </x-form-section>
                 <x-form-section title="Handoff">
-                    <x-textarea wire:model="form.content" label="Notes *" class="sm:col-span-2" rows="5" hint="At least 10 characters" />
+                    <x-textarea wire:model.live="form.content" label="Notes *" class="sm:col-span-2" rows="5" hint="At least 10 characters" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

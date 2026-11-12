@@ -99,15 +99,15 @@
             width="lg"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Save changes' : 'Log complaint'" close-method="closeDrawer" target="save">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Save changes' : 'Log complaint'" close-method="closeDrawer" target="save">
                 <x-form-section title="Client">
-                    <x-select wire:model="form.client_account_id" label="Client *" class="sm:col-span-2">
+                    <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
                         <option value="">Select client</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.site_id" label="Site (optional)" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_id" label="Site (optional)" class="sm:col-span-2">
                         <option value="">Any site</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -115,9 +115,9 @@
                     </x-select>
                 </x-form-section>
                 <x-form-section title="Issue">
-                    <x-input wire:model="form.subject" label="Subject *" class="sm:col-span-2" />
-                    <x-textarea wire:model="form.description" label="Description *" class="sm:col-span-2" rows="4" />
-                    <x-select wire:model="form.priority" label="Priority" class="sm:col-span-2">
+                    <x-input wire:model.live="form.subject" label="Subject *" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Description *" class="sm:col-span-2" rows="4" />
+                    <x-select wire:model.live="form.priority" label="Priority" class="sm:col-span-2">
                         <option value="low">Low</option>
                         <option value="normal">Normal</option>
                         <option value="high">High</option>

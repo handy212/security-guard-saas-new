@@ -17,6 +17,8 @@ class GuardApplicationQueue extends Component
 {
     use AuthorizesModuleAccess, WithPagination;
 
+    public bool $embedded = false;
+
     public string $search = '';
 
     public string $statusFilter = 'pending';
@@ -28,12 +30,12 @@ class GuardApplicationQueue extends Component
 
     public function updatingSearch(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'applicationsPage' : 'page');
     }
 
     public function updatingStatusFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'applicationsPage' : 'page');
     }
 
     public function approve(int $id, PlanLimitService $limits): void
@@ -104,7 +106,7 @@ class GuardApplicationQueue extends Component
                         ->orWhere('phone', 'like', '%'.$this->search.'%');
                 }))
                 ->latest()
-                ->paginate(15),
+                ->paginate(15, ['*'], $this->embedded ? 'applicationsPage' : 'page'),
             'publicApplyUrl' => $tenant?->slug ? url('/apply/'.$tenant->slug) : null,
             'branches' => Branch::orderBy('name')->get(),
         ])->layout('layouts.app');

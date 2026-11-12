@@ -1,9 +1,11 @@
-<div>
-    <x-page-shell title="Know Your Guard" description="Review verification status across the roster.">
+<div @class(['guards-embedded-panel space-y-3' => $embedded])>
+    <x-page-shell :show-header="! $embedded" title="Know Your Guard" description="Review verification status across the roster.">
+        @if (! $embedded)
         <x-slot:actions>
             <x-button variant="secondary" :href="route('guards.applications')">Applications</x-button>
             <x-button :href="route('guards.index')">Roster</x-button>
         </x-slot:actions>
+        @endif
 
         <div class="stat-grid">
             <x-stat-card compact label="Awaiting review" :value="$counts['queue']" icon="guards" :tone="$counts['queue'] ? 'warning' : 'success'" wire:click="$set('statusFilter', 'queue')" class="cursor-pointer text-left" :active="$statusFilter === 'queue'" />
@@ -74,7 +76,7 @@
                         >
                             <x-slot:actions>
                                 <x-button size="sm" variant="secondary" wire:click="$set('statusFilter', 'all')">Show all</x-button>
-                                <x-button size="sm" variant="secondary" :href="route('guards.index')">Roster</x-button>
+                                @if (! $embedded)<x-button size="sm" variant="secondary" :href="route('guards.index')">Roster</x-button>@endif
                             </x-slot:actions>
                         </x-empty-state>
                     </x-table.empty>

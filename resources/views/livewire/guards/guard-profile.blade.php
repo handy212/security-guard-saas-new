@@ -171,7 +171,7 @@
                         @endif
                     </x-section-card>
 
-                    <x-section-card title="ID card preview">
+                    <x-section-card class="lg:col-span-2" title="ID card preview">
                         @if ($idCardEligibility['can_download'])
                             <div class="mb-3 flex justify-center">
                                 <x-segment-control field="idCardPreviewSide" :active="$idCardPreviewSide" :options="['front' => 'Front', 'back' => 'Back']" />
@@ -179,10 +179,10 @@
                             <div class="flex justify-center" wire:key="card-{{ $idCardPreviewSide }}-{{ $guard->id }}">
                                 <x-guard-id-card-preview :brand="$idCardBrand" :card="$idCardData" :side="$idCardPreviewSide" :photo-url="$photoUrl" :logo-url="$idCardBrand['logo_url']" :qr-svg="$qrSvg" />
                             </div>
-                            <div class="mt-4 flex flex-col gap-2">
-                                <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="w-full justify-center" size="sm">Print ID card</x-button>
-                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])" variant="secondary" class="w-full justify-center" size="sm">Download PDF</x-button>
-                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])" variant="secondary" class="w-full justify-center" size="sm">Download PNG</x-button>
+                            <div class="mt-4 flex flex-wrap justify-center gap-2">
+                                <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="justify-center" size="sm">Print ID card</x-button>
+                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])" variant="secondary" class="justify-center" size="sm">Download PDF</x-button>
+                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])" variant="secondary" class="justify-center" size="sm">Download PNG</x-button>
                             </div>
                         @else
                             <x-empty-state compact :title="$idCardEligibility['message'] ?? 'ID card unavailable'" description="Complete KYG verification to enable ID cards." />
@@ -198,7 +198,7 @@
                                 <div class="text-xs text-zinc-500">{{ $assignment->shift?->starts_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($assignment->status))) }}</div>
                             </div>
                         @empty
-                            <x-empty-state compact title="No recent shifts" description="Shifts from the last 14 days appear here." />
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent shifts.</span> Shifts from the last 14 days appear here.</p>
                         @endforelse
                     </x-section-card>
 
@@ -209,7 +209,7 @@
                                 <div class="text-xs text-zinc-500">{{ $incident->created_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($incident->status))) }}</div>
                             </div>
                         @empty
-                            <x-empty-state compact title="No recent incidents" description="Incidents linked to this guard’s shifts appear here." />
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent incidents.</span> Incidents linked to this guard’s shifts appear here.</p>
                         @endforelse
                     </x-section-card>
                 </div>
@@ -218,8 +218,8 @@
 
         @if ($activeTab === 'profile')
             <div class="space-y-4">
-                <div class="grid gap-4 lg:grid-cols-3">
-                    <x-section-card title="Photo" description="Used on ID cards and KYG verification.">
+                <div class="grid items-start gap-4 lg:grid-cols-3">
+                    <x-section-card class="!h-auto" title="Photo" description="Used on ID cards and KYG verification.">
                         @if ($guard->photo_path)
                             <img src="{{ route('files.guard-photo', $guard) }}" alt="" class="mx-auto h-36 w-28 rounded-xl border border-zinc-200 object-cover shadow-sm dark:border-zinc-700">
                         @else
@@ -228,7 +228,7 @@
                             </div>
                         @endif
                         <form wire:submit="uploadPhoto" class="mt-3 space-y-2">
-                            <input wire:model="photoFile" type="file" accept="image/*" class="form-input text-xs">
+                            <input aria-label="Guard photo" wire:model.live="photoFile" type="file" accept="image/*" class="form-input text-xs">
                             @error('photoFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             <x-button type="submit" size="sm">Upload photo</x-button>
                         </form>
@@ -237,25 +237,25 @@
                     <div class="lg:col-span-2">
                         <x-form-card title="Personal details" description="Contact info, employment status, and linked login.">
                             <form wire:submit="saveProfile" class="grid gap-3 sm:grid-cols-2">
-                                <x-input wire:model="profileForm.employee_number" label="Employee #" />
-                                <x-select wire:model="profileForm.status" label="Status">
+                                <x-input wire:model.live="profileForm.employee_number" label="Employee #" />
+                                <x-select wire:model.live="profileForm.status" label="Status">
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                 </x-select>
-                                <x-input wire:model="profileForm.first_name" label="First name" />
-                                <x-input wire:model="profileForm.last_name" label="Last name" />
-                                <x-input wire:model="profileForm.phone" label="Phone" />
-                                <x-input wire:model="profileForm.email" label="Email" type="email" />
-                                <x-input wire:model="profileForm.monthly_rate" label="Monthly rate" type="number" step="0.01" />
-                                <x-input wire:model="profileForm.hire_date" label="Hire date" type="date" />
-                                <x-select wire:model="profileForm.user_id" label="Linked user account" class="sm:col-span-2">
+                                <x-input wire:model.live="profileForm.first_name" label="First name" />
+                                <x-input wire:model.live="profileForm.last_name" label="Last name" />
+                                <x-input wire:model.live="profileForm.phone" label="Phone" />
+                                <x-input wire:model.live="profileForm.email" label="Email" type="email" />
+                                <x-input wire:model.live="profileForm.monthly_rate" label="Monthly rate" type="number" step="0.01" />
+                                <x-input wire:model.live="profileForm.hire_date" label="Hire date" type="date" />
+                                <x-select wire:model.live="profileForm.user_id" label="Linked user account" class="sm:col-span-2">
                                     <option value="">None</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
                                     @endforeach
                                 </x-select>
-                                <x-input wire:model="profileForm.emergency_contact_name" label="Emergency contact" />
-                                <x-input wire:model="profileForm.emergency_contact_phone" label="Emergency phone" />
+                                <x-input wire:model.live="profileForm.emergency_contact_name" label="Emergency contact" />
+                                <x-input wire:model.live="profileForm.emergency_contact_phone" label="Emergency phone" />
                                 <div class="sm:col-span-2">
                                     <x-button type="submit">Save profile</x-button>
                                 </div>
@@ -268,7 +268,7 @@
                     <x-form-card title="Department" description="Branch, duty type, and rank.">
                         <form wire:submit="saveDepartment" class="space-y-3">
                             <div>
-                                <x-select wire:model="departmentForm.branch_id" label="Branch / department">
+                                <x-select wire:model.live="departmentForm.branch_id" label="Branch / department">
                                     <option value="">None</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
@@ -276,12 +276,12 @@
                                 </x-select>
                                 <a href="{{ route('settings.branches') }}" class="page-link mt-1 inline-block text-xs">Manage branches</a>
                             </div>
-                            <x-select wire:model="departmentForm.duty_type" label="Duty type">
+                            <x-select wire:model.live="departmentForm.duty_type" label="Duty type">
                                 @foreach($dutyTypes as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
                             </x-select>
-                            <x-input wire:model="departmentForm.rank" label="Rank / title" />
+                            <x-input wire:model.live="departmentForm.rank" label="Rank / title" />
                             <x-button type="submit" size="sm">Save department</x-button>
                         </form>
                     </x-form-card>
@@ -289,18 +289,18 @@
                     <x-form-card title="Preferences" description="Assignment visibility and notifications.">
                         <form wire:submit="saveSettings" class="space-y-4">
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="settingsForm.show_current_assignment" class="rounded border-zinc-300 dark:border-zinc-600">
+                                <input type="checkbox" wire:model.live="settingsForm.show_current_assignment" class="rounded border-zinc-300 dark:border-zinc-600">
                                 Show current assignment on public KYG page
                             </label>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="settingsForm.notify_on_shift_change" class="rounded border-zinc-300 dark:border-zinc-600">
+                                <input type="checkbox" wire:model.live="settingsForm.notify_on_shift_change" class="rounded border-zinc-300 dark:border-zinc-600">
                                 Notify on shift changes
                             </label>
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="settingsForm.allow_open_shift_bids" class="rounded border-zinc-300 dark:border-zinc-600">
+                                <input type="checkbox" wire:model.live="settingsForm.allow_open_shift_bids" class="rounded border-zinc-300 dark:border-zinc-600">
                                 Allow open shift bids
                             </label>
-                            <x-select wire:model="settingsForm.preferred_contact_method" label="Preferred contact method">
+                            <x-select wire:model.live="settingsForm.preferred_contact_method" label="Preferred contact method">
                                 <option value="phone">Phone</option>
                                 <option value="email">Email</option>
                                 <option value="sms">SMS</option>
@@ -314,12 +314,12 @@
 
         @if ($activeTab === 'availability')
             <div class="page-split">
-                <x-section-card title="Weekly availability" description="Recurring windows for shift scheduling.">
+                <x-section-card class="!h-auto" title="Weekly availability" description="Recurring windows for shift scheduling.">
                     <x-data-table>
                         <x-table.head>
                             <tr>
                                 <x-table.th>Day</x-table.th>
-                                <x-table.th responsive="md">Hours</x-table.th>
+                                <x-table.th>Hours</x-table.th>
                                 <x-table.th>Available</x-table.th>
                                 <x-table.th align="right" class="w-24"></x-table.th>
                             </tr>
@@ -328,8 +328,8 @@
                             @forelse ($guard->availabilities as $slot)
                                 <tr class="table-row-hover" wire:key="avail-{{ $slot->id }}">
                                     <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $weekdays[$slot->weekday] ?? $slot->weekday }}</x-table.td>
-                                    <x-table.td responsive="md" muted class="tabular-nums">{{ substr($slot->starts_at, 0, 5) }} – {{ substr($slot->ends_at, 0, 5) }}</x-table.td>
-                                    <x-table.td><x-badge :status="$slot->is_available ? 'active' : 'inactive'" /></x-table.td>
+                                    <x-table.td muted class="whitespace-nowrap tabular-nums">{{ substr($slot->starts_at, 0, 5) }} – {{ substr($slot->ends_at, 0, 5) }}</x-table.td>
+                                    <x-table.td><span class="status-chip {{ $slot->is_available ? 'status-chip-info' : 'status-chip-neutral' }}">{{ $slot->is_available ? 'Available' : 'Unavailable' }}</span></x-table.td>
                                     <x-table.td align="right">
                                         <div class="table-inline-actions justify-end">
                                             <button type="button" wire:click="editAvailability({{ $slot->id }})" class="table-action">Edit</button>
@@ -339,7 +339,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="4">
-                                    <x-empty-state compact title="No availability set" description="Define when this guard is available for shifts." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No availability set.</span> Define when this guard is available for shifts.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
@@ -348,15 +348,15 @@
 
                 <x-form-card :title="$editingAvailabilityId ? 'Edit slot' : 'Add availability'" description="Set day, time range, and availability status.">
                     <form wire:submit="saveAvailability" class="space-y-3">
-                        <x-select wire:model="availabilityForm.weekday" label="Day">
+                        <x-select wire:model.live="availabilityForm.weekday" label="Day">
                             @foreach ($weekdays as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="availabilityForm.starts_at" label="Start" type="time" />
-                        <x-input wire:model="availabilityForm.ends_at" label="End" type="time" />
+                        <x-input wire:model.live="availabilityForm.starts_at" label="Start" type="time" />
+                        <x-input wire:model.live="availabilityForm.ends_at" label="End" type="time" />
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
+                            <input type="checkbox" wire:model.live="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
                             Available
                         </label>
                         <x-button type="submit" size="sm">{{ $editingAvailabilityId ? 'Update' : 'Add' }} slot</x-button>
@@ -367,12 +367,12 @@
 
         @if ($activeTab === 'files')
             <div class="profile-form-split">
-                <x-section-card title="Documents on file" description="ID, clearance, and license documents for KYG." flush>
+                <x-section-card class="!h-auto" title="Documents on file" description="ID, clearance, and license documents for KYG." flush>
                     @forelse($guard->documents as $doc)
                         <div class="list-row-start" wire:key="doc-{{ $doc->id }}">
                             <div class="min-w-0 flex-1">
                                 <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $doc->typeLabel() }}</div>
-                                <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $doc->expires_at?->format('M j, Y') ?? 'No expiry' }}</div>
+                                <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $doc->expires_at ? 'Expires '.$doc->expires_at->format('M j, Y') : 'Expiry not recorded' }}</div>
                             </div>
                             <div class="table-inline-actions shrink-0">
                                 <button type="button" wire:click="openDocumentPreview({{ $doc->id }})" class="table-action">View</button>
@@ -381,20 +381,20 @@
                         </div>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No documents" description="Upload ID, police clearance, and license documents." />
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No documents.</span> Upload ID, police clearance, and license documents.</p>
                         </div>
                     @endforelse
                 </x-section-card>
 
                 <x-form-card title="Upload document" description="Include police clearance and ID for KYG vetting.">
                     <form wire:submit="uploadDocument" class="space-y-3">
-                        <x-select wire:model="documentForm.type" label="Type">
+                        <x-select wire:model.live="documentForm.type" label="Type">
                             @foreach ($documentTypes as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
-                        <x-input wire:model="documentForm.expires_at" label="Expires" type="date" />
-                        <input wire:model="documentFile" type="file" class="form-input text-sm" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx">
+                        <x-input wire:model.live="documentForm.expires_at" label="Expires" type="date" />
+                        <input aria-label="Document file" wire:model.live="documentFile" type="file" class="form-input text-sm" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx">
                         @error('documentFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <x-button type="submit">Upload</x-button>
                     </form>
@@ -404,7 +404,7 @@
 
         @if ($activeTab === 'sites')
             <div class="page-split">
-                <x-section-card title="Assigned sites" description="Post sites where this guard is deployed.">
+                <x-section-card class="!h-auto" title="Assigned sites" description="Post sites where this guard is deployed.">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -430,7 +430,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="4">
-                                    <x-empty-state compact title="No sites assigned" description="Assign this guard to post sites." />
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No sites assigned.</span> Assign this guard to post sites.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
@@ -439,16 +439,16 @@
 
                 <x-form-card title="Assign site" description="Link this guard to a post site.">
                     <form wire:submit="assignSite" class="space-y-3">
-                        <x-select wire:model="siteAssignForm.site_id" label="Site">
+                        <x-select wire:model.live="siteAssignForm.site_id" label="Site">
                             <option value="">Select site…</option>
                             @foreach ($sites as $site)
                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
                             @endforeach
                         </x-select>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                            <input type="checkbox" wire:model="siteAssignForm.is_primary" class="rounded border-zinc-300 dark:border-zinc-600"> Primary site
+                            <input type="checkbox" wire:model.live="siteAssignForm.is_primary" class="rounded border-zinc-300 dark:border-zinc-600"> Primary site
                         </label>
-                        <x-input wire:model="siteAssignForm.notes" label="Notes" />
+                        <x-input wire:model.live="siteAssignForm.notes" label="Notes" />
                         <x-button type="submit" size="sm">Assign site</x-button>
                     </form>
                 </x-form-card>
@@ -457,48 +457,47 @@
 
         @if ($activeTab === 'qualifications')
             <div class="profile-stack space-y-4">
-                <x-form-card title="Security license" description="License number and expiry for compliance tracking.">
+                <x-form-card title="Primary security license" description="The guard’s primary license record. Additional credentials are listed separately below.">
                     <form wire:submit="saveLicense" class="grid max-w-2xl gap-3 sm:grid-cols-2">
-                        <x-input wire:model="licenseForm.license_number" label="License number" />
-                        <x-input wire:model="licenseForm.license_expires_at" label="Expires" type="date" />
+                        <x-input wire:model.live="licenseForm.license_number" label="License number" />
+                        <x-input wire:model.live="licenseForm.license_expires_at" label="Expires" type="date" />
                         <div class="sm:col-span-2">
                             <x-button type="submit" size="sm">Save license</x-button>
                         </div>
                     </form>
                 </x-form-card>
 
-                <div class="profile-form-split">
-                    <x-section-card title="Certifications" description="Security and professional certifications." flush>
-                        @forelse($guard->certifications as $cert)
-                            <div class="list-row-start" wire:key="cert-{{ $cert->id }}">
-                                <div class="min-w-0 flex-1">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $cert->name }}</div>
-                                    <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $cert->expires_at?->format('M j, Y') ?? 'No expiry' }}</div>
-                                </div>
-                                <div class="table-inline-actions shrink-0">
-                                    <button type="button" wire:click="deleteCertification({{ $cert->id }})" wire:confirm="Remove?" class="table-action text-red-600">Remove</button>
-                                </div>
+                <x-section-card title="Certifications" description="Security and professional certifications." flush>
+                    <x-slot:actions><x-button size="sm" variant="secondary" wire:click="openQualificationDrawer('certification')">Add certification</x-button></x-slot:actions>
+                    @forelse($guard->certifications as $cert)
+                        @php
+                            $certExpired = $cert->expires_at?->isBefore(today()) ?? false;
+                            $certExpiringSoon = $cert->expires_at && ! $certExpired && $cert->expires_at->lte(today()->addDays(30));
+                        @endphp
+                        <div class="list-row-start" wire:key="cert-{{ $cert->id }}">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $cert->name }}</div>
+                                <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $cert->expires_at ? 'Expires '.$cert->expires_at->format('M j, Y') : 'Expiry not recorded' }}</div>
                             </div>
-                        @empty
-                            <div class="p-3">
-                                <x-empty-state compact title="No certifications" description="Add security certifications for this guard." />
+                            <span @class(['status-chip', 'status-chip-warning' => $certExpired || $certExpiringSoon, 'status-chip-info' => $cert->expires_at && ! $certExpired && ! $certExpiringSoon, 'status-chip-neutral' => ! $cert->expires_at])>
+                                {{ $certExpired ? 'Expired' : ($certExpiringSoon ? 'Expires soon' : ($cert->expires_at ? 'Current' : 'No expiry date')) }}
+                            </span>
+                            <div class="table-inline-actions shrink-0">
+                                <button type="button" wire:click="deleteCertification({{ $cert->id }})" wire:confirm="Remove?" class="table-action text-red-600">Remove</button>
                             </div>
-                        @endforelse
-                    </x-section-card>
+                        </div>
+                    @empty
+                        <div class="p-3">
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No certifications.</span> Add security certifications for this guard.</p>
+                        </div>
+                    @endforelse
+                </x-section-card>
 
-                    <x-form-card title="Add certification" description="Record issuer, issue date, and expiry.">
-                        <form wire:submit="saveCertification" class="space-y-3">
-                            <x-input wire:model="certForm.name" label="Name" />
-                            <x-input wire:model="certForm.issuer" label="Issuer" />
-                            <x-input wire:model="certForm.issued_at" label="Issued" type="date" />
-                            <x-input wire:model="certForm.expires_at" label="Expires" type="date" />
-                            <x-button type="submit" size="sm">Add certification</x-button>
-                        </form>
-                    </x-form-card>
-                </div>
-
-                <div class="page-split">
-                    <x-section-card title="Skills" description="Competencies used for deployment matching.">
+                <x-section-card title="Skills" description="Competencies used for deployment matching.">
+                    <x-slot:actions><x-button size="sm" variant="secondary" wire:click="openQualificationDrawer('skill')">Add skill</x-button></x-slot:actions>
+                    @if ($guard->skills->isEmpty())
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">No skills recorded. Add competencies used for deployment matching.</p>
+                    @else
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -508,7 +507,7 @@
                                 </tr>
                             </x-table.head>
                             <tbody>
-                                @forelse($guard->skills as $skill)
+                                @foreach($guard->skills as $skill)
                                     <tr class="table-row-hover" wire:key="skill-{{ $skill->id }}">
                                         <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $skill->skill }}</x-table.td>
                                         <x-table.td muted>{{ $skillLevels[$skill->level] ?? $skill->level }}</x-table.td>
@@ -518,83 +517,88 @@
                                             </div>
                                         </x-table.td>
                                     </tr>
-                                @empty
-                                    <x-table.empty colspan="3">
-                                        <x-empty-state compact title="No skills" description="Record competencies used for deployment matching." />
-                                    </x-table.empty>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </x-data-table>
-                    </x-section-card>
+                    @endif
+                </x-section-card>
 
-                    <x-form-card title="Add skill" description="Select from common skills or enter a custom one.">
-                        <form wire:submit="saveSkill" class="space-y-3">
-                            <x-select wire:model.live="skillForm.skill" label="Skill">
-                                <option value="">Select…</option>
-                                @foreach ($skillOptions as $skill)
-                                    <option value="{{ $skill }}">{{ $skill }}</option>
-                                @endforeach
-                                <option value="_other">Other</option>
-                            </x-select>
-                            @if ($skillForm['skill'] === '_other')
-                                <x-input wire:model="skillForm.skill_custom" label="Custom skill" />
-                            @endif
-                            <x-select wire:model="skillForm.level" label="Level">
-                                @foreach ($skillLevels as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </x-select>
-                            <x-button type="submit" size="sm">Add skill</x-button>
-                        </form>
-                    </x-form-card>
-                </div>
-
-                <div class="profile-form-split">
-                    <x-section-card title="Training history" description="Completed courses and renewals." flush>
-                        @forelse($guard->trainingRecords as $row)
-                            <div class="list-row-start" wire:key="training-{{ $row->id }}">
-                                <div class="min-w-0 flex-1">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $row->course_name }}</div>
-                                    <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $row->completed_on?->format('M j, Y') ?? '—' }}</div>
-                                </div>
-                                <div class="table-inline-actions shrink-0">
-                                    <button type="button" wire:click="editTraining({{ $row->id }})" class="table-action">Edit</button>
-                                    <button type="button" wire:click="deleteTraining({{ $row->id }})" wire:confirm="Delete this training record?" class="table-action text-red-600">Delete</button>
-                                </div>
+                <x-section-card title="Training history" description="Completed courses and renewals." flush>
+                    <x-slot:actions><x-button size="sm" variant="secondary" wire:click="openQualificationDrawer('training')">Add training</x-button></x-slot:actions>
+                    @forelse($guard->trainingRecords as $row)
+                        <div class="list-row-start" wire:key="training-{{ $row->id }}">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $row->course_name }}</div>
+                                <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $row->completed_on ? 'Completed '.$row->completed_on->format('M j, Y') : 'Completion date not recorded' }}@if ($row->expires_on) · Expires {{ $row->expires_on->format('M j, Y') }}@endif</div>
                             </div>
-                        @empty
-                            <div class="p-3">
-                                <x-empty-state compact title="No training records" description="Log completed courses and renewals." />
+                            <div class="table-inline-actions shrink-0">
+                                <button type="button" wire:click="editTraining({{ $row->id }})" class="table-action">Edit</button>
+                                <button type="button" wire:click="deleteTraining({{ $row->id }})" wire:confirm="Delete this training record?" class="table-action text-red-600">Delete</button>
                             </div>
-                        @endforelse
-                    </x-section-card>
-
-                    <x-form-card :title="$editingTrainingId ? 'Edit training record' : 'Add training record'" description="Course, provider, and completion dates.">
-                        <form wire:submit="saveTraining" class="space-y-3">
-                            <x-select wire:model.live="trainingForm.course_name" label="Course">
-                                <option value="">Select…</option>
-                                @foreach ($trainingCourses as $course)
-                                    <option value="{{ $course }}">{{ $course }}</option>
-                                @endforeach
-                                <option value="_other">Other</option>
-                            </x-select>
-                            @if ($trainingForm['course_name'] === '_other')
-                                <x-input wire:model="trainingForm.course_custom" label="Custom course" />
-                            @endif
-                            <x-input wire:model="trainingForm.provider" label="Provider" />
-                            <x-input wire:model="trainingForm.completed_on" label="Completed" type="date" />
-                            <x-input wire:model="trainingForm.expires_on" label="Expires" type="date" />
-                            <x-button type="submit" size="sm">{{ $editingTrainingId ? 'Update' : 'Save' }} training</x-button>
-                        </form>
-                    </x-form-card>
-                </div>
+                        </div>
+                    @empty
+                        <div class="p-3">
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No training records.</span> Log completed courses and renewals.</p>
+                        </div>
+                    @endforelse
+                </x-section-card>
             </div>
+            @if ($qualificationDrawer === 'certification')
+                <x-drawer title="Add certification" close-method="closeQualificationDrawer">
+                    <x-drawer-form wire:submit="saveCertification" submit-label="Add certification" target="saveCertification" close-method="closeQualificationDrawer">
+                        <x-input wire:model.live="certForm.name" label="Name" />
+                        <x-input wire:model.live="certForm.issuer" label="Issuer" />
+                        <x-input wire:model.live="certForm.issued_at" label="Issued" type="date" />
+                        <x-input wire:model.live="certForm.expires_at" label="Expires" type="date" />
+                    </x-drawer-form>
+                </x-drawer>
+            @endif
+            @if ($qualificationDrawer === 'skill')
+                <x-drawer title="Add skill" close-method="closeQualificationDrawer">
+                    <x-drawer-form wire:submit="saveSkill" submit-label="Add skill" target="saveSkill" close-method="closeQualificationDrawer">
+                        <x-select wire:model.live="skillForm.skill" label="Skill">
+                            <option value="">Select…</option>
+                            @foreach ($skillOptions as $skill)
+                                <option value="{{ $skill }}">{{ $skill }}</option>
+                            @endforeach
+                            <option value="_other">Other</option>
+                        </x-select>
+                        @if ($skillForm['skill'] === '_other')
+                            <x-input wire:model.live="skillForm.skill_custom" label="Custom skill" />
+                        @endif
+                        <x-select wire:model.live="skillForm.level" label="Level">
+                            @foreach ($skillLevels as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </x-select>
+                    </x-drawer-form>
+                </x-drawer>
+            @endif
+            @if ($qualificationDrawer === 'training')
+                <x-drawer :title="$editingTrainingId ? 'Edit training record' : 'Add training record'" close-method="closeQualificationDrawer">
+                    <x-drawer-form wire:submit="saveTraining" :submit-label="$editingTrainingId ? 'Update training' : 'Save training'" target="saveTraining" close-method="closeQualificationDrawer">
+                        <x-select wire:model.live="trainingForm.course_name" label="Course">
+                            <option value="">Select…</option>
+                            @foreach ($trainingCourses as $course)
+                                <option value="{{ $course }}">{{ $course }}</option>
+                            @endforeach
+                            <option value="_other">Other</option>
+                        </x-select>
+                        @if ($trainingForm['course_name'] === '_other')
+                            <x-input wire:model.live="trainingForm.course_custom" label="Custom course" />
+                        @endif
+                        <x-input wire:model.live="trainingForm.provider" label="Provider" />
+                        <x-input wire:model.live="trainingForm.completed_on" label="Completed" type="date" />
+                        <x-input wire:model.live="trainingForm.expires_on" label="Expires" type="date" />
+                    </x-drawer-form>
+                </x-drawer>
+            @endif
         @endif
 
         @if ($activeTab === 'hr')
             <div class="space-y-4">
                 <div class="page-split">
-                    <x-section-card title="Notes" description="Internal history for this guard" flush>
+                    <x-section-card class="!h-auto" title="Notes" description="Internal history for this guard" flush>
                         @forelse ($guard->notes as $note)
                             <div class="list-row-start" wire:key="note-{{ $note->id }}">
                                 <div class="min-w-0 flex-1">
@@ -612,20 +616,20 @@
                             </div>
                         @empty
                             <div class="p-3">
-                                <x-empty-state compact title="No notes" description="Add internal notes about this guard." />
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No notes.</span> Add internal notes about this guard.</p>
                             </div>
                         @endforelse
                     </x-section-card>
 
-                    <x-form-card title="Add note" description="Visible to staff with access to this profile.">
+                    <x-form-card collapsible :open="false" title="Add note" description="Visible to staff with access to this profile.">
                         <form wire:submit="addNote" class="space-y-3">
                             <div>
-                                <label class="form-label">Note</label>
-                                <textarea wire:model="noteForm.body" rows="5" class="form-input mt-1"></textarea>
+                                <label for="guard-note-body" class="form-label">Note</label>
+                                <textarea id="guard-note-body" wire:model.live="noteForm.body" rows="5" class="form-input mt-1"></textarea>
                             </div>
                             @error('noteForm.body') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                <input type="checkbox" wire:model="noteForm.is_internal" class="rounded border-zinc-300 dark:border-zinc-600"> Internal only
+                                <input type="checkbox" wire:model.live="noteForm.is_internal" class="rounded border-zinc-300 dark:border-zinc-600"> Internal only
                             </label>
                             <x-button type="submit" size="sm">Add note</x-button>
                         </form>
@@ -633,7 +637,7 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Reminders" description="Follow-ups for license renewals, training, etc.">
+                    <x-section-card class="!h-auto" title="Reminders" description="Follow-ups for license renewals, training, etc.">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -648,7 +652,7 @@
                                     <tr class="table-row-hover" wire:key="reminder-{{ $reminder->id }}">
                                         <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $reminder->title }}</x-table.td>
                                         <x-table.td responsive="md" muted class="tabular-nums">{{ $reminder->due_at->format('M j, Y g:i A') }}</x-table.td>
-                                        <x-table.td><x-badge :status="$reminder->is_completed ? 'active' : 'pending'" /></x-table.td>
+                                        <x-table.td><span class="status-chip {{ $reminder->is_completed ? 'status-chip-info' : 'status-chip-warning' }}">{{ $reminder->is_completed ? 'Completed' : 'Pending' }}</span></x-table.td>
                                         <x-table.td align="right">
                                             <div class="table-inline-actions justify-end">
                                                 @unless ($reminder->is_completed)
@@ -660,17 +664,17 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="4">
-                                        <x-empty-state compact title="No reminders" description="Set follow-ups for license renewals, training, etc." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No reminders.</span> Set follow-ups for license renewals, training, etc.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Add reminder" description="Set a due date for follow-up tasks.">
+                    <x-form-card collapsible :open="false" title="Add reminder" description="Set a due date for follow-up tasks.">
                         <form wire:submit="addReminder" class="space-y-3">
-                            <x-input wire:model="reminderForm.title" label="Title" />
-                            <x-input wire:model="reminderForm.due_at" label="Due date" type="datetime-local" />
+                            <x-input wire:model.live="reminderForm.title" label="Title" />
+                            <x-input wire:model.live="reminderForm.due_at" label="Due date" type="datetime-local" />
                             @error('reminderForm.due_at') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             <x-button type="submit" size="sm">Add reminder</x-button>
                         </form>
@@ -678,7 +682,7 @@
                 </div>
 
                 <div class="page-split">
-                    <x-section-card title="Disciplinary records" description="Warnings and actions recorded for this guard.">
+                    <x-section-card class="!h-auto" title="Disciplinary records" description="Warnings and actions recorded for this guard.">
                         <x-data-table>
                             <x-table.head>
                                 <tr>
@@ -704,24 +708,24 @@
                                     </tr>
                                 @empty
                                     <x-table.empty colspan="5">
-                                        <x-empty-state compact title="No disciplinary records" description="Warnings and actions are recorded here." />
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No disciplinary records.</span> Warnings and actions are recorded here.</p>
                                     </x-table.empty>
                                 @endforelse
                             </tbody>
                         </x-data-table>
                     </x-section-card>
 
-                    <x-form-card title="Add record" description="Log warnings, reprimands, and other actions.">
+                    <x-form-card collapsible :open="false" title="Add record" description="Log warnings, reprimands, and other actions.">
                         <form wire:submit="saveDisciplinary" class="space-y-3">
-                            <x-input wire:model="disciplinaryForm.occurred_on" label="Date" type="date" />
-                            <x-select wire:model="disciplinaryForm.type" label="Type">
+                            <x-input wire:model.live="disciplinaryForm.occurred_on" label="Date" type="date" />
+                            <x-select wire:model.live="disciplinaryForm.type" label="Type">
                                 <option value="warning">Warning</option>
                                 <option value="reprimand">Reprimand</option>
                                 <option value="suspension">Suspension</option>
                                 <option value="termination">Termination</option>
                             </x-select>
-                            <x-textarea wire:model="disciplinaryForm.description" label="Description" rows="3" />
-                            <x-textarea wire:model="disciplinaryForm.action_taken" label="Action taken" rows="2" />
+                            <x-textarea wire:model.live="disciplinaryForm.description" label="Description" rows="3" />
+                            <x-textarea wire:model.live="disciplinaryForm.action_taken" label="Action taken" rows="2" />
                             <x-button type="submit" size="sm">Add record</x-button>
                         </form>
                     </x-form-card>

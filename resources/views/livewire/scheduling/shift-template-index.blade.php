@@ -1,21 +1,23 @@
 <div>
-    <x-page-shell title="Shift Templates" description="Reusable scheduling patterns across sites.">
+    <x-page-shell :embedded="$embedded" title="Shift Templates" description="Reusable scheduling patterns across sites.">
         <x-slot:actions><x-button wire:click="openForm">New template</x-button></x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
-            <x-form-card title="Apply template to week" description="Creates open shifts for the selected week (Sunday–Saturday).">
+            <x-form-card collapsible :open="false" title="Apply template to week" description="Creates open shifts for the selected week (Sunday–Saturday).">
                 <div class="grid gap-3 sm:grid-cols-3">
-                    <x-select wire:model="applyTemplateId" label="Template">
+                    <x-select wire:model.live="applyTemplateId" label="Template">
                         <option value="">Select</option>
                         @foreach($templates->where('is_active', true) as $t)
                             <option value="{{ $t->id }}">{{ $t->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="weekStart" type="date" label="Week containing (any day)" />
+                    <x-input wire:model.live="weekStart" type="date" label="Week containing (any day)" />
                     <div class="flex items-end">
                         <x-button wire:click="apply">Apply to week</x-button>
                     </div>
@@ -60,7 +62,7 @@
                     </div>
                 @empty
                     <div class="p-3">
-                        <x-empty-state title="No templates" description="Create a template to quickly generate weekly shifts.">
+                        <x-empty-state class="scheduler-empty-state" title="No templates" description="Create a template to quickly generate weekly shifts.">
                             <x-slot:actions>
                                 <x-button size="sm" wire:click="openForm">New template</x-button>
                             </x-slot:actions>
@@ -78,12 +80,12 @@
             width="xl"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingTemplateId ? 'Save changes' : 'Save template'" close-method="closeDrawer">
+            <x-drawer-form wire:submit="save" :submit-label="$editingTemplateId ? 'Save changes' : 'Save template'" close-method="closeDrawer">
                 <x-form-section title="Template">
-                    <x-input wire:model="form.name" label="Name *" class="sm:col-span-2" />
-                    <x-textarea wire:model="form.description" label="Description" rows="2" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.name" label="Name *" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Description" rows="2" class="sm:col-span-2" />
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                        <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
+                        <input type="checkbox" wire:model.live="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
                         Active (inactive templates cannot be applied)
                     </label>
                 </x-form-section>
@@ -92,22 +94,22 @@
                     <div class="sm:col-span-2 space-y-2">
                         @foreach($items as $i => $item)
                             <div class="template-item-row" wire:key="item-{{ $i }}">
-                                <x-select wire:model="items.{{ $i }}.day_of_week" label="Day">
+                                <x-select wire:model.live="items.{{ $i }}.day_of_week" label="Day">
                                     @foreach(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $d => $label)
                                         <option value="{{ $d }}">{{ $label }}</option>
                                     @endforeach
                                 </x-select>
-                                <x-input wire:model="items.{{ $i }}.start_time" type="time" label="Start" />
-                                <x-input wire:model="items.{{ $i }}.end_time" type="time" label="End" />
-                                <x-select wire:model="items.{{ $i }}.site_id" label="Site" class="sm:col-span-2">
+                                <x-input wire:model.live="items.{{ $i }}.start_time" type="time" label="Start" />
+                                <x-input wire:model.live="items.{{ $i }}.end_time" type="time" label="End" />
+                                <x-select wire:model.live="items.{{ $i }}.site_id" label="Site" class="sm:col-span-2">
                                     <option value="">Select</option>
                                     @foreach($sites as $site)
                                         <option value="{{ $site->id }}">{{ $site->name }}</option>
                                     @endforeach
                                 </x-select>
-                                <x-input wire:model="items.{{ $i }}.required_guards" type="number" min="1" label="Guards" />
+                                <x-input wire:model.live="items.{{ $i }}.required_guards" type="number" min="1" label="Guards" />
                                 <div class="flex items-end gap-2">
-                                    <x-input wire:model="items.{{ $i }}.billing_rate" type="number" step="0.01" label="Charge" class="min-w-0 flex-1" />
+                                    <x-input wire:model.live="items.{{ $i }}.billing_rate" type="number" step="0.01" label="Charge" class="min-w-0 flex-1" />
                                     @if (count($items) > 1)
                                         <button type="button" wire:click="removeItem({{ $i }})" class="mb-1 shrink-0 text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove</button>
                                     @endif

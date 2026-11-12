@@ -3,7 +3,7 @@
     $searchableLinks = $nav->searchableLinks();
 @endphp
 
-<header class="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/90">
+<header class="workspace-header sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/90">
     <div class="page-content flex h-[var(--app-header-height)] items-center gap-3 py-0">
         <button
             type="button"
@@ -14,9 +14,9 @@
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
-        <div class="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div class="flex w-full items-center gap-1.5 sm:gap-2">
             <div
-                class="relative flex items-center"
+                class="relative mr-auto flex items-center"
                 x-data="{ searchOpen: false }"
                 @keydown.escape.window="searchOpen = false"
             >
@@ -24,10 +24,12 @@
                     type="button"
                     x-show="!searchOpen"
                     @click="searchOpen = true; $nextTick(() => $refs.headerSearch?.focus())"
-                    class="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                    class="workspace-search flex h-10 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-500 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                     aria-label="Search"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span class="hidden sm:inline">Search workspaces…</span>
+                    <kbd class="ml-auto hidden rounded border border-zinc-200 px-1.5 py-0.5 text-xs dark:border-zinc-700 sm:inline">⌘ K</kbd>
                 </button>
                 <div
                     x-show="searchOpen"

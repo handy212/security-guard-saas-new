@@ -75,19 +75,19 @@
         <x-drawer :title="$editingId ? 'Edit visitor' : 'Check in visitor'" width="lg">
             <x-drawer-form wire:submit="checkIn" :submit-label="$editingId ? 'Save changes' : 'Check in'" target="checkIn">
                 <x-form-section title="Visit">
-                    <x-select wire:model="form.site_id" label="Site" class="sm:col-span-2">
+                    <x-select wire:model.live="form.site_id" label="Site" class="sm:col-span-2">
                         <option value="">Select site</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.visitor_name" label="Visitor name" class="sm:col-span-2" />
-                    <x-input wire:model="form.visitor_phone" label="Phone" />
-                    <x-input wire:model="form.company" label="Company" />
+                    <x-input wire:model.live="form.visitor_name" label="Visitor name" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.visitor_phone" label="Phone" />
+                    <x-input wire:model.live="form.company" label="Company" />
                 </x-form-section>
 
                 <x-form-section title="Identification">
-                    <x-select wire:model="form.id_type" label="ID type">
+                    <x-select wire:model.live="form.id_type" label="ID type">
                         <option value="">Select…</option>
                         <option value="national_id">National ID</option>
                         <option value="passport">Passport</option>
@@ -95,15 +95,15 @@
                         <option value="company_id">Company ID</option>
                         <option value="other">Other</option>
                     </x-select>
-                    <x-input wire:model="form.id_number" label="ID number" />
-                    <x-select wire:model="form.guard_id" label="Host guard" class="sm:col-span-2">
+                    <x-input wire:model.live="form.id_number" label="ID number" />
+                    <x-select wire:model.live="form.guard_id" label="Host guard" class="sm:col-span-2">
                         <option value="">None</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.purpose" label="Purpose" class="sm:col-span-2" />
-                    <x-input wire:model="form.vehicle_plate" label="Vehicle plate" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.purpose" label="Purpose" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.vehicle_plate" label="Vehicle plate" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

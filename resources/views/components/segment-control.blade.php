@@ -4,6 +4,7 @@
     @foreach ($options as $value => $label)
         <button
             type="button"
+            aria-pressed="{{ (string) $active === (string) $value ? 'true' : 'false' }}"
             wire:click="$set('{{ $field }}', '{{ $value }}')"
             class="rounded-md px-3 py-1.5 text-sm font-medium transition {{ (string) $active === (string) $value ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200' }}"
         >

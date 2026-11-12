@@ -6,6 +6,37 @@
             :description="$clientAccount?->portal_welcome_message ?: 'Live visibility into guard coverage, patrols, incidents, and approved reports.'"
         />
 
+        @if ($pendingApprovals->isNotEmpty())
+            <section class="card-surface overflow-hidden border-amber-200/90 dark:border-amber-900/50" aria-label="Reports waiting for your decision">
+                <div class="card-header border-amber-100 bg-amber-50/80 dark:border-amber-900/40 dark:bg-amber-950/40">
+                    <div class="min-w-0 flex-1">
+                        <h2 class="card-header-title text-amber-900 dark:text-amber-100">Reports waiting for your decision</h2>
+                        <p class="card-header-meta text-amber-700/90 dark:text-amber-300">{{ $pendingApprovalCount }} pending · oldest first · approve or reject to release each report</p>
+                    </div>
+                    <x-button size="sm" :href="route('client-portal.approvals')">Review all</x-button>
+                </div>
+                <div class="divide-y divide-amber-100 dark:divide-amber-900/40">
+                    @foreach ($pendingApprovals as $approval)
+                        <div class="flex flex-wrap items-center justify-between gap-3 bg-amber-50/40 px-4 py-3 dark:bg-amber-950/20" wire:key="portal-approval-{{ $approval->id }}">
+                            <div class="min-w-0">
+                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ \Illuminate\Support\Str::headline(class_basename($approval->approvable_type)) }} #{{ $approval->approvable_id }}</div>
+                                <div class="text-xs text-zinc-600 dark:text-zinc-300">
+                                    {{ $approval->approvable?->site?->name ?? $approval->clientAccount?->name ?? 'Your account' }}
+                                    · requested {{ $approval->created_at?->diffForHumans() ?? '—' }}
+                                </div>
+                            </div>
+                            <a href="{{ route('client-portal.approvals') }}" class="page-link shrink-0 text-sm" wire:navigate>Review</a>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @else
+            <p class="text-sm text-zinc-500 dark:text-zinc-400" role="status">
+                No reports are waiting for your approval.
+                <a href="{{ route('client-portal.approvals') }}" class="page-link" wire:navigate>View approval history</a>
+            </p>
+        @endif
+
         <div class="kpi-grid">
             <x-stat-card compact label="Shifts" :value="$stats['shifts']" icon="schedules" />
             <x-stat-card compact label="Reports" :value="$stats['reports']" icon="plan" tone="success" />
@@ -38,6 +69,7 @@
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->site?->name }}</div>
                             <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $report->report_date?->format('M j, Y') ?? $report->created_at?->format('M j, Y') }}</div>
                         </div>
+                        <a href="{{ route('client-portal.reports.show', $report->id) }}" class="page-link shrink-0 text-sm" wire:navigate>View report</a>
                     </div>
                 @empty
                     <div class="p-3">

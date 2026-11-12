@@ -102,6 +102,33 @@ Email: admin@demo.test
 Password: password
 ```
 
+## Guard deployment
+
+- Choose a client, site, date, and optional post, then an existing shift needing
+  coverage or a new shift. Existing shifts must match the selected context.
+- Only active, verified guards can be assigned. Leave, availability, overlapping
+  shifts, duplicate assignments, and capacity are checked before continuing and
+  again when saving. No-shows do not occupy a staffing position.
+- Optional kit is issued immediately when the assignment is saved, including for
+  future shifts and assignments awaiting confirmation. Skip kit if handover will
+  happen later.
+- Review the actual post, full shift dates/times, and coverage before deploying.
+  Leave "Confirm assignment now" unchecked to create a pending assignment; use
+  the deployment sheet to confirm it later. Success shows confirmation and any
+  remaining staffing gaps separately.
+- The deployment sheet uses labeled roster cards on smaller screens and a table
+  on wide screens and in print. Overnight entries show their end date explicitly;
+  date navigation, site filtering, and printing do not change assignments.
+- The reassignment drawer keeps keyboard focus inside it; Escape closes it
+  without changing the assignment and restores focus to its opener.
+- Unassigning, cancelling, or replacing a guard does **not** record kit as
+  physically returned or transfer it to a replacement. It remains issued to the
+  original guard until its return is recorded in Assets.
+- Refreshing the wizard restarts at Site with the URL's site/date context.
+  Unsaved shift, guard, and kit selections are not restored as a draft.
+- Equipment catalog setup creates categories only by default. Sample equipment
+  belongs in explicitly requested demo setup, not inventory reads.
+
 ## Important Note
 
 Run `composer install` on your development machine or server if `vendor/` is not present.

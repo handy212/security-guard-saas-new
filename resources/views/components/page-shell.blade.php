@@ -1,4 +1,4 @@
-@props(['title' => null, 'description' => null, 'breadcrumbs' => [], 'showHeader' => true])
+@props(['title' => null, 'description' => null, 'breadcrumbs' => [], 'showHeader' => true, 'embedded' => false])
 
 @php
     // Hide single-item breadcrumbs that just repeat the page context
@@ -6,12 +6,12 @@
     $showCrumbs = $crumbTrail->count() > 1 || ($crumbTrail->count() === 1 && ! empty($crumbTrail[0]['href']));
 @endphp
 
-<div class="flex min-h-full flex-col">
+<div @class(['flex min-h-full flex-col', 'scheduler-panel' => $embedded])>
     @if ($showHeader)
         <div class="border-b border-zinc-200/70 bg-white/70 dark:border-zinc-800 dark:bg-transparent">
             <div class="page-content flex flex-col gap-4 py-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
                 <div class="min-w-0 space-y-1.5">
-                    @if ($showCrumbs)
+                    @if ($showCrumbs && ! $embedded)
                         <nav class="flex flex-wrap items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
                             @foreach ($crumbTrail as $crumb)
                                 @if (! empty($crumb['href']))
@@ -24,7 +24,11 @@
                             @endforeach
                         </nav>
                     @endif
-                    <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-[1.75rem]">{{ $title }}</h1>
+                    @if ($embedded)
+                        <h2 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h2>
+                    @else
+                        <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-[1.75rem]">{{ $title }}</h1>
+                    @endif
                     @if ($description)
                         <p class="max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                     @endif

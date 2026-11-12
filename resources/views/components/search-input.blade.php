@@ -7,6 +7,7 @@
     <input
         type="search"
         placeholder="{{ $placeholder }}"
-        {{ $attributes->merge(['class' => 'form-input pl-10']) }}
+        aria-label="{{ $attributes->get('aria-label', $placeholder) }}"
+        {{ $attributes->except('aria-label')->merge(['class' => 'form-input pl-10']) }}
     />
 </div>

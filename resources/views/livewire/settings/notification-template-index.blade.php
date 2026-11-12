@@ -74,27 +74,27 @@
             width="lg"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Update template' : 'Save template'" close-method="closeDrawer" target="save">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update template' : 'Save template'" close-method="closeDrawer" target="save">
                 <x-form-section title="Event">
                     <div class="sm:col-span-2">
-                        <x-input wire:model="form.code" label="Event code *" list="notif-codes" placeholder="incident.submitted" />
+                        <x-input wire:model.live="form.code" label="Event code *" list="notif-codes" placeholder="incident.submitted" />
                         <datalist id="notif-codes">
                             @foreach ($suggestedCodes as $code)
                                 <option value="{{ $code }}"></option>
                             @endforeach
                         </datalist>
                     </div>
-                    <x-select wire:model="form.channel" label="Channel *" class="sm:col-span-2">
+                    <x-select wire:model.live="form.channel" label="Channel *" class="sm:col-span-2">
                         <option value="mail">Email</option>
                         <option value="sms">SMS</option>
                         <option value="database">In-app</option>
                     </x-select>
                 </x-form-section>
                 <x-form-section title="Copy">
-                    <x-input wire:model="form.subject" label="Subject" class="sm:col-span-2" />
-                    <x-textarea wire:model="form.body" label="Body *" rows="6" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.subject" label="Subject" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.body" label="Body *" rows="6" class="sm:col-span-2" />
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                        <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
+                        <input type="checkbox" wire:model.live="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
                         Active
                     </label>
                 </x-form-section>

@@ -101,18 +101,18 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="saveEscalation" submit-label="Save rule" close-method="closeDrawer" target="saveEscalation">
+            <x-drawer-form wire:submit="saveEscalation" submit-label="Save rule" close-method="closeDrawer" target="saveEscalation">
                 <x-form-section title="Rule">
-                    <x-input wire:model="escalationForm.incident_type" label="Incident type" placeholder="Any type if blank" class="sm:col-span-2" />
-                    <x-select wire:model="escalationForm.severity" label="Minimum severity *" class="sm:col-span-2">
+                    <x-input wire:model.live="escalationForm.incident_type" label="Incident type" placeholder="Any type if blank" class="sm:col-span-2" />
+                    <x-select wire:model.live="escalationForm.severity" label="Minimum severity *" class="sm:col-span-2">
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                         <option value="critical">Critical</option>
                     </x-select>
-                    <x-input wire:model="escalationForm.notify_after_minutes" label="Notify after (minutes) *" type="number" min="1" class="sm:col-span-2" />
+                    <x-input wire:model.live="escalationForm.notify_after_minutes" label="Notify after (minutes) *" type="number" min="1" class="sm:col-span-2" />
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                        <input type="checkbox" wire:model="escalationForm.notify_client" class="rounded border-zinc-300 dark:border-zinc-600">
+                        <input type="checkbox" wire:model.live="escalationForm.notify_client" class="rounded border-zinc-300 dark:border-zinc-600">
                         Notify client contact
                     </label>
                 </x-form-section>
@@ -127,16 +127,16 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="saveRetention" submit-label="Save policy" close-method="closeDrawer" target="saveRetention">
+            <x-drawer-form wire:submit="saveRetention" submit-label="Save policy" close-method="closeDrawer" target="saveRetention">
                 <x-form-section title="Policy">
-                    <x-select wire:model="retentionForm.record_type" label="Record type *" class="sm:col-span-2">
+                    <x-select wire:model.live="retentionForm.record_type" label="Record type *" class="sm:col-span-2">
                         <option value="incidents">Incidents</option>
                         <option value="patrols">Patrol sessions</option>
                         <option value="reports">Daily reports</option>
                         <option value="attendance">Attendance logs</option>
                         <option value="audit">Audit trail</option>
                     </x-select>
-                    <x-input wire:model="retentionForm.retention_days" label="Retention (days) *" type="number" min="30" class="sm:col-span-2" />
+                    <x-input wire:model.live="retentionForm.retention_days" label="Retention (days) *" type="number" min="30" class="sm:col-span-2" />
                     <p class="sm:col-span-2 text-xs text-zinc-500 dark:text-zinc-400">
                         Policies are recorded for audit today; automated purge jobs are planned.
                     </p>

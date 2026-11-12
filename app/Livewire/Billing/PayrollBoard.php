@@ -104,6 +104,7 @@ class PayrollBoard extends Component
 
         return view('livewire.billing.payroll-board', [
             'timesheets' => Timesheet::with('assignedGuard')->where('tenant_id', $tenantId)->latest()->limit(80)->get(),
+            'pendingTimesheets' => Timesheet::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'payrollExports' => PayrollExport::where('tenant_id', $tenantId)->latest()->limit(15)->get(),
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
             'canExport' => auth()->user()->can('exports.manage'),

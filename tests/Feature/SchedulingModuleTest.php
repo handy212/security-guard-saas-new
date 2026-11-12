@@ -36,8 +36,8 @@ class SchedulingModuleTest extends TestCase
 
         foreach ($routes as $route) {
             $this->actingAs($this->admin)
-                ->get($route)
-                ->assertOk();
+                ->followingRedirects()->get($route)
+                ->assertOk()->assertSee('Scheduler');
         }
     }
 

@@ -1,12 +1,14 @@
 <div>
-    <x-page-shell title="Open Shifts" description="Unfilled shifts and guard bids waiting for review.">
+    <x-page-shell :embedded="$embedded" title="Open Shifts" description="Unfilled shifts and guard bids waiting for review.">
         <x-slot:actions>
             <x-button variant="secondary" :href="route('schedules.index')">Day roster</x-button>
             <x-button variant="secondary" :href="route('schedules.deploy')">Deploy wizard</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
@@ -47,7 +49,7 @@
                         </div>
                     @empty
                         <div class="p-3">
-                            <x-empty-state
+                            <x-empty-state class="scheduler-empty-state"
                                 compact
                                 title="All shifts staffed"
                                 description="New gaps appear here when a shift is short of required guards."
@@ -66,7 +68,7 @@
                             <x-segment-control field="bidFilter" :active="$bidFilter" :options="['pending' => 'Pending', 'all' => 'All', 'approved' => 'Approved', 'rejected' => 'Rejected']" />
                         </x-slot:tabs>
                     </x-page-toolbar>
-                    <x-data-table>
+                    <x-data-table class="scheduler-table">
                         <x-table.head>
                             <tr>
                                 <x-table.th>Guard</x-table.th>
@@ -79,8 +81,8 @@
                         <tbody>
                             @forelse($bids as $bid)
                                 <tr class="table-row-hover" wire:key="bid-{{ $bid->id }}">
-                                    <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $bid->assignedGuard?->full_name }}</x-table.td>
-                                    <x-table.td>
+                                    <x-table.td data-label="Guard" class="font-medium text-zinc-900 dark:text-zinc-100">{{ $bid->assignedGuard?->full_name }}</x-table.td>
+                                    <x-table.td data-label="Shift">
                                         <div class="text-sm text-zinc-800 dark:text-zinc-200">{{ $bid->shift?->title }}</div>
                                         <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                                             {{ $bid->shift?->site?->name }}
@@ -89,9 +91,9 @@
                                             @endif
                                         </div>
                                     </x-table.td>
-                                    <x-table.td muted>{{ $bid->notes ?: '—' }}</x-table.td>
-                                    <x-table.td><x-badge :status="$bid->status" /></x-table.td>
-                                    <x-table.td align="right">
+                                    <x-table.td data-label="Notes" muted>{{ $bid->notes ?: '—' }}</x-table.td>
+                                    <x-table.td data-label="Status"><x-badge :status="$bid->status" /></x-table.td>
+                                    <x-table.td data-label="Actions" align="right">
                                         @if(\App\Support\EnumHelper::is($bid->status, 'pending'))
                                             <div class="table-inline-actions justify-end">
                                                 <x-button size="sm" wire:click="approveBid({{ $bid->id }})" wire:loading.attr="disabled" wire:target="approveBid({{ $bid->id }})">
@@ -105,7 +107,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="5">
-                                    <x-empty-state compact title="No bids" description="Guards can bid via the mobile app when shifts are posted open." />
+                                    <x-empty-state class="scheduler-empty-state" compact title="No bids" description="Guards can bid via the mobile app when shifts are posted open." />
                                 </x-table.empty>
                             @endforelse
                         </tbody>

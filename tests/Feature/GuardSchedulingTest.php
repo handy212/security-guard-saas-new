@@ -281,10 +281,43 @@ class GuardSchedulingTest extends TestCase
             ->assertSee($this->guard->full_name);
     }
 
+
+    public function test_swap_and_leave_rows_link_back_to_the_affected_roster_date(): void
+    {
+        $shift = $this->createOpenShift();
+        $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
+        \App\Models\ShiftSwapRequest::create([
+            'tenant_id' => $this->tenant->id,
+            'shift_assignment_id' => $assignment->id,
+            'requested_by_guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+        LeaveRequest::create([
+            'tenant_id' => $this->tenant->id,
+            'guard_id' => $this->guard->id,
+            'type' => 'annual',
+            'starts_on' => $shift->starts_at->toDateString(),
+            'ends_on' => $shift->ends_at->toDateString(),
+            'status' => 'pending',
+        ]);
+
+        $rosterUrl = route('schedules.index', ['date' => $shift->starts_at->toDateString()]);
+
+        Livewire::actingAs($this->admin)
+            ->test(ShiftExchangeIndex::class)
+            ->assertSee('View day roster')
+            ->assertSee($rosterUrl, false);
+
+        Livewire::actingAs($this->admin)
+            ->test(TimeOffIndex::class)
+            ->assertSee('View affected roster')
+            ->assertSee($rosterUrl, false);
+    }
+
     public function test_schedule_hub_includes_calendar_and_deployment(): void
     {
         foreach (['/schedules/calendar', '/schedules/deployment-sheet'] as $route) {
-            $this->actingAs($this->admin)->get($route)->assertOk();
+            $this->actingAs($this->admin)->followingRedirects()->get($route)->assertOk()->assertSee('Scheduler');
         }
     }
 
@@ -330,6 +363,70 @@ class GuardSchedulingTest extends TestCase
             'id' => $assignment->id,
             'status' => 'confirmed',
         ]);
+    }
+
+
+    public function test_day_roster_shows_assignment_confirmation_and_attendance_states(): void
+    {
+        $shift = $this->createOpenShift(requiredGuards: 2);
+        $pendingAssignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
+        $confirmedGuard = Guard::create([
+            'tenant_id' => $this->tenant->id,
+            'employee_number' => 'G-ABSENT',
+            'first_name' => 'Absent',
+            'last_name' => 'Guard',
+            'status' => 'active',
+            'verification_status' => 'verified',
+        ]);
+        $confirmedAssignment = app(ScheduleService::class)->assignGuard($shift, $confirmedGuard);
+        $confirmation = ShiftConfirmation::where('shift_assignment_id', $confirmedAssignment->id)->firstOrFail();
+        app(WorkforceService::class)->confirmShift($confirmation);
+
+        foreach ([[$pendingAssignment, $this->guard, 'late'], [$confirmedAssignment, $confirmedGuard, 'no_show']] as [$assignment, $guard, $status]) {
+            \App\Models\AttendanceLog::create([
+                'tenant_id' => $this->tenant->id,
+                'shift_assignment_id' => $assignment->id,
+                'guard_id' => $guard->id,
+                'site_id' => $shift->site_id,
+                'type' => $status === 'no_show' ? 'no_show' : 'clock_in',
+                'recorded_at' => $shift->starts_at,
+                'status' => $status,
+            ]);
+        }
+
+        Livewire::actingAs($this->admin)
+            ->test(\App\Livewire\Scheduling\ScheduleIndex::class)
+            ->set('date', $shift->starts_at->toDateString())
+            ->assertSee($this->guard->full_name)
+            ->assertSee('Confirmation pending')
+            ->assertSee('Late arrival')
+            ->assertSee('Confirmed')
+            ->assertSee('Absent')
+            ->assertSee(route('guards.show', ['guard' => $this->guard->id, 'tab' => 'qualifications']), false)
+            ->assertSee(route('guards.show', ['guard' => $this->guard->id, 'tab' => 'availability']), false);
+    }
+
+    public function test_roster_counts_only_selected_day_and_excludes_cancelled_shifts(): void
+    {
+        $shift = $this->createOpenShift();
+        $shift->update(['starts_at' => '2030-06-10 18:00:00', 'ends_at' => '2030-06-11 06:00:00']);
+        ShiftAssignment::create(['tenant_id' => $this->tenant->id, 'shift_id' => $shift->id, 'guard_id' => $this->guard->id, 'status' => 'confirmed']);
+        $future = $shift->replicate();
+        $future->starts_at = '2030-06-11 18:00:00';
+        $future->ends_at = '2030-06-12 06:00:00';
+        $future->save();
+        $cancelled = $shift->replicate();
+        $cancelled->status = 'cancelled';
+        $cancelled->save();
+
+        $stats = app(\App\Services\SchedulingService::class)->overviewStats($this->tenant->id, '2030-06-10');
+        $this->assertSame(1, $stats['shifts_today']);
+        $this->assertSame(0, $stats['open_shifts']);
+        $this->assertSame(1, $stats['staffed']);
+
+        Livewire::actingAs($this->admin)->test(ScheduleIndex::class)
+            ->set('date', '2030-06-10')
+            ->assertSee('Jun 10, 18:00 → Jun 11, 06:00');
     }
 
     public function test_shift_template_can_be_deactivated(): void
@@ -417,6 +514,7 @@ class GuardSchedulingTest extends TestCase
     public function test_cannot_assign_guard_outside_availability_window(): void
     {
         $shift = $this->createOpenShift();
+        \App\Models\GuardAvailability::where('guard_id', $this->guard->id)->delete();
 
         \App\Models\GuardAvailability::create([
             'tenant_id' => $this->tenant->id,
@@ -473,8 +571,8 @@ class GuardSchedulingTest extends TestCase
             'client_account_id' => $this->client->id,
             'site_id' => $this->site->id,
             'title' => 'Open shift '.uniqid(),
-            'starts_at' => now()->addDays(2)->setTime(8, 0),
-            'ends_at' => now()->addDays(2)->setTime(16, 0),
+            'starts_at' => now()->next(Carbon::MONDAY)->setTime(8, 0),
+            'ends_at' => now()->next(Carbon::MONDAY)->setTime(16, 0),
             'required_guards' => $requiredGuards,
             'status' => 'open',
         ]);

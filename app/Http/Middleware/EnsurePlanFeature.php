@@ -29,6 +29,12 @@ class EnsurePlanFeature
         $routeName = $request->route()?->getName();
         $routes = config('plan_entitlements.routes', []);
         $feature = $routeName ? ($routes[$routeName] ?? null) : null;
+        if ($routeName === 'schedules.index') {
+            $tab = $request->query('tab', 'roster');
+            $panel = is_string($tab) ? (\App\Livewire\Scheduling\SchedulerWorkspace::PANELS[$tab] ?? null) : null;
+            $feature = $panel ? ($routes[$panel[1]] ?? null) : $feature;
+        }
+
 
         if ($feature && ! $this->entitlements->tenantHasFeature($tenant->id, $feature)) {
             abort(403, 'This feature is not included in your subscription plan.');

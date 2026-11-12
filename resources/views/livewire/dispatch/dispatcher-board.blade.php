@@ -9,6 +9,53 @@
             <x-button wire:click="openForm">New dispatch</x-button>
         </x-slot:actions>
 
+        @if($sosAlerts->isNotEmpty())
+            <section class="card-surface mb-4 overflow-hidden border-red-200/90 dark:border-red-900/50">
+                <div class="card-header border-red-100 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/40">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
+                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                        </span>
+                        <div>
+                            <h2 class="card-header-title text-red-900 dark:text-red-100">{{ $stats['sos'] > 0 ? 'SOS alerts require response' : 'Acknowledged SOS alerts' }}</h2>
+                            <p class="card-header-meta text-red-700/90 dark:text-red-300">{{ $stats['sos'] }} open · {{ $sosAlerts->count() - $stats['sos'] }} acknowledged</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="divide-y divide-red-100 dark:divide-red-900/40">
+                    @foreach($sosAlerts as $alert)
+                        <div class="flex flex-wrap items-start justify-between gap-3 bg-red-50/40 px-4 py-3 dark:bg-red-950/20" wire:key="sos-{{ $alert->id }}">
+                            <div class="min-w-0">
+                                <div class="font-semibold text-red-900 dark:text-red-100">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
+                                <div class="text-xs text-red-700 dark:text-red-300">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }} · {{ $alert->raised_at?->diffForHumans() }}</div>
+                                <p class="mt-1 text-xs font-semibold text-red-800 dark:text-red-200">{{ $alert->status === 'open' ? 'Open — response needed' : 'Acknowledged' }}</p>
+                            </div>
+                            <div class="flex shrink-0 flex-wrap gap-2">
+                                @if($alert->status === 'open')
+                                    <x-button size="sm" variant="danger" wire:click="acknowledgeSos({{ $alert->id }})" wire:target="acknowledgeSos({{ $alert->id }})">
+                                        <span wire:loading.remove wire:target="acknowledgeSos({{ $alert->id }})">Acknowledge</span>
+                                        <span wire:loading wire:target="acknowledgeSos({{ $alert->id }})">Acknowledging…</span>
+                                    </x-button>
+                                @endif
+                                <x-button size="sm" wire:click="dispatchFromSos({{ $alert->id }})" wire:target="dispatchFromSos({{ $alert->id }})">
+                                    <span wire:loading.remove wire:target="dispatchFromSos({{ $alert->id }})">Dispatch</span>
+                                    <span wire:loading wire:target="dispatchFromSos({{ $alert->id }})">Creating dispatch…</span>
+                                </x-button>
+                                @if ($alert->latitude && $alert->longitude)
+                                    <x-button
+                                        size="sm"
+                                        variant="secondary"
+                                        :href="route('tracking.live', ['lat' => $alert->latitude, 'lng' => $alert->longitude, 'guard' => $alert->guard_id])"
+                                    >View on map</x-button>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <div class="stat-grid">
             <x-stat-card compact label="Active" :value="$stats['active']" icon="dispatch" :tone="$stats['active'] ? 'warning' : 'success'" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active' && $priorityFilter === 'all'" />
             <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" :tone="$stats['critical'] ? 'danger' : 'default'" wire:click="applyStatFilter('critical')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$priorityFilter === 'critical'" />
@@ -20,7 +67,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search dispatches…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'all' => 'All', 'en_route' => 'En route', 'closed' => 'Closed']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active ('.$stats['active'].')', 'all' => 'All ('.$stats['all'].')', 'en_route' => 'En route ('.$stats['en_route'].')', 'closed' => 'Closed ('.$stats['closed'].')']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
@@ -36,48 +83,16 @@
             </x-slot:controls>
         </x-page-toolbar>
 
-        @if($sosAlerts->isNotEmpty())
-            <section class="card-surface overflow-hidden border-red-200/90 dark:border-red-900/50">
-                <div class="card-header border-red-100 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/40">
-                    <div class="flex items-center gap-2">
-                        <span class="relative flex h-2.5 w-2.5">
-                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                        </span>
-                        <div>
-                            <h2 class="card-header-title text-red-900 dark:text-red-100">SOS alerts require response</h2>
-                            <p class="card-header-meta text-red-700/90 dark:text-red-300">{{ $sosAlerts->count() }} open · acknowledge or dispatch now</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="divide-y divide-red-100 dark:divide-red-900/40">
-                    @foreach($sosAlerts as $alert)
-                        <div class="flex flex-wrap items-start justify-between gap-3 bg-red-50/40 px-4 py-3 dark:bg-red-950/20" wire:key="sos-{{ $alert->id }}">
-                            <div class="min-w-0">
-                                <div class="font-semibold text-red-900 dark:text-red-100">{{ $alert->assignedGuard?->full_name ?? 'Guard' }}</div>
-                                <div class="text-xs text-red-700 dark:text-red-300">{{ $alert->site?->name }} · {{ $alert->message ?? 'SOS' }} · {{ $alert->raised_at?->diffForHumans() }}</div>
-                            </div>
-                            <div class="flex shrink-0 flex-wrap gap-2">
-                                @if($alert->status === 'open')
-                                    <x-button size="sm" variant="danger" wire:click="acknowledgeSos({{ $alert->id }})">Ack</x-button>
-                                @endif
-                                <x-button size="sm" wire:click="dispatchFromSos({{ $alert->id }})">Dispatch</x-button>
-                                @if ($alert->latitude && $alert->longitude)
-                                    <x-button
-                                        size="sm"
-                                        variant="secondary"
-                                        :href="route('tracking.live', ['lat' => $alert->latitude, 'lng' => $alert->longitude, 'guard' => $alert->guard_id])"
-                                    >View on map</x-button>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </section>
-        @endif
+        <div
+            wire:loading
+            wire:target="search,statusFilter,priorityFilter,selectDispatch,applyStatFilter,clearFilters"
+            role="status"
+            aria-live="polite"
+            class="mb-3 text-sm text-zinc-500 dark:text-zinc-400"
+        >Updating dispatch view…</div>
 
         <div class="page-board min-h-[28rem]">
-            <x-section-card title="Dispatch queue" flush class="flex flex-col">
+            <x-section-card title="Dispatch queue" description="Most urgent priority first, then newest." flush class="flex flex-col">
                 <div class="flex-1 overflow-y-auto px-2 py-2">
                     @forelse($dispatches as $dispatch)
                         @php
@@ -91,6 +106,7 @@
                         <button
                             type="button"
                             wire:click="selectDispatch({{ $dispatch->id }})"
+                            aria-pressed="{{ $selectedId === $dispatch->id ? 'true' : 'false' }}"
                             @class([
                                 'board-item',
                                 $priorityTone,
@@ -115,12 +131,20 @@
                             </div>
                         </button>
                     @empty
-                        <x-empty-state compact title="No dispatches" description="Create a dispatch when a client or site needs response.">
-                            <x-slot:actions>
-                                <x-button size="sm" wire:click="openForm">New dispatch</x-button>
-                                <x-button size="sm" variant="secondary" :href="route('schedules.index')">Day roster</x-button>
-                            </x-slot:actions>
-                        </x-empty-state>
+                        @if ($hasActiveFilters)
+                            <x-empty-state compact title="No matching dispatches" description="Try changing or clearing the filters.">
+                                <x-slot:actions>
+                                    <x-button size="sm" variant="secondary" wire:click="clearFilters">Clear filters</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
+                        @else
+                            <x-empty-state compact title="No dispatches" description="Create a dispatch when a client or site needs response.">
+                                <x-slot:actions>
+                                    <x-button size="sm" wire:click="openForm">New dispatch</x-button>
+                                    <x-button size="sm" variant="secondary" :href="route('schedules.index')">Day roster</x-button>
+                                </x-slot:actions>
+                            </x-empty-state>
+                        @endif
                     @endforelse
                 </div>
             </x-section-card>
@@ -200,7 +224,7 @@
                         @if($selected->isActive())
                             <div class="mb-4 space-y-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
                                 <p class="meta-tile-label">Actions</p>
-                                <x-select wire:model="assignGuardId" label="Assign guard">
+                                <x-select wire:model.live="assignGuardId" label="Assign guard">
                                     <option value="">Select guard</option>
                                     @foreach($guards as $guard)
                                         <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
@@ -231,9 +255,9 @@
                         @endif
 
                         <form wire:submit="saveDetail" class="space-y-2 border-t border-zinc-100 pt-3">
-                            <x-textarea wire:model="detail.action_taken" label="Action taken" rows="2" />
-                            <x-textarea wire:model="detail.internal_notes" label="Internal notes" rows="2" />
-                            <x-file-input wire:model="attachmentFile" label="Attachment" />
+                            <x-textarea wire:model.live="detail.action_taken" label="Action taken" rows="2" />
+                            <x-textarea wire:model.live="detail.internal_notes" label="Internal notes" rows="2" />
+                            <x-file-input wire:model.live="attachmentFile" label="Attachment" />
                             <x-button type="submit" size="sm" variant="secondary">Save notes</x-button>
                         </form>
 
@@ -261,7 +285,7 @@
 
     @if ($showForm)
         <x-drawer title="New dispatch" description="Assign a guard and capture the call so the response team can act." width="lg">
-            <x-drawer-form wire:submit.prevent="save" submit-label="Submit dispatch">
+            <x-drawer-form wire:submit="save" submit-label="Submit dispatch">
                 @if ($errors->any())
                     <div class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
                         <p class="font-medium">Please fix the following:</p>
@@ -281,21 +305,21 @@
                         @endforeach
                     </x-select>
 
-                    <x-select wire:model="form.site_id" label="Post site *" class="sm:col-span-2" :disabled="! $form['client_account_id']">
+                    <x-select wire:model.live="form.site_id" label="Post site *" class="sm:col-span-2" :disabled="! $form['client_account_id']">
                         <option value="">Select site</option>
                         @foreach($sitesForClient as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
 
-                    <x-select wire:model="form.guard_id" label="Assign guard" class="sm:col-span-2">
+                    <x-select wire:model.live="form.guard_id" label="Assign guard" class="sm:col-span-2">
                         <option value="">Unassigned</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
 
-                    <x-select wire:model="form.priority" label="Priority *">
+                    <x-select wire:model.live="form.priority" label="Priority *">
                         <option value="low">Low</option>
                         <option value="normal">Normal</option>
                         <option value="high">High</option>
@@ -304,31 +328,31 @@
                 </x-form-section>
 
                 <x-form-section title="Caller">
-                    <x-select wire:model="form.caller_type" label="Caller type *">
+                    <x-select wire:model.live="form.caller_type" label="Caller type *">
                         @foreach($callerTypes as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.caller_name" label="Caller name *" />
+                    <x-input wire:model.live="form.caller_name" label="Caller name *" />
                 </x-form-section>
 
                 <x-form-section title="Incident">
-                    <x-input wire:model="form.incident_location" label="Incident location *" class="sm:col-span-2" />
-                    <x-select wire:model="form.event_type" label="Incident type *" class="sm:col-span-2">
+                    <x-input wire:model.live="form.incident_location" label="Incident location *" class="sm:col-span-2" />
+                    <x-select wire:model.live="form.event_type" label="Incident type *" class="sm:col-span-2">
                         <option value="">Select type</option>
                         @foreach($incidentTypes as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="form.incident_date" type="date" label="Incident date *" />
-                    <x-input wire:model="form.incident_time" type="time" label="Incident time *" />
-                    <x-textarea wire:model="form.description" label="Incident details *" rows="4" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.incident_date" type="date" label="Incident date *" />
+                    <x-input wire:model.live="form.incident_time" type="time" label="Incident time *" />
+                    <x-textarea wire:model.live="form.description" label="Incident details *" rows="4" class="sm:col-span-2" />
                 </x-form-section>
 
                 <x-form-section title="Follow-up" description="Optional notes and evidence for the response record.">
-                    <x-textarea wire:model="form.action_taken" label="Action taken" rows="3" class="sm:col-span-2" />
-                    <x-textarea wire:model="form.internal_notes" label="Internal notes" rows="3" class="sm:col-span-2" />
-                    <x-file-input wire:model="attachmentFile" label="Attachment" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.action_taken" label="Action taken" rows="3" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.internal_notes" label="Internal notes" rows="3" class="sm:col-span-2" />
+                    <x-file-input wire:model.live="attachmentFile" label="Attachment" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasPerPage;
 use App\Models\AssetCategory;
 use App\Models\AssetVendor;
 use App\Models\EquipmentAsset;
+use App\Models\EquipmentAssignment;
 use App\Models\Guard;
 use App\Models\Site;
 use App\Services\AssetManagementService;
@@ -195,7 +196,13 @@ class AssetIndex extends Component
     public function openReturn(int $assignmentId): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        $this->returnAssignmentId = $assignmentId;
+
+        $assignment = EquipmentAssignment::query()
+            ->where('tenant_id', TenantContext::id())
+            ->where('status', 'issued')
+            ->findOrFail($assignmentId);
+
+        $this->returnAssignmentId = $assignment->id;
         $this->returnNotes = '';
         $this->showReturnForm = true;
     }
@@ -211,11 +218,14 @@ class AssetIndex extends Component
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
         $data = $this->validate([
-            'returnAssignmentId' => 'required|exists:equipment_assignments,id',
+            'returnAssignmentId' => 'required|integer',
             'returnNotes' => 'nullable|string|max:1000',
         ]);
 
-        $assignment = \App\Models\EquipmentAssignment::findOrFail($data['returnAssignmentId']);
+        $assignment = EquipmentAssignment::query()
+            ->where('tenant_id', TenantContext::id())
+            ->where('status', 'issued')
+            ->findOrFail($data['returnAssignmentId']);
         $service->returnAsset($assignment, $data['returnNotes'] ?: null);
         $this->closeReturnForm();
         session()->flash('status', 'Asset returned.');
@@ -226,6 +236,13 @@ class AssetIndex extends Component
         abort_unless(auth()->user()->can('equipment.manage'), 403);
         $tenantId = TenantContext::id();
         $base = EquipmentAsset::where('tenant_id', $tenantId);
+        $returningAssignment = $this->returnAssignmentId
+            ? EquipmentAssignment::query()
+                ->with(['asset', 'assignedGuard', 'site'])
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'issued')
+                ->find($this->returnAssignmentId)
+            : null;
 
         return view('livewire.assets.asset-index', [
             'items' => (clone $base)
@@ -247,6 +264,7 @@ class AssetIndex extends Component
             'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'guards' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->orderBy('first_name')->get(),
             'statuses' => config('assets.statuses'),
+            'returningAssignment' => $returningAssignment,
         ])->layout('layouts.app');
     }
 

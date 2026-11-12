@@ -25,13 +25,13 @@
 
             <x-section-card title="Assign template to site" description="Link a saved template so field officers see it at that site.">
                 <div class="grid gap-3 sm:grid-cols-3">
-                    <x-select wire:model="assignTemplateId" label="Template">
+                    <x-select wire:model.live="assignTemplateId" label="Template">
                         <option value="">Select</option>
                         @foreach($templates as $t)
                             <option value="{{ $t->id }}">{{ $t->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="assignSiteId" label="Site">
+                    <x-select wire:model.live="assignSiteId" label="Site">
                         <option value="">Select</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -104,18 +104,18 @@
             width="xl"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="save" :submit-label="$editingId ? 'Save changes' : 'Save template'" close-method="closeDrawer" target="save">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Save changes' : 'Save template'" close-method="closeDrawer" target="save">
                 <x-form-section title="Template">
-                    <x-input wire:model="form.name" label="Template name *" class="sm:col-span-2" />
-                    <x-select wire:model="form.client_account_id" label="Client (optional)" class="sm:col-span-2">
+                    <x-input wire:model.live="form.name" label="Template name *" class="sm:col-span-2" />
+                    <x-select wire:model.live="form.client_account_id" label="Client (optional)" class="sm:col-span-2">
                         <option value="">All clients</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}">{{ $client->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-textarea wire:model="form.description" label="Description" rows="2" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="form.description" label="Description" rows="2" class="sm:col-span-2" />
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                        <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
+                        <input type="checkbox" wire:model.live="form.is_active" class="rounded border-zinc-300 dark:border-zinc-600">
                         Active
                     </label>
                 </x-form-section>
@@ -124,8 +124,8 @@
                     <div class="sm:col-span-2 space-y-2">
                         @foreach($fields as $i => $field)
                             <div class="grid gap-2 rounded-md border border-zinc-200/90 bg-zinc-50/50 p-3 sm:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-900/40" wire:key="field-{{ $i }}">
-                                <x-input wire:model="fields.{{ $i }}.label" label="Label *" class="sm:col-span-2" />
-                                <x-select wire:model="fields.{{ $i }}.field_type" label="Type">
+                                <x-input wire:model.live="fields.{{ $i }}.label" label="Label *" class="sm:col-span-2" />
+                                <x-select wire:model.live="fields.{{ $i }}.field_type" label="Type">
                                     <option value="text">Text</option>
                                     <option value="textarea">Textarea</option>
                                     <option value="photo">Photo</option>
@@ -135,7 +135,7 @@
                                 </x-select>
                                 <div class="flex items-end justify-between gap-2 pb-1">
                                     <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                        <input type="checkbox" wire:model="fields.{{ $i }}.is_required" class="rounded border-zinc-300 dark:border-zinc-600">
+                                        <input type="checkbox" wire:model.live="fields.{{ $i }}.is_required" class="rounded border-zinc-300 dark:border-zinc-600">
                                         Required
                                     </label>
                                     @if (count($fields) > 1)

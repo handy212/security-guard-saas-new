@@ -1,4 +1,9 @@
-<div class="space-y-4" wire:poll.60s="$refresh">
+<div class="space-y-4 field-workspace" wire:poll.60s="$refresh">
+    <div class="field-day-heading">
+        <p>{{ now()->format('l, j F') }}</p>
+        <h1>Your shift</h1>
+        <span>{{ auth()->user()->name }}</span>
+    </div>
     @if($statusMessage)
         <div class="field-banner-success">{{ $statusMessage }}</div>
     @endif
@@ -34,8 +39,8 @@
                         {{ $assignment->shift?->site?->name }}
                         · {{ $assignment->shift?->starts_at?->format('M j, H:i') }} – {{ $assignment->shift?->ends_at?->format('H:i') }}
                     </div>
-                    <div class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                        {{ ucfirst(\App\Support\EnumHelper::value($assignment->status)) }}
+                    <div class="mt-1 text-xs font-medium text-zinc-400">
+                        {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($assignment->status))) }}
                     </div>
                 </div>
             </label>
@@ -224,13 +229,13 @@
             @endscript
         @endif
 
-        <select wire:model="patrolSessionId" class="field-input mb-2">
+        <select wire:model.live="patrolSessionId" class="field-input mb-2">
             <option value="">Select patrol session</option>
             @foreach($activePatrols as $patrol)
                 <option value="{{ $patrol->id }}">#{{ $patrol->id }} — {{ $patrol->route?->name }}</option>
             @endforeach
         </select>
-        <input wire:model="checkpointCode" type="text" placeholder="QR / NFC checkpoint code" class="field-input mb-2">
+        <input wire:model.live="checkpointCode" type="text" placeholder="QR / NFC checkpoint code" class="field-input mb-2">
         <button type="button"
             onclick="window.guardWithGeo(@this, 'scanCheckpoint', 'checkpoint_scan', (c, w) => ({ patrol_session_id: w.patrolSessionId, checkpoint_code: w.checkpointCode, latitude: c.lat, longitude: c.lng }))"
             class="field-btn-light">Submit scan</button>
@@ -260,16 +265,17 @@
         <button type="button" wire:click="confirmMyShift" class="field-btn-primary" @disabled(! $activeAssignmentId)>Confirm shift</button>
     </section>
 
-    <section class="field-panel">
-        <h2 class="field-panel-title">Request shift swap</h2>
+    <details class="field-panel field-tool">
+        <summary class="field-tool-title">Request shift swap<span aria-hidden="true">+</span></summary>
+        <div class="field-tool-content">
         <p class="field-panel-meta mb-3">Ask scheduling to release you. Optionally suggest a replacement.</p>
-        <select wire:model="swapReplacementGuardId" class="field-input mb-2" @disabled(! $activeAssignmentId)>
+        <select wire:model.live="swapReplacementGuardId" class="field-input mb-2" @disabled(! $activeAssignmentId)>
             <option value="">No replacement suggested</option>
             @foreach($colleagueGuards as $colleague)
                 <option value="{{ $colleague->id }}">{{ $colleague->full_name }}</option>
             @endforeach
         </select>
-        <textarea wire:model="swapReason" rows="2" placeholder="Reason for swap (optional)" class="field-input mb-2" @disabled(! $activeAssignmentId)></textarea>
+        <textarea wire:model.live="swapReason" rows="2" placeholder="Reason for swap (optional)" class="field-input mb-2" @disabled(! $activeAssignmentId)></textarea>
         <button type="button" wire:click="requestShiftSwap" class="field-btn-ghost" @disabled(! $activeAssignmentId)>Submit swap request</button>
         @if($mySwaps->isNotEmpty())
             <div class="mt-3 space-y-1 border-t border-zinc-800 pt-3 text-xs text-zinc-400">
@@ -278,17 +284,19 @@
                 @endforeach
             </div>
         @endif
-    </section>
+    </div>
+    </details>
 
-    <section class="field-panel">
-        <h2 class="field-panel-title">Open shifts</h2>
+    <details class="field-panel field-tool">
+        <summary class="field-tool-title">Open shifts<span aria-hidden="true">+</span></summary>
+        <div class="field-tool-content">
         <p class="field-panel-meta mb-3">Bid on shifts that need coverage</p>
         @forelse($openShifts as $shift)
             <div class="mb-2 rounded-md border border-zinc-800 bg-zinc-950/50 p-3 text-sm last:mb-0" wire:key="open-shift-{{ $shift->id }}">
                 <div class="font-medium text-zinc-100">{{ $shift->title }}</div>
                 <div class="text-xs tabular-nums text-zinc-400">{{ $shift->site?->name }} · {{ $shift->starts_at?->format('M j, H:i') }}</div>
                 <div class="mt-1 text-xs font-medium tabular-nums text-amber-300">{{ $shift->activeAssignmentsCount() }}/{{ $shift->required_guards }} filled</div>
-                <textarea wire:model="bidNotes.{{ $shift->id }}" rows="2" placeholder="Optional note for scheduling" class="field-input mt-2 !py-1.5 text-xs"></textarea>
+                <textarea wire:model.live="bidNotes.{{ $shift->id }}" rows="2" placeholder="Optional note for scheduling" class="field-input mt-2 !py-1.5 text-xs"></textarea>
                 <button type="button" wire:click="bidOnShift({{ $shift->id }})" class="field-btn-success mt-2 !py-2 text-xs">Place bid</button>
             </div>
         @empty
@@ -302,13 +310,15 @@
                 @endforeach
             </div>
         @endif
-    </section>
+    </div>
+    </details>
 
     @if($reportTemplates->isNotEmpty())
-        <section class="field-panel">
-            <h2 class="field-panel-title">Custom reports</h2>
+        <details class="field-panel field-tool" @if($activeReportTemplateId) open @endif>
+            <summary class="field-tool-title">Custom reports<span aria-hidden="true">+</span></summary>
+        <div class="field-tool-content">
             <p class="field-panel-meta mb-3">Fill and submit site report forms</p>
-            <select wire:model="activeReportTemplateId" class="field-input mb-2">
+            <select wire:model.live="activeReportTemplateId" class="field-input mb-2">
                 <option value="">Select report</option>
                 @foreach($reportTemplates as $template)
                     <option value="{{ $template->id }}">{{ $template->name }}</option>
@@ -320,9 +330,9 @@
                     <div class="mb-2">
                         <label class="mb-1 block text-xs text-zinc-400">{{ $field->label }}</label>
                         @if($field->field_type === 'textarea')
-                            <textarea wire:model="reportData.{{ $field->id }}" class="field-input" rows="2"></textarea>
+                            <textarea wire:model.live="reportData.{{ $field->id }}" class="field-input" rows="2"></textarea>
                         @else
-                            <input wire:model="reportData.{{ $field->id }}" type="text" class="field-input">
+                            <input wire:model.live="reportData.{{ $field->id }}" type="text" class="field-input">
                         @endif
                     </div>
                 @endforeach
@@ -331,16 +341,19 @@
                     <button type="button" wire:click="submitCustomReport" class="field-btn-success flex-1 !py-2.5">Submit</button>
                 </div>
             @endif
-        </section>
+        </div>
+    </details>
     @endif
 
-    <section class="field-panel">
-        <h2 class="field-panel-title">Passdown</h2>
+    <details class="field-panel field-tool" @if($errors->has('passdownContent')) open @endif>
+        <summary class="field-tool-title">Passdown<span aria-hidden="true">+</span></summary>
+        <div class="field-tool-content">
         <p class="field-panel-meta mb-3">Handoff notes for the next guard</p>
-        <textarea wire:model="passdownContent" rows="3" placeholder="Handoff notes for next guard..." class="field-input mb-2" @disabled(! $activeAssignmentId)></textarea>
+        <textarea wire:model.live="passdownContent" rows="3" placeholder="Handoff notes for next guard..." class="field-input mb-2" @disabled(! $activeAssignmentId)></textarea>
         @error('passdownContent') <p class="mb-2 text-xs text-red-400">{{ $message }}</p> @enderror
         <button type="button" wire:click="savePassdown" class="field-btn-light" @disabled(! $activeAssignmentId)>Save passdown</button>
-    </section>
+    </div>
+    </details>
     @endif
 
     <p class="pb-2 text-center text-[10px] text-zinc-600">Install this app from your browser menu for fullscreen field use.</p>

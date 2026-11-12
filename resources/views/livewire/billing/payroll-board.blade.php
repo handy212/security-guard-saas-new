@@ -21,7 +21,7 @@
 
             <div class="stat-grid">
                 <x-stat-card compact label="Timesheets" :value="$timesheets->count()" icon="plan" />
-                <x-stat-card compact label="Active guards" :value="$guards->count()" icon="guards" tone="success" />
+                <x-stat-card compact label="Pending approval" :value="$pendingTimesheets" icon="pause" :tone="$pendingTimesheets ? 'warning' : 'success'" />
                 <x-stat-card compact label="Payroll exports" :value="$payrollExports->count()" icon="billing" tone="info" />
                 <x-stat-card compact label="Period" :value="$periodStart ? \Carbon\Carbon::parse($periodStart)->format('M Y') : '—'" icon="schedules" />
             </div>
@@ -110,14 +110,14 @@
         <x-drawer title="Generate timesheet" description="Build a payroll timesheet from attendance for a guard." width="md" close-method="closeGenerate">
             <x-drawer-form wire:submit="generateTimesheet" submit-label="Generate timesheet" close-method="closeGenerate" target="generateTimesheet">
                 <x-form-section title="Period">
-                    <x-select wire:model="guardId" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="guardId" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="periodStart" label="Period start *" type="date" />
-                    <x-input wire:model="periodEnd" label="Period end *" type="date" />
+                    <x-input wire:model.live="periodStart" label="Period start *" type="date" />
+                    <x-input wire:model.live="periodEnd" label="Period end *" type="date" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>

@@ -1,9 +1,11 @@
-<div>
-    <x-page-shell title="Guard applications" description="Review applicants who registered through your public application link.">
+<div @class(['guards-embedded-panel space-y-3' => $embedded])>
+    <x-page-shell :show-header="! $embedded" title="Guard applications" description="Review applicants who registered through your public application link.">
+        @if (! $embedded)
         <x-slot:actions>
             <x-button variant="secondary" :href="route('guards.kyg')">Know Your Guard</x-button>
             <x-button :href="route('guards.index')">Roster</x-button>
         </x-slot:actions>
+        @endif
 
         <x-flash-status />
 

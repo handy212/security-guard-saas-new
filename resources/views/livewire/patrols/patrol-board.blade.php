@@ -143,17 +143,17 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="saveRoute" :submit-label="$editingRouteId ? 'Update route' : 'Save route'" close-method="closeDrawer" target="saveRoute">
+            <x-drawer-form wire:submit="saveRoute" :submit-label="$editingRouteId ? 'Update route' : 'Save route'" close-method="closeDrawer" target="saveRoute">
                 <x-form-section title="Route">
-                    <x-select wire:model="routeForm.site_id" label="Site *" class="sm:col-span-2">
+                    <x-select wire:model.live="routeForm.site_id" label="Site *" class="sm:col-span-2">
                         <option value="">Select site</option>
                         @foreach($sites as $site)
                             <option value="{{ $site->id }}">{{ $site->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="routeForm.name" label="Route name *" class="sm:col-span-2" />
-                    <x-textarea wire:model="routeForm.description" label="Description" rows="2" class="sm:col-span-2" />
-                    <x-input wire:model="routeForm.expected_duration_minutes" label="Duration (min)" type="number" class="sm:col-span-2" />
+                    <x-input wire:model.live="routeForm.name" label="Route name *" class="sm:col-span-2" />
+                    <x-textarea wire:model.live="routeForm.description" label="Description" rows="2" class="sm:col-span-2" />
+                    <x-input wire:model.live="routeForm.expected_duration_minutes" label="Duration (min)" type="number" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -166,20 +166,20 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="saveCheckpoint" :submit-label="$editingCheckpointId ? 'Update checkpoint' : 'Save checkpoint'" close-method="closeDrawer" target="saveCheckpoint">
+            <x-drawer-form wire:submit="saveCheckpoint" :submit-label="$editingCheckpointId ? 'Update checkpoint' : 'Save checkpoint'" close-method="closeDrawer" target="saveCheckpoint">
                 <x-form-section title="Checkpoint">
-                    <x-select wire:model="checkpointForm.patrol_route_id" label="Route *" class="sm:col-span-2">
+                    <x-select wire:model.live="checkpointForm.patrol_route_id" label="Route *" class="sm:col-span-2">
                         <option value="">Select route</option>
                         @foreach($routes as $route)
                             <option value="{{ $route->id }}">{{ $route->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-input wire:model="checkpointForm.name" label="Checkpoint name *" class="sm:col-span-2" />
-                    <x-input wire:model="checkpointForm.code" label="QR / NFC code *" />
-                    <x-input wire:model="checkpointForm.sequence" label="Sequence" type="number" min="1" />
-                    <x-input wire:model="checkpointForm.latitude" label="Latitude" type="number" step="any" />
-                    <x-input wire:model="checkpointForm.longitude" label="Longitude" type="number" step="any" />
-                    <x-textarea wire:model="checkpointForm.instructions" label="Instructions" rows="2" class="sm:col-span-2" />
+                    <x-input wire:model.live="checkpointForm.name" label="Checkpoint name *" class="sm:col-span-2" />
+                    <x-input wire:model.live="checkpointForm.code" label="QR / NFC code *" />
+                    <x-input wire:model.live="checkpointForm.sequence" label="Sequence" type="number" min="1" />
+                    <x-input wire:model.live="checkpointForm.latitude" label="Latitude" type="number" step="any" />
+                    <x-input wire:model.live="checkpointForm.longitude" label="Longitude" type="number" step="any" />
+                    <x-textarea wire:model.live="checkpointForm.instructions" label="Instructions" rows="2" class="sm:col-span-2" />
                 </x-form-section>
             </x-drawer-form>
         </x-drawer>
@@ -192,21 +192,21 @@
             width="md"
             close-method="closeDrawer"
         >
-            <x-drawer-form wire:submit.prevent="assignPatrol" submit-label="Start patrol" close-method="closeDrawer" target="assignPatrol">
+            <x-drawer-form wire:submit="assignPatrol" submit-label="Start patrol" close-method="closeDrawer" target="assignPatrol">
                 <x-form-section title="Deployment">
-                    <x-select wire:model="assignForm.patrol_route_id" label="Route *" class="sm:col-span-2">
+                    <x-select wire:model.live="assignForm.patrol_route_id" label="Route *" class="sm:col-span-2">
                         <option value="">Select route</option>
                         @foreach($routes as $route)
                             <option value="{{ $route->id }}">{{ $route->name }} · {{ $route->site?->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="assignForm.guard_id" label="Guard *" class="sm:col-span-2">
+                    <x-select wire:model.live="assignForm.guard_id" label="Guard *" class="sm:col-span-2">
                         <option value="">Select guard</option>
                         @foreach($guards as $guard)
                             <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="assignForm.vehicle_id" label="Vehicle / motor" class="sm:col-span-2">
+                    <x-select wire:model.live="assignForm.vehicle_id" label="Vehicle / motor" class="sm:col-span-2">
                         <option value="">None</option>
                         @foreach($availableFleet as $vehicle)
                             <option value="{{ $vehicle->id }}">{{ $vehicle->displayName() }}</option>

@@ -118,16 +118,16 @@
 
     @if ($showForm)
         <x-drawer title="New purchase order" width="lg">
-            <x-drawer-form wire:submit.prevent="save" submit-label="Create PO">
-                <x-select wire:model="form.vendor_id" label="Vendor *" class="sm:col-span-2">
+            <x-drawer-form wire:submit="save" submit-label="Create PO">
+                <x-select wire:model.live="form.vendor_id" label="Vendor *" class="sm:col-span-2">
                     <option value="">Select vendor</option>
                     @foreach($vendors as $vendor)
                         <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
                     @endforeach
                 </x-select>
-                <x-input wire:model="form.expected_date" type="date" label="Expected delivery" />
-                <x-input wire:model="form.tax_total" type="number" step="0.01" label="Tax" />
-                <x-textarea wire:model="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
+                <x-input wire:model.live="form.expected_date" type="date" label="Expected delivery" />
+                <x-input wire:model.live="form.tax_total" type="number" step="0.01" label="Tax" />
+                <x-textarea wire:model.live="form.notes" label="Notes" rows="2" class="sm:col-span-2" />
 
                 <div class="sm:col-span-2 rounded-lg border border-zinc-200 p-3">
                     <div class="mb-2 flex items-center justify-between">
@@ -136,15 +136,15 @@
                     </div>
                     @foreach($items as $index => $item)
                         <div class="mb-3 grid gap-2 border-t border-zinc-100 pt-3 sm:grid-cols-6" wire:key="line-{{ $index }}">
-                            <x-select wire:model="items.{{ $index }}.asset_category_id" label="Category" class="sm:col-span-2">
+                            <x-select wire:model.live="items.{{ $index }}.asset_category_id" label="Category" class="sm:col-span-2">
                                 <option value="">Category</option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </x-select>
-                            <x-input wire:model="items.{{ $index }}.description" label="Description *" class="sm:col-span-2" />
-                            <x-input wire:model="items.{{ $index }}.quantity" type="number" min="1" label="Qty" />
-                            <x-input wire:model="items.{{ $index }}.unit_cost" type="number" step="0.01" label="Unit cost" />
+                            <x-input wire:model.live="items.{{ $index }}.description" label="Description *" class="sm:col-span-2" />
+                            <x-input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" label="Qty" />
+                            <x-input wire:model.live="items.{{ $index }}.unit_cost" type="number" step="0.01" label="Unit cost" />
                         </div>
                     @endforeach
                 </div>

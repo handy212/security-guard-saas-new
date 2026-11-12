@@ -1,17 +1,19 @@
 <div>
-    <x-page-shell title="Confirmations" description="Track assignment status and guard shift confirmations.">
+    <x-page-shell :embedded="$embedded" title="Confirmations" description="Track assignment status and guard shift confirmations.">
         <x-slot:actions>
             <x-button variant="secondary" :href="route('schedules.index')">Day roster</x-button>
             <x-button variant="secondary" :href="route('schedules.deployment-sheet')">Deployment sheet</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout>
-            <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @if (! $embedded)
+                <x-slot:sidebar><x-schedules-nav /></x-slot:sidebar>
+            @endif
 
             <x-flash-status />
 
             <div class="stat-grid">
-                <x-stat-card compact label="Awaiting confirm" :value="$pendingConfirmationCount" icon="pause" :tone="$pendingConfirmationCount ? 'warning' : 'success'" />
+                <x-stat-card compact label="Awaiting confirmation" :value="$pendingConfirmationCount" icon="pause" :tone="$pendingConfirmationCount ? 'warning' : 'success'" />
                 <x-stat-card compact label="Confirmations" :value="$confirmations->total()" icon="check" tone="info" />
                 <x-stat-card compact label="Assignments shown" :value="$assignments->count()" icon="guards" />
             </div>
@@ -52,7 +54,7 @@
                             </div>
                         @empty
                             <div class="p-3">
-                                <x-empty-state compact title="No confirmations" description="Confirmations are created when guards are assigned to shifts." />
+                                <x-empty-state class="scheduler-empty-state" compact title="No confirmations" description="Confirmations are created when guards are assigned to shifts." />
                             </div>
                         @endforelse
                         <div class="border-t border-zinc-100 px-4 py-2 dark:border-zinc-800">
@@ -83,12 +85,12 @@
                                 </div>
                                 <div class="table-inline-actions shrink-0">
                                     <x-button size="sm" variant="secondary" href="{{ route('schedules.index', ['date' => $assignment->shift?->starts_at?->toDateString()]) }}">View</x-button>
-                                    <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift?" class="table-action-danger">Unassign</button>
+                                    <button type="button" wire:click="unassignGuard({{ $assignment->id }})" wire:confirm="Remove this guard from the shift? Issued kit stays with this guard until its physical return is recorded in Assets." class="table-action-danger">Unassign</button>
                                 </div>
                             </div>
                         @empty
                             <div class="p-3">
-                                <x-empty-state compact title="No assignments" description="Assignments from the last week and upcoming shifts appear here." />
+                                <x-empty-state class="scheduler-empty-state" compact title="No assignments" description="Assignments from the last week and upcoming shifts appear here." />
                             </div>
                         @endforelse
                     </x-section-card>

@@ -96,10 +96,10 @@
         >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update user' : 'Create user'">
                 <x-form-section title="Account">
-                    <x-input wire:model="form.name" label="Name" class="sm:col-span-2" />
-                    <x-input wire:model="form.email" label="Email" type="email" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.name" label="Name" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.email" label="Email" type="email" class="sm:col-span-2" />
                     <x-input
-                        wire:model="form.password"
+                        wire:model.live="form.password"
                         label="{{ $editingId ? 'New password (optional)' : 'Temporary password' }}"
                         type="password"
                         class="sm:col-span-2"
@@ -107,13 +107,13 @@
                     />
                 </x-form-section>
                 <x-form-section title="Access">
-                    <x-select wire:model="form.role" label="Role" class="sm:col-span-2">
+                    <x-select wire:model.live="form.role" label="Role" class="sm:col-span-2">
                         <option value="">Select role…</option>
                         @foreach ($roles as $role)
                             <option value="{{ $role->name }}">{{ $roleLabels[$role->name] ?? str($role->name)->headline() }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
+                    <x-select wire:model.live="form.status" label="Status" class="sm:col-span-2">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>

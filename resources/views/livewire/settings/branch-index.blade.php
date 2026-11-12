@@ -64,17 +64,17 @@
         >
             <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update branch' : 'Create branch'">
                 <x-form-section title="Branch">
-                    <x-input wire:model="form.name" label="Name" class="sm:col-span-2" />
-                    <x-input wire:model="form.code" label="Code" />
-                    <x-input wire:model="form.phone" label="Phone" />
-                    <x-input wire:model="form.email" label="Email" type="email" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.name" label="Name" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.code" label="Code" />
+                    <x-input wire:model.live="form.phone" label="Phone" />
+                    <x-input wire:model.live="form.email" label="Email" type="email" class="sm:col-span-2" />
                 </x-form-section>
                 <x-form-section title="Location">
-                    <x-input wire:model="form.address" label="Address" class="sm:col-span-2" />
-                    <x-input wire:model="form.city" label="City" />
-                    <x-input wire:model="form.country" label="Country" />
+                    <x-input wire:model.live="form.address" label="Address" class="sm:col-span-2" />
+                    <x-input wire:model.live="form.city" label="City" />
+                    <x-input wire:model.live="form.country" label="Country" />
                     <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:col-span-2">
-                        <input type="checkbox" wire:model="form.is_active" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20">
+                        <input type="checkbox" wire:model.live="form.is_active" class="rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20">
                         Active
                     </label>
                 </x-form-section>

@@ -3,6 +3,7 @@
 namespace App\Livewire\Scheduling;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\EmbedsInScheduler;
 use App\Models\ShiftSwapRequest;
 use App\Services\EnterpriseScheduleService;
 use App\Support\TenantContext;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class ShiftExchangeIndex extends Component
 {
     use AuthorizesModuleAccess;
+    use EmbedsInScheduler;
 
     public string $swapFilter = 'pending';
 
@@ -22,7 +24,13 @@ class ShiftExchangeIndex extends Component
     public function approveSwap(int $swapId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $service->approveSwap(ShiftSwapRequest::findOrFail($swapId), auth()->id());
+        try {
+            $service->approveSwap(ShiftSwapRequest::where('tenant_id', TenantContext::id())->findOrFail($swapId), auth()->id());
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Shift exchange approved.');
     }
 

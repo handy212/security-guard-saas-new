@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Attendance;
 
+use App\Enums\AttendanceStatus;
+use App\Livewire\Concerns\EmbedsInScheduler;
 use App\Models\AttendanceLog;
 use App\Services\PayrollExportService;
 use App\Support\TenantContext;
@@ -10,6 +12,7 @@ use Livewire\WithPagination;
 
 class ReconciliationBoard extends Component
 {
+    use EmbedsInScheduler;
     use WithPagination;
 
     public string $statusFilter = 'needs_review';
@@ -33,30 +36,33 @@ class ReconciliationBoard extends Component
             'all' => 'all',
             default => 'needs_review',
         };
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'reconciliationPage' : 'page');
     }
 
     public function updatedSearch(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'reconciliationPage' : 'page');
     }
 
     public function updatedStatusFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'reconciliationPage' : 'page');
     }
 
     public function clearFilters(): void
     {
         $this->statusFilter = 'needs_review';
         $this->search = '';
-        $this->resetPage();
+        $this->resetPage($this->embedded ? 'reconciliationPage' : 'page');
     }
 
     public function reconcile(int $logId, PayrollExportService $service, ?string $newStatus = null): void
     {
         $log = AttendanceLog::findOrFail($logId);
-        $service->reconcileAttendance($log, auth()->id(), 'Reconciled by manager', $newStatus ?? 'reconciled');
+        if ($newStatus !== null) {
+            abort_unless(AttendanceStatus::tryFrom($newStatus), 422);
+        }
+        $service->reconcileAttendance($log, auth()->id(), 'Reconciled by manager', $newStatus);
         session()->flash('status', 'Attendance reconciled.');
     }
 
@@ -88,7 +94,7 @@ class ReconciliationBoard extends Component
             ->latest();
 
         return view('livewire.attendance.reconciliation-board', [
-            'logs' => $query->paginate(25),
+            'logs' => $query->paginate(25, ['*'], $this->embedded ? 'reconciliationPage' : 'page'),
             'stats' => $stats,
             'hasActiveFilters' => $this->statusFilter !== 'needs_review' || filled($this->search),
         ])->layout('layouts.app');

@@ -1,4 +1,4 @@
-<div class="relative" wire:poll.30s x-data="{ open: @entangle('open') }" @click.outside="open = false">
+<div class="relative" wire:poll.30s x-data="{ open: @entangle('open').live }" @click.outside="open = false">
     @if ($count > 0)
         <button
             type="button"

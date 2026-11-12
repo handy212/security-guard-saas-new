@@ -1,10 +1,10 @@
 @props(['label' => null, 'error' => null, 'hint' => null, 'rows' => 3])
 
 @php
-    $errorKey = $attributes->get('wire:model')
+    $errorKey = $attributes->get('wire:model.live')
         ?? $attributes->get('wire:model.live')
-        ?? $attributes->get('wire:model.blur')
-        ?? $attributes->get('wire:model.defer');
+        ?? $attributes->get('wire:model.live.blur')
+        ?? $attributes->get('wire:model');
     $resolvedError = $error ?? ($errorKey ? $errors->first($errorKey) : null);
     $inputClass = 'form-input'.($resolvedError ? ' form-input-error' : '');
 @endphp
