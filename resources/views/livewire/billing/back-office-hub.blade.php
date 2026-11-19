@@ -5,40 +5,57 @@
         :breadcrumbs="[['label' => 'Back Office']]"
     >
         <x-slot:actions>
-            <x-button :href="route('billing.invoices.create')">New invoice</x-button>
-            <x-button variant="secondary" :href="route('billing.estimates.create')">New estimate</x-button>
-            <x-button variant="secondary" :href="route('billing.payments')">Payments</x-button>
+            @if($canBilling)
+                <x-button :href="route('billing.invoices.create')">New invoice</x-button>
+                <x-button variant="secondary" :href="route('billing.payments')">Payments</x-button>
+            @endif
+            @if($canEstimates)
+                <x-button variant="secondary" :href="route('billing.estimates.create')">New estimate</x-button>
+            @endif
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
-            <div class="stat-grid">
-                <x-stat-card compact label="Amount due" :value="'₦'.number_format($stats['amount_due'], 0)" icon="billing" tone="warning" :href="route('billing.invoices', ['status' => 'sent'])" />
-                <x-stat-card compact label="Collected MTD" :value="'₦'.number_format($stats['collected_mtd'], 0)" icon="check" tone="success" :href="route('billing.payments')" />
-                <x-stat-card compact label="Expenses MTD" :value="'₦'.number_format($stats['expenses_mtd'], 0)" icon="plan" tone="warning" :href="route('billing.expenses')" />
-                <x-stat-card compact label="Overdue" :value="'₦'.number_format($stats['overdue_due'], 0)" icon="pause" :tone="$stats['overdue_due'] > 0 ? 'danger' : 'default'" :href="route('billing.invoices', ['status' => 'overdue'])" />
-            </div>
+            @if($canBilling || $canExpenses || $canEstimates)
+                <section aria-labelledby="back-office-cash-flow">
+                    <div class="billing-section-heading">
+                        <div>
+                            <h2 id="back-office-cash-flow">Cash flow</h2>
+                            <p>Receivables, collections, and operating spend for this month.</p>
+                        </div>
+                    </div>
+                    <div class="billing-primary-stats">
+                        @if($canBilling)
+                            <x-stat-card compact label="Amount due" :value="'₦'.number_format($stats['amount_due'], 0)" icon="billing" tone="warning" :href="route('billing.invoices', ['status' => 'outstanding'])" />
+                            <x-stat-card compact label="Collected MTD" :value="'₦'.number_format($stats['collected_mtd'], 0)" icon="check" tone="success" :href="route('billing.payments')" />
+                        @endif
+                        @if($canExpenses)
+                            <x-stat-card compact label="Expenses MTD" :value="'₦'.number_format($stats['expenses_mtd'], 0)" icon="plan" tone="warning" :href="route('billing.expenses')" />
+                        @endif
+                        @if($canBilling)
+                            <x-stat-card compact label="Overdue" :value="'₦'.number_format($stats['overdue_due'], 0)" icon="pause" :tone="$stats['overdue_due'] > 0 ? 'danger' : 'default'" :href="route('billing.invoices', ['status' => 'overdue'])" />
+                        @endif
+                    </div>
+                </section>
 
-            <div class="stat-grid">
-                <x-stat-card compact label="Revenue billed MTD" :value="'₦'.number_format($stats['revenue_mtd'], 0)" icon="billing" />
-                <x-stat-card compact label="Open invoices" :value="$stats['invoices_open']" icon="plan" :href="route('billing.invoices')" />
-                <x-stat-card compact label="Estimate pipeline" :value="'₦'.number_format($stats['estimates_pipeline'], 0)" icon="pause" tone="info" :href="route('billing.estimates')" />
-                <x-stat-card compact label="Open estimates" :value="$stats['estimates_open']" icon="check" :href="route('billing.estimates')" />
-            </div>
+                <section class="billing-summary-strip" aria-labelledby="back-office-summary">
+                    <div>
+                        <p id="back-office-summary" class="billing-summary-title">Workspace summary</p>
+                        <p class="billing-summary-copy">Current billing pipeline and approved operating context.</p>
+                    </div>
+                    @if($canBilling)
+                        <a href="{{ route('billing.invoices') }}" wire:navigate><span>Revenue billed MTD</span><strong>₦{{ number_format($stats['revenue_mtd'], 0) }}</strong></a>
+                        <a href="{{ route('billing.invoices', ['status' => 'outstanding']) }}" wire:navigate><span>Open invoices</span><strong>{{ $stats['invoices_open'] }}</strong></a>
+                    @endif
+                    @if($canEstimates)
+                        <a href="{{ route('billing.estimates') }}" wire:navigate><span>Estimate pipeline</span><strong>₦{{ number_format($stats['estimates_pipeline'], 0) }}</strong></a>
+                        <a href="{{ route('billing.estimates') }}" wire:navigate><span>Open estimates</span><strong>{{ $stats['estimates_open'] }}</strong></a>
+                    @endif
+                </section>
+            @endif
 
-            <div class="flex flex-wrap gap-1.5">
-                <a href="{{ route('billing.expenses') }}" class="quick-action" wire:navigate>Expenses</a>
-                <a href="{{ route('billing.payroll') }}" class="quick-action" wire:navigate>Payroll</a>
-                @can('compliance.manage')
-                    <a href="{{ route('compliance.dashboard') }}" class="quick-action" wire:navigate>Compliance</a>
-                @endcan
-                @can('analytics.view')
-                    <a href="{{ route('analytics.dashboard') }}" class="quick-action" wire:navigate>Analytics</a>
-                @endcan
-            </div>
-
-            <div class="page-grid-2">
+            <div @class(['billing-overview-grid', 'billing-overview-grid-single' => ! $canExpenses])>
                 <x-section-card title="Recent invoices" flush>
                     <x-slot:actions>
                         <a href="{{ route('billing.invoices') }}" class="page-link" wire:navigate>View all</a>
@@ -65,7 +82,8 @@
                     @endforelse
                 </x-section-card>
 
-                <x-section-card title="Recent expenses" flush>
+                @if($canExpenses)
+                <x-section-card title="Recent expenses" description="Latest operating spend and reimbursements." flush>
                     <x-slot:actions>
                         <a href="{{ route('billing.expenses') }}" class="page-link" wire:navigate>View all</a>
                     </x-slot:actions>
@@ -90,6 +108,7 @@
                         </div>
                     @endforelse
                 </x-section-card>
+                @endif
             </div>
         </x-sub-sidebar-layout>
     </x-page-shell>

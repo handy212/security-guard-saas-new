@@ -3,7 +3,7 @@
 namespace App\Livewire\Billing;
 
 use App\Models\Invoice;
-use App\Services\EstimateService;
+use App\Services\BillingService;
 use App\Services\InvoiceDeliveryService;
 use App\Services\PdfExportService;
 use App\Support\EnumHelper;
@@ -105,7 +105,7 @@ class InvoiceShow extends Component
         $this->paymentForm = ['amount' => '', 'payment_method' => 'cash', 'notes' => ''];
     }
 
-    public function recordPayment(EstimateService $service): void
+    public function recordPayment(BillingService $service): void
     {
         $this->authorize('update', $this->invoice);
 
@@ -115,15 +115,18 @@ class InvoiceShow extends Component
             'paymentForm.notes' => 'nullable|string|max:500',
         ])['paymentForm'];
 
-        $remaining = max(0, (float) $this->invoice->grand_total - (float) ($this->invoice->amount_paid ?? 0));
-        abort_if((float) $data['amount'] > $remaining + 0.001, 422, 'Amount exceeds remaining balance.');
+        try {
+            $service->recordPayment(
+                $this->invoice,
+                (float) $data['amount'],
+                $data['payment_method'],
+                $data['notes'] ?: null,
+            );
+        } catch (\RuntimeException $exception) {
+            $this->addError('paymentForm.amount', $exception->getMessage());
 
-        $service->recordPayment(
-            $this->invoice,
-            (float) $data['amount'],
-            $data['payment_method'],
-            $data['notes'] ?: null,
-        );
+            return;
+        }
 
         $this->invoice->refresh()->load(['clientAccount', 'items', 'payments']);
         $this->closePayment();

@@ -8,6 +8,7 @@ use App\Models\Timesheet;
 use App\Services\PayrollExportService;
 use App\Services\PayrollService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -41,11 +42,23 @@ class PayrollBoard extends Component
     public function generateTimesheet(PayrollService $payroll): void
     {
         abort_unless(auth()->user()->can('payroll.manage'), 403);
-        $payroll->generateTimesheet(
-            Guard::findOrFail($this->guardId),
-            $this->periodStart,
-            $this->periodEnd
-        );
+        $data = $this->validate([
+            'guardId' => ['required', TenantValidation::exists('guards')],
+            'periodStart' => ['required', 'date'],
+            'periodEnd' => ['required', 'date', 'after_or_equal:periodStart'],
+        ]);
+
+        try {
+            $payroll->generateTimesheet(
+                Guard::findOrFail($data['guardId']),
+                $data['periodStart'],
+                $data['periodEnd']
+            );
+        } catch (\RuntimeException $exception) {
+            $this->addError('periodEnd', $exception->getMessage());
+
+            return;
+        }
         $this->showGenerateForm = false;
         session()->flash('status', 'Timesheet generated.');
     }
@@ -53,7 +66,18 @@ class PayrollBoard extends Component
     public function exportQuickBooks(PayrollExportService $exports): void
     {
         abort_unless(auth()->user()->can('exports.manage'), 403);
-        $exports->exportQuickBooks($this->periodStart, $this->periodEnd, auth()->id());
+        $this->validate([
+            'periodStart' => ['required', 'date'],
+            'periodEnd' => ['required', 'date', 'after_or_equal:periodStart'],
+        ]);
+
+        try {
+            $exports->exportQuickBooks($this->periodStart, $this->periodEnd, auth()->id());
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Payroll CSV export generated.');
     }
 
@@ -104,8 +128,10 @@ class PayrollBoard extends Component
 
         return view('livewire.billing.payroll-board', [
             'timesheets' => Timesheet::with('assignedGuard')->where('tenant_id', $tenantId)->latest()->limit(80)->get(),
+            'totalTimesheets' => Timesheet::where('tenant_id', $tenantId)->count(),
             'pendingTimesheets' => Timesheet::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'payrollExports' => PayrollExport::where('tenant_id', $tenantId)->latest()->limit(15)->get(),
+            'totalPayrollExports' => PayrollExport::where('tenant_id', $tenantId)->count(),
             'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
             'canExport' => auth()->user()->can('exports.manage'),
         ])->layout('layouts.app');

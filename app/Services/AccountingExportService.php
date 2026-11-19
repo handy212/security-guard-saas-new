@@ -13,13 +13,13 @@ class AccountingExportService
         $rows = ['Invoice,Client,Date,Subtotal,Tax,Total,Status'];
         Invoice::where('tenant_id', $tenantId)->with('clientAccount')->each(function ($invoice) use (&$rows) {
             $rows[] = implode(',', [
-                $invoice->invoice_number,
-                $invoice->clientAccount?->name,
-                optional($invoice->invoice_date)->format('Y-m-d'),
-                $invoice->subtotal,
-                $invoice->tax_total,
-                $invoice->grand_total,
-                $invoice->status,
+                $this->quoteCsv($invoice->invoice_number),
+                $this->quoteCsv($invoice->clientAccount?->name),
+                $this->quoteCsv(optional($invoice->invoice_date)->format('Y-m-d')),
+                $this->quoteCsv($invoice->subtotal),
+                $this->quoteCsv($invoice->tax_total),
+                $this->quoteCsv($invoice->grand_total),
+                $this->quoteCsv($invoice->status),
             ]);
         });
         $path = 'exports/accounting/invoices-'.$tenantId.'-'.now()->format('YmdHis').'.csv';
@@ -33,5 +33,15 @@ class AccountingExportService
             'file_path' => $path,
             'exported_at' => now(),
         ]);
+    }
+
+    private function quoteCsv(mixed $value): string
+    {
+        $value = (string) $value;
+        if (preg_match('/^[=+\-@]/', $value)) {
+            $value = "'".$value;
+        }
+
+        return '"'.str_replace('"', '""', $value).'"';
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Services\NavigationBuilder;
 use App\Support\TenantContext;
 use Livewire\Component;
 
@@ -32,13 +33,14 @@ class BackOfficeHub extends Component
         $monthStart = now()->startOfMonth()->toDateString();
         $monthEnd = now()->endOfMonth()->toDateString();
 
-        $openInvoices = (clone $invoices)->whereIn('status', ['draft', 'sent', 'partial', 'overdue'])->get([
-            'id', 'grand_total', 'amount_paid', 'status',
+        $openInvoices = (clone $invoices)->open()->get([
+            'id', 'grand_total', 'amount_paid', 'status', 'due_date',
         ]);
 
         $amountDue = $openInvoices->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0)));
         $overdueDue = $openInvoices
-            ->where('status', 'overdue')
+            ->filter(fn ($invoice) => $invoice->status === 'overdue'
+                || ($invoice->due_date?->isPast() && in_array($invoice->status, ['sent', 'partial'], true)))
             ->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0)));
 
         $collectedMtd = InvoicePayment::where('tenant_id', $tenantId)
@@ -51,13 +53,27 @@ class BackOfficeHub extends Component
                 'overdue_due' => $overdueDue,
                 'collected_mtd' => (float) $collectedMtd,
                 'expenses_mtd' => (float) (clone $expenses)->whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount'),
-                'revenue_mtd' => (float) (clone $invoices)->whereBetween('invoice_date', [$monthStart, $monthEnd])->sum('grand_total'),
+                'revenue_mtd' => (float) (clone $invoices)
+                    ->whereIn('status', ['sent', 'partial', 'paid', 'overdue'])
+                    ->whereBetween('invoice_date', [$monthStart, $monthEnd])
+                    ->sum('grand_total'),
                 'invoices_open' => $openInvoices->count(),
                 'estimates_open' => (clone $estimates)->whereIn('status', ['draft', 'sent'])->count(),
                 'estimates_pipeline' => (float) (clone $estimates)->whereIn('status', ['draft', 'sent'])->sum('grand_total'),
             ],
             'recentInvoices' => Invoice::with('clientAccount')->where('tenant_id', $tenantId)->latest()->limit(5)->get(),
             'recentExpenses' => Expense::with('category')->where('tenant_id', $tenantId)->latest('expense_date')->limit(5)->get(),
+            'canBilling' => auth()->user()->can('billing.manage'),
+            'canExpenses' => app(NavigationBuilder::class)->linkVisible([
+                'href' => '/billing/expenses',
+                'permission' => 'billing.manage',
+                'feature' => 'expenses',
+            ]),
+            'canEstimates' => app(NavigationBuilder::class)->linkVisible([
+                'href' => '/billing/estimates',
+                'permission' => 'billing.manage',
+                'feature' => 'estimates',
+            ]),
         ])->layout('layouts.app');
     }
 }

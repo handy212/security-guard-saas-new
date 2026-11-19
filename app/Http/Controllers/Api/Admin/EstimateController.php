@@ -96,13 +96,21 @@ class EstimateController extends AdminController
     {
         $this->authorize('update', $estimate);
 
-        return $this->data($service->accept($estimate));
+        try {
+            return $this->data($service->accept($estimate));
+        } catch (RuntimeException $exception) {
+            return $this->serviceError($exception);
+        }
     }
 
     public function convert(Estimate $estimate, EstimateService $service): JsonResponse
     {
         $this->authorize('update', $estimate);
-        $invoice = $service->convertToInvoice($estimate);
+        try {
+            $invoice = $service->convertToInvoice($estimate);
+        } catch (RuntimeException $exception) {
+            return $this->serviceError($exception);
+        }
 
         return $this->data(['estimate' => $estimate->fresh(), 'invoice' => $invoice->load('items')]);
     }
@@ -120,7 +128,7 @@ class EstimateController extends AdminController
         $items = $request->validate([
             'items' => [...$required, 'array', 'min:1'],
             'items.*.description' => ['required_with:items', 'string', 'max:255'],
-            'items.*.quantity' => ['required_with:items', 'numeric', 'min:0'],
+            'items.*.quantity' => ['required_with:items', 'numeric', 'gt:0'],
             'items.*.unit_price' => ['required_with:items', 'numeric', 'min:0'],
             'items.*.is_taxable' => ['nullable', 'boolean'],
         ])['items'] ?? [];

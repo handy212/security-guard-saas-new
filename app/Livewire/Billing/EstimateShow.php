@@ -85,7 +85,13 @@ class EstimateShow extends Component
     public function accept(EstimateService $service): void
     {
         abort_unless(auth()->user()->can('billing.manage'), 403);
-        $service->accept($this->estimate);
+        try {
+            $service->accept($this->estimate);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
         $this->estimate->refresh()->load(['clientAccount', 'items', 'convertedInvoice']);
         session()->flash('status', 'Estimate accepted.');
     }
@@ -93,7 +99,13 @@ class EstimateShow extends Component
     public function convert(EstimateService $service)
     {
         abort_unless(auth()->user()->can('billing.manage'), 403);
-        $invoice = $service->convertToInvoice($this->estimate);
+        try {
+            $invoice = $service->convertToInvoice($this->estimate);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return null;
+        }
         session()->flash('status', "Converted to invoice {$invoice->invoice_number}.");
 
         return $this->redirect(route('billing.invoices.show', $invoice), navigate: true);

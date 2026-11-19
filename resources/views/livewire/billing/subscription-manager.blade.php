@@ -16,7 +16,7 @@
             ['label' => 'Your plan'],
         ]"
     >
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />

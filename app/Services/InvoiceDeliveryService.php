@@ -8,15 +8,14 @@ use Illuminate\Support\Facades\Storage;
 
 class InvoiceDeliveryService
 {
-    public function __construct(private PdfExportService $pdf)
-    {
-    }
+    public function __construct(private PdfExportService $pdf) {}
 
     /**
      * @param  list<string>  $recipients
      */
     public function send(Invoice $invoice, array $recipients, ?string $message = null): int
     {
+        abort_unless(in_array($invoice->status, ['draft', 'sent', 'partial', 'overdue'], true), 422, 'This invoice cannot be emailed in its current status.');
         $invoice->loadMissing(['clientAccount.tenant', 'items']);
 
         $recipients = array_values(array_unique(array_filter(array_map(

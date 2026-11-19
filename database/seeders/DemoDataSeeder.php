@@ -2,9 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\AssetCategory;
+use App\Models\AssetVendor;
 use App\Models\ClientAccount;
+use App\Models\ClientContact;
 use App\Models\EquipmentAsset;
 use App\Models\Guard;
+use App\Models\GuardVerificationToken;
 use App\Models\NotificationTemplate;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
@@ -14,8 +18,10 @@ use App\Models\Site;
 use App\Models\SitePost;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use App\Services\PlanEntitlementService;
 use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +52,7 @@ class DemoDataSeeder extends Seeder
                     'patrols', 'gps', 'dispatch', 'equipment', 'visitors',
                     'clients', 'client_portal', 'billing', 'payroll',
                     'compliance', 'analytics', 'marketplace',
-                    'custom_reports', 'messenger', 'estimates', 'workforce', 'passdown', 'sms_alerts', 'webhooks', 'api',
+                    'custom_reports', 'messenger', 'estimates', 'expenses', 'workforce', 'passdown', 'sms_alerts', 'webhooks', 'api',
                 ],
                 'status' => 'active',
             ]
@@ -67,6 +73,7 @@ class DemoDataSeeder extends Seeder
             ['tenant_id' => $tenant->id],
             ['subscription_plan_id' => $plan->id, 'status' => 'trial', 'trial_ends_at' => now()->addDays(14)]
         );
+        app(PlanEntitlementService::class)->syncBillingLimits($tenant, $plan);
 
         $provisioner = app(TenantRoleProvisioner::class);
 
@@ -119,7 +126,7 @@ class DemoDataSeeder extends Seeder
             ]
         );
 
-        \App\Models\ClientContact::firstOrCreate(
+        ClientContact::firstOrCreate(
             ['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'email' => 'ops@goldmine.test'],
             ['name' => 'Kwame Asante', 'phone' => '+233 24 111 2222', 'role' => 'Security Manager']
         );
@@ -157,12 +164,12 @@ class DemoDataSeeder extends Seeder
             ]
         );
 
-        \App\Models\GuardVerificationToken::updateOrCreate(
+        GuardVerificationToken::updateOrCreate(
             ['guard_id' => $guard->id, 'token' => 'DEMOVERIFY01'],
             ['tenant_id' => $tenant->id, 'revoked_at' => null, 'expires_at' => now()->addYear()]
         );
 
-        \App\Models\TenantSetting::updateOrCreate(
+        TenantSetting::updateOrCreate(
             ['tenant_id' => $tenant->id, 'key' => 'id_card'],
             ['value' => [
                 'template' => 'modern',
@@ -177,7 +184,7 @@ class DemoDataSeeder extends Seeder
             ]]
         );
 
-        \App\Models\TenantSetting::updateOrCreate(
+        TenantSetting::updateOrCreate(
             ['tenant_id' => $tenant->id, 'key' => 'verification'],
             ['value' => [
                 'page' => [
@@ -232,27 +239,27 @@ class DemoDataSeeder extends Seeder
             );
         }
 
-        $radioCategory = \App\Models\AssetCategory::firstOrCreate(
+        $radioCategory = AssetCategory::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Radios'],
             ['type' => 'serialized', 'description' => 'Two-way radios and accessories', 'is_active' => true]
         );
-        $uniformCategory = \App\Models\AssetCategory::firstOrCreate(
+        $uniformCategory = AssetCategory::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Uniforms'],
             ['type' => 'consumable', 'min_stock_level' => 10, 'description' => 'Uniforms and PPE', 'is_active' => true]
         );
-        $vehicleCategory = \App\Models\AssetCategory::firstOrCreate(
+        $vehicleCategory = AssetCategory::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Vehicles'],
             ['type' => 'serialized', 'description' => 'Patrol cars and vans', 'is_active' => true]
         );
-        $motorCategory = \App\Models\AssetCategory::firstOrCreate(
+        $motorCategory = AssetCategory::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Motors'],
             ['type' => 'serialized', 'description' => 'Motorcycles and scooters', 'is_active' => true]
         );
-        $bodycamCategory = \App\Models\AssetCategory::firstOrCreate(
+        $bodycamCategory = AssetCategory::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Bodycams'],
             ['type' => 'serialized', 'description' => 'Body-worn cameras', 'is_active' => true]
         );
-        $vendor = \App\Models\AssetVendor::firstOrCreate(
+        $vendor = AssetVendor::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'SecureGear Supply'],
             ['contact_name' => 'Alex Morgan', 'email' => 'orders@securegear.test', 'phone' => '+233 20 000 0000', 'status' => 'active']
         );

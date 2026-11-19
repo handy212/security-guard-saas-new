@@ -142,13 +142,27 @@ class EstimateIndex extends Component
 
     public function accept(Estimate $estimate, EstimateService $service): void
     {
-        $service->accept($estimate);
+        $this->authorize('update', $estimate);
+        try {
+            $service->accept($estimate);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Estimate accepted.');
     }
 
     public function convert(Estimate $estimate, EstimateService $service)
     {
-        $invoice = $service->convertToInvoice($estimate);
+        $this->authorize('update', $estimate);
+        try {
+            $invoice = $service->convertToInvoice($estimate);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return null;
+        }
         session()->flash('status', "Converted to invoice {$invoice->invoice_number}.");
 
         return $this->redirect(route('billing.invoices.show', $invoice), navigate: true);

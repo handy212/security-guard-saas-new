@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\Tenant;
 use App\Support\MutableStatus;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class ExpenseService
 {
@@ -24,22 +27,26 @@ class ExpenseService
         $tenantId = TenantContext::id();
         $this->ensureDefaultCategories($tenantId);
 
-        return Expense::create([
-            'tenant_id' => $tenantId,
-            'expense_category_id' => ! empty($data['expense_category_id']) ? $data['expense_category_id'] : null,
-            'client_account_id' => ! empty($data['client_account_id']) ? $data['client_account_id'] : null,
-            'site_id' => ! empty($data['site_id']) ? $data['site_id'] : null,
-            'created_by_user_id' => auth()->id(),
-            'expense_number' => $this->nextNumber($tenantId),
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'vendor_name' => $data['vendor_name'] ?? null,
-            'expense_date' => $data['expense_date'],
-            'amount' => $data['amount'],
-            'status' => $data['status'] ?? 'draft',
-            'payment_method' => $data['payment_method'] ?? null,
-            'receipt_path' => $receiptPath,
-        ]);
+        return DB::transaction(function () use ($tenantId, $data, $receiptPath) {
+            Tenant::query()->lockForUpdate()->findOrFail($tenantId);
+
+            return Expense::create([
+                'tenant_id' => $tenantId,
+                'expense_category_id' => ! empty($data['expense_category_id']) ? $data['expense_category_id'] : null,
+                'client_account_id' => ! empty($data['client_account_id']) ? $data['client_account_id'] : null,
+                'site_id' => ! empty($data['site_id']) ? $data['site_id'] : null,
+                'created_by_user_id' => auth()->id(),
+                'expense_number' => $this->nextNumber($tenantId),
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'vendor_name' => $data['vendor_name'] ?? null,
+                'expense_date' => $data['expense_date'],
+                'amount' => $data['amount'],
+                'status' => $data['status'] ?? 'draft',
+                'payment_method' => $data['payment_method'] ?? null,
+                'receipt_path' => $receiptPath,
+            ]);
+        });
     }
 
     public function update(Expense $expense, array $data, ?string $receiptPath = null): Expense
@@ -75,20 +82,34 @@ class ExpenseService
 
     public function approve(Expense $expense): void
     {
-        $expense->update([
-            'status' => 'approved',
-            'approved_by_user_id' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+        DB::transaction(function () use ($expense) {
+            $expense = Expense::query()->lockForUpdate()->findOrFail($expense->id);
+            if (! in_array($expense->status, ['draft', 'submitted'], true)) {
+                throw new RuntimeException('Only draft or submitted expenses can be approved.');
+            }
+
+            $expense->update([
+                'status' => 'approved',
+                'approved_by_user_id' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        });
     }
 
     public function markPaid(Expense $expense, ?string $paymentMethod = null): void
     {
-        $expense->update([
-            'status' => 'paid',
-            'payment_method' => $paymentMethod ?? $expense->payment_method,
-            'paid_at' => now(),
-        ]);
+        DB::transaction(function () use ($expense, $paymentMethod) {
+            $expense = Expense::query()->lockForUpdate()->findOrFail($expense->id);
+            if ($expense->status !== 'approved') {
+                throw new RuntimeException('Only approved expenses can be marked as paid.');
+            }
+
+            $expense->update([
+                'status' => 'paid',
+                'payment_method' => $paymentMethod ?? $expense->payment_method,
+                'paid_at' => now(),
+            ]);
+        });
     }
 
     private function nextNumber(int $tenantId): string

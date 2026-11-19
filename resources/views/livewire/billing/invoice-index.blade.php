@@ -15,7 +15,7 @@
             <x-button :href="route('billing.invoices.create')">New invoice</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />
@@ -24,12 +24,12 @@
                 <x-stat-card compact label="Amount due" :value="'₦'.number_format($stats['amount_due'], 0)" icon="billing" tone="warning" />
                 <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
                 <x-stat-card compact label="Sent" :value="$stats['sent']" icon="check" tone="info" />
-                <x-stat-card compact label="Paid" :value="$stats['paid'] + $stats['partial']" icon="check" tone="success" />
+                <x-stat-card compact label="Paid" :value="$stats['paid']" icon="check" tone="success" />
             </div>
 
             <x-page-toolbar search="search" searchPlaceholder="Search invoices…">
                 <x-slot:tabs>
-                    <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All ('.$stats['total'].')', 'draft' => 'Draft ('.$stats['draft'].')', 'sent' => 'Sent ('.$stats['sent'].')', 'partial' => 'Partial ('.$stats['partial'].')', 'paid' => 'Paid ('.$stats['paid'].')', 'void' => 'Void ('.$stats['void'].')', 'overdue' => 'Overdue ('.$stats['overdue'].')']" />
+                    <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All ('.$stats['total'].')', 'outstanding' => 'Open ('.$stats['outstanding'].')', 'draft' => 'Draft ('.$stats['draft'].')', 'sent' => 'Sent ('.$stats['sent'].')', 'partial' => 'Partial ('.$stats['partial'].')', 'paid' => 'Paid ('.$stats['paid'].')', 'void' => 'Void ('.$stats['void'].')', 'overdue' => 'Overdue ('.$stats['overdue'].')']" />
                 </x-slot:tabs>
                 <x-slot:controls>
                     <button type="button" wire:click="toggleFilters" class="table-action">

@@ -27,7 +27,7 @@
             @endif
             <x-button variant="secondary" wire:click="exportPdf">Download PDF</x-button>
             @if (in_array($estimate->status, ['draft', 'sent'], true))
-                <x-button variant="secondary" wire:click="delete" wire:confirm="Delete this estimate?">Delete</x-button>
+                <x-button variant="danger" wire:click="delete" wire:confirm="Delete this estimate?">Delete</x-button>
             @endif
         </x-slot:actions>
 

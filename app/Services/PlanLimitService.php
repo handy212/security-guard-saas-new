@@ -13,7 +13,11 @@ class PlanLimitService
     public function limitsForTenant(int $tenantId): array
     {
         $billing = BillingLimit::where('tenant_id', $tenantId)->first();
-        $subscription = TenantSubscription::with('plan')->where('tenant_id', $tenantId)->where('status', 'active')->first();
+        $subscription = TenantSubscription::with('plan')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['active', 'trial'])
+            ->latest('id')
+            ->first();
         $plan = $subscription?->plan;
 
         return [

@@ -8,10 +8,10 @@ use App\Models\ClientAccount;
 use App\Models\Invoice;
 use App\Services\AccountingExportService;
 use App\Services\BillingService;
-use App\Services\EstimateService;
 use App\Services\InvoiceDeliveryService;
 use App\Services\PdfExportService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -103,8 +103,18 @@ class InvoiceIndex extends Component
     public function generate(BillingService $service): void
     {
         $this->authorize('create', Invoice::class);
+        $this->validate([
+            'clientId' => ['required', TenantValidation::exists('client_accounts')],
+            'month' => ['required', 'date_format:Y-m'],
+        ]);
         $client = ClientAccount::findOrFail($this->clientId);
-        $service->generateMonthlyInvoice($client, $this->month);
+        try {
+            $service->generateMonthlyInvoice($client, $this->month);
+        } catch (\RuntimeException $exception) {
+            $this->addError('month', $exception->getMessage());
+
+            return;
+        }
         $this->showGenerateForm = false;
         session()->flash('status', 'Invoice generated.');
     }
@@ -167,6 +177,7 @@ class InvoiceIndex extends Component
     {
         $invoice = Invoice::findOrFail($invoiceId);
         $this->authorize('update', $invoice);
+        abort_unless(in_array($invoice->status, ['sent', 'partial', 'overdue'], true), 422);
         $remaining = max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0));
         $this->payingInvoiceId = $invoice->id;
         $this->paymentForm = [
@@ -182,7 +193,7 @@ class InvoiceIndex extends Component
         $this->paymentForm = ['amount' => '', 'payment_method' => 'cash', 'notes' => ''];
     }
 
-    public function recordPayment(EstimateService $service): void
+    public function recordPayment(BillingService $service): void
     {
         $invoice = Invoice::findOrFail($this->payingInvoiceId);
         $this->authorize('update', $invoice);
@@ -193,15 +204,18 @@ class InvoiceIndex extends Component
             'paymentForm.notes' => 'nullable|string|max:500',
         ])['paymentForm'];
 
-        $remaining = max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0));
-        abort_if((float) $data['amount'] > $remaining + 0.001, 422, 'Amount exceeds remaining balance.');
+        try {
+            $service->recordPayment(
+                $invoice,
+                (float) $data['amount'],
+                $data['payment_method'],
+                $data['notes'] ?: null,
+            );
+        } catch (\RuntimeException $exception) {
+            $this->addError('paymentForm.amount', $exception->getMessage());
 
-        $service->recordPayment(
-            $invoice,
-            (float) $data['amount'],
-            $data['payment_method'],
-            $data['notes'] ?: null,
-        );
+            return;
+        }
 
         $this->closePayment();
         session()->flash('status', 'Payment recorded.');
@@ -237,14 +251,16 @@ class InvoiceIndex extends Component
                 $q->where('invoice_number', 'like', $needle)
                     ->orWhereHas('clientAccount', fn ($q) => $q->where('name', 'like', $needle));
             }))
-            ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
+            ->when($this->statusFilter === 'overdue', fn ($q) => $q->overdue())
+            ->when($this->statusFilter === 'outstanding', fn ($q) => $q->open())
+            ->when(! in_array($this->statusFilter, ['all', 'outstanding', 'overdue'], true), fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->filterClientId !== '', fn ($q) => $q->where('client_account_id', $this->filterClientId))
             ->when($this->dateFrom !== '', fn ($q) => $q->whereDate('invoice_date', '>=', $this->dateFrom))
             ->when($this->dateTo !== '', fn ($q) => $q->whereDate('invoice_date', '<=', $this->dateTo))
             ->latest();
 
         $all = Invoice::where('tenant_id', $tenantId);
-        $open = (clone $all)->whereIn('status', ['draft', 'sent', 'partial', 'overdue'])->get();
+        $open = (clone $all)->open()->get();
         $payingInvoice = $this->payingInvoiceId ? Invoice::with('clientAccount')->find($this->payingInvoiceId) : null;
         $sendingInvoice = $this->sendingInvoiceId
             ? Invoice::with('clientAccount')->find($this->sendingInvoiceId)
@@ -265,8 +281,9 @@ class InvoiceIndex extends Component
                 'paid' => (clone $all)->where('status', 'paid')->count(),
                 'partial' => (clone $all)->where('status', 'partial')->count(),
                 'void' => (clone $all)->where('status', 'void')->count(),
-                'overdue' => (clone $all)->where('status', 'overdue')->count(),
+                'overdue' => (clone $all)->overdue()->count(),
                 'amount_due' => $open->sum(fn ($inv) => max(0, (float) $inv->grand_total - (float) ($inv->amount_paid ?? 0))),
+                'outstanding' => (clone $all)->open()->count(),
             ],
         ])->layout('layouts.app');
     }

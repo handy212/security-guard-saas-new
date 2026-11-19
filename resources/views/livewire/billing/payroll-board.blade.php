@@ -14,15 +14,15 @@
             <x-button wire:click="openGenerate">Generate timesheet</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />
 
             <div class="stat-grid">
-                <x-stat-card compact label="Timesheets" :value="$timesheets->count()" icon="plan" />
+                <x-stat-card compact label="Timesheets" :value="$totalTimesheets" icon="plan" />
                 <x-stat-card compact label="Pending approval" :value="$pendingTimesheets" icon="pause" :tone="$pendingTimesheets ? 'warning' : 'success'" />
-                <x-stat-card compact label="Payroll exports" :value="$payrollExports->count()" icon="billing" tone="info" />
+                <x-stat-card compact label="Payroll exports" :value="$totalPayrollExports" icon="billing" tone="info" />
                 <x-stat-card compact label="Period" :value="$periodStart ? \Carbon\Carbon::parse($periodStart)->format('M Y') : '—'" icon="schedules" />
             </div>
 

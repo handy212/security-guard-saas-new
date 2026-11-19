@@ -44,6 +44,6 @@ class Tenant extends Model
 
     public function subscription()
     {
-        return $this->hasOne(TenantSubscription::class);
+        return $this->hasOne(TenantSubscription::class)->latestOfMany('id');
     }
 }

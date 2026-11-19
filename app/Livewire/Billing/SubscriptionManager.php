@@ -18,6 +18,7 @@ class SubscriptionManager extends Component
 
     public function checkout(int $planId, PaystackBillingService $paystack): void
     {
+        abort_unless(auth()->user()->can('billing.manage'), 403);
         $tenant = app('currentTenant');
         $plan = SubscriptionPlan::findOrFail($planId);
         $email = auth()->user()->email;
@@ -33,6 +34,7 @@ class SubscriptionManager extends Component
 
     public function cancelSubscription(PaystackBillingService $paystack): void
     {
+        abort_unless(auth()->user()->can('billing.manage'), 403);
         $tenant = app('currentTenant');
 
         if ($paystack->disableSubscription($tenant)) {
@@ -46,7 +48,10 @@ class SubscriptionManager extends Component
     {
         $tenantId = TenantContext::id();
         $entitlements = app(PlanEntitlementService::class);
-        $activeSubscription = TenantSubscription::with('plan')->where('tenant_id', $tenantId)->first();
+        $activeSubscription = TenantSubscription::with('plan')
+            ->where('tenant_id', $tenantId)
+            ->latest('id')
+            ->first();
         $currentPlan = $activeSubscription?->plan ?? $entitlements->planForTenant($tenantId);
 
         return view('livewire.billing.subscription-manager', [

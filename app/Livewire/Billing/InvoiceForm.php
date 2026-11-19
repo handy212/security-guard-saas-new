@@ -6,6 +6,7 @@ use App\Models\ClientAccount;
 use App\Models\Invoice;
 use App\Services\BillingService;
 use App\Support\EnumHelper;
+use App\Support\TenantValidation;
 use Livewire\Component;
 
 class InvoiceForm extends Component
@@ -63,13 +64,17 @@ class InvoiceForm extends Component
 
     public function save(BillingService $billing)
     {
+        $this->invoice
+            ? $this->authorize('update', $this->invoice)
+            : $this->authorize('create', Invoice::class);
+
         $data = $this->validate([
-            'form.client_account_id' => 'required',
+            'form.client_account_id' => ['required', TenantValidation::exists('client_accounts')],
             'form.invoice_date' => 'required|date',
             'form.due_date' => 'nullable|date|after_or_equal:form.invoice_date',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string|max:255',
-            'items.*.quantity' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|numeric|gt:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
@@ -82,7 +87,7 @@ class InvoiceForm extends Component
                 session()->flash('status', 'Invoice created.');
             }
         } catch (\RuntimeException $e) {
-            session()->flash('status', $e->getMessage());
+            session()->flash('error', $e->getMessage());
 
             return null;
         }

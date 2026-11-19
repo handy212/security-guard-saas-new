@@ -11,7 +11,7 @@
             <x-button variant="secondary" :href="route('billing.invoices')">Open invoices</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />

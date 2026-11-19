@@ -5,6 +5,7 @@ namespace App\Livewire\Billing;
 use App\Models\ClientAccount;
 use App\Models\Estimate;
 use App\Services\EstimateService;
+use App\Support\TenantValidation;
 use Livewire\Component;
 
 class EstimateForm extends Component
@@ -58,12 +59,16 @@ class EstimateForm extends Component
 
     public function save(EstimateService $service)
     {
+        $this->estimate
+            ? $this->authorize('update', $this->estimate)
+            : $this->authorize('create', Estimate::class);
+
         $data = $this->validate([
-            'form.client_account_id' => 'required',
+            'form.client_account_id' => ['required', TenantValidation::exists('client_accounts')],
             'form.valid_until' => 'nullable|date',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string|max:255',
-            'items.*.quantity' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|numeric|gt:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
@@ -76,7 +81,7 @@ class EstimateForm extends Component
                 session()->flash('status', 'Estimate created.');
             }
         } catch (\RuntimeException $e) {
-            session()->flash('status', $e->getMessage());
+            session()->flash('error', $e->getMessage());
 
             return null;
         }

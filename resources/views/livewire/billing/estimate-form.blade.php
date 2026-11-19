@@ -10,12 +10,12 @@
     >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('billing.estimates')">Cancel</x-button>
-            <x-button wire:click="save" wire:loading.attr="disabled">{{ $isEditing ? 'Save changes' : 'Create estimate' }}</x-button>
         </x-slot:actions>
 
         <x-flash-status type="success" />
 
-        <form id="estimate-form" wire:submit="save" class="mx-auto max-w-3xl space-y-4">
+        <form id="estimate-form" wire:submit="save" class="billing-form mx-auto max-w-3xl space-y-4">
+            <h2 class="sr-only">Estimate form</h2>
             <x-form-card title="Client" description="Who this estimate is for">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-select wire:model.live="form.client_account_id" label="Client *" class="sm:col-span-2">
@@ -38,7 +38,7 @@
                             <div class="mb-2 flex items-center justify-between">
                                 <span class="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Line {{ $i + 1 }}</span>
                                 @if (count($items) > 1)
-                                    <button type="button" wire:click="removeLineItem({{ $i }})" class="table-action text-red-600">Remove</button>
+                                    <button type="button" wire:click="removeLineItem({{ $i }})" aria-label="Remove estimate line {{ $i + 1 }}" class="table-action text-red-600">Remove</button>
                                 @endif
                             </div>
                             <div class="grid gap-3 sm:grid-cols-2">
@@ -48,6 +48,14 @@
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                @php
+                    $formTotal = collect($items)->sum(fn ($line) => (float) ($line['quantity'] ?? 0) * (float) ($line['unit_price'] ?? 0));
+                @endphp
+                <div class="billing-form-total">
+                    <span>Estimate total</span>
+                    <strong>₦{{ number_format($formTotal, 2) }}</strong>
                 </div>
 
                 <x-slot:footer>

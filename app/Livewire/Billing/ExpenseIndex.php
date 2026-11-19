@@ -10,6 +10,7 @@ use App\Models\Site;
 use App\Services\ExpenseService;
 use App\Services\FileUploadService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -86,6 +87,7 @@ class ExpenseIndex extends Component
 
     public function openForm(): void
     {
+        abort_unless(auth()->user()->can('billing.manage'), 403);
         $this->editingId = null;
         $this->showForm = true;
         $this->receiptFile = null;
@@ -105,7 +107,7 @@ class ExpenseIndex extends Component
     public function edit(int $id): void
     {
         $expense = Expense::findOrFail($id);
-        abort_unless(auth()->user()->can('billing.manage'), 403);
+        $this->authorize('update', $expense);
         abort_unless(in_array($expense->status, ['draft', 'submitted'], true), 422);
 
         $this->editingId = $expense->id;
@@ -133,10 +135,14 @@ class ExpenseIndex extends Component
 
     public function save(ExpenseService $service, FileUploadService $uploads): void
     {
+        $this->editingId
+            ? $this->authorize('update', Expense::findOrFail($this->editingId))
+            : $this->authorize('create', Expense::class);
+
         $data = $this->validate([
-            'form.expense_category_id' => 'nullable|exists:expense_categories,id',
-            'form.client_account_id' => 'nullable|exists:client_accounts,id',
-            'form.site_id' => 'nullable|exists:sites,id',
+            'form.expense_category_id' => ['nullable', TenantValidation::exists('expense_categories')],
+            'form.client_account_id' => ['nullable', TenantValidation::exists('client_accounts')],
+            'form.site_id' => ['nullable', TenantValidation::exists('sites')],
             'form.title' => 'required|string|max:255',
             'form.description' => 'nullable|string|max:2000',
             'form.vendor_name' => 'nullable|string|max:255',
@@ -163,7 +169,7 @@ class ExpenseIndex extends Component
                 session()->flash('status', 'Expense recorded.');
             }
         } catch (\RuntimeException $e) {
-            session()->flash('status', $e->getMessage());
+            session()->flash('error', $e->getMessage());
 
             return;
         }
@@ -190,7 +196,8 @@ class ExpenseIndex extends Component
     public function uploadReceipt(int $expenseId, FileUploadService $uploads): void
     {
         $expense = Expense::findOrFail($expenseId);
-        abort_unless(auth()->user()->can('billing.manage'), 403);
+        $this->authorize('update', $expense);
+        abort_unless(in_array($expense->status, ['draft', 'submitted'], true), 422);
 
         $this->validate([
             'receiptFile' => 'required|file|max:10240|mimes:jpg,jpeg,png,pdf,webp',
@@ -205,16 +212,28 @@ class ExpenseIndex extends Component
     public function approve(int $expenseId, ExpenseService $service): void
     {
         $expense = Expense::findOrFail($expenseId);
-        abort_unless(in_array($expense->status, ['draft', 'submitted'], true), 422);
-        $service->approve($expense);
+        $this->authorize('update', $expense);
+        try {
+            $service->approve($expense);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Expense approved.');
     }
 
     public function markPaid(int $expenseId, ExpenseService $service): void
     {
         $expense = Expense::findOrFail($expenseId);
-        abort_unless($expense->status === 'approved', 422);
-        $service->markPaid($expense);
+        $this->authorize('update', $expense);
+        try {
+            $service->markPaid($expense);
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Expense marked paid.');
     }
 
@@ -248,7 +267,10 @@ class ExpenseIndex extends Component
                 'draft' => (clone $base)->where('status', 'draft')->count(),
                 'approved' => (clone $base)->where('status', 'approved')->count(),
                 'paid' => (clone $base)->where('status', 'paid')->count(),
-                'amount_mtd' => (clone $base)->whereMonth('expense_date', now()->month)->sum('amount'),
+                'amount_mtd' => (clone $base)->whereBetween('expense_date', [
+                    now()->startOfMonth()->toDateString(),
+                    now()->endOfMonth()->toDateString(),
+                ])->sum('amount'),
             ],
             'hasActiveFilters' => filled($this->search) || $this->statusFilter !== 'all' || $this->dateFrom !== '' || $this->dateTo !== '',
         ])->layout('layouts.app');
