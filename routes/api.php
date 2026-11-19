@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\AuthTokenController;
-use App\Http\Controllers\Api\EnterpriseApiController;
-use App\Http\Controllers\Api\MobileAppController;
 use App\Http\Controllers\Api\Admin\AssetController;
 use App\Http\Controllers\Api\Admin\BranchController;
 use App\Http\Controllers\Api\Admin\ClientController;
@@ -12,16 +9,7 @@ use App\Http\Controllers\Api\Admin\ExpenseController;
 use App\Http\Controllers\Api\Admin\FleetVehicleController;
 use App\Http\Controllers\Api\Admin\GuardController;
 use App\Http\Controllers\Api\Admin\IncidentController;
-use App\Http\Controllers\Api\Admin\NotificationTemplateController;
-use App\Http\Controllers\Api\Admin\PassdownController;
-use App\Http\Controllers\Api\Admin\PatrolCheckpointController;
-use App\Http\Controllers\Api\Admin\PatrolRouteController;
-use App\Http\Controllers\Api\Admin\ReportTemplateController;
-use App\Http\Controllers\Api\Admin\ShiftController;
-use App\Http\Controllers\Api\Admin\SiteController;
-use App\Http\Controllers\Api\Admin\StaffUserController;
-use App\Http\Controllers\Api\Admin\VisitorController;
-use App\Http\Controllers\Api\Admin\WebhookController;
+use App\Http\Controllers\Api\Admin\JwmDeviceController;
 use App\Http\Controllers\Api\Admin\Nested\CheckpointTaskController;
 use App\Http\Controllers\Api\Admin\Nested\ClientContactController;
 use App\Http\Controllers\Api\Admin\Nested\ClientDocumentController;
@@ -36,6 +24,22 @@ use App\Http\Controllers\Api\Admin\Nested\SiteNoteController;
 use App\Http\Controllers\Api\Admin\Nested\SitePostController;
 use App\Http\Controllers\Api\Admin\Nested\SiteSlaRequirementController;
 use App\Http\Controllers\Api\Admin\Nested\TrainingRecordController;
+use App\Http\Controllers\Api\Admin\NotificationTemplateController;
+use App\Http\Controllers\Api\Admin\PassdownController;
+use App\Http\Controllers\Api\Admin\PatrolCheckpointController;
+use App\Http\Controllers\Api\Admin\PatrolRouteController;
+use App\Http\Controllers\Api\Admin\ReportTemplateController;
+use App\Http\Controllers\Api\Admin\ShiftController;
+use App\Http\Controllers\Api\Admin\SiteController;
+use App\Http\Controllers\Api\Admin\StaffUserController;
+use App\Http\Controllers\Api\Admin\VisitorController;
+use App\Http\Controllers\Api\Admin\WebhookController;
+use App\Http\Controllers\Api\AuthTokenController;
+use App\Http\Controllers\Api\EnterpriseApiController;
+use App\Http\Controllers\Api\JwmEventController;
+use App\Http\Controllers\Api\MobileAppController;
+use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Middleware\RestrictJwmBridgeToken;
 use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Route;
@@ -43,8 +47,25 @@ use Illuminate\Support\Facades\Route;
 Route::post('/v1/auth/token', [AuthTokenController::class, 'store'])
     ->middleware('throttle:60,1');
 
-Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::delete('/auth/token', [AuthTokenController::class, 'destroy']);
+
+    Route::prefix('admin/jwm-devices')->middleware('permission:patrols.manage')->group(function () {
+        $controller = JwmDeviceController::class;
+        Route::get('/', [$controller, 'index']);
+        Route::post('/', [$controller, 'store']);
+        Route::patch('/{device}', [$controller, 'update'])->whereNumber('device');
+        Route::get('/{device}/assignments', [$controller, 'assignments'])->whereNumber('device');
+        Route::post('/{device}/assignments', [$controller, 'assign'])->whereNumber('device');
+        Route::post('/{device}/bridge-token', [$controller, 'bridgeToken'])->whereNumber('device');
+        Route::get('/{device}/guard-mappings', [$controller, 'guardMappings'])->whereNumber('device');
+        Route::post('/{device}/guard-mappings', [$controller, 'mapGuard'])->whereNumber('device');
+        Route::get('/{device}/checkpoint-mappings', [$controller, 'checkpointMappings'])->whereNumber('device');
+        Route::post('/{device}/checkpoint-mappings', [$controller, 'mapCheckpoint'])->whereNumber('device');
+    });
+
+    Route::post('/jwm/devices/{device}/events', [JwmEventController::class, 'store'])
+        ->whereNumber('device')->name('api.jwm.events.store');
 
     Route::get('/me/assignments', [MobileAppController::class, 'myAssignments']);
     Route::post('/attendance/clock-in', [MobileAppController::class, 'clockIn']);
@@ -58,8 +79,8 @@ Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->gr
     Route::post('/offline-sync', [MobileAppController::class, 'offlineSync']);
     Route::post('/visitors/check-in', [MobileAppController::class, 'visitorCheckIn']);
     Route::post('/visitors/{visitorLog}/check-out', [MobileAppController::class, 'visitorCheckOut']);
-    Route::post('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'store']);
-    Route::delete('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy']);
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy']);
     Route::post('/reports/custom/draft', [MobileAppController::class, 'saveReportDraft']);
     Route::post('/reports/custom/submit', [MobileAppController::class, 'submitCustomReport']);
     Route::post('/shifts/confirm', [MobileAppController::class, 'confirmShift']);
@@ -125,7 +146,7 @@ Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('v1')->gr
     });
 });
 
-Route::middleware(['auth:sanctum', 'tenant', 'throttle:60,1'])->prefix('enterprise')->group(function () {
+Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'throttle:60,1'])->prefix('enterprise')->group(function () {
     Route::get('/analytics', [EnterpriseApiController::class, 'analytics']);
     Route::get('/deployment-sheet', [EnterpriseApiController::class, 'deploymentSheet']);
     Route::get('/patrol-playback/{session}', [EnterpriseApiController::class, 'patrolPlayback']);

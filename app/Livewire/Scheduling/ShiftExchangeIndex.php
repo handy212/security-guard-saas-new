@@ -37,7 +37,13 @@ class ShiftExchangeIndex extends Component
     public function rejectSwap(int $swapId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $service->rejectSwap(ShiftSwapRequest::findOrFail($swapId));
+        try {
+            $service->rejectSwap(ShiftSwapRequest::where('tenant_id', TenantContext::id())->findOrFail($swapId));
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Shift exchange rejected.');
     }
 
@@ -47,10 +53,14 @@ class ShiftExchangeIndex extends Component
             'swaps' => ShiftSwapRequest::with(['requestedByGuard', 'replacementGuard', 'shiftAssignment.shift.site'])
                 ->where('tenant_id', TenantContext::id())
                 ->when($this->swapFilter !== 'all', fn ($q) => $q->where('status', $this->swapFilter))
+                ->when($this->swapFilter === 'pending', fn ($q) => $q->whereHas('shiftAssignment.shift', fn ($shift) => $shift->where('starts_at', '>', now())))
                 ->latest()
                 ->limit(50)
                 ->get(),
-            'pendingSwapCount' => ShiftSwapRequest::where('tenant_id', TenantContext::id())->where('status', 'pending')->count(),
+            'pendingSwapCount' => ShiftSwapRequest::where('tenant_id', TenantContext::id())
+                ->where('status', 'pending')
+                ->whereHas('shiftAssignment.shift', fn ($shift) => $shift->where('starts_at', '>', now()))
+                ->count(),
         ])->layout('layouts.app');
     }
 }

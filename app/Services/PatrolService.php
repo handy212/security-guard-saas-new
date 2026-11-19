@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Exceptions\PatrolException;
 use App\Models\CheckpointScan;
 use App\Models\Guard;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
+use Carbon\CarbonInterface;
 use RuntimeException;
 
 class PatrolService
@@ -67,14 +69,14 @@ class PatrolService
             ->first();
     }
 
-    public function scanCheckpoint(array $data): CheckpointScan
+    public function scanCheckpoint(array $data, ?CarbonInterface $scannedAt = null): CheckpointScan
     {
         $session = PatrolSession::with('route.checkpoints')->findOrFail($data['patrol_session_id']);
         $checkpoint = PatrolCheckpoint::where('patrol_route_id', $session->patrol_route_id)
             ->where('code', $data['checkpoint_code'])->firstOrFail();
 
         if ($session->status !== 'in_progress') {
-            throw new RuntimeException('Patrol session is not active.');
+            throw new PatrolException('Patrol session is not active.');
         }
 
         $this->enforceSequence($session, $checkpoint);
@@ -84,7 +86,7 @@ class PatrolService
             'patrol_session_id' => $session->id,
             'patrol_checkpoint_id' => $checkpoint->id,
             'guard_id' => $session->guard_id,
-            'scanned_at' => now(),
+            'scanned_at' => $scannedAt ?? now(),
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
             'notes' => $data['notes'] ?? null,
@@ -125,7 +127,7 @@ class PatrolService
             ->max('patrol_checkpoints.sequence') ?? 0;
 
         if ($checkpoint->sequence > $lastSequence + 1) {
-            throw new RuntimeException('Checkpoint scanned out of required sequence.');
+            throw new PatrolException('Checkpoint scanned out of required sequence.');
         }
     }
 }

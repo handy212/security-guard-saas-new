@@ -5,6 +5,7 @@
         :breadcrumbs="[['label' => 'Patrols']]"
     >
         <x-slot:actions>
+            <x-button variant="secondary" size="sm" href="{{ route('patrols.devices') }}">Patrol readers</x-button>
             <x-button variant="secondary" size="sm" href="{{ route('patrols.fleet') }}">Manage fleet</x-button>
             <x-button variant="secondary" size="sm" href="{{ route('assets.index') }}">Assets kit</x-button>
             <x-button variant="secondary" size="sm" wire:click="openAssignForm">Assign patrol</x-button>

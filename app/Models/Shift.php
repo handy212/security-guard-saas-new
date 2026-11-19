@@ -15,7 +15,8 @@ class Shift extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'client_account_id', 'site_id', 'site_post_id', 'title',
+        'tenant_id', 'source_template_item_id', 'template_week_start',
+        'client_account_id', 'site_id', 'site_post_id', 'title',
         'starts_at', 'ends_at', 'required_guards', 'billing_rate', 'billable_hours', 'status', 'notes',
     ];
 

@@ -23,8 +23,14 @@ class SchedulingService
             'staffed' => $shifts->filter(fn (Shift $s) => $this->activeAssignmentCount($s) >= $s->required_guards)->count(),
             'pending_confirmations' => ShiftConfirmation::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
             'pending_leave' => LeaveRequest::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
-            'pending_swaps' => ShiftSwapRequest::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
-            'pending_bids' => OpenShiftBid::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
+            'pending_swaps' => ShiftSwapRequest::where('tenant_id', $tenantId)
+                ->where('status', 'pending')
+                ->whereHas('shiftAssignment.shift', fn ($shift) => $shift->where('starts_at', '>', now()))
+                ->count(),
+            'pending_bids' => OpenShiftBid::where('tenant_id', $tenantId)
+                ->where('status', 'pending')
+                ->whereHas('shift', fn ($shift) => $shift->where('starts_at', '>', now()))
+                ->count(),
             'on_duty' => AttendanceLog::where('tenant_id', $tenantId)->whereNotNull('clock_in_at')->whereNull('clock_out_at')->whereDate('clock_in_at', $date)->count(),
         ];
     }

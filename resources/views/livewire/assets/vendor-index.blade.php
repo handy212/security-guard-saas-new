@@ -5,7 +5,7 @@
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="assets-workspace">
             <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
 
 
@@ -38,7 +38,9 @@
                         <x-table.td align="right">
                             <x-row-menu>
                                 <x-row-menu-item wire:click="edit({{ $vendor->id }})">Edit</x-row-menu-item>
-                                <x-row-menu-item wire:click="delete({{ $vendor->id }})" wire:confirm="Delete vendor?" danger>Delete</x-row-menu-item>
+                                @if($vendor->purchase_orders_count === 0 && $vendor->assets_count === 0)
+                                    <x-row-menu-item wire:click="delete({{ $vendor->id }})" wire:confirm="Delete vendor?" danger>Delete</x-row-menu-item>
+                                @endif
                             </x-row-menu>
                         </x-table.td>
                     </tr>

@@ -92,16 +92,24 @@
                                         </div>
                                     </x-table.td>
                                     <x-table.td data-label="Notes" muted>{{ $bid->notes ?: '—' }}</x-table.td>
-                                    <x-table.td data-label="Status"><x-badge :status="$bid->status" /></x-table.td>
+                                    <x-table.td data-label="Status">
+                                        @if (\App\Support\EnumHelper::is($bid->status, 'pending') && ! $bid->shift?->starts_at?->isFuture())
+                                            <span class="status-chip status-chip-neutral">Shift started</span>
+                                        @else
+                                            <x-badge :status="$bid->status" />
+                                        @endif
+                                    </x-table.td>
                                     <x-table.td data-label="Actions" align="right">
-                                        @if(\App\Support\EnumHelper::is($bid->status, 'pending'))
+                                        @if(\App\Support\EnumHelper::is($bid->status, 'pending') && $bid->shift?->starts_at?->isFuture())
                                             <div class="table-inline-actions justify-end">
-                                                <x-button size="sm" wire:click="approveBid({{ $bid->id }})" wire:loading.attr="disabled" wire:target="approveBid({{ $bid->id }})">
+                                                <x-button size="sm" wire:click="approveBid({{ $bid->id }})" wire:target="approveBid({{ $bid->id }})" aria-label="Approve bid from {{ $bid->assignedGuard?->full_name ?? 'guard' }}">
                                                     <span wire:loading.remove wire:target="approveBid({{ $bid->id }})">Approve</span>
                                                     <span wire:loading wire:target="approveBid({{ $bid->id }})">…</span>
                                                 </x-button>
-                                                <x-button size="sm" variant="secondary" wire:click="rejectBid({{ $bid->id }})">Reject</x-button>
+                                                <x-button size="sm" variant="secondary" wire:click="rejectBid({{ $bid->id }})" wire:target="rejectBid({{ $bid->id }})" aria-label="Reject bid from {{ $bid->assignedGuard?->full_name ?? 'guard' }}">Reject</x-button>
                                             </div>
+                                        @elseif(\App\Support\EnumHelper::is($bid->status, 'pending'))
+                                            <span class="text-xs text-zinc-400">No action available</span>
                                         @endif
                                     </x-table.td>
                                 </tr>

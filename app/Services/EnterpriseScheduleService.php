@@ -48,6 +48,14 @@ class EnterpriseScheduleService
 
     public function requestSwap(ShiftAssignment $assignment, Guard $requestingGuard, ?Guard $replacementGuard = null, ?string $reason = null): ShiftSwapRequest
     {
+        if (EnumHelper::isOneOf($assignment->status, ['cancelled', 'completed', 'in_progress', 'no_show'])) {
+            throw new RuntimeException('This assignment is no longer available for a swap.');
+        }
+
+        if (! $assignment->shift || $assignment->shift->starts_at->lte(now())) {
+            throw new RuntimeException('This shift has already started and can no longer be swapped.');
+        }
+
         if ($assignment->guard_id !== $requestingGuard->id) {
             throw new RuntimeException('You can only request a swap for your own assignments.');
         }
@@ -89,6 +97,9 @@ class EnterpriseScheduleService
             if (! $assignment || $assignment->guard_id !== $swap->requested_by_guard_id || EnumHelper::isOneOf($assignment->status, ['cancelled', 'completed', 'in_progress', 'no_show'])) {
                 throw new RuntimeException('This assignment is no longer available for a swap.');
             }
+            if (! $assignment->shift || $assignment->shift->starts_at->lte(now())) {
+                throw new RuntimeException('This shift has already started and can no longer be swapped.');
+            }
             $schedule = app(ScheduleService::class);
             if ($swap->replacement_guard_id) {
                 $schedule->reassignGuard($assignment, Guard::findOrFail($swap->replacement_guard_id));
@@ -101,7 +112,14 @@ class EnterpriseScheduleService
 
     public function rejectSwap(ShiftSwapRequest $swap): void
     {
-        $swap->update(['status' => 'rejected']);
+        DB::transaction(function () use ($swap) {
+            $swap = ShiftSwapRequest::whereKey($swap->id)->lockForUpdate()->firstOrFail();
+            if (! EnumHelper::is($swap->status, 'pending')) {
+                throw new RuntimeException('This swap request has already been reviewed.');
+            }
+
+            $swap->update(['status' => 'rejected']);
+        });
     }
 
     public function bidForOpenShift(Shift $shift, Guard $guard, ?string $notes = null): OpenShiftBid
@@ -116,6 +134,10 @@ class EnterpriseScheduleService
 
         if (EnumHelper::isOneOf($shift->status, ['cancelled', 'completed'])) {
             throw new RuntimeException('This shift is no longer available.');
+        }
+
+        if ($shift->starts_at->lte(now())) {
+            throw new RuntimeException('This shift has already started and is no longer open for bids.');
         }
 
         $schedule = app(ScheduleService::class);
@@ -149,14 +171,19 @@ class EnterpriseScheduleService
             if (! $bid->shift || ! $bid->assignedGuard) {
                 throw new RuntimeException('Bid is missing shift or guard details.');
             }
+            if ($bid->shift->starts_at->lte(now())) {
+                throw new RuntimeException('This shift has already started and can no longer receive approved bids.');
+            }
             $assignment = app(ScheduleService::class)->assignGuard($bid->shift, $bid->assignedGuard);
-            $shift = $bid->shift;
+            $shift = $bid->shift->fresh();
             $bid->update(['status' => 'approved']);
 
-            OpenShiftBid::where('shift_id', $shift->id)
-                ->where('id', '!=', $bid->id)
-                ->where('status', 'pending')
-                ->update(['status' => 'rejected']);
+            if ($shift->activeAssignmentsCount() >= $shift->required_guards) {
+                OpenShiftBid::where('shift_id', $shift->id)
+                    ->where('id', '!=', $bid->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'rejected']);
+            }
 
             return $assignment;
         });
@@ -164,7 +191,14 @@ class EnterpriseScheduleService
 
     public function rejectBid(OpenShiftBid $bid): void
     {
-        $bid->update(['status' => 'rejected']);
+        DB::transaction(function () use ($bid) {
+            $bid = OpenShiftBid::whereKey($bid->id)->lockForUpdate()->firstOrFail();
+            if (! EnumHelper::is($bid->status, 'pending')) {
+                throw new RuntimeException('This bid has already been reviewed.');
+            }
+
+            $bid->update(['status' => 'rejected']);
+        });
     }
 
     public function overtimeHours(Guard $guard, string $weekStart): float

@@ -643,6 +643,156 @@
         @apply space-y-3;
     }
 
+    .assets-workspace .profile-tab-content {
+        @apply space-y-4;
+    }
+
+    .assets-workspace .sub-sidebar-layout-aside {
+        display: block;
+    }
+
+    .assets-workspace .sub-sidebar-layout-aside-inner {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .assets-workspace .profile-mobile-nav {
+        @apply mb-0 rounded-xl border border-zinc-200/80 bg-white p-3 shadow-[var(--shadow-card-sm)] dark:border-zinc-800 dark:bg-zinc-900;
+    }
+
+    @media (min-width: 1024px) {
+        .assets-workspace .sub-sidebar-layout-grid {
+            grid-template-columns: 12rem minmax(0, 1fr);
+            gap: 1.25rem;
+        }
+
+        .assets-workspace .sub-sidebar-layout-aside-inner {
+            position: sticky;
+            max-height: calc(100vh - var(--profile-sticky-top) - 1rem);
+            overflow-y: auto;
+        }
+    }
+
+    .assets-workspace .card-header {
+        @apply px-5 py-4 sm:px-5;
+    }
+
+    .assets-workspace .data-table th {
+        @apply px-4 py-3;
+    }
+
+    .assets-workspace .data-table td,
+    .assets-workspace .table-td {
+        @apply px-4 py-3;
+    }
+
+    .assets-workspace .panel-surface {
+        @apply p-3;
+    }
+
+    .assets-kit-grid {
+        @apply grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .assets-kit-tile {
+        @apply rounded-lg border border-zinc-200/80 bg-zinc-50/70 px-3.5 py-3 transition
+            hover:border-accent-300 hover:bg-accent-50/60 hover:shadow-[var(--shadow-card-sm)]
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/30
+            dark:border-zinc-800 dark:bg-zinc-950/30 dark:hover:border-accent-800 dark:hover:bg-accent-950/30;
+    }
+
+    .assets-readiness-dot {
+        @apply h-2.5 w-2.5 shrink-0 rounded-full ring-4;
+    }
+
+    .assets-readiness-dot-ready {
+        @apply bg-emerald-500 ring-emerald-100 dark:bg-emerald-400 dark:ring-emerald-950/60;
+    }
+
+    .assets-readiness-dot-empty {
+        @apply bg-amber-500 ring-amber-100 dark:bg-amber-400 dark:ring-amber-950/60;
+    }
+
+    .assets-readiness-actions {
+        @apply mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800;
+    }
+
+    .assets-section-heading {
+        @apply mb-2.5 flex items-end justify-between gap-3;
+    }
+
+    .assets-section-heading h2 {
+        @apply text-sm font-semibold text-zinc-900 dark:text-zinc-100;
+    }
+
+    .assets-section-heading p {
+        @apply mt-0.5 text-xs text-zinc-500 dark:text-zinc-400;
+    }
+
+    .assets-primary-stats {
+        @apply grid grid-cols-2 gap-2.5 md:grid-cols-4;
+    }
+
+    .assets-primary-stats > a {
+        @apply overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[var(--shadow-card-sm)] transition
+            hover:border-zinc-300 hover:shadow-[var(--shadow-card)]
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/30
+            dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none dark:hover:border-zinc-700;
+    }
+
+    .assets-inventory-stats {
+        @apply md:grid-cols-3;
+    }
+
+    .assets-summary-strip {
+        @apply grid overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[var(--shadow-card-sm)]
+            grid-cols-2 divide-x divide-y divide-zinc-100
+            dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none
+            lg:grid-cols-[minmax(13rem,1.5fr)_repeat(4,minmax(7rem,1fr))] lg:divide-y-0;
+    }
+
+    .assets-summary-strip > * {
+        @apply min-w-0 px-4 py-3.5;
+    }
+
+    .assets-summary-strip > a {
+        @apply transition hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500/30 dark:hover:bg-zinc-800/60;
+    }
+
+    .assets-summary-strip > a > span,
+    .assets-summary-strip > div > span {
+        @apply block text-[11px] font-medium text-zinc-500 dark:text-zinc-400;
+    }
+
+    .assets-summary-strip strong {
+        @apply mt-1 block text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100;
+    }
+
+    .assets-summary-strip > :first-child {
+        @apply col-span-2 lg:col-span-1;
+    }
+
+    .assets-summary-strip .assets-summary-title {
+        @apply text-xs font-semibold text-zinc-800 dark:text-zinc-200;
+    }
+
+    .assets-summary-strip .assets-summary-copy {
+        @apply mt-1 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400;
+    }
+
+    .assets-overview-grid {
+        @apply grid gap-4 xl:grid-cols-3 xl:items-stretch;
+    }
+
+    .assets-overview-grid .card-header-title {
+        @apply text-[13px];
+    }
+
+    .assets-overview-grid .list-row {
+        @apply px-4 py-3;
+    }
+
     .profile-meta {
         @apply mb-4 flex flex-wrap items-center gap-2;
     }
@@ -1444,9 +1594,18 @@ html.sidebar-collapsed .workspace-sidebar > nav > div:first-child { padding-inli
 .scheduler-workspace .profile-sidebar-group { padding-block: 8px; }
 .scheduler-panel > .page-content > * + *,
 .scheduler-panel .profile-tab-content > * + * { margin-top: 12px; }
-.scheduler-panel .stat-grid { gap: 12px; }
+.scheduler-panel .stat-grid {
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+    .scheduler-panel .stat-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
 .scheduler-panel .stat-grid > * { padding-block: 12px; }
 .scheduler-panel .card-header-title { line-height: 1.4; }
+.scheduler-panel [data-deploy-heading]:focus { outline: none; }
 .scheduler-panel .card-header-meta { margin-top: 4px; font-size: 12px; line-height: 1.5; }
 .scheduler-panel .card-surface > .p-5 { padding: 16px; }
 .scheduler-panel .card-surface > .p-0 > .scheduler-table { border: 0; border-radius: 0; }
@@ -1468,7 +1627,17 @@ html.sidebar-collapsed .workspace-sidebar > nav > div:first-child { padding-inli
     .scheduler-panel .scheduler-table table,
     .scheduler-panel .scheduler-table tbody,
     .scheduler-panel .scheduler-table tr { display: block; width: 100%; }
-    .scheduler-panel .scheduler-table thead { display: none; }
+    .scheduler-panel .scheduler-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
     .scheduler-panel .scheduler-table .table-row-hover { padding: 8px 12px; }
     .scheduler-panel .scheduler-table .table-td { display: block; position: relative; width: 100%; min-height: 28px; padding: 5px 0 5px 88px; text-align: left; overflow-wrap: anywhere; }
     .scheduler-panel .scheduler-table .table-td::before { content: attr(data-label); position: absolute; left: 0; top: 7px; width: 80px; color: var(--color-zinc-500); font-size: 11px; font-weight: 500; }
@@ -1478,7 +1647,17 @@ html.sidebar-collapsed .workspace-sidebar > nav > div:first-child { padding-inli
     .scheduler-panel .scheduler-table .table-td > .scheduler-empty-state { grid-column: 1 / -1; }
 }
 
-.scheduler-panel .scheduler-table:has(.table-empty) thead { display: none; }
+.scheduler-panel .scheduler-table:has(.table-empty) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 .scheduler-panel .scheduler-table .table-empty { padding: 12px; }
 @media (max-width: 639px) {
     .scheduler-panel .scheduler-table .table-empty { display: block; width: 100%; }

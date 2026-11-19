@@ -14,6 +14,7 @@ use App\Models\Guard;
 use App\Models\Site;
 use App\Services\AssetManagementService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,6 +28,8 @@ class AssetIndex extends Component
     public string $statusFilter = 'all';
 
     public ?int $categoryFilter = null;
+
+    public string $warrantyFilter = 'all';
 
     public function updatedCategoryFilter(): void
     {
@@ -46,7 +49,7 @@ class AssetIndex extends Component
 
     public ?int $issueAssetId = null;
 
-    public array $issueForm = ['guard_id' => '', 'site_id' => '', 'issue_notes' => ''];
+    public array $issueForm = ['guard_id' => '', 'site_id' => '', 'quantity' => 1, 'issue_notes' => ''];
 
     public bool $showReturnForm = false;
 
@@ -58,6 +61,7 @@ class AssetIndex extends Component
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all', 'as' => 'status'],
         'categoryFilter' => ['except' => null, 'as' => 'category'],
+        'warrantyFilter' => ['except' => 'all', 'as' => 'warranty'],
     ];
 
     public function mount(AssetManagementService $assets): void
@@ -68,7 +72,7 @@ class AssetIndex extends Component
 
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'statusFilter', 'categoryFilter'], true)) {
+        if (in_array($property, ['search', 'statusFilter', 'categoryFilter', 'warrantyFilter'], true)) {
             $this->resetPage();
         }
     }
@@ -77,11 +81,14 @@ class AssetIndex extends Component
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
         $this->normalizeForm();
+        $category = $this->form['asset_category_id']
+            ? AssetCategory::find($this->form['asset_category_id'])
+            : null;
 
         $data = $this->validate([
-            'form.asset_category_id' => 'nullable|exists:asset_categories,id',
-            'form.vendor_id' => 'nullable|exists:asset_vendors,id',
-            'form.site_id' => 'nullable|exists:sites,id',
+            'form.asset_category_id' => ['nullable', TenantValidation::exists('asset_categories')],
+            'form.vendor_id' => ['nullable', TenantValidation::exists('asset_vendors')],
+            'form.site_id' => ['nullable', TenantValidation::exists('sites')],
             'form.name' => 'required|string|max:255',
             'form.asset_tag' => 'nullable|string|max:100',
             'form.serial_number' => 'nullable|string|max:100',
@@ -92,7 +99,7 @@ class AssetIndex extends Component
             'form.purchase_date' => 'nullable|date',
             'form.warranty_expires_at' => 'nullable|date',
             'form.location' => 'nullable|string|max:255',
-            'form.quantity_on_hand' => 'required|integer|min:1',
+            'form.quantity_on_hand' => 'required|integer|min:'.($category?->isConsumable() ? 0 : 1),
             'form.condition' => 'required|in:good,fair,poor',
             'form.status' => ['required', Rule::enum(AssetStatus::class)],
             'form.notes' => 'nullable|string',
@@ -108,9 +115,10 @@ class AssetIndex extends Component
             ],
         );
 
+        $wasEditing = $this->editingId !== null;
         $this->resetForm();
         $this->showForm = false;
-        session()->flash('status', $this->editingId ? 'Asset updated.' : 'Asset created.');
+        session()->flash('status', $wasEditing ? 'Asset updated.' : 'Asset created.');
     }
 
     public function openCreate(): void
@@ -148,13 +156,23 @@ class AssetIndex extends Component
     public function delete(int $id): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        EquipmentAsset::findOrFail($id)->delete();
+        $asset = EquipmentAsset::findOrFail($id);
+
+        if ($asset->assignments()->exists()) {
+            session()->flash('error', 'This asset has assignment history and cannot be deleted. Set it to retired instead.');
+
+            return;
+        }
+
+        $asset->delete();
+        session()->flash('status', 'Asset deleted.');
     }
 
     public function openIssue(int $id): void
     {
-        $this->issueAssetId = $id;
-        $this->issueForm = ['guard_id' => '', 'site_id' => '', 'issue_notes' => ''];
+        $asset = EquipmentAsset::findOrFail($id);
+        $this->issueAssetId = $asset->id;
+        $this->issueForm = ['guard_id' => '', 'site_id' => '', 'quantity' => 1, 'issue_notes' => ''];
         $this->showIssueForm = true;
     }
 
@@ -168,9 +186,10 @@ class AssetIndex extends Component
         }
 
         $data = $this->validate([
-            'issueAssetId' => 'required|exists:equipment_assets,id',
-            'issueForm.guard_id' => 'nullable|exists:guards,id',
-            'issueForm.site_id' => 'nullable|exists:sites,id',
+            'issueAssetId' => ['required', TenantValidation::exists('equipment_assets')],
+            'issueForm.guard_id' => ['nullable', TenantValidation::exists('guards')],
+            'issueForm.site_id' => ['nullable', TenantValidation::exists('sites')],
+            'issueForm.quantity' => 'required|integer|min:1',
             'issueForm.issue_notes' => 'nullable|string',
         ]);
 
@@ -250,6 +269,7 @@ class AssetIndex extends Component
                     'assetCategory', 'vendor', 'site',
                     'assignments' => fn ($q) => $q->where('status', 'issued')->with('assignedGuard'),
                 ])
+                ->withCount('assignments')
                 ->when($this->search, fn ($q) => $q->where(function ($inner) {
                     $inner->where('name', 'like', '%'.$this->search.'%')
                         ->orWhere('asset_tag', 'like', '%'.$this->search.'%')
@@ -257,6 +277,11 @@ class AssetIndex extends Component
                 }))
                 ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
                 ->when($this->categoryFilter, fn ($q) => $q->where('asset_category_id', (int) $this->categoryFilter))
+                ->when(
+                    $this->warrantyFilter === 'expiring',
+                    fn ($q) => $q->whereNotNull('warranty_expires_at')
+                        ->where('warranty_expires_at', '<=', today()->addDays(60))
+                )
                 ->latest()
                 ->paginate($this->resolvedPerPage()),
             'categories' => AssetCategory::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get(),
@@ -265,6 +290,9 @@ class AssetIndex extends Component
             'guards' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->orderBy('first_name')->get(),
             'statuses' => config('assets.statuses'),
             'returningAssignment' => $returningAssignment,
+            'issuingAsset' => $this->issueAssetId
+                ? EquipmentAsset::query()->with('assetCategory')->find($this->issueAssetId)
+                : null,
         ])->layout('layouts.app');
     }
 

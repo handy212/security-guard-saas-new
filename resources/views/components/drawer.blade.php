@@ -1,4 +1,4 @@
-@props(['title', 'description' => null, 'width' => 'md', 'closeMethod' => 'closeDrawer'])
+@props(['title', 'description' => null, 'width' => 'md', 'closeMethod' => 'closeDrawer', 'returnFocusSelector' => null])
 
 @php
     $widthClass = match($width) {
@@ -16,7 +16,7 @@
         previousScope: null,
         init() {
             const owner = this.$el.closest('[wire\\:id]');
-            this.previousFocus = document.activeElement;
+            this.previousFocus = @js($returnFocusSelector) ? owner?.querySelector(@js($returnFocusSelector)) : document.activeElement;
             if (!owner?.contains(this.previousFocus) || this.previousFocus === document.body) {
                 this.previousFocus = [...(owner?.querySelectorAll('button') || [])]
                     .find(button => /^(open|edit)/.test(button.getAttribute('wire:click') || '')) || this.previousFocus;

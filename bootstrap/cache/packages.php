@@ -11,12 +11,37 @@
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
   ),
+  'laravel/boost' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Boost\\BoostServiceProvider',
+    ),
+  ),
+  'laravel/mcp' => 
+  array (
+    'aliases' => 
+    array (
+      'Mcp' => 'Laravel\\Mcp\\Facades\\Mcp',
+    ),
+    'providers' => 
+    array (
+      0 => 'Laravel\\Mcp\\Server\\McpServiceProvider',
+    ),
+  ),
   'laravel/reverb' => 
   array (
     'providers' => 
     array (
       0 => 'Laravel\\Reverb\\ApplicationManagerServiceProvider',
       1 => 'Laravel\\Reverb\\ReverbServiceProvider',
+    ),
+  ),
+  'laravel/roster' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Roster\\RosterServiceProvider',
     ),
   ),
   'laravel/sanctum' => 
@@ -74,18 +99,6 @@
     'providers' => 
     array (
       0 => 'Spatie\\Permission\\PermissionServiceProvider',
-    ),
-  ),
-  'stancl/tenancy' => 
-  array (
-    'aliases' => 
-    array (
-      'Tenancy' => 'Stancl\\Tenancy\\Facades\\Tenancy',
-      'GlobalCache' => 'Stancl\\Tenancy\\Facades\\GlobalCache',
-    ),
-    'providers' => 
-    array (
-      0 => 'Stancl\\Tenancy\\TenancyServiceProvider',
     ),
   ),
 );

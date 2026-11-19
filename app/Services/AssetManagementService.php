@@ -21,26 +21,52 @@ class AssetManagementService
 {
     public function issue(EquipmentAsset $asset, array $data): EquipmentAssignment
     {
-        if ($asset->status !== AssetStatus::AVAILABLE) {
-            throw new RuntimeException($asset->displayLabel().' is not available to issue.');
+        $quantity = (int) ($data['quantity'] ?? 1);
+
+        if ($quantity < 1) {
+            throw new RuntimeException('Issue quantity must be at least 1.');
         }
 
-        if ($asset->assignments()->where('status', 'issued')->whereNull('returned_at')->exists()) {
-            throw new RuntimeException($asset->displayLabel().' already has an open issue record.');
-        }
+        return DB::transaction(function () use ($asset, $data, $quantity) {
+            $asset = EquipmentAsset::query()->lockForUpdate()->findOrFail($asset->id);
+            $isConsumable = $asset->assetCategory?->isConsumable() ?? false;
 
-        return DB::transaction(function () use ($asset, $data) {
-            $asset->update(['status' => AssetStatus::ISSUED]);
+            if ($asset->status !== AssetStatus::AVAILABLE) {
+                throw new RuntimeException($asset->displayLabel().' is not available to issue.');
+            }
 
-            if ($asset->fleet_vehicle_id) {
-                FleetVehicle::where('id', $asset->fleet_vehicle_id)
-                    ->where('status', VehicleStatus::AVAILABLE)
-                    ->update(['status' => VehicleStatus::IN_USE]);
+            if ($isConsumable) {
+                if ($quantity > $asset->quantity_on_hand) {
+                    throw new RuntimeException('Only '.$asset->quantity_on_hand.' unit(s) are available.');
+                }
+
+                $asset->decrement('quantity_on_hand', $quantity);
+                $asset->refresh();
+                $asset->update([
+                    'status' => $asset->quantity_on_hand === 0 ? AssetStatus::ISSUED : AssetStatus::AVAILABLE,
+                ]);
+            } else {
+                if ($quantity !== 1) {
+                    throw new RuntimeException('Serialized assets must be issued one at a time.');
+                }
+
+                if ($asset->assignments()->where('status', 'issued')->whereNull('returned_at')->exists()) {
+                    throw new RuntimeException($asset->displayLabel().' already has an open issue record.');
+                }
+
+                $asset->update(['status' => AssetStatus::ISSUED]);
+
+                if ($asset->fleet_vehicle_id) {
+                    FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                        ->where('status', VehicleStatus::AVAILABLE)
+                        ->update(['status' => VehicleStatus::IN_USE]);
+                }
             }
 
             return EquipmentAssignment::create([
                 'tenant_id' => $asset->tenant_id,
                 'equipment_asset_id' => $asset->id,
+                'quantity' => $quantity,
                 'guard_id' => $data['guard_id'] ?? null,
                 'site_id' => $data['site_id'] ?? null,
                 'shift_assignment_id' => $data['shift_assignment_id'] ?? null,
@@ -188,34 +214,45 @@ class AssetManagementService
 
     public function returnAsset(EquipmentAssignment $assignment, ?string $notes = null): EquipmentAssignment
     {
-        $assignment->update([
-            'returned_at' => now(),
-            'return_notes' => $notes,
-            'status' => 'returned',
-        ]);
+        return DB::transaction(function () use ($assignment, $notes) {
+            $assignment = EquipmentAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
-        $asset = $assignment->asset;
-        if (! $asset) {
-            return $assignment;
-        }
-
-        $hasActiveTrip = $asset->fleet_vehicle_id
-            && FleetVehicle::where('id', $asset->fleet_vehicle_id)
-                ->whereHas('vehiclePatrols', fn ($q) => $q->where('status', 'active'))
-                ->exists();
-
-        // Keep asset/fleet marked in use while a GPS trip is still active.
-        if (! $hasActiveTrip) {
-            $asset->update(['status' => AssetStatus::AVAILABLE]);
-
-            if ($asset->fleet_vehicle_id) {
-                FleetVehicle::where('id', $asset->fleet_vehicle_id)
-                    ->where('status', VehicleStatus::IN_USE)
-                    ->update(['status' => VehicleStatus::AVAILABLE]);
+            if ($assignment->status !== 'issued' || $assignment->returned_at) {
+                throw new RuntimeException('This asset assignment has already been returned.');
             }
-        }
 
-        return $assignment;
+            $asset = EquipmentAsset::query()->lockForUpdate()->find($assignment->equipment_asset_id);
+
+            $assignment->update([
+                'returned_at' => now(),
+                'return_notes' => $notes,
+                'status' => 'returned',
+            ]);
+
+            if (! $asset) {
+                return $assignment->fresh();
+            }
+
+            $hasActiveTrip = $asset->fleet_vehicle_id
+                && FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                    ->whereHas('vehiclePatrols', fn ($q) => $q->where('status', 'active'))
+                    ->exists();
+
+            if ($asset->assetCategory?->isConsumable()) {
+                $asset->increment('quantity_on_hand', $assignment->quantity);
+                $asset->update(['status' => AssetStatus::AVAILABLE]);
+            } elseif (! $hasActiveTrip) {
+                $asset->update(['status' => AssetStatus::AVAILABLE]);
+
+                if ($asset->fleet_vehicle_id) {
+                    FleetVehicle::where('id', $asset->fleet_vehicle_id)
+                        ->where('status', VehicleStatus::IN_USE)
+                        ->update(['status' => VehicleStatus::AVAILABLE]);
+                }
+            }
+
+            return $assignment->fresh();
+        });
     }
 
     public function createPurchaseOrder(array $header, array $items, int $userId): AssetPurchaseOrder
@@ -256,6 +293,10 @@ class AssetManagementService
 
     public function submitPurchaseOrder(AssetPurchaseOrder $po): AssetPurchaseOrder
     {
+        if ($po->status !== PurchaseOrderStatus::DRAFT) {
+            throw new RuntimeException('Only draft purchase orders can be submitted.');
+        }
+
         $po->update(['status' => PurchaseOrderStatus::SUBMITTED]);
 
         return $po;
@@ -263,6 +304,10 @@ class AssetManagementService
 
     public function markOrdered(AssetPurchaseOrder $po): AssetPurchaseOrder
     {
+        if (! in_array($po->status, [PurchaseOrderStatus::DRAFT, PurchaseOrderStatus::SUBMITTED], true)) {
+            throw new RuntimeException('Only draft or submitted purchase orders can be marked as ordered.');
+        }
+
         $po->update([
             'status' => PurchaseOrderStatus::ORDERED,
             'order_date' => $po->order_date ?? now()->toDateString(),
@@ -274,9 +319,21 @@ class AssetManagementService
     public function receiveItems(AssetPurchaseOrder $po, int $itemId, int $quantity): AssetPurchaseOrder
     {
         return DB::transaction(function () use ($po, $itemId, $quantity) {
-            $item = AssetPurchaseOrderItem::where('purchase_order_id', $po->id)->findOrFail($itemId);
-            $receiveQty = min($quantity, $item->remainingQuantity());
-            abort_unless($receiveQty > 0, 422, 'Nothing left to receive for this line.');
+            $po = AssetPurchaseOrder::query()->lockForUpdate()->findOrFail($po->id);
+
+            if (! in_array($po->status, [PurchaseOrderStatus::ORDERED, PurchaseOrderStatus::PARTIAL], true)) {
+                throw new RuntimeException('Only ordered purchase orders can be received.');
+            }
+
+            $item = AssetPurchaseOrderItem::where('purchase_order_id', $po->id)
+                ->lockForUpdate()
+                ->findOrFail($itemId);
+
+            if ($quantity < 1 || $quantity > $item->remainingQuantity()) {
+                throw new RuntimeException('Enter a quantity between 1 and '.$item->remainingQuantity().'.');
+            }
+
+            $receiveQty = $quantity;
 
             $item->increment('quantity_received', $receiveQty);
 
@@ -351,26 +408,47 @@ class AssetManagementService
             'asset_value' => (clone $assets)->sum('purchase_cost'),
             'warranty_expiring' => (clone $assets)
                 ->whereNotNull('warranty_expires_at')
-                ->whereBetween('warranty_expires_at', [now(), now()->addDays(60)])
+                ->where('warranty_expires_at', '<=', now()->addDays(60))
                 ->count(),
         ];
     }
 
     public function inventoryByCategory(int $tenantId): Collection
     {
+        $issuedByCategory = EquipmentAssignment::query()
+            ->join('equipment_assets', 'equipment_assets.id', '=', 'equipment_assignments.equipment_asset_id')
+            ->where('equipment_assignments.tenant_id', $tenantId)
+            ->where('equipment_assignments.status', 'issued')
+            ->whereNull('equipment_assignments.returned_at')
+            ->groupBy('equipment_assets.asset_category_id')
+            ->selectRaw('equipment_assets.asset_category_id, SUM(equipment_assignments.quantity) AS issued_quantity')
+            ->get()
+            ->pluck('issued_quantity', 'asset_category_id');
+
         return AssetCategory::query()
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->withCount([
                 'assets',
-                'assets as available_count' => fn ($q) => $q->where('status', AssetStatus::AVAILABLE),
-                'assets as issued_count' => fn ($q) => $q->where('status', AssetStatus::ISSUED),
+                'assets as available_asset_count' => fn ($q) => $q->where('status', AssetStatus::AVAILABLE),
+                'assets as retained_asset_count' => fn ($q) => $q->whereNotIn('status', [AssetStatus::RETIRED, AssetStatus::LOST]),
             ])
-            ->withSum('assets as stock_quantity', 'quantity_on_hand')
+            ->withSum([
+                'assets as available_stock_quantity' => fn ($q) => $q->where('status', AssetStatus::AVAILABLE),
+            ], 'quantity_on_hand')
             ->orderBy('name')
             ->get()
-            ->map(function (AssetCategory $category) {
-                $onHand = (int) ($category->stock_quantity ?? 0);
+            ->map(function (AssetCategory $category) use ($issuedByCategory) {
+                $issued = (int) ($issuedByCategory[$category->id] ?? 0);
+                $available = $category->isConsumable()
+                    ? (int) ($category->available_stock_quantity ?? 0)
+                    : (int) ($category->available_asset_count ?? 0);
+                $onHand = $category->isConsumable()
+                    ? $available + $issued
+                    : (int) ($category->retained_asset_count ?? 0);
+
+                $category->available_count = $available;
+                $category->issued_count = $issued;
                 $category->on_hand = $onHand;
                 $category->is_low_stock = $category->isConsumable()
                     && $category->min_stock_level > 0

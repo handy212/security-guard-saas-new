@@ -1,11 +1,292 @@
 openapi: 3.0.3
 info:
   title: GuardOps SaaS API
-  version: 1.1.0
-  description: Mobile guard API plus tenant admin CRUD under /api/v1/admin.
+  version: 1.2.0
+  description: Mobile guard API, tenant admin CRUD, and normalized JWM device ingestion.
 servers:
   - url: /api/v1
 paths:
+  /admin/jwm-devices:
+    get:
+      summary: Paginate tenant JWM devices (patrols.manage)
+      security: [{sanctum: []}]
+      parameters:
+        - $ref: '#/components/parameters/JwmPage'
+        - $ref: '#/components/parameters/JwmPerPage'
+      responses:
+        '200':
+          description: Device list; no bridge credential or token ID is exposed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/JwmDevice' } }
+                  meta: { $ref: '#/components/schemas/PaginatedMeta' }
+    post:
+      summary: Register a JWM5000ZG device (patrols.manage)
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, reader_number]
+              properties:
+                name: { type: string, maxLength: 255 }
+                reader_number: { type: string, maxLength: 100, description: Unique within this tenant }
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JwmDevice' }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /admin/jwm-devices/{device}:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    patch:
+      summary: Configure device activity and strict checkpoint identification (patrols.manage)
+      description: Disabling revokes its bridge token. Re-enabling requires a new token. Strict identity defaults to false and is an explicit opt-in, not evidence of fingerprint verification.
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              anyOf:
+                - required: [is_active]
+                - required: [require_device_identity]
+              properties:
+                is_active: { type: boolean }
+                require_device_identity: { type: boolean }
+      responses:
+        '200':
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JwmDevice' }
+        '404': { description: Device not in tenant }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /admin/jwm-devices/{device}/assignments:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    get:
+      summary: Paginate device guard-use intervals (patrols.manage)
+      security: [{sanctum: []}]
+      parameters:
+        - $ref: '#/components/parameters/JwmPage'
+        - $ref: '#/components/parameters/JwmPerPage'
+      responses:
+        '200':
+          description: Intervals, latest start first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/JwmAssignment' } }
+                  meta: { $ref: '#/components/schemas/PaginatedMeta' }
+        '404': { description: Device not in tenant }
+    post:
+      summary: Record an immutable guard-use interval (patrols.manage)
+      description: Start-inclusive/end-exclusive. End must follow start; overlaps and disabled devices are rejected.
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guard_id, starts_at, ends_at]
+              properties:
+                guard_id: { type: integer, description: Existing guard in this tenant }
+                starts_at: { $ref: '#/components/schemas/JwmTimestamp' }
+                ends_at: { $ref: '#/components/schemas/JwmTimestamp' }
+      responses:
+        '201':
+          description: Recorded interval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JwmAssignment' }
+        '404': { description: Device not in tenant }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /admin/jwm-devices/{device}/guard-mappings:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    get:
+      summary: Paginate this reader's external guard mappings (patrols.manage)
+      security: [{sanctum: []}]
+      parameters:
+        - $ref: '#/components/parameters/JwmPage'
+        - $ref: '#/components/parameters/JwmPerPage'
+      responses:
+        '200':
+          description: Immutable mappings, newest first; deleted targets are null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/JwmGuardMapping' } }
+                  meta: { $ref: '#/components/schemas/PaginatedMeta' }
+        '404': { description: Device not in tenant }
+    post:
+      summary: Bind an external ID to an existing tenant guard (patrols.manage)
+      description: Device must be active. An external ID cannot be rebound, including after target deletion. Case and leading zeroes are significant.
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [external_id, guard_id]
+              properties:
+                external_id: { $ref: '#/components/schemas/JwmExternalId' }
+                guard_id: { type: integer, description: Existing guard in this tenant }
+      responses:
+        '201':
+          description: Immutable mapping created; internal lookup digest is not exposed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JwmGuardMapping' }
+        '404': { description: Device not in tenant }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /admin/jwm-devices/{device}/checkpoint-mappings:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    get:
+      summary: Paginate this reader's external checkpoint mappings (patrols.manage)
+      security: [{sanctum: []}]
+      parameters:
+        - $ref: '#/components/parameters/JwmPage'
+        - $ref: '#/components/parameters/JwmPerPage'
+      responses:
+        '200':
+          description: Immutable mappings, newest first; deleted targets are null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/JwmCheckpointMapping' } }
+                  meta: { $ref: '#/components/schemas/PaginatedMeta' }
+        '404': { description: Device not in tenant }
+    post:
+      summary: Bind an external ID to an existing tenant checkpoint (patrols.manage)
+      description: Device must be active. IDs are reader-scoped and immutable, including after target deletion. This does not write checkpoint settings to the device.
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [external_id, patrol_checkpoint_id]
+              properties:
+                external_id: { $ref: '#/components/schemas/JwmExternalId' }
+                patrol_checkpoint_id: { type: integer, description: Existing checkpoint in this tenant }
+      responses:
+        '201':
+          description: Immutable mapping created; internal lookup digest is not exposed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JwmCheckpointMapping' }
+        '404': { description: Device not in tenant }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /admin/jwm-devices/{device}/bridge-token:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    post:
+      summary: Issue or rotate device-bound bridge token (patrols.manage)
+      description: Revokes previous token. Only jwm:ingest ability; cannot access other API routes. Disabled devices are rejected.
+      security: [{sanctum: []}]
+      responses:
+        '201':
+          description: Shown once; Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+                      token_type: { type: string, enum: [Bearer] }
+                      expires_at: { type: string, format: date-time, description: 30 days after issuance }
+        '404': { description: Device not in tenant }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+  /jwm/devices/{device}/events:
+    parameters:
+      - $ref: '#/components/parameters/JwmDeviceId'
+    post:
+      summary: Ingest one normalized GPS or checkpoint event
+      description: |
+        Requires this device's bridge token and an active issuer/tenant with
+        patrols.manage. Ordinary wildcard admin tokens cannot ingest.
+        Guard is resolved by original occurrence time, not current holder.
+        Supplied guard_external_id must map to the interval's guard in this
+        tenant and reader. It is never ignored, including on GPS events.
+        With require_device_identity enabled, new checkpoint events require
+        guard_external_id and checkpoint_external_id; no interval-only or
+        internal-code fallback is allowed. GPS without a guard_external_id
+        remains interval-based, not device-identified.
+        A checkpoint uses exactly one of checkpoint_code and checkpoint_external_id.
+        External checkpoint IDs must map to a checkpoint on that patrol route.
+        External IDs are exact, case-sensitive strings, not numbers.
+        Accepted replays are checked before current mapping/mode/patrol state.
+        Checkpoints must target that guard's in-progress patrol and its route,
+        occur at/after its start and latest scan, and satisfy sequence rules.
+        Optional checkpoint coordinates must both be absent/null or both valid.
+        GPS writes guard location history without current-shift geofence alerts.
+        No binary SDK packets or raw device payloads are accepted.
+        Keep failed events bridge-side. Rate limit is 60 requests/minute under
+        the existing authenticated API policy; management also returns 401/403/429.
+      security: [{jwmBridge: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/JwmGpsEvent'
+                - $ref: '#/components/schemas/JwmCheckpointEvent'
+      responses:
+        '201':
+          description: Atomically accepted; replayed is false
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JwmEventResult' }
+        '200':
+          description: Equivalent retry; replayed is true even after patrol completion. No second effect.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JwmEventResult' }
+        '401': { description: Missing, expired or revoked token }
+        '403': { description: Wrong token ability/device, disabled device or unauthorized issuer/tenant }
+        '404': { description: Device not in authenticated tenant }
+        '409': { description: Same device event ID already used with different normalized content }
+        '422': { $ref: '#/components/responses/JwmValidation' }
+        '429': { description: Throttled; retry with the same stable event ID }
   /auth/token:
     post:
       summary: Issue Sanctum bearer token for admin API users
@@ -351,11 +632,152 @@ paths:
       security: [{sanctum: []}]
       tags: [Admin Nested]
 components:
+  parameters:
+    JwmDeviceId:
+      name: device
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    JwmPage:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    JwmPerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+  responses:
+    JwmValidation:
+      description: Invalid input, missing/ambiguous guard interval, unknown/conflicting mapping, duplicate immutable mapping, disabled mapping target device, or ineligible patrol. Nothing is written.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties: { type: array, items: { type: string } }
   securitySchemes:
+    jwmBridge:
+      type: http
+      scheme: bearer
+      description: Device-bound Sanctum token with explicit jwm:ingest ability
     sanctum:
       type: http
       scheme: bearer
   schemas:
+    JwmTimestamp:
+      type: string
+      format: date-time
+      description: Whole seconds, explicit Z or offset (maximum 14:00), normalized to UTC. Events must not be in the future or before 1970-01-01T00:00:01Z.
+      example: '2026-11-12T09:30:00Z'
+    JwmEventId:
+      type: string
+      maxLength: 100
+      pattern: '^[a-z0-9][a-z0-9._:-]*$'
+      description: Stable per-device identity across retries. Different IDs are not deduplicated; TCP/USB cross-transport identity needs hardware verification.
+    JwmExternalId:
+      type: string
+      minLength: 1
+      maxLength: 100
+      pattern: '^[!-~]+$'
+      description: Opaque printable ASCII without whitespace. Preserves exact case and leading zeroes. Reader-scoped and not a biometric template or proof of a fingerprint match.
+    JwmGpsEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, type, occurred_at, latitude, longitude]
+      properties:
+        event_id: { $ref: '#/components/schemas/JwmEventId' }
+        type: { type: string, enum: [gps] }
+        occurred_at: { $ref: '#/components/schemas/JwmTimestamp' }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        guard_external_id: { $ref: '#/components/schemas/JwmExternalId' }
+    JwmCheckpointEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, type, occurred_at, patrol_session_id]
+      description: Strict readers require both external IDs. Other readers accept either checkpoint identifier; a supplied external guard ID must still agree with the interval.
+      oneOf:
+        - required: [checkpoint_code]
+          not: { required: [checkpoint_external_id] }
+        - required: [checkpoint_external_id]
+          not: { required: [checkpoint_code] }
+      properties:
+        event_id: { $ref: '#/components/schemas/JwmEventId' }
+        type: { type: string, enum: [checkpoint] }
+        occurred_at: { $ref: '#/components/schemas/JwmTimestamp' }
+        patrol_session_id: { type: integer }
+        checkpoint_code: { type: string, maxLength: 100 }
+        guard_external_id: { $ref: '#/components/schemas/JwmExternalId' }
+        checkpoint_external_id: { $ref: '#/components/schemas/JwmExternalId' }
+        latitude: { type: number, nullable: true, minimum: -90, maximum: 90 }
+        longitude: { type: number, nullable: true, minimum: -180, maximum: 180 }
+    JwmDevice:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: integer }
+        name: { type: string }
+        reader_number: { type: string }
+        model: { type: string, enum: [JWM5000ZG] }
+        is_active: { type: boolean }
+        require_device_identity: { type: boolean, default: false }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    JwmGuardMapping:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: integer }
+        jwm_device_id: { type: integer }
+        external_id: { $ref: '#/components/schemas/JwmExternalId' }
+        guard_id: { type: integer, nullable: true, description: Null reserves the ID after target deletion }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    JwmCheckpointMapping:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: integer }
+        jwm_device_id: { type: integer }
+        external_id: { $ref: '#/components/schemas/JwmExternalId' }
+        patrol_checkpoint_id: { type: integer, nullable: true, description: Null reserves the ID after target deletion }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    JwmAssignment:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: integer }
+        jwm_device_id: { type: integer }
+        guard_id: { type: integer }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    JwmEventResult:
+      type: object
+      required: [data, replayed]
+      properties:
+        replayed: { type: boolean }
+        data:
+          type: object
+          properties:
+            id: { type: integer }
+            tenant_id: { type: integer }
+            jwm_device_id: { type: integer }
+            event_id: { $ref: '#/components/schemas/JwmEventId' }
+            type: { type: string, enum: [gps, checkpoint] }
+            occurred_at: { type: string, format: date-time }
+            guard_id: { type: integer }
+            guard_location_id: { type: integer, nullable: true, description: GPS result; null if deleted by retention }
+            checkpoint_scan_id: { type: integer, nullable: true, description: Checkpoint result; null if deleted by retention }
+            guard_external_id: { type: string, nullable: true, description: Exact identifier supplied on the accepted event, otherwise null }
+            checkpoint_external_id: { type: string, nullable: true, description: Exact identifier supplied on the accepted event, otherwise null }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
     PaginatedMeta:
       type: object
       properties:

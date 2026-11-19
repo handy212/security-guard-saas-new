@@ -57,7 +57,7 @@ class AssetController extends AdminController
     {
         $this->authorize('update', $asset);
 
-        $data = $this->validatedAsset($request, partial: true);
+        $data = $this->validatedAsset($request, partial: true, asset: $asset);
         if (array_key_exists('asset_category_id', $data)) {
             $category = $data['asset_category_id'] ? AssetCategory::find($data['asset_category_id']) : null;
             $data['category'] = $category?->name;
@@ -76,9 +76,13 @@ class AssetController extends AdminController
         return $this->noContent();
     }
 
-    private function validatedAsset(Request $request, bool $partial = false): array
+    private function validatedAsset(Request $request, bool $partial = false, ?EquipmentAsset $asset = null): array
     {
         $required = $partial ? ['sometimes', 'required'] : ['required'];
+        $categoryId = $request->input('asset_category_id', $asset?->asset_category_id);
+        $isConsumable = $categoryId
+            ? AssetCategory::whereKey($categoryId)->first()?->isConsumable()
+            : false;
 
         return $request->validate([
             'asset_category_id' => [$partial ? 'sometimes' : 'nullable', 'nullable', 'integer', TenantValidation::exists('asset_categories')],
@@ -94,7 +98,7 @@ class AssetController extends AdminController
             'purchase_date' => ['nullable', 'date'],
             'warranty_expires_at' => ['nullable', 'date'],
             'location' => ['nullable', 'string', 'max:255'],
-            'quantity_on_hand' => [...$required, 'integer', 'min:1'],
+            'quantity_on_hand' => [...$required, 'integer', $isConsumable ? 'min:0' : 'min:1'],
             'condition' => [...$required, 'in:good,fair,poor'],
             'status' => [...$required, Rule::enum(AssetStatus::class)],
             'notes' => ['nullable', 'string'],

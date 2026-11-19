@@ -10,7 +10,7 @@
 
 @if (! empty($links))
     <div class="profile-mobile-nav lg:hidden">
-        <label class="sr-only" for="sub-sidebar-select">Section</label>
+        <label class="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500" for="sub-sidebar-select">Section</label>
         <select
             id="sub-sidebar-select"
             class="form-input text-sm"

@@ -60,6 +60,7 @@
                             type="button"
                             wire:click="{{ $action }}('{{ $key }}')"
                             title="{{ $hint }}"
+                            @if ($isActive) aria-current="page" @endif
                             @class([
                                 'profile-sidebar-link w-full',
                                 'profile-sidebar-link-active' => $isActive,

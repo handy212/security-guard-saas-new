@@ -1,6 +1,10 @@
-@props(['field', 'active' => '', 'options' => []])
+@props(['field', 'active' => '', 'options' => [], 'label' => null])
 
-<div {{ $attributes->merge(['class' => 'inline-flex max-w-full shrink-0 overflow-x-auto rounded-lg bg-slate-100/90 p-1 dark:bg-zinc-800']) }}>
+<div
+    role="group"
+    aria-label="{{ $label ?? \Illuminate\Support\Str::headline(str_replace('Filter', '', $field)).' filter' }}"
+    {{ $attributes->merge(['class' => 'inline-flex max-w-full shrink-0 overflow-x-auto rounded-lg bg-slate-100/90 p-1 dark:bg-zinc-800']) }}
+>
     @foreach ($options as $value => $label)
         <button
             type="button"

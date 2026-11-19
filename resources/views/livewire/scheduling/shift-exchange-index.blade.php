@@ -60,16 +60,24 @@
                                 </x-table.td>
                                 <x-table.td data-label="Replacement" class="font-medium text-zinc-800 dark:text-zinc-200">{{ $swap->replacementGuard?->full_name ?? '—' }}</x-table.td>
                                 <x-table.td data-label="Reason" muted>{{ $swap->reason ?: '—' }}</x-table.td>
-                                <x-table.td data-label="Status"><x-badge :status="$swap->status" /></x-table.td>
+                                <x-table.td data-label="Status">
+                                    @if (\App\Support\EnumHelper::is($swap->status, 'pending') && ! $swap->shiftAssignment?->shift?->starts_at?->isFuture())
+                                        <span class="status-chip status-chip-neutral">Shift started</span>
+                                    @else
+                                        <x-badge :status="$swap->status" />
+                                    @endif
+                                </x-table.td>
                                 <x-table.td data-label="Actions" align="right">
-                                    @if(\App\Support\EnumHelper::is($swap->status, 'pending'))
+                                    @if(\App\Support\EnumHelper::is($swap->status, 'pending') && $swap->shiftAssignment?->shift?->starts_at?->isFuture())
                                         <div class="table-inline-actions justify-end">
-                                            <x-button size="sm" wire:click="approveSwap({{ $swap->id }})" wire:loading.attr="disabled" wire:target="approveSwap({{ $swap->id }})">
+                                            <x-button size="sm" wire:click="approveSwap({{ $swap->id }})" wire:target="approveSwap({{ $swap->id }})" aria-label="Approve shift exchange for {{ $swap->requestedByGuard?->full_name ?? 'guard' }}">
                                                 <span wire:loading.remove wire:target="approveSwap({{ $swap->id }})">Approve</span>
                                                 <span wire:loading wire:target="approveSwap({{ $swap->id }})">…</span>
                                             </x-button>
-                                            <x-button size="sm" variant="secondary" wire:click="rejectSwap({{ $swap->id }})">Reject</x-button>
+                                            <x-button size="sm" variant="secondary" wire:click="rejectSwap({{ $swap->id }})" wire:target="rejectSwap({{ $swap->id }})" aria-label="Reject shift exchange for {{ $swap->requestedByGuard?->full_name ?? 'guard' }}">Reject</x-button>
                                         </div>
+                                    @elseif(\App\Support\EnumHelper::is($swap->status, 'pending'))
+                                        <span class="text-xs text-zinc-400">No action available</span>
                                     @endif
                                 </x-table.td>
                             </tr>

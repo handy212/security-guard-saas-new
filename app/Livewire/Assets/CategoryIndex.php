@@ -5,6 +5,7 @@ namespace App\Livewire\Assets;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\AssetCategory;
+use App\Services\AssetManagementService;
 use App\Support\TenantContext;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,7 +22,7 @@ class CategoryIndex extends Component
 
     public ?int $editingId = null;
 
-    public function mount(\App\Services\AssetManagementService $assets): void
+    public function mount(AssetManagementService $assets): void
     {
         $this->authorizePermission('equipment.manage');
         $assets->ensureDeployKitCatalog(TenantContext::id(), false);
@@ -65,7 +66,16 @@ class CategoryIndex extends Component
     public function delete(int $id): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        AssetCategory::findOrFail($id)->delete();
+        $category = AssetCategory::findOrFail($id);
+
+        if ($category->assets()->exists() || $category->purchaseOrderItems()->exists()) {
+            session()->flash('error', 'Reassign or remove its assets and purchase-order lines before deletion.');
+
+            return;
+        }
+
+        $category->delete();
+        session()->flash('status', 'Category deleted.');
     }
 
     private function resetForm(): void
@@ -81,7 +91,7 @@ class CategoryIndex extends Component
         return view('livewire.assets.category-index', [
             'categories' => AssetCategory::where('tenant_id', TenantContext::id())
                 ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
-                ->withCount('assets')
+                ->withCount(['assets', 'purchaseOrderItems'])
                 ->orderBy('name')
                 ->paginate(20),
             'types' => config('assets.category_types'),

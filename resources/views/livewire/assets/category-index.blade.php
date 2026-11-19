@@ -5,7 +5,7 @@
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="assets-workspace">
             <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
 
 
@@ -17,10 +17,10 @@
             <x-table.head>
                 <tr>
                     <x-table.th>Category</x-table.th>
-                    <x-table.th>Type</x-table.th>
-                    <x-table.th>Min stock</x-table.th>
+                    <x-table.th responsive="md">Type</x-table.th>
+                    <x-table.th responsive="lg">Min stock</x-table.th>
                     <x-table.th>Assets</x-table.th>
-                    <x-table.th>Status</x-table.th>
+                    <x-table.th responsive="sm">Status</x-table.th>
                     <x-table.th align="right" class="w-12"></x-table.th>
                 </tr>
             </x-table.head>
@@ -31,14 +31,16 @@
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $category->name }}</div>
                             <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ Str::limit($category->description, 60) }}</div>
                         </x-table.td>
-                        <x-table.td muted>{{ $types[$category->type] ?? $category->type }}</x-table.td>
-                        <x-table.td class="tabular-nums">{{ $category->type === 'consumable' ? $category->min_stock_level : '—' }}</x-table.td>
+                        <x-table.td responsive="md" muted>{{ $types[$category->type] ?? $category->type }}</x-table.td>
+                        <x-table.td responsive="lg" class="tabular-nums">{{ $category->type === 'consumable' ? $category->min_stock_level : '—' }}</x-table.td>
                         <x-table.td class="tabular-nums">{{ $category->assets_count }}</x-table.td>
-                        <x-table.td><x-badge :status="$category->is_active ? 'active' : 'inactive'" /></x-table.td>
+                        <x-table.td responsive="sm"><x-badge :status="$category->is_active ? 'active' : 'inactive'" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>
                                 <x-row-menu-item wire:click="edit({{ $category->id }})">Edit</x-row-menu-item>
-                                <x-row-menu-item wire:click="delete({{ $category->id }})" wire:confirm="Delete category?" danger>Delete</x-row-menu-item>
+                                @if($category->assets_count === 0 && $category->purchase_order_items_count === 0)
+                                    <x-row-menu-item wire:click="delete({{ $category->id }})" wire:confirm="Delete category?" danger>Delete</x-row-menu-item>
+                                @endif
                             </x-row-menu>
                         </x-table.td>
                     </tr>

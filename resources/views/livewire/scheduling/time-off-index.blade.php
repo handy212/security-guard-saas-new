@@ -76,10 +76,10 @@
                                 <x-table.td data-label="Actions" align="right">
                                     @if(\App\Support\EnumHelper::is($req->status, 'pending'))
                                         <div class="table-inline-actions justify-end">
-                                            <x-button size="sm" variant="secondary" wire:click="editLeave({{ $req->id }})">Edit</x-button>
-                                            <x-button size="sm" wire:click="approveLeave({{ $req->id }})" :disabled="$conflicts > 0" title="{{ $conflicts > 0 ? 'Resolve shift conflicts first' : '' }}">Approve</x-button>
-                                            <x-button size="sm" variant="secondary" wire:click="rejectLeave({{ $req->id }})">Reject</x-button>
-                                            <button type="button" wire:click="cancelLeave({{ $req->id }})" wire:confirm="Cancel this request?" class="table-action-danger">Cancel</button>
+                                            <x-button size="sm" variant="secondary" wire:click="editLeave({{ $req->id }})" aria-label="Edit time off for {{ $req->assignedGuard?->full_name ?? 'guard' }}">Edit</x-button>
+                                            <x-button size="sm" wire:click="approveLeave({{ $req->id }})" wire:target="approveLeave({{ $req->id }})" :disabled="$conflicts > 0" title="{{ $conflicts > 0 ? 'Resolve shift conflicts first' : '' }}" aria-label="Approve time off for {{ $req->assignedGuard?->full_name ?? 'guard' }}">Approve</x-button>
+                                            <x-button size="sm" variant="secondary" wire:click="rejectLeave({{ $req->id }})" wire:target="rejectLeave({{ $req->id }})" aria-label="Reject time off for {{ $req->assignedGuard?->full_name ?? 'guard' }}">Reject</x-button>
+                                            <button type="button" wire:click="cancelLeave({{ $req->id }})" wire:loading.attr="disabled" wire:target="cancelLeave({{ $req->id }})" wire:confirm="Cancel this request?" class="table-action-danger" aria-label="Cancel time off for {{ $req->assignedGuard?->full_name ?? 'guard' }}">Cancel</button>
                                         </div>
                                     @elseif(\App\Support\EnumHelper::is($req->status, 'approved') && $req->approver)
                                         <span class="text-xs text-zinc-400">By {{ $req->approver->name }}</span>

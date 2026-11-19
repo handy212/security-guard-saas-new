@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Purchase orders" description="Procure assets and receive into inventory.">
         <x-slot:actions>
-            <x-button wire:click="$set('showForm', true)">New purchase order</x-button>
+            <x-button wire:click="openForm">New purchase order</x-button>
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="assets-workspace">
             <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
 
 
@@ -24,12 +24,18 @@
                     <tbody>
                         @forelse($orders as $po)
                             <tr
-                                class="cursor-pointer table-row-hover {{ $selectedId === $po->id ? 'bg-accent-50 dark:bg-accent-950/40' : '' }}"
-                                wire:click="selectPo({{ $po->id }})"
+                                class="table-row-hover {{ $selectedId === $po->id ? 'bg-accent-50 dark:bg-accent-950/40' : '' }}"
                                 wire:key="po-row-{{ $po->id }}"
                             >
                                 <x-table.td>
-                                    <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">{{ $po->po_number }}</div>
+                                    <button
+                                        type="button"
+                                        wire:click="selectPo({{ $po->id }})"
+                                        aria-label="Open purchase order {{ $po->po_number }}"
+                                        class="text-left font-medium tabular-nums text-zinc-900 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-zinc-100"
+                                    >
+                                        {{ $po->po_number }}
+                                    </button>
                                     <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $po->order_date?->format('M j, Y') }}</div>
                                 </x-table.td>
                                 <x-table.td muted>{{ $po->vendor?->name }}</x-table.td>
@@ -86,8 +92,20 @@
                                         <x-table.td>{{ $item->quantity }}</x-table.td>
                                         <x-table.td>{{ $item->quantity_received }}</x-table.td>
                                         <x-table.td align="right">
-                                            @if($item->remainingQuantity() > 0)
-                                                <x-button size="sm" wire:click="receiveLine({{ $selected->id }}, {{ $item->id }})">Receive</x-button>
+                                            @if($item->remainingQuantity() > 0 && in_array($selected->status->value, ['ordered', 'partial']))
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="{{ $item->remainingQuantity() }}"
+                                                        wire:model.live="receiveQuantities.{{ $item->id }}"
+                                                        aria-label="Quantity to receive for {{ $item->description }}"
+                                                        class="form-input w-20 text-sm"
+                                                    >
+                                                    <x-button size="sm" wire:click="receiveLine({{ $selected->id }}, {{ $item->id }})">Receive</x-button>
+                                                </div>
+                                            @elseif($item->remainingQuantity() > 0)
+                                                <span class="text-xs text-zinc-500">Awaiting order</span>
                                             @else
                                                 <span class="text-xs text-emerald-600">Complete</span>
                                             @endif
@@ -145,6 +163,18 @@
                             <x-input wire:model.live="items.{{ $index }}.description" label="Description *" class="sm:col-span-2" />
                             <x-input wire:model.live="items.{{ $index }}.quantity" type="number" min="1" label="Qty" />
                             <x-input wire:model.live="items.{{ $index }}.unit_cost" type="number" step="0.01" label="Unit cost" />
+                            @if($index > 0)
+                                <div class="flex items-end sm:col-span-6">
+                                    <button
+                                        type="button"
+                                        wire:click="removeLine({{ $index }})"
+                                        aria-label="Remove line {{ $index + 1 }}"
+                                        class="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400"
+                                    >
+                                        Remove line
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>

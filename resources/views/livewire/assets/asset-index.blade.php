@@ -12,7 +12,7 @@
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="assets-workspace">
             <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
 
 
@@ -23,11 +23,15 @@
                 <x-segment-control field="statusFilter" :active="$statusFilter" :options="collect($statuses)->prepend('All', 'all')->all()" />
             </x-slot:tabs>
             <x-slot:controls>
-                <x-filter-select wire:model.live="categoryFilter">
+                <x-filter-select wire:model.live="categoryFilter" aria-label="Filter by category">
                     <option value="">All categories</option>
                     @foreach($categories as $category)
                         <option value="{{ $category->id }}">{{ $category->name }}</option>
                     @endforeach
+                </x-filter-select>
+                <x-filter-select wire:model.live="warrantyFilter" aria-label="Filter by warranty">
+                    <option value="all">All warranties</option>
+                    <option value="expiring">Expired or expiring in 60 days</option>
                 </x-filter-select>
             </x-slot:controls>
         </x-page-toolbar>
@@ -66,7 +70,9 @@
                                     <x-row-menu-item wire:click="openReturn({{ $item->assignments->first()->id }})">Return</x-row-menu-item>
                                 @endif
                                 <x-row-menu-item wire:click="edit({{ $item->id }})">Edit</x-row-menu-item>
-                                <x-row-menu-item wire:click="delete({{ $item->id }})" wire:confirm="Delete this asset?" danger>Delete</x-row-menu-item>
+                                @if($item->assignments_count === 0)
+                                    <x-row-menu-item wire:click="delete({{ $item->id }})" wire:confirm="Delete this asset?" danger>Delete</x-row-menu-item>
+                                @endif
                             </x-row-menu>
                         </x-table.td>
                     </tr>
@@ -157,6 +163,16 @@
                         <option value="{{ $site->id }}">{{ $site->name }}</option>
                     @endforeach
                 </x-select>
+                @if($issuingAsset?->assetCategory?->isConsumable())
+                    <x-input
+                        wire:model.live="issueForm.quantity"
+                        type="number"
+                        min="1"
+                        :max="$issuingAsset->quantity_on_hand"
+                        label="Quantity ({{ $issuingAsset->quantity_on_hand }} available)"
+                        class="sm:col-span-2"
+                    />
+                @endif
                 <x-textarea wire:model.live="issueForm.issue_notes" label="Issue notes" rows="3" class="sm:col-span-2" />
             </x-drawer-form>
         </x-drawer>
@@ -185,6 +201,12 @@
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">Issued</dt>
                                 <dd class="tabular-nums text-zinc-700 dark:text-zinc-200">{{ $returningAssignment->issued_at?->format('M j, Y g:i A') ?? 'Not recorded' }}</dd>
                             </div>
+                            @if($returningAssignment->quantity > 1)
+                                <div>
+                                    <dt class="text-xs text-zinc-500 dark:text-zinc-400">Quantity</dt>
+                                    <dd class="tabular-nums text-zinc-700 dark:text-zinc-200">{{ $returningAssignment->quantity }}</dd>
+                                </div>
+                            @endif
                         </dl>
                     </section>
                 @endif

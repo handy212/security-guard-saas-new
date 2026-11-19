@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->trimStrings(except: ['external_id', 'guard_external_id', 'checkpoint_external_id']);
 
         $middleware->web(append: [
             \App\Http\Middleware\SyncPermissionsTeamId::class,

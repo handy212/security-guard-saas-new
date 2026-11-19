@@ -11,13 +11,14 @@ class EquipmentAssignment extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'equipment_asset_id', 'guard_id', 'site_id', 'shift_assignment_id',
+        'tenant_id', 'equipment_asset_id', 'quantity', 'guard_id', 'site_id', 'shift_assignment_id',
         'issued_at', 'returned_at', 'issue_notes', 'return_notes', 'status',
     ];
 
     protected function casts(): array
     {
         return [
+            'quantity' => 'integer',
             'issued_at' => 'datetime',
             'returned_at' => 'datetime',
         ];

@@ -8,6 +8,7 @@ use App\Models\ShiftConfirmation;
 use App\Models\ShiftTemplate;
 use App\Support\TenantContext;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class WorkforceService
 {
@@ -17,32 +18,43 @@ class WorkforceService
     {
         $template->load('items.site');
         $weekStart = $weekStart->copy()->startOfWeek(Carbon::SUNDAY);
-        $created = 0;
 
-        foreach ($template->items as $item) {
-            $date = $weekStart->copy()->addDays((int) $item->day_of_week);
-            $startsAt = $date->copy()->setTimeFromTimeString($item->start_time);
-            $endsAt = $date->copy()->setTimeFromTimeString($item->end_time);
+        return DB::transaction(function () use ($template, $weekStart) {
+            $created = 0;
 
-            if ($endsAt->lte($startsAt)) {
-                $endsAt->addDay();
+            foreach ($template->items as $item) {
+                $date = $weekStart->copy()->addDays((int) $item->day_of_week);
+                $startsAt = $date->copy()->setTimeFromTimeString($item->start_time);
+                $endsAt = $date->copy()->setTimeFromTimeString($item->end_time);
+
+                if ($endsAt->lte($startsAt)) {
+                    $endsAt->addDay();
+                }
+
+                $source = [
+                    'source_template_item_id' => $item->id,
+                    'template_week_start' => $weekStart->toDateString(),
+                ];
+                $attributes = [
+                    'tenant_id' => TenantContext::id(),
+                    'client_account_id' => $item->site?->client_account_id,
+                    'site_id' => $item->site_id,
+                    'title' => $template->name.' · '.$date->format('D'),
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'required_guards' => $item->required_guards,
+                    'billing_rate' => $item->billing_rate ?? 0,
+                    'status' => 'open',
+                ];
+
+                $shift = Shift::query()->firstOrCreate($source, $attributes);
+                if ($shift->wasRecentlyCreated) {
+                    $created++;
+                }
             }
 
-            Shift::create([
-                'tenant_id' => TenantContext::id(),
-                'client_account_id' => $item->site?->client_account_id,
-                'site_id' => $item->site_id,
-                'title' => $template->name.' · '.$date->format('D'),
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'required_guards' => $item->required_guards,
-                'billing_rate' => $item->billing_rate ?? 0,
-                'status' => 'open',
-            ]);
-            $created++;
-        }
-
-        return $created;
+            return $created;
+        });
     }
 
     public function requestConfirmation(ShiftAssignment $assignment): ShiftConfirmation

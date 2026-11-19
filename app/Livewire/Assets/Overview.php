@@ -41,7 +41,7 @@ class Overview extends Component
             'warrantyAlerts' => EquipmentAsset::with('assetCategory')
                 ->where('tenant_id', $tenantId)
                 ->whereNotNull('warranty_expires_at')
-                ->where('warranty_expires_at', '<=', now()->addDays(60))
+                ->where('warranty_expires_at', '<=', today()->addDays(60))
                 ->orderBy('warranty_expires_at')
                 ->limit(6)
                 ->get(),

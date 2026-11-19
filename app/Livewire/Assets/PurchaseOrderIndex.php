@@ -3,20 +3,21 @@
 namespace App\Livewire\Assets;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\AssetCategory;
 use App\Models\AssetPurchaseOrder;
+use App\Models\AssetPurchaseOrderItem;
 use App\Models\AssetVendor;
 use App\Models\EquipmentAsset;
 use App\Services\AssetManagementService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class PurchaseOrderIndex extends Component
 {
-    use AuthorizesModuleAccess, WithPagination;
-
-    public bool $showForm = false;
+    use AuthorizesModuleAccess, HasFormDrawer, WithPagination;
 
     public ?int $selectedId = null;
 
@@ -25,6 +26,8 @@ class PurchaseOrderIndex extends Component
     ];
 
     public array $items = [['asset_category_id' => '', 'description' => '', 'quantity' => 1, 'unit_cost' => 0]];
+
+    public array $receiveQuantities = [];
 
     public function mount(): void
     {
@@ -42,6 +45,12 @@ class PurchaseOrderIndex extends Component
         $this->items = array_values($this->items);
     }
 
+    public function openForm(): void
+    {
+        $this->resetForm();
+        $this->showForm = true;
+    }
+
     public function save(AssetManagementService $service): void
     {
         if ($this->form['vendor_id'] === '') {
@@ -49,7 +58,7 @@ class PurchaseOrderIndex extends Component
         }
 
         $data = $this->validate([
-            'form.vendor_id' => 'required|exists:asset_vendors,id',
+            'form.vendor_id' => ['required', TenantValidation::exists('asset_vendors')],
             'form.expected_date' => 'nullable|date',
             'form.tax_total' => 'nullable|numeric|min:0',
             'form.notes' => 'nullable|string',
@@ -57,7 +66,7 @@ class PurchaseOrderIndex extends Component
             'items.*.description' => 'required|string|max:255',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_cost' => 'required|numeric|min:0',
-            'items.*.asset_category_id' => 'nullable|exists:asset_categories,id',
+            'items.*.asset_category_id' => ['nullable', TenantValidation::exists('asset_categories')],
         ]);
 
         $po = $service->createPurchaseOrder(
@@ -74,26 +83,44 @@ class PurchaseOrderIndex extends Component
 
     public function submitPo(int $id, AssetManagementService $service): void
     {
-        $service->submitPurchaseOrder(AssetPurchaseOrder::findOrFail($id));
-        session()->flash('status', 'Purchase order submitted.');
+        try {
+            $service->submitPurchaseOrder(AssetPurchaseOrder::findOrFail($id));
+            session()->flash('status', 'Purchase order submitted.');
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function markOrdered(int $id, AssetManagementService $service): void
     {
-        $service->markOrdered(AssetPurchaseOrder::findOrFail($id));
-        session()->flash('status', 'Purchase order marked as ordered.');
+        try {
+            $service->markOrdered(AssetPurchaseOrder::findOrFail($id));
+            session()->flash('status', 'Purchase order marked as ordered.');
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function receiveLine(int $poId, int $itemId, AssetManagementService $service): void
     {
-        $item = \App\Models\AssetPurchaseOrderItem::findOrFail($itemId);
-        $service->receiveItems(AssetPurchaseOrder::findOrFail($poId), $itemId, $item->remainingQuantity());
-        session()->flash('status', 'Items received into inventory.');
+        try {
+            $po = AssetPurchaseOrder::findOrFail($poId);
+            $item = AssetPurchaseOrderItem::where('purchase_order_id', $po->id)->findOrFail($itemId);
+            $quantity = (int) ($this->receiveQuantities[$item->id] ?? $item->remainingQuantity());
+            $service->receiveItems($po, $item->id, $quantity);
+            session()->flash('status', 'Items received into inventory.');
+        } catch (\RuntimeException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function selectPo(int $id): void
     {
-        $this->selectedId = $id;
+        $po = AssetPurchaseOrder::with('items')->findOrFail($id);
+        $this->selectedId = $po->id;
+        $this->receiveQuantities = $po->items
+            ->mapWithKeys(fn ($item) => [$item->id => $item->remainingQuantity()])
+            ->all();
     }
 
     private function resetForm(): void

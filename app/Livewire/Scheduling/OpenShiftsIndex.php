@@ -3,6 +3,7 @@
 namespace App\Livewire\Scheduling;
 
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Livewire\Concerns\EmbedsInScheduler;
 use App\Models\Guard;
 use App\Models\OpenShiftBid;
 use App\Services\EnterpriseScheduleService;
@@ -13,9 +14,8 @@ use RuntimeException;
 
 class OpenShiftsIndex extends Component
 {
-    use \App\Livewire\Concerns\EmbedsInScheduler;
-
     use AuthorizesModuleAccess;
+    use EmbedsInScheduler;
 
     public string $bidFilter = 'pending';
 
@@ -42,7 +42,13 @@ class OpenShiftsIndex extends Component
     public function rejectBid(int $bidId, EnterpriseScheduleService $service): void
     {
         abort_unless(auth()->user()->can('schedules.manage'), 403);
-        $service->rejectBid(OpenShiftBid::where('tenant_id', TenantContext::id())->findOrFail($bidId));
+        try {
+            $service->rejectBid(OpenShiftBid::where('tenant_id', TenantContext::id())->findOrFail($bidId));
+        } catch (RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
         session()->flash('status', 'Bid rejected.');
     }
 
@@ -55,11 +61,15 @@ class OpenShiftsIndex extends Component
             'bids' => OpenShiftBid::with(['shift.site', 'assignedGuard'])
                 ->where('tenant_id', $tenantId)
                 ->when($this->bidFilter !== 'all', fn ($q) => $q->where('status', $this->bidFilter))
+                ->when($this->bidFilter === 'pending', fn ($q) => $q->whereHas('shift', fn ($shift) => $shift->where('starts_at', '>', now())))
                 ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
                 ->latest()
                 ->limit(50)
                 ->get(),
-            'pendingBidCount' => OpenShiftBid::where('tenant_id', $tenantId)->where('status', 'pending')->count(),
+            'pendingBidCount' => OpenShiftBid::where('tenant_id', $tenantId)
+                ->where('status', 'pending')
+                ->whereHas('shift', fn ($shift) => $shift->where('starts_at', '>', now()))
+                ->count(),
             'guards' => Guard::where('tenant_id', $tenantId)->where('status', 'active')->orderBy('first_name')->get(),
         ])->layout('layouts.app');
     }

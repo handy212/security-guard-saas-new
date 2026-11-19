@@ -8,8 +8,10 @@ use App\Livewire\Scheduling\ScheduleIndex;
 use App\Livewire\Scheduling\ShiftExchangeIndex;
 use App\Livewire\Scheduling\ShiftTemplateIndex;
 use App\Livewire\Scheduling\TimeOffIndex;
+use App\Models\AttendanceLog;
 use App\Models\ClientAccount;
 use App\Models\Guard;
+use App\Models\GuardAvailability;
 use App\Models\LeaveRequest;
 use App\Models\OpenShiftBid;
 use App\Models\Shift;
@@ -20,8 +22,10 @@ use App\Models\ShiftTemplate;
 use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Services\EnterpriseScheduleService;
 use App\Services\ScheduleService;
+use App\Services\SchedulingService;
 use App\Services\WorkforceService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,7 +112,8 @@ class GuardSchedulingTest extends TestCase
 
     public function test_guard_can_request_shift_swap_via_api(): void
     {
-        $assignment = ShiftAssignment::where('guard_id', $this->guard->id)->first();
+        $shift = $this->createOpenShift();
+        $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
 
         Sanctum::actingAs($this->guardUser);
 
@@ -231,7 +236,12 @@ class GuardSchedulingTest extends TestCase
     public function test_mobile_dashboard_can_bid_and_request_swap(): void
     {
         $openShift = $this->createOpenShift(requiredGuards: 2);
-        $assignment = ShiftAssignment::where('guard_id', $this->guard->id)->first();
+        $swapShift = $this->createOpenShift();
+        $swapShift->update([
+            'starts_at' => $openShift->starts_at->copy()->addDay(),
+            'ends_at' => $openShift->ends_at->copy()->addDay(),
+        ]);
+        $assignment = app(ScheduleService::class)->assignGuard($swapShift, $this->guard);
 
         Livewire::actingAs($this->guardUser)
             ->test(MobileDashboard::class)
@@ -256,7 +266,7 @@ class GuardSchedulingTest extends TestCase
     public function test_admin_open_shift_and_exchange_pages_show_pending_items(): void
     {
         $shift = $this->createOpenShift(requiredGuards: 2);
-        $assignment = ShiftAssignment::where('guard_id', $this->guard->id)->first();
+        $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
 
         OpenShiftBid::create([
             'tenant_id' => $this->tenant->id,
@@ -281,12 +291,11 @@ class GuardSchedulingTest extends TestCase
             ->assertSee($this->guard->full_name);
     }
 
-
     public function test_swap_and_leave_rows_link_back_to_the_affected_roster_date(): void
     {
         $shift = $this->createOpenShift();
         $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
-        \App\Models\ShiftSwapRequest::create([
+        ShiftSwapRequest::create([
             'tenant_id' => $this->tenant->id,
             'shift_assignment_id' => $assignment->id,
             'requested_by_guard_id' => $this->guard->id,
@@ -365,7 +374,6 @@ class GuardSchedulingTest extends TestCase
         ]);
     }
 
-
     public function test_day_roster_shows_assignment_confirmation_and_attendance_states(): void
     {
         $shift = $this->createOpenShift(requiredGuards: 2);
@@ -383,7 +391,7 @@ class GuardSchedulingTest extends TestCase
         app(WorkforceService::class)->confirmShift($confirmation);
 
         foreach ([[$pendingAssignment, $this->guard, 'late'], [$confirmedAssignment, $confirmedGuard, 'no_show']] as [$assignment, $guard, $status]) {
-            \App\Models\AttendanceLog::create([
+            AttendanceLog::create([
                 'tenant_id' => $this->tenant->id,
                 'shift_assignment_id' => $assignment->id,
                 'guard_id' => $guard->id,
@@ -395,7 +403,7 @@ class GuardSchedulingTest extends TestCase
         }
 
         Livewire::actingAs($this->admin)
-            ->test(\App\Livewire\Scheduling\ScheduleIndex::class)
+            ->test(ScheduleIndex::class)
             ->set('date', $shift->starts_at->toDateString())
             ->assertSee($this->guard->full_name)
             ->assertSee('Confirmation pending')
@@ -419,7 +427,7 @@ class GuardSchedulingTest extends TestCase
         $cancelled->status = 'cancelled';
         $cancelled->save();
 
-        $stats = app(\App\Services\SchedulingService::class)->overviewStats($this->tenant->id, '2030-06-10');
+        $stats = app(SchedulingService::class)->overviewStats($this->tenant->id, '2030-06-10');
         $this->assertSame(1, $stats['shifts_today']);
         $this->assertSame(0, $stats['open_shifts']);
         $this->assertSame(1, $stats['staffed']);
@@ -514,9 +522,9 @@ class GuardSchedulingTest extends TestCase
     public function test_cannot_assign_guard_outside_availability_window(): void
     {
         $shift = $this->createOpenShift();
-        \App\Models\GuardAvailability::where('guard_id', $this->guard->id)->delete();
+        GuardAvailability::where('guard_id', $this->guard->id)->delete();
 
-        \App\Models\GuardAvailability::create([
+        GuardAvailability::create([
             'tenant_id' => $this->tenant->id,
             'guard_id' => $this->guard->id,
             'weekday' => $shift->starts_at->dayOfWeek,
@@ -545,12 +553,12 @@ class GuardSchedulingTest extends TestCase
         ]);
 
         $assignment = app(ScheduleService::class)->assignGuard($shift, $this->guard);
-        $attendance = app(\App\Services\AttendanceService::class);
+        $attendance = app(AttendanceService::class);
 
         $attendance->clockIn($assignment->id, 5.6, -0.2, enforceGeofence: false);
         $this->assertSame('in_progress', $shift->fresh()->status->value);
 
-        $log = \App\Models\AttendanceLog::where('shift_assignment_id', $assignment->id)->first();
+        $log = AttendanceLog::where('shift_assignment_id', $assignment->id)->first();
         $attendance->clockOut($log->id, 5.6, -0.2);
         $this->assertSame('completed', $shift->fresh()->status->value);
     }

@@ -65,7 +65,16 @@ class VendorIndex extends Component
     public function delete(int $id): void
     {
         abort_unless(auth()->user()->can('equipment.manage'), 403);
-        AssetVendor::findOrFail($id)->delete();
+        $vendor = AssetVendor::findOrFail($id);
+
+        if ($vendor->purchaseOrders()->exists() || $vendor->assets()->exists()) {
+            session()->flash('error', 'Reassign its assets and remove its purchase orders before deletion.');
+
+            return;
+        }
+
+        $vendor->delete();
+        session()->flash('status', 'Vendor deleted.');
     }
 
     private function resetForm(): void

@@ -6,11 +6,13 @@ use App\Livewire\Attendance\ReconciliationBoard;
 use App\Livewire\Scheduling\AttendanceIndex;
 use App\Livewire\Scheduling\OpenShiftsIndex;
 use App\Livewire\Scheduling\ScheduleIndex;
+use App\Livewire\Scheduling\SchedulerWorkspace;
 use App\Livewire\Scheduling\ShiftExchangeIndex;
 use App\Livewire\Scheduling\ShiftTemplateIndex;
 use App\Livewire\Scheduling\TimeOffIndex;
 use App\Models\AttendanceLog;
 use App\Models\Guard;
+use App\Models\GuardAvailability;
 use App\Models\LeaveRequest;
 use App\Models\OpenShiftBid;
 use App\Models\Shift;
@@ -19,7 +21,10 @@ use App\Models\ShiftTemplate;
 use App\Models\Site;
 use App\Models\SitePost;
 use App\Models\User;
+use App\Services\EnterpriseScheduleService;
 use App\Services\ScheduleService;
+use App\Services\WorkforceService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -48,6 +53,12 @@ class SchedulerWorkflowTest extends TestCase
             'site_id' => $site->id, 'title' => 'Workflow audit',
             'starts_at' => '2030-06-10 08:00', 'ends_at' => '2030-06-10 16:00', 'required_guards' => 1,
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_roster_create_edit_assign_and_cancel(): void
@@ -180,6 +191,246 @@ class SchedulerWorkflowTest extends TestCase
             ->set('breakForm.started_at', '2030-06-10T12:00')->call('saveBreak')->assertHasErrors(['breakForm.ended_at'])
             ->set('breakForm.ended_at', '2030-06-10T12:30')->call('saveBreak')->assertHasNoErrors();
         $this->assertDatabaseHas('break_logs', ['attendance_log_id' => $log->id]);
+    }
+
+    public function test_past_open_shift_bid_cannot_be_approved(): void
+    {
+        Carbon::setTestNow('2030-06-10 10:00:00');
+        $this->shift->update([
+            'starts_at' => '2030-06-09 08:00',
+            'ends_at' => '2030-06-09 16:00',
+        ]);
+        $bid = OpenShiftBid::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_id' => $this->shift->id,
+            'guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+
+        try {
+            app(EnterpriseScheduleService::class)->approveBid($bid);
+            $this->fail('A bid for a past shift should not be approved.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('started', $e->getMessage());
+        }
+
+        $this->assertSame('pending', $bid->fresh()->status->value);
+        $this->assertSame(0, $this->shift->fresh()->activeAssignmentsCount());
+    }
+
+    public function test_past_open_shift_cannot_receive_a_new_bid(): void
+    {
+        Carbon::setTestNow('2030-06-10 10:00:00');
+        $this->shift->update([
+            'starts_at' => '2030-06-09 08:00',
+            'ends_at' => '2030-06-09 16:00',
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('already started');
+        app(EnterpriseScheduleService::class)->bidForOpenShift($this->shift, $this->guard);
+    }
+
+    public function test_past_shift_swap_cannot_be_approved(): void
+    {
+        Carbon::setTestNow('2030-06-10 10:00:00');
+        $this->shift->update([
+            'starts_at' => '2030-06-09 08:00',
+            'ends_at' => '2030-06-09 16:00',
+        ]);
+        $assignment = app(ScheduleService::class)->assignGuard($this->shift, $this->guard);
+        $swap = ShiftSwapRequest::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_assignment_id' => $assignment->id,
+            'requested_by_guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+
+        try {
+            app(EnterpriseScheduleService::class)->approveSwap($swap, $this->admin->id);
+            $this->fail('A swap for a past shift should not be approved.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('started', $e->getMessage());
+        }
+
+        $this->assertSame('pending', $swap->fresh()->status->value);
+        $this->assertSame('assigned', $assignment->fresh()->status->value);
+    }
+
+    public function test_past_shift_cannot_receive_a_new_swap_request(): void
+    {
+        Carbon::setTestNow('2030-06-10 10:00:00');
+        $this->shift->update([
+            'starts_at' => '2030-06-09 08:00',
+            'ends_at' => '2030-06-09 16:00',
+        ]);
+        $assignment = app(ScheduleService::class)->assignGuard($this->shift, $this->guard);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('already started');
+        app(EnterpriseScheduleService::class)->requestSwap($assignment, $this->guard);
+    }
+
+    public function test_reviewed_bid_and_swap_cannot_be_rejected_again(): void
+    {
+        $bid = OpenShiftBid::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_id' => $this->shift->id,
+            'guard_id' => $this->guard->id,
+            'status' => 'approved',
+        ]);
+        $assignment = app(ScheduleService::class)->assignGuard($this->shift, $this->guard);
+        $swap = ShiftSwapRequest::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_assignment_id' => $assignment->id,
+            'requested_by_guard_id' => $this->guard->id,
+            'status' => 'approved',
+        ]);
+        $service = app(EnterpriseScheduleService::class);
+
+        foreach ([
+            fn () => $service->rejectBid($bid),
+            fn () => $service->rejectSwap($swap),
+        ] as $reject) {
+            try {
+                $reject();
+                $this->fail('A reviewed request should not change state.');
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('already been reviewed', $e->getMessage());
+            }
+        }
+
+        $this->assertSame('approved', $bid->fresh()->status->value);
+        $this->assertSame('approved', $swap->fresh()->status->value);
+    }
+
+    public function test_bids_remain_pending_until_the_shift_reaches_capacity(): void
+    {
+        Carbon::setTestNow('2030-06-01 10:00:00');
+        $this->shift->update(['required_guards' => 2]);
+        $secondGuard = $this->guard->replicate();
+        $secondGuard->employee_number = 'WORKFLOW-SECOND';
+        $secondGuard->save();
+        $firstBid = OpenShiftBid::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_id' => $this->shift->id,
+            'guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+        $secondBid = OpenShiftBid::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_id' => $this->shift->id,
+            'guard_id' => $secondGuard->id,
+            'status' => 'pending',
+        ]);
+        $service = app(EnterpriseScheduleService::class);
+
+        $service->approveBid($firstBid);
+        $this->assertSame('pending', $secondBid->fresh()->status->value);
+
+        $service->approveBid($secondBid);
+        $this->assertSame('approved', $secondBid->fresh()->status->value);
+        $this->assertSame(2, $this->shift->fresh()->activeAssignmentsCount());
+    }
+
+    public function test_applying_template_twice_creates_each_shift_once(): void
+    {
+        $template = ShiftTemplate::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'name' => 'Once per week',
+            'is_active' => true,
+        ]);
+        $template->items()->create([
+            'site_id' => $this->shift->site_id,
+            'day_of_week' => 1,
+            'start_time' => '08:00',
+            'end_time' => '16:00',
+            'required_guards' => 1,
+        ]);
+        $service = app(WorkforceService::class);
+        $week = Carbon::parse('2030-06-10')->startOfWeek();
+
+        $this->assertSame(1, $service->applyTemplate($template, $week));
+        $this->assertSame(0, $service->applyTemplate($template, $week));
+        $this->assertSame(1, Shift::where('title', 'Once per week · Mon')->count());
+    }
+
+    public function test_reviewed_leave_request_cannot_be_approved_or_rejected_again(): void
+    {
+        $leave = LeaveRequest::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'guard_id' => $this->guard->id,
+            'type' => 'annual',
+            'starts_on' => '2030-07-01',
+            'ends_on' => '2030-07-02',
+            'status' => 'approved',
+        ]);
+
+        Livewire::test(TimeOffIndex::class)
+            ->call('approveLeave', $leave->id)
+            ->assertStatus(422);
+        Livewire::test(TimeOffIndex::class)
+            ->call('rejectLeave', $leave->id)
+            ->assertStatus(422);
+
+        $this->assertSame('approved', $leave->fresh()->status->value);
+    }
+
+    public function test_availability_end_must_follow_start(): void
+    {
+        Livewire::test(TimeOffIndex::class)
+            ->set('availabilityForm.guard_id', (string) $this->guard->id)
+            ->set('availabilityForm.weekday', 1)
+            ->set('availabilityForm.starts_at', '17:00')
+            ->set('availabilityForm.ends_at', '09:00')
+            ->call('saveAvailability')
+            ->assertHasErrors('availabilityForm.ends_at');
+
+        $this->assertSame(0, GuardAvailability::where('guard_id', $this->guard->id)->count());
+    }
+
+    public function test_started_requests_are_visible_as_non_actionable_in_history(): void
+    {
+        Carbon::setTestNow('2030-06-10 10:00:00');
+        $this->shift->update([
+            'starts_at' => '2030-06-09 08:00',
+            'ends_at' => '2030-06-09 16:00',
+        ]);
+        $assignment = app(ScheduleService::class)->assignGuard($this->shift, $this->guard);
+        OpenShiftBid::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_id' => $this->shift->id,
+            'guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+        ShiftSwapRequest::create([
+            'tenant_id' => $this->admin->tenant_id,
+            'shift_assignment_id' => $assignment->id,
+            'requested_by_guard_id' => $this->guard->id,
+            'status' => 'pending',
+        ]);
+
+        Livewire::test(OpenShiftsIndex::class)
+            ->set('bidFilter', 'all')
+            ->assertSee('Shift started')
+            ->assertSee('No action available')
+            ->assertDontSee('Approve bid from');
+
+        Livewire::test(ShiftExchangeIndex::class)
+            ->set('swapFilter', 'all')
+            ->assertSee('Shift started')
+            ->assertSee('No action available')
+            ->assertDontSee('Approve shift exchange for');
+    }
+
+    public function test_scheduler_filters_and_actions_have_accessible_names(): void
+    {
+        Livewire::test(TimeOffIndex::class)
+            ->assertSeeHtml('role="group"')
+            ->assertSeeHtml('aria-label="Leave filter"');
+
+        Livewire::test(SchedulerWorkspace::class)
+            ->assertSeeHtml('aria-current="page"');
     }
 
     private function attendance(string $status, bool $clockIn = true): AttendanceLog

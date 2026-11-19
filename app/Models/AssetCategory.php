@@ -24,6 +24,11 @@ class AssetCategory extends Model
         return $this->hasMany(EquipmentAsset::class, 'asset_category_id');
     }
 
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(AssetPurchaseOrderItem::class, 'asset_category_id');
+    }
+
     public function isConsumable(): bool
     {
         return $this->type === 'consumable';

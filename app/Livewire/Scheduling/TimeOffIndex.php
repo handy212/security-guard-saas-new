@@ -3,20 +3,21 @@
 namespace App\Livewire\Scheduling;
 
 use App\Enums\LeaveStatus;
+use App\Livewire\Concerns\EmbedsInScheduler;
 use App\Models\Guard;
 use App\Models\GuardAvailability;
 use App\Models\LeaveRequest;
 use App\Services\LeaveSchedulingService;
+use App\Support\EnumHelper;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
-use App\Support\EnumHelper;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class TimeOffIndex extends Component
 {
-    use \App\Livewire\Concerns\EmbedsInScheduler;
-
+    use EmbedsInScheduler;
     use WithPagination;
 
     public bool $showLeaveForm = false;
@@ -119,28 +120,43 @@ class TimeOffIndex extends Component
 
     public function approveLeave(int $requestId, LeaveSchedulingService $leaves): void
     {
-        $request = LeaveRequest::with('assignedGuard')
-            ->where('tenant_id', TenantContext::id())
-            ->findOrFail($requestId);
+        $conflictCount = DB::transaction(function () use ($requestId, $leaves) {
+            $request = LeaveRequest::with('assignedGuard')
+                ->where('tenant_id', TenantContext::id())
+                ->lockForUpdate()
+                ->findOrFail($requestId);
+            abort_unless($request->status === LeaveStatus::PENDING, 422, 'This leave request has already been reviewed.');
 
-        $conflicts = $leaves->overlappingShiftsForLeave($request);
-        if ($conflicts->isNotEmpty()) {
-            session()->flash('error', "Cannot approve: {$conflicts->count()} scheduled shift(s) overlap this leave. Unassign the guard or adjust dates first.");
+            $conflicts = $leaves->overlappingShiftsForLeave($request);
+            if ($conflicts->isNotEmpty()) {
+                return $conflicts->count();
+            }
+
+            $request->update([
+                'status' => LeaveStatus::APPROVED,
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+            ]);
+
+            return 0;
+        });
+
+        if ($conflictCount > 0) {
+            session()->flash('error', "Cannot approve: {$conflictCount} scheduled shift(s) overlap this leave. Unassign the guard or adjust dates first.");
 
             return;
         }
 
-        $request->update([
-            'status' => LeaveStatus::APPROVED,
-            'approved_at' => now(),
-            'approved_by' => auth()->id(),
-        ]);
         session()->flash('status', 'Time off approved.');
     }
 
     public function rejectLeave(int $requestId): void
     {
-        LeaveRequest::where('tenant_id', TenantContext::id())->findOrFail($requestId)->update(['status' => LeaveStatus::REJECTED]);
+        DB::transaction(function () use ($requestId) {
+            $request = LeaveRequest::where('tenant_id', TenantContext::id())->lockForUpdate()->findOrFail($requestId);
+            abort_unless($request->status === LeaveStatus::PENDING, 422, 'This leave request has already been reviewed.');
+            $request->update(['status' => LeaveStatus::REJECTED]);
+        });
         session()->flash('status', 'Time off rejected.');
     }
 
@@ -161,7 +177,7 @@ class TimeOffIndex extends Component
             'availabilityForm.guard_id' => ['required', TenantValidation::exists('guards')],
             'availabilityForm.weekday' => 'required|integer|min:0|max:6',
             'availabilityForm.starts_at' => 'required|date_format:H:i',
-            'availabilityForm.ends_at' => 'required|date_format:H:i',
+            'availabilityForm.ends_at' => 'required|date_format:H:i|after:availabilityForm.starts_at',
             'availabilityForm.is_available' => 'boolean',
         ])['availabilityForm'];
 
