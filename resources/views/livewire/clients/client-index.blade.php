@@ -53,7 +53,7 @@
                             <div class="text-sm text-zinc-700 dark:text-zinc-300">{{ $client->email ?: 'No email added' }}</div>
                             <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $client->phone ?: 'No phone added' }}</div>
                         </x-table.td>
-                        <x-table.td responsive="lg" muted>{{ $client->default_monthly_rate ? number_format($client->default_monthly_rate, 2) : '—' }}</x-table.td>
+                        <x-table.td responsive="lg" muted>{{ $client->default_monthly_rate ? money($client->default_monthly_rate) : '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$client->status" /></x-table.td>
                         <x-table.td align="right">
                             <x-row-menu>

@@ -12,14 +12,17 @@ class ProcessOfflineSyncBatch implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public OfflineSyncBatch $batch)
-    {
-    }
+    public function __construct(public OfflineSyncBatch $batch) {}
 
     public function handle(OfflineSyncService $service, TenantScopeService $tenantScope): void
     {
         $tenantScope->runForTenant($this->batch->tenant_id, function () use ($service) {
-            $service->process($this->batch->fresh());
+            $batch = OfflineSyncBatch::whereKey($this->batch->id)->first();
+            if (! $batch || $batch->status !== 'processing') {
+                return;
+            }
+
+            $service->process($batch);
         });
     }
 }

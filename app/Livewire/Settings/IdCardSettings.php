@@ -7,6 +7,7 @@ use App\Services\FileUploadService;
 use App\Services\GuardIdCardPresenter;
 use App\Services\GuardIdCardRenderService;
 use App\Support\TenantContext;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -121,37 +122,40 @@ class IdCardSettings extends Component
 
     public function removeLogo(): void
     {
-        if ($this->existingLogoPath && Storage::disk('public')->exists($this->existingLogoPath)) {
-            Storage::disk('public')->delete($this->existingLogoPath);
-        }
-
+        abort_unless(auth()->user()->can('settings.manage'), 403);
+        $path = $this->existingLogoPath;
         $this->persistSettings($this->currentSettings(['logo_path' => null]));
         $this->existingLogoPath = null;
         $this->logoFile = null;
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
         session()->flash('status', 'Front logo removed.');
     }
 
     public function removeBackLogo(): void
     {
-        if ($this->existingBackLogoPath && Storage::disk('public')->exists($this->existingBackLogoPath)) {
-            Storage::disk('public')->delete($this->existingBackLogoPath);
-        }
-
+        abort_unless(auth()->user()->can('settings.manage'), 403);
+        $path = $this->existingBackLogoPath;
         $this->persistSettings($this->currentSettings(['back_logo_path' => null]));
         $this->existingBackLogoPath = null;
         $this->backLogoFile = null;
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
         session()->flash('status', 'Back logo removed.');
     }
 
     public function removeSignature(): void
     {
-        if ($this->existingSignaturePath && Storage::disk('public')->exists($this->existingSignaturePath)) {
-            Storage::disk('public')->delete($this->existingSignaturePath);
-        }
-
+        abort_unless(auth()->user()->can('settings.manage'), 403);
+        $path = $this->existingSignaturePath;
         $this->persistSettings($this->currentSettings(['signature_path' => null]));
         $this->existingSignaturePath = null;
         $this->signatureFile = null;
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
         session()->flash('status', 'Authorized signature removed.');
     }
 
@@ -183,29 +187,21 @@ class IdCardSettings extends Component
         $logoPath = $this->existingLogoPath;
         $backLogoPath = $this->existingBackLogoPath;
         $signaturePath = $this->existingSignaturePath;
+        $oldPaths = [$logoPath, $backLogoPath, $signaturePath];
 
         if ($this->logoFile) {
-            if ($logoPath && Storage::disk('public')->exists($logoPath)) {
-                Storage::disk('public')->delete($logoPath);
-            }
             $logoPath = $files->storeIdCardLogo(TenantContext::id(), $this->logoFile);
             $this->existingLogoPath = $logoPath;
             $this->logoFile = null;
         }
 
         if ($this->backLogoFile) {
-            if ($backLogoPath && Storage::disk('public')->exists($backLogoPath)) {
-                Storage::disk('public')->delete($backLogoPath);
-            }
             $backLogoPath = $files->storeIdCardLogo(TenantContext::id(), $this->backLogoFile);
             $this->existingBackLogoPath = $backLogoPath;
             $this->backLogoFile = null;
         }
 
         if ($this->signatureFile) {
-            if ($signaturePath && Storage::disk('public')->exists($signaturePath)) {
-                Storage::disk('public')->delete($signaturePath);
-            }
             $signaturePath = $files->storeIdCardSignature(TenantContext::id(), $this->signatureFile);
             $this->existingSignaturePath = $signaturePath;
             $this->signatureFile = null;
@@ -228,10 +224,18 @@ class IdCardSettings extends Component
             'signature_path' => $signaturePath,
         ]));
 
+        foreach ($oldPaths as $oldPath) {
+            if ($oldPath
+                && ! in_array($oldPath, [$logoPath, $backLogoPath, $signaturePath], true)
+                && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
         session()->flash('status', 'ID card settings saved.');
     }
 
-    public function render(GuardIdCardPresenter $presenter, GuardIdCardRenderService $renderer): \Illuminate\Contracts\View\View
+    public function render(GuardIdCardPresenter $presenter, GuardIdCardRenderService $renderer): View
     {
         $tenant = TenantContext::current();
         abort_unless($tenant, 403);

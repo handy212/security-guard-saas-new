@@ -2,25 +2,29 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\IncidentSeverity;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessOfflineSyncBatch;
 use App\Models\AttendanceLog;
 use App\Models\DispatchEvent;
 use App\Models\Guard;
 use App\Models\OfflineSyncBatch;
+use App\Models\PatrolSession;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\VisitorLog;
 use App\Services\AttendanceService;
+use App\Services\CustomReportService;
 use App\Services\DispatchService;
 use App\Services\EnterpriseScheduleService;
+use App\Services\GuardLocationService;
 use App\Services\IncidentService;
 use App\Services\PatrolService;
+use App\Services\WorkforceService;
+use App\Support\TenantValidation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use App\Enums\IncidentSeverity;
-use App\Support\TenantValidation;
 use RuntimeException;
 
 class MobileAppController extends Controller
@@ -79,7 +83,7 @@ class MobileAppController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $session = \App\Models\PatrolSession::query()
+        $session = PatrolSession::query()
             ->where('id', $data['patrol_session_id'])
             ->where('guard_id', $this->guardId($request))
             ->where('tenant_id', $request->user()->tenant_id)
@@ -144,7 +148,7 @@ class MobileAppController extends Controller
         return $service->advanceStatus($dispatchEvent, $request->user()->id);
     }
 
-    public function updateLocation(Request $request, \App\Services\GuardLocationService $locations): JsonResponse
+    public function updateLocation(Request $request, GuardLocationService $locations): JsonResponse
     {
         $data = $request->validate([
             'latitude' => ['required', 'numeric'],
@@ -172,6 +176,7 @@ class MobileAppController extends Controller
             'status' => 'pending',
         ]);
 
+        $batch->update(['status' => 'processing']);
         ProcessOfflineSyncBatch::dispatch($batch);
 
         return response()->json(['batch_id' => $batch->id, 'status' => 'queued']);
@@ -207,7 +212,7 @@ class MobileAppController extends Controller
         return response()->json($visitorLog);
     }
 
-    public function saveReportDraft(Request $request, \App\Services\CustomReportService $reports): JsonResponse
+    public function saveReportDraft(Request $request, CustomReportService $reports): JsonResponse
     {
         $data = $request->validate([
             'report_template_id' => ['required', 'integer'],
@@ -227,7 +232,7 @@ class MobileAppController extends Controller
         return response()->json($submission);
     }
 
-    public function submitCustomReport(Request $request, \App\Services\CustomReportService $reports): JsonResponse
+    public function submitCustomReport(Request $request, CustomReportService $reports): JsonResponse
     {
         $data = $request->validate([
             'report_template_id' => ['required', 'integer'],
@@ -247,7 +252,7 @@ class MobileAppController extends Controller
         return response()->json($reports->submit($submission));
     }
 
-    public function confirmShift(Request $request, \App\Services\WorkforceService $workforce): JsonResponse
+    public function confirmShift(Request $request, WorkforceService $workforce): JsonResponse
     {
         $data = $request->validate(['shift_assignment_id' => ['required', 'integer']]);
         $assignment = $this->ownedAssignment($request, $data['shift_assignment_id']);

@@ -6,6 +6,7 @@ use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\NotificationTemplate;
 use App\Support\TenantContext;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class NotificationTemplateIndex extends Component
@@ -43,7 +44,16 @@ class NotificationTemplateIndex extends Component
         abort_unless(auth()->user()->can('settings.manage'), 403);
 
         $data = $this->validate([
-            'form.code' => 'required|string|max:120',
+            'form.code' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('notification_templates', 'code')
+                    ->where(fn ($query) => $query
+                        ->where('tenant_id', TenantContext::id())
+                        ->where('channel', $this->form['channel']))
+                    ->ignore($this->editingId),
+            ],
             'form.channel' => 'required|in:mail,sms,database',
             'form.subject' => 'nullable|string|max:255',
             'form.body' => 'required|string|max:5000',

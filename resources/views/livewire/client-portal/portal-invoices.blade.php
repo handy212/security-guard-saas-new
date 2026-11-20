@@ -9,7 +9,7 @@
     <div class="stat-grid mb-4">
         <x-stat-card compact label="Open" :value="$stats['open']" icon="billing" :tone="$stats['open'] ? 'warning' : 'default'" />
         <x-stat-card compact label="Paid" :value="$stats['paid']" icon="check" tone="success" />
-        <x-stat-card compact label="Balance due" :value="'₦'.number_format($stats['balance'], 0)" icon="pause" tone="info" />
+        <x-stat-card compact label="Balance due" :value="money($stats['balance'], 0)" icon="pause" tone="info" />
     </div>
 
     <x-page-toolbar>
@@ -45,8 +45,8 @@
                     </x-table.td>
                     <x-table.td muted class="tabular-nums">{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
                     <x-table.td responsive="md" muted class="tabular-nums">{{ $invoice->due_date?->format('M j, Y') ?? '—' }}</x-table.td>
-                    <x-table.td class="font-semibold tabular-nums">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
-                    <x-table.td responsive="lg" muted class="tabular-nums">₦{{ number_format($balance, 2) }}</x-table.td>
+                    <x-table.td class="font-semibold tabular-nums">{{ money($invoice->grand_total) }}</x-table.td>
+                    <x-table.td responsive="lg" muted class="tabular-nums">{{ money($balance) }}</x-table.td>
                     <x-table.td><x-badge :status="$invoice->status" /></x-table.td>
                     <x-table.td align="right">
                         <div class="table-inline-actions justify-end">

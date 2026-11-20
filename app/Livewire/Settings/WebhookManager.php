@@ -5,6 +5,7 @@ namespace App\Livewire\Settings;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\WebhookSubscription;
+use App\Rules\SafeWebhookUrl;
 use App\Services\WebhookDeliveryService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -46,7 +47,7 @@ class WebhookManager extends Component
     {
         $this->validate([
             'event' => 'required|string|max:120',
-            'targetUrl' => 'required|url|max:255',
+            'targetUrl' => ['required', 'url', 'max:255', new SafeWebhookUrl],
         ]);
 
         if ($this->editingId) {

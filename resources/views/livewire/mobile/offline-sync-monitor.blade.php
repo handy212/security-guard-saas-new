@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Offline Sync Monitor" description="Review and process guard mobile offline sync batches.">
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <div class="stat-grid">

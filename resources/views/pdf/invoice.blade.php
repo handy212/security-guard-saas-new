@@ -57,8 +57,8 @@
             <tr>
                 <td>{{ $item->description }}</td>
                 <td class="right">{{ number_format($item->quantity, 2) }}</td>
-                <td class="right">{{ number_format($item->unit_price, 2) }}</td>
-                <td class="right">{{ number_format($item->line_total, 2) }}</td>
+                <td class="right">{{ money($item->unit_price) }}</td>
+                <td class="right">{{ money($item->line_total) }}</td>
             </tr>
         @empty
             <tr><td colspan="4">No line items</td></tr>
@@ -69,19 +69,19 @@
     <table class="totals">
         <tr>
             <td class="muted">Subtotal</td>
-            <td class="right">{{ number_format($invoice->subtotal, 2) }}</td>
+            <td class="right">{{ money($invoice->subtotal) }}</td>
         </tr>
         <tr>
             <td class="muted">Tax</td>
-            <td class="right">{{ number_format($invoice->tax_total, 2) }}</td>
+            <td class="right">{{ money($invoice->tax_total) }}</td>
         </tr>
         <tr>
             <td class="muted">Paid</td>
-            <td class="right">{{ number_format($invoice->amount_paid ?? 0, 2) }}</td>
+            <td class="right">{{ money($invoice->amount_paid ?? 0) }}</td>
         </tr>
         <tr class="grand">
             <td>Balance due</td>
-            <td class="right">{{ number_format(max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0)), 2) }}</td>
+            <td class="right">{{ money(max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0))) }}</td>
         </tr>
     </table>
 

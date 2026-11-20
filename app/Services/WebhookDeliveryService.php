@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\WebhookSubscription;
+use App\Rules\SafeWebhookUrl;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class WebhookDeliveryService
@@ -17,10 +20,25 @@ class WebhookDeliveryService
             ->get();
 
         foreach ($subscriptions as $subscription) {
+            $validation = Validator::make(
+                ['target_url' => $subscription->target_url],
+                ['target_url' => ['required', new SafeWebhookUrl]]
+            );
+
+            if ($validation->fails()) {
+                Log::warning('Unsafe webhook destination blocked', [
+                    'subscription_id' => $subscription->id,
+                    'tenant_id' => $subscription->tenant_id,
+                ]);
+
+                continue;
+            }
+
             $body = json_encode(['event' => $event, 'payload' => $payload]);
             $signature = hash_hmac('sha256', $body, $subscription->secret);
 
             $response = Http::timeout(10)
+                ->withoutRedirecting()
                 ->withHeaders(['X-GuardOps-Signature' => $signature])
                 ->post($subscription->target_url, json_decode($body, true));
 

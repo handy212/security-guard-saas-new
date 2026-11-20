@@ -15,13 +15,13 @@
             </x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace id-card-settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />
 
-            <div class="grid gap-8 xl:grid-cols-[minmax(0,400px)_minmax(300px,360px)] xl:items-start">
-            <div class="space-y-4">
+            <div class="id-card-settings-grid">
+            <div class="min-w-0 space-y-4">
                 <x-section-card title="Template & colors" description="Style, orientation, brand colors, and front logo.">
                     <form wire:submit="save" class="space-y-5">
                         <div>
@@ -71,7 +71,7 @@
                         <div>
                             <label class="form-label">Theme colors</label>
                             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Pick a preset or set custom primary and dark shades.</p>
-                            <div class="mt-2 grid grid-cols-8 gap-1.5">
+                            <div class="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
                                 @foreach ($colorPresets as $preset)
                                     <button
                                         type="button"
@@ -83,6 +83,7 @@
                                         ])
                                         style="background: linear-gradient(135deg, {{ $preset['primary'] }} 50%, {{ $preset['dark'] }} 50%);"
                                         title="{{ $preset['label'] ?? $preset['primary'] }}"
+                                        aria-label="Use {{ $preset['label'] ?? $preset['primary'] }} color preset"
                                     ></button>
                                 @endforeach
                             </div>
@@ -90,15 +91,15 @@
                                 <div>
                                     <label class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Primary</label>
                                     <div class="mt-1 flex items-center gap-2">
-                                        <input wire:model.live="brandColor" type="color" class="h-9 w-10 cursor-pointer rounded border border-zinc-200 bg-white p-0.5 dark:border-zinc-700">
-                                        <input wire:model.live="brandColor" type="text" class="form-input text-xs uppercase" maxlength="7">
+                                        <input wire:model.live="brandColor" type="color" aria-label="Primary color picker" class="h-9 w-10 cursor-pointer rounded border border-zinc-200 bg-white p-0.5 dark:border-zinc-700">
+                                        <input wire:model.live="brandColor" type="text" aria-label="Primary color value" class="form-input min-w-0 text-xs uppercase" maxlength="7">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Dark shade</label>
                                     <div class="mt-1 flex items-center gap-2">
-                                        <input wire:model.live="brandColorDark" type="color" class="h-9 w-10 cursor-pointer rounded border border-zinc-200 bg-white p-0.5 dark:border-zinc-700">
-                                        <input wire:model.live="brandColorDark" type="text" class="form-input text-xs uppercase" maxlength="7">
+                                        <input wire:model.live="brandColorDark" type="color" aria-label="Dark color picker" class="h-9 w-10 cursor-pointer rounded border border-zinc-200 bg-white p-0.5 dark:border-zinc-700">
+                                        <input wire:model.live="brandColorDark" type="text" aria-label="Dark color value" class="form-input min-w-0 text-xs uppercase" maxlength="7">
                                     </div>
                                 </div>
                             </div>
@@ -117,7 +118,7 @@
                                     <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-[10px] text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">No logo</div>
                                 @endif
                                 <div class="flex flex-col gap-1">
-                                    <input wire:model.live="logoFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="logoFile" type="file" accept="image/*" aria-label="Upload front logo" class="form-input min-w-0 text-xs">
                                     @if ($logoUrl)
                                         <button type="button" wire:click="removeLogo" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove front logo</button>
                                     @endif
@@ -147,7 +148,7 @@
                                     <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-[10px] text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">Default</div>
                                 @endif
                                 <div class="flex flex-col gap-1">
-                                    <input wire:model.live="backLogoFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="backLogoFile" type="file" accept="image/*" aria-label="Upload back logo" class="form-input min-w-0 text-xs">
                                     @if ($backLogoUrl)
                                         <button type="button" wire:click="removeBackLogo" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove back logo</button>
                                     @endif
@@ -169,7 +170,7 @@
                                 </div>
                                 <p class="mt-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-zinc-500">Authorized signature</p>
                                 <div class="mt-3 flex flex-col gap-1.5">
-                                    <input wire:model.live="signatureFile" type="file" accept="image/*" class="form-input text-xs">
+                                    <input wire:model.live="signatureFile" type="file" accept="image/*" aria-label="Upload authorized signature" class="form-input min-w-0 text-xs">
                                     @if ($signatureUrl)
                                         <button type="button" wire:click="removeSignature" class="text-left text-xs font-semibold text-red-600 hover:underline dark:text-red-400">Remove signature</button>
                                     @endif
@@ -192,7 +193,7 @@
                 </x-section-card>
             </div>
 
-            <div class="xl:sticky xl:top-4">
+            <div class="min-w-0 xl:sticky xl:top-4">
                 <x-section-card title="Live preview">
                     <div class="mb-4 flex justify-center">
                         <x-segment-control

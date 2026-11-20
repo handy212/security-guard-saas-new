@@ -49,7 +49,7 @@
                     <x-stat-card compact label="Active sites" :value="$snapshot->active_sites" icon="sites" />
                     <x-stat-card compact label="Late shifts" :value="$snapshot->late_shifts" icon="schedules" :tone="$snapshot->late_shifts ? 'warning' : 'default'" />
                     <x-stat-card compact label="No-shows" :value="$snapshot->no_show_shifts" icon="guards" :tone="$snapshot->no_show_shifts ? 'warning' : 'default'" />
-                    <x-stat-card compact label="Revenue (day)" :value="'₦'.number_format($snapshot->revenue_total, 0)" icon="billing" />
+                    <x-stat-card compact label="Revenue (day)" :value="money($snapshot->revenue_total, 0)" icon="billing" />
                 </div>
 
                 <div class="page-grid-2">
@@ -145,7 +145,7 @@
                                     <x-table.td muted class="tabular-nums">{{ $row->missed_patrols }}</x-table.td>
                                     <x-table.td responsive="md" muted class="tabular-nums">{{ $row->late_shifts }}</x-table.td>
                                     <x-table.td responsive="md" muted class="tabular-nums">{{ $row->no_show_shifts }}</x-table.td>
-                                    <x-table.td class="tabular-nums">₦{{ number_format($row->revenue_total, 0) }}</x-table.td>
+                                    <x-table.td class="tabular-nums">{{ money($row->revenue_total, 0) }}</x-table.td>
                                 </tr>
                             @empty
                                 <x-table.empty colspan="8"><x-empty-state title="No history yet" /></x-table.empty>

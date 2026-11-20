@@ -1,11 +1,11 @@
 <div>
     <x-page-shell title="Team passwords" description="Reset passwords when a team member forgets their login.">
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <div class="stat-grid">
                 <x-stat-card compact label="Team members" :value="$users->count()" icon="users" />
-                <x-stat-card compact label="Admins" :value="$users->filter(fn ($u) => $u->hasRole('admin'))->count()" icon="plan" tone="info" />
+                <x-stat-card compact label="Admins" :value="$users->filter(fn ($u) => $u->hasRole('company-admin'))->count()" icon="plan" tone="info" />
                 <x-stat-card compact label="Selected" :value="$selectedUserId ? '1' : '0'" icon="check" />
                 <x-stat-card compact label="Tenant" :value="auth()->user()->tenant?->name ?? '—'" icon="billing" />
             </div>
@@ -30,7 +30,7 @@
                                 <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $user->name }}</p>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $user->email }}</p>
                             </div>
-                            <x-button type="button" size="sm" variant="secondary" wire:click="selectUser({{ $user->id }})">Reset password</x-button>
+                            <x-button type="button" size="sm" variant="secondary" wire:click="selectUser({{ $user->id }})" class="shrink-0">Reset</x-button>
                         @endif
                     </div>
                 @empty

@@ -35,7 +35,7 @@ class InvoiceDeliveryService
             '',
             "Please find invoice {$invoice->invoice_number} attached.",
             "Client: {$clientName}",
-            'Amount due: ₦'.number_format(max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0)), 2),
+            'Amount due: '.money(max(0, (float) $invoice->grand_total - (float) ($invoice->amount_paid ?? 0)), 2, $invoice->clientAccount?->tenant),
             'Due date: '.($invoice->due_date?->format('M j, Y') ?? '—'),
             $message ? '' : null,
             $message ?: null,

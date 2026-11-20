@@ -19,7 +19,7 @@
                 <div class="list-row" wire:key="portal-pay-{{ $payment->id }}">
                     <div class="min-w-0 flex-1">
                         <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-                            ₦{{ number_format($payment->amount, 2) }}
+                            {{ money($payment->amount) }}
                             <span class="font-normal text-zinc-500 dark:text-zinc-400">· {{ str_replace('_', ' ', $payment->payment_method) }}</span>
                         </div>
                         <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $payment->paid_at?->format('M j, Y') }}</div>
@@ -29,7 +29,7 @@
                 <div class="p-3">
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         @if ($balance > 0)
-                            No payments recorded yet. Balance due: <span class="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">₦{{ number_format($balance, 2) }}</span>.
+                            No payments recorded yet. Balance due: <span class="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">{{ money($balance) }}</span>.
                         @else
                             This invoice is fully paid.
                         @endif

@@ -11,7 +11,7 @@
             <x-button wire:click="openForm">Add template</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <x-flash-status />

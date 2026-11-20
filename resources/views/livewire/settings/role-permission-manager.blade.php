@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Roles & Permissions" description="Define roles and assign granular access controls.">
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <div class="stat-grid">
@@ -17,7 +17,7 @@
                 </form>
             </x-form-card>
 
-            <div class="space-y-3">
+            <div class="space-y-3 min-w-0">
                 @forelse($roles as $role)
                     <x-section-card :title="str($role->name)->headline()" :description="$role->name">
                         <x-slot:actions>

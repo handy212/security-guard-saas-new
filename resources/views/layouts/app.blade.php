@@ -30,10 +30,20 @@
             this.sidebarCollapsed = !this.sidebarCollapsed;
             document.documentElement.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
             localStorage.setItem('GuardCore Pro-sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
+        },
+        openCommand() {
+            this.commandOpen = true;
+            this.$nextTick(() => {
+                window.setTimeout(() => document.getElementById('workspace-command-query')?.focus(), 0);
+            });
+        },
+        closeCommand() {
+            this.commandOpen = false;
+            this.$nextTick(() => document.getElementById('workspace-command-trigger')?.focus());
         }
     }"
-    @keydown.window.cmd.k.prevent="commandOpen = true"
-    @keydown.window.ctrl.k.prevent="commandOpen = true"
+    @keydown.window.cmd.k.prevent="openCommand()"
+    @keydown.window.ctrl.k.prevent="openCommand()"
 >
 <div>
     <div
@@ -45,6 +55,10 @@
 
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        :aria-hidden="!sidebarOpen && window.innerWidth < 1024 ? 'true' : null"
+        aria-label="Primary navigation"
+        x-trap.noscroll="sidebarOpen && window.innerWidth < 1024"
+        @keydown.escape.window="sidebarOpen = false"
         class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
         <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
@@ -61,10 +75,21 @@
             </a>
             <button
                 type="button"
+                @click="sidebarOpen = false"
+                class="inline-flex rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 lg:hidden"
+                aria-label="Close navigation"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-width="2" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <button
+                type="button"
                 @click="toggleSidebarCollapse()"
                 class="hidden rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 lg:inline-flex"
+                :aria-expanded="!sidebarCollapsed"
                 :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-                aria-label="Toggle sidebar"
+                :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
             >
                 <svg class="h-4 w-4 transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>

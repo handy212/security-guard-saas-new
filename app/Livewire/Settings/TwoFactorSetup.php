@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Services\TwoFactorService;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Component;
 
 class TwoFactorSetup extends Component
@@ -20,6 +21,7 @@ class TwoFactorSetup extends Component
 
     public function enable(TwoFactorService $twoFactor): void
     {
+        $this->throttle();
         $this->validate(['code' => 'required|string|size:6']);
 
         $secret = $this->secret ?? auth()->user()->two_factor_secret;
@@ -32,11 +34,13 @@ class TwoFactorSetup extends Component
         ]);
 
         session(['two_factor_passed' => true]);
+        RateLimiter::clear('two-factor:'.auth()->id());
         session()->flash('status', 'Two-factor authentication enabled.');
     }
 
     public function verify(TwoFactorService $twoFactor): void
     {
+        $this->throttle();
         $this->validate(['code' => 'required|string|size:6']);
 
         abort_unless(
@@ -46,8 +50,17 @@ class TwoFactorSetup extends Component
         );
 
         session(['two_factor_passed' => true]);
+        RateLimiter::clear('two-factor:'.auth()->id());
 
         $this->redirectIntended(route('dashboard'));
+    }
+
+    private function throttle(): void
+    {
+        $key = 'two-factor:'.auth()->id();
+        if (! RateLimiter::attempt($key, 5, fn () => true)) {
+            abort(429, 'Too many verification attempts. Try again in one minute.');
+        }
     }
 
     public function render()

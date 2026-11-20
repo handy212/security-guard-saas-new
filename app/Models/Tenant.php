@@ -18,7 +18,7 @@ class Tenant extends Model
     }
 
     protected $fillable = [
-        'name', 'slug', 'domain', 'subdomain', 'status', 'plan_id', 'trial_ends_at',
+        'name', 'slug', 'domain', 'subdomain', 'status', 'currency', 'plan_id', 'trial_ends_at',
         'paystack_customer_code', 'paystack_subscription_code',
     ];
 

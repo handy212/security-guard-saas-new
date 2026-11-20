@@ -45,7 +45,7 @@
                             <div class="grid gap-3 sm:grid-cols-2">
                                 <x-input wire:model.live="items.{{ $i }}.description" label="Description *" class="sm:col-span-2" />
                                 <x-input wire:model.live="items.{{ $i }}.quantity" type="number" step="0.01" label="Qty *" />
-                                <x-input wire:model.live="items.{{ $i }}.unit_price" type="number" step="0.01" label="Unit price (₦) *" />
+                                <x-input wire:model.live="items.{{ $i }}.unit_price" type="number" step="0.01" :label="'Unit price ('.currency_symbol().') *'" />
                             </div>
                         </div>
                     @endforeach
@@ -56,7 +56,7 @@
                 @endphp
                 <div class="billing-form-total">
                     <span>Invoice total</span>
-                    <strong>₦{{ number_format($formTotal, 2) }}</strong>
+                    <strong>{{ money($formTotal) }}</strong>
                 </div>
 
                 <x-slot:footer>

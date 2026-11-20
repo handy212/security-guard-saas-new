@@ -4,15 +4,15 @@
             <x-button wire:click="openCreate">Invite staff</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <x-flash-status />
 
             <div class="stat-grid">
                 <x-stat-card compact label="Staff users" :value="$users->total()" icon="users" />
-                <x-stat-card compact label="Active" :value="$users->getCollection()->where('status', 'active')->count()" icon="check" tone="success" />
-                <x-stat-card compact label="Inactive" :value="$users->getCollection()->where('status', 'inactive')->count()" icon="plan" />
+                <x-stat-card compact label="Active" :value="$activeCount" icon="check" tone="success" />
+                <x-stat-card compact label="Inactive" :value="$inactiveCount" icon="plan" />
             </div>
 
             <x-page-toolbar search="search" searchPlaceholder="Search by name or email…" />

@@ -28,7 +28,7 @@ class PaystackBillingService
             ->post(config('paystack.base_url').'/transaction/initialize', [
                 'email' => $email,
                 'amount' => $this->amountInSubunit($plan->monthly_price),
-                'currency' => config('paystack.currency', 'NGN'),
+                'currency' => app(TenantCurrencyService::class)->code($tenant),
                 'reference' => $reference,
                 'callback_url' => route('billing.paystack.callback'),
                 'metadata' => [

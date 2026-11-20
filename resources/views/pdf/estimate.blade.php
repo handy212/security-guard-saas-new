@@ -57,8 +57,8 @@
             <tr>
                 <td>{{ $item->description }}</td>
                 <td class="right">{{ number_format($item->quantity, 2) }}</td>
-                <td class="right">{{ number_format($item->unit_price, 2) }}</td>
-                <td class="right">{{ number_format($item->line_total, 2) }}</td>
+                <td class="right">{{ money($item->unit_price) }}</td>
+                <td class="right">{{ money($item->line_total) }}</td>
             </tr>
         @empty
             <tr><td colspan="4">No line items</td></tr>
@@ -69,15 +69,15 @@
     <table class="totals">
         <tr>
             <td class="muted">Subtotal</td>
-            <td class="right">{{ number_format($estimate->subtotal, 2) }}</td>
+            <td class="right">{{ money($estimate->subtotal) }}</td>
         </tr>
         <tr>
             <td class="muted">Tax</td>
-            <td class="right">{{ number_format($estimate->tax_total, 2) }}</td>
+            <td class="right">{{ money($estimate->tax_total) }}</td>
         </tr>
         <tr class="grand">
             <td>Grand total</td>
-            <td class="right">{{ number_format($estimate->grand_total, 2) }}</td>
+            <td class="right">{{ money($estimate->grand_total) }}</td>
         </tr>
     </table>
 

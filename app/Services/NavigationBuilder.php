@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Support\TenantContext;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class NavigationBuilder
 {
@@ -132,7 +133,7 @@ class NavigationBuilder
             'Assets' => 'Assets',
             'Settings' => 'Settings',
             'Patrols & Reports' => 'Patrols',
-            'Workforce' => 'Workforce',
+            'Workforce' => 'People',
             'Guardians' => 'Guards',
             'Clients' => 'Clients',
             'Sites' => 'Sites',
@@ -146,10 +147,10 @@ class NavigationBuilder
             'Subscriptions' => 'Billing',
             'Live ops' => 'Live',
             'Libraries' => 'Res',
-            'Resources' => 'Res',
+            'Resources' => 'Tools',
         ];
 
-        return $map[$label] ?? \Illuminate\Support\Str::limit($label, 8, '');
+        return $map[$label] ?? Str::limit($label, 8, '');
     }
 
     public function footer(): Collection
@@ -215,7 +216,8 @@ class NavigationBuilder
         }
 
         if ($link['href'] === '/billing') {
-            return request()->is('billing') || request()->is('billing/*')
+            return (request()->is('billing') || request()->is('billing/*'))
+                && ! request()->is('billing/subscription*')
                 || request()->is('compliance') || request()->is('compliance/*')
                 || request()->is('analytics');
         }
@@ -291,6 +293,9 @@ class NavigationBuilder
             }
         }
 
-        return $items;
+        return collect($items)
+            ->unique('href')
+            ->values()
+            ->all();
     }
 }

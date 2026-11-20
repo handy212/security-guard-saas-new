@@ -21,7 +21,7 @@
             <x-flash-status type="success" />
 
             <div class="stat-grid">
-                <x-stat-card compact label="Amount due" :value="'₦'.number_format($stats['amount_due'], 0)" icon="billing" tone="warning" />
+                <x-stat-card compact label="Amount due" :value="money($stats['amount_due'], 0)" icon="billing" tone="warning" />
                 <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
                 <x-stat-card compact label="Sent" :value="$stats['sent']" icon="check" tone="info" />
                 <x-stat-card compact label="Paid" :value="$stats['paid']" icon="check" tone="success" />
@@ -93,8 +93,8 @@
                             </x-table.td>
                             <x-table.td responsive="md">{{ $invoice->clientAccount?->name }}</x-table.td>
                             <x-table.td responsive="md" muted class="tabular-nums">{{ $invoice->invoice_date?->format('M j, Y') }}</x-table.td>
-                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($invoice->grand_total, 2) }}</x-table.td>
-                            <x-table.td muted class="tabular-nums">₦{{ number_format($balance, 2) }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">{{ money($invoice->grand_total) }}</x-table.td>
+                            <x-table.td muted class="tabular-nums">{{ money($balance) }}</x-table.td>
                             <x-table.td><x-badge :status="$invoice->status" /></x-table.td>
                             <x-table.td align="right">
                                 <x-row-menu>
@@ -175,7 +175,7 @@
     @if ($payingInvoice)
         <x-drawer
             title="Record payment"
-            :description="'Invoice '.$payingInvoice->invoice_number.' · Remaining ₦'.number_format(max(0, $payingInvoice->grand_total - ($payingInvoice->amount_paid ?? 0)), 2)"
+            :description="'Invoice '.$payingInvoice->invoice_number.' · Remaining '.money(max(0, $payingInvoice->grand_total - ($payingInvoice->amount_paid ?? 0)))"
             width="md"
             close-method="closePayment"
         >

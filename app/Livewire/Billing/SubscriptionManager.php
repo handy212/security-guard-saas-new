@@ -6,6 +6,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\TenantSubscription;
 use App\Services\PaystackBillingService;
 use App\Services\PlanEntitlementService;
+use App\Services\TenantCurrencyService;
 use App\Support\TenantContext;
 use Livewire\Component;
 
@@ -58,7 +59,7 @@ class SubscriptionManager extends Component
             'plans' => SubscriptionPlan::where('status', 'active')->orderBy('monthly_price')->get(),
             'usage' => $entitlements->usageSummary($tenantId),
             'paystackConfigured' => app(PaystackBillingService::class)->isConfigured(),
-            'currency' => config('paystack.currency', 'NGN'),
+            'currency' => app(TenantCurrencyService::class)->code(),
             'activeSubscription' => $activeSubscription,
             'currentPlan' => $currentPlan,
             'currentPlanId' => $currentPlan?->id,

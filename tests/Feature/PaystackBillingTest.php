@@ -18,9 +18,9 @@ class PaystackBillingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed();
         Config::set('paystack.secret_key', 'sk_test_guardops');
         Config::set('paystack.public_key', 'pk_test_guardops');
-        Config::set('paystack.currency', 'NGN');
     }
 
     public function test_initialize_checkout_returns_authorization_url(): void
@@ -34,20 +34,21 @@ class PaystackBillingTest extends TestCase
 
         $tenant = Tenant::create(['name' => 'Pay Co', 'slug' => 'pay-co', 'status' => 'active']);
         $plan = SubscriptionPlan::create([
-            'name' => 'Starter', 'slug' => 'starter', 'monthly_price' => 9900,
+            'name' => 'Checkout Test', 'slug' => 'checkout-test', 'monthly_price' => 9900,
             'max_guards' => 10, 'max_sites' => 5, 'status' => 'active',
         ]);
 
         $url = app(PaystackBillingService::class)->initializeCheckout($tenant, $plan, 'admin@test.com');
 
         $this->assertEquals('https://checkout.paystack.com/test', $url);
+        Http::assertSent(fn ($request) => $request['currency'] === 'GHS');
     }
 
     public function test_successful_charge_activates_subscription(): void
     {
         $tenant = Tenant::create(['name' => 'Active Co', 'slug' => 'active-co', 'status' => 'active']);
         $plan = SubscriptionPlan::create([
-            'name' => 'Pro', 'slug' => 'pro', 'monthly_price' => 19900,
+            'name' => 'Activation Test', 'slug' => 'activation-test', 'monthly_price' => 19900,
             'max_guards' => 50, 'max_sites' => 20, 'status' => 'active',
         ]);
 

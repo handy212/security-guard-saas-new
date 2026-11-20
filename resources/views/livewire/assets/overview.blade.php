@@ -69,7 +69,7 @@
                 </div>
                 <a href="{{ route('assets.categories') }}" wire:navigate><span>Categories</span><strong>{{ $stats['categories'] }}</strong></a>
                 <a href="{{ route('assets.vendors') }}" wire:navigate><span>Vendors</span><strong>{{ $stats['vendors'] }}</strong></a>
-                <div><span>Asset value</span><strong>${{ number_format($stats['asset_value'], 0) }}</strong></div>
+                <div><span>Asset value</span><strong>{{ money($stats['asset_value'], 0) }}</strong></div>
                 <a href="{{ route('assets.index', ['warranty' => 'expiring']) }}" wire:navigate><span>Warranty alerts</span><strong>{{ $stats['warranty_expiring'] }}</strong></a>
             </section>
 

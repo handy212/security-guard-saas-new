@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\WebhookSubscription;
 use App\Services\WebhookDeliveryService;
+use App\Rules\SafeWebhookUrl;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class WebhookController extends AdminController
 
         $data = $request->validate([
             'event' => ['required', 'string', 'max:120'],
-            'target_url' => ['required', 'url', 'max:255'],
+            'target_url' => ['required', 'url', 'max:255', new SafeWebhookUrl()],
             'is_active' => ['boolean'],
         ]);
 
@@ -55,7 +56,7 @@ class WebhookController extends AdminController
 
         $data = $request->validate([
             'event' => ['sometimes', 'required', 'string', 'max:120'],
-            'target_url' => ['sometimes', 'required', 'url', 'max:255'],
+            'target_url' => ['sometimes', 'required', 'url', 'max:255', new SafeWebhookUrl()],
             'is_active' => ['boolean'],
         ]);
 

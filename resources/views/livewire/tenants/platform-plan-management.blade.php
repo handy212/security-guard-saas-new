@@ -36,7 +36,7 @@
                     </div>
                     <div class="flex flex-1 flex-col gap-3 p-4">
                         <div>
-                            <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">${{ number_format($plan->monthly_price, 0) }}</span>
+                            <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">{{ money($plan->monthly_price, 0) }}</span>
                             <span class="text-sm text-zinc-500">/mo</span>
                         </div>
                         <p class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">

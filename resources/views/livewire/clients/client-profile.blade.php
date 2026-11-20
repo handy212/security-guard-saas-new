@@ -82,7 +82,7 @@
                             </div>
                             <div class="profile-dl-row">
                                 <dt class="profile-dl-label">Default monthly rate</dt>
-                                <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->default_monthly_rate ? '₦'.number_format($clientAccount->default_monthly_rate, 2) : '—' }}</dd>
+                                <dd class="profile-dl-value tabular-nums font-normal">{{ $clientAccount->default_monthly_rate ? money($clientAccount->default_monthly_rate) : '—' }}</dd>
                             </div>
                             <div class="profile-dl-row">
                                 <dt class="profile-dl-label">Contacts</dt>

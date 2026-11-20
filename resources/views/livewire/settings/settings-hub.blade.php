@@ -4,8 +4,33 @@
         description="Organization setup, access control, and integrations."
         :breadcrumbs="[['label' => 'Settings']]"
     >
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
+
+            <x-flash-status type="success" />
+
+            <x-form-card
+                title="Organization currency"
+                description="One currency is used across billing, expenses, assets, reports, invoices, and online payments."
+            >
+                <form wire:submit="saveCurrency" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div class="min-w-0 flex-1">
+                        <label for="organization-currency" class="form-label">Currency</label>
+                        <select id="organization-currency" wire:model="currency" class="form-input mt-1">
+                            @foreach ($currencyOptions as $code => $label)
+                                <option value="{{ $code }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('currency') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+                    <x-button type="submit" wire:loading.attr="disabled" wire:target="saveCurrency">
+                        Save currency
+                    </x-button>
+                </form>
+                <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                    Current display: <span class="font-medium">{{ money(1234.56) }}</span>
+                </p>
+            </x-form-card>
 
             @php
                 $settingsBlurbs = [

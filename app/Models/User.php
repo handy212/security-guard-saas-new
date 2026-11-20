@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -33,6 +34,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'two_factor_secret' => 'encrypted',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -52,7 +54,7 @@ class User extends Authenticatable
         return $this->hasOne(Guard::class);
     }
 
-    public function pushSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);
     }

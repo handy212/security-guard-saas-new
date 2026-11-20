@@ -1,6 +1,6 @@
 <div>
     <x-page-shell title="Audit trail" description="Immutable log of security-sensitive actions across your organization.">
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
             <div class="stat-grid">

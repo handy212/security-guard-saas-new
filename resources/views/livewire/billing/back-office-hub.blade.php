@@ -27,14 +27,14 @@
                     </div>
                     <div class="billing-primary-stats">
                         @if($canBilling)
-                            <x-stat-card compact label="Amount due" :value="'₦'.number_format($stats['amount_due'], 0)" icon="billing" tone="warning" :href="route('billing.invoices', ['status' => 'outstanding'])" />
-                            <x-stat-card compact label="Collected MTD" :value="'₦'.number_format($stats['collected_mtd'], 0)" icon="check" tone="success" :href="route('billing.payments')" />
+                            <x-stat-card compact label="Amount due" :value="money($stats['amount_due'], 0)" icon="billing" tone="warning" :href="route('billing.invoices', ['status' => 'outstanding'])" />
+                            <x-stat-card compact label="Collected MTD" :value="money($stats['collected_mtd'], 0)" icon="check" tone="success" :href="route('billing.payments')" />
                         @endif
                         @if($canExpenses)
-                            <x-stat-card compact label="Expenses MTD" :value="'₦'.number_format($stats['expenses_mtd'], 0)" icon="plan" tone="warning" :href="route('billing.expenses')" />
+                            <x-stat-card compact label="Expenses MTD" :value="money($stats['expenses_mtd'], 0)" icon="plan" tone="warning" :href="route('billing.expenses')" />
                         @endif
                         @if($canBilling)
-                            <x-stat-card compact label="Overdue" :value="'₦'.number_format($stats['overdue_due'], 0)" icon="pause" :tone="$stats['overdue_due'] > 0 ? 'danger' : 'default'" :href="route('billing.invoices', ['status' => 'overdue'])" />
+                            <x-stat-card compact label="Overdue" :value="money($stats['overdue_due'], 0)" icon="pause" :tone="$stats['overdue_due'] > 0 ? 'danger' : 'default'" :href="route('billing.invoices', ['status' => 'overdue'])" />
                         @endif
                     </div>
                 </section>
@@ -45,11 +45,11 @@
                         <p class="billing-summary-copy">Current billing pipeline and approved operating context.</p>
                     </div>
                     @if($canBilling)
-                        <a href="{{ route('billing.invoices') }}" wire:navigate><span>Revenue billed MTD</span><strong>₦{{ number_format($stats['revenue_mtd'], 0) }}</strong></a>
+                        <a href="{{ route('billing.invoices') }}" wire:navigate><span>Revenue billed MTD</span><strong>{{ money($stats['revenue_mtd'], 0) }}</strong></a>
                         <a href="{{ route('billing.invoices', ['status' => 'outstanding']) }}" wire:navigate><span>Open invoices</span><strong>{{ $stats['invoices_open'] }}</strong></a>
                     @endif
                     @if($canEstimates)
-                        <a href="{{ route('billing.estimates') }}" wire:navigate><span>Estimate pipeline</span><strong>₦{{ number_format($stats['estimates_pipeline'], 0) }}</strong></a>
+                        <a href="{{ route('billing.estimates') }}" wire:navigate><span>Estimate pipeline</span><strong>{{ money($stats['estimates_pipeline'], 0) }}</strong></a>
                         <a href="{{ route('billing.estimates') }}" wire:navigate><span>Open estimates</span><strong>{{ $stats['estimates_open'] }}</strong></a>
                     @endif
                 </section>
@@ -67,7 +67,7 @@
                                 <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $invoice->clientAccount?->name }}</div>
                             </div>
                             <div class="shrink-0 text-right">
-                                <div class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">₦{{ number_format($invoice->grand_total, 2) }}</div>
+                                <div class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{{ money($invoice->grand_total) }}</div>
                                 <x-badge :status="$invoice->status" />
                             </div>
                         </a>
@@ -94,7 +94,7 @@
                                 <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $expense->category?->name ?? 'Uncategorized' }} · {{ $expense->expense_date?->format('M j') }}</div>
                             </div>
                             <div class="shrink-0 text-right">
-                                <div class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">₦{{ number_format($expense->amount, 2) }}</div>
+                                <div class="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{{ money($expense->amount) }}</div>
                                 <x-badge :status="$expense->status" />
                             </div>
                         </div>

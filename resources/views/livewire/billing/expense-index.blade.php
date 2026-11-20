@@ -20,7 +20,7 @@
                 <x-stat-card compact label="Total" :value="$stats['total']" icon="billing" />
                 <x-stat-card compact label="Draft" :value="$stats['draft']" icon="plan" />
                 <x-stat-card compact label="Approved" :value="$stats['approved']" icon="check" tone="info" />
-                <x-stat-card compact label="MTD spend" :value="'₦'.number_format($stats['amount_mtd'], 0)" icon="pause" tone="warning" />
+                <x-stat-card compact label="MTD spend" :value="money($stats['amount_mtd'], 0)" icon="pause" tone="warning" />
             </div>
 
             <x-page-toolbar search="search" searchPlaceholder="Search expenses…">
@@ -69,7 +69,7 @@
                             </x-table.td>
                             <x-table.td responsive="md" muted>{{ $expense->category?->name ?? '—' }}</x-table.td>
                             <x-table.td muted class="tabular-nums">{{ $expense->expense_date?->format('M j, Y') }}</x-table.td>
-                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($expense->amount, 2) }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">{{ money($expense->amount) }}</x-table.td>
                             <x-table.td><x-badge :status="$expense->status" /></x-table.td>
                             <x-table.td responsive="lg">
                                 @if ($expense->receipt_path)
@@ -134,7 +134,7 @@
                         @endforeach
                     </x-select>
                     <x-input wire:model.live="form.expense_date" type="date" label="Date *" />
-                    <x-input wire:model.live="form.amount" type="number" step="0.01" min="0.01" label="Amount (₦) *" />
+                    <x-input wire:model.live="form.amount" type="number" step="0.01" min="0.01" :label="'Amount ('.currency_symbol().') *'" />
                     <x-input wire:model.live="form.vendor_name" label="Vendor" />
                     <x-select wire:model.live="form.payment_method" label="Payment method">
                         <option value="cash">Cash</option>

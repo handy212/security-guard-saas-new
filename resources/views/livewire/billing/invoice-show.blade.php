@@ -40,7 +40,7 @@
                             <div class="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{ $sibling->invoice_number }}</div>
                             <div class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $sibling->clientAccount?->name }}</div>
                             <div class="mt-1 flex items-center justify-between gap-2">
-                                <span class="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200">₦{{ number_format($sibling->grand_total, 0) }}</span>
+                                <span class="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200">{{ money($sibling->grand_total, 0) }}</span>
                                 <x-badge :status="$sibling->status" />
                             </div>
                         </a>
@@ -72,7 +72,7 @@
                         <div class="list-row" wire:key="pay-{{ $payment->id }}">
                             <div class="min-w-0 flex-1">
                                 <div class="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-                                    ₦{{ number_format($payment->amount, 2) }}
+                                    {{ money($payment->amount) }}
                                     <span class="font-normal text-zinc-500 dark:text-zinc-400">· {{ str_replace('_', ' ', $payment->payment_method) }}</span>
                                 </div>
                                 <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
@@ -110,7 +110,7 @@
     @if ($showPayment)
         <x-drawer
             title="Record payment"
-            :description="'Remaining ₦'.number_format($balance, 2)"
+            :description="'Remaining '.money($balance)"
             width="md"
             close-method="closePayment"
         >

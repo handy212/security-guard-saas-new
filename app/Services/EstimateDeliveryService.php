@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class EstimateDeliveryService
 {
-    public function __construct(private PdfExportService $pdf)
-    {
-    }
+    public function __construct(private PdfExportService $pdf) {}
 
     /**
      * @param  list<string>  $recipients
@@ -37,7 +35,7 @@ class EstimateDeliveryService
             '',
             "Please find estimate {$estimate->estimate_number} attached.",
             "Client: {$clientName}",
-            'Total: ₦'.number_format((float) $estimate->grand_total, 2),
+            'Total: '.money($estimate->grand_total, 2, $estimate->clientAccount?->tenant),
             'Valid until: '.($estimate->valid_until?->format('M j, Y') ?? '—'),
             $message ? '' : null,
             $message ?: null,

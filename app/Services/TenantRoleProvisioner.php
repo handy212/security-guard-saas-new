@@ -18,7 +18,7 @@ class TenantRoleProvisioner
         setPermissionsTeamId($tenant->id);
 
         foreach (config('tenant_roles.roles', []) as $name => $permissions) {
-            $role = Role::query()->firstOrCreate(
+            $role = Role::query()->firstOrNew(
                 [
                     'name' => $name,
                     'guard_name' => 'web',
@@ -26,7 +26,10 @@ class TenantRoleProvisioner
                 ],
             );
 
-            $role->syncPermissions($permissions);
+            if (! $role->exists) {
+                $role->save();
+                $role->syncPermissions($permissions);
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -17,7 +17,7 @@
             <x-flash-status type="success" />
 
             <div class="stat-grid">
-                <x-stat-card compact label="Collected MTD" :value="'₦'.number_format($stats['mtd'], 0)" icon="check" tone="success" />
+                <x-stat-card compact label="Collected MTD" :value="money($stats['mtd'], 0)" icon="check" tone="success" />
                 <x-stat-card compact label="Payments MTD" :value="$stats['mtd_count']" icon="billing" tone="info" />
                 <x-stat-card compact label="All payments" :value="$stats['total']" icon="plan" />
                 <x-stat-card compact label="Open invoices" :value="$stats['open_invoices']" icon="pause" tone="warning" :href="route('billing.invoices')" />
@@ -75,7 +75,7 @@
                             </x-table.td>
                             <x-table.td>{{ $payment->invoice?->clientAccount?->name ?? '—' }}</x-table.td>
                             <x-table.td responsive="md" muted>{{ str_replace('_', ' ', ucfirst($payment->payment_method)) }}</x-table.td>
-                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($payment->amount, 2) }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">{{ money($payment->amount) }}</x-table.td>
                             <x-table.td responsive="lg" muted>{{ $payment->notes ?: '—' }}</x-table.td>
                             <x-table.td align="right">
                                 @if ($payment->invoice)

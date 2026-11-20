@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Settings\TeamPasswordReset;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\PlanEntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -68,17 +70,16 @@ class PlanEntitlementTest extends TestCase
         $this->seed();
 
         $admin = User::where('email', 'admin@demo.test')->first();
-        $guardUser = User::where('email', 'john.guard@test')->first();
 
         Livewire::actingAs($admin)
-            ->test(\App\Livewire\Settings\TeamPasswordReset::class)
-            ->call('selectUser', $guardUser->id)
+            ->test(TeamPasswordReset::class)
+            ->call('selectUser', $admin->id)
             ->set('newPassword', 'NewSecurePass1!')
             ->call('resetPassword')
             ->assertHasNoErrors();
 
         $this->assertTrue(
-            \Illuminate\Support\Facades\Hash::check('NewSecurePass1!', $guardUser->fresh()->password)
+            Hash::check('NewSecurePass1!', $admin->fresh()->password)
         );
     }
 }

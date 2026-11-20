@@ -9,7 +9,7 @@
         </div>
         <div class="billing-document-meta text-right">
             <div class="text-xs uppercase tracking-wide text-zinc-500">Total</div>
-            <div class="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">₦{{ number_format((float) $estimate->grand_total, 2) }}</div>
+            <div class="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ money($estimate->grand_total) }}</div>
         </div>
     </header>
 
@@ -41,8 +41,8 @@
                     <tr wire:key="est-doc-item-{{ $item->id }}">
                         <td>{{ $item->description }}</td>
                         <td class="text-right">{{ number_format((float) $item->quantity, 2) }}</td>
-                        <td class="text-right">₦{{ number_format((float) $item->unit_price, 2) }}</td>
-                        <td class="text-right font-medium">₦{{ number_format((float) $item->line_total, 2) }}</td>
+                        <td class="text-right">{{ money($item->unit_price) }}</td>
+                        <td class="text-right font-medium">{{ money($item->line_total) }}</td>
                     </tr>
                 @empty
                     <tr>
@@ -56,15 +56,15 @@
     <dl class="billing-document-totals">
         <div class="billing-document-total-row">
             <dt>Subtotal</dt>
-            <dd>₦{{ number_format((float) $estimate->subtotal, 2) }}</dd>
+            <dd>{{ money($estimate->subtotal) }}</dd>
         </div>
         <div class="billing-document-total-row">
             <dt>Tax</dt>
-            <dd>₦{{ number_format((float) $estimate->tax_total, 2) }}</dd>
+            <dd>{{ money($estimate->tax_total) }}</dd>
         </div>
         <div class="billing-document-total-row billing-document-total-grand">
             <dt>Total</dt>
-            <dd>₦{{ number_format((float) $estimate->grand_total, 2) }}</dd>
+            <dd>{{ money($estimate->grand_total) }}</dd>
         </div>
     </dl>
 </article>

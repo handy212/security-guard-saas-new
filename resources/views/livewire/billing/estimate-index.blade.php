@@ -17,7 +17,7 @@
             <x-flash-status type="success" />
 
             <div class="stat-grid">
-                <x-stat-card compact label="Pipeline" :value="'₦'.number_format($stats['pipeline'], 0)" icon="billing" tone="info" />
+                <x-stat-card compact label="Pipeline" :value="money($stats['pipeline'], 0)" icon="billing" tone="info" />
                 <x-stat-card compact label="Open" :value="$stats['open']" icon="pause" />
                 <x-stat-card compact label="Accepted" :value="$stats['accepted']" icon="check" tone="success" />
                 <x-stat-card compact label="Converted" :value="$stats['converted']" icon="plan" />
@@ -72,7 +72,7 @@
                             </x-table.td>
                             <x-table.td responsive="md">{{ $estimate->clientAccount?->name }}</x-table.td>
                             <x-table.td responsive="md" muted class="tabular-nums">{{ $estimate->valid_until?->format('M j, Y') ?? '—' }}</x-table.td>
-                            <x-table.td class="font-semibold tabular-nums">₦{{ number_format($estimate->grand_total, 2) }}</x-table.td>
+                            <x-table.td class="font-semibold tabular-nums">{{ money($estimate->grand_total) }}</x-table.td>
                             <x-table.td><x-badge :status="$estimate->status" /></x-table.td>
                             <x-table.td align="right">
                                 <x-row-menu>

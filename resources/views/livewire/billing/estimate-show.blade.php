@@ -49,7 +49,7 @@
                             <div class="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{ $sibling->estimate_number }}</div>
                             <div class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $sibling->clientAccount?->name }}</div>
                             <div class="mt-1 flex items-center justify-between gap-2">
-                                <span class="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200">₦{{ number_format($sibling->grand_total, 0) }}</span>
+                                <span class="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200">{{ money($sibling->grand_total, 0) }}</span>
                                 <x-badge :status="$sibling->status" />
                             </div>
                         </a>

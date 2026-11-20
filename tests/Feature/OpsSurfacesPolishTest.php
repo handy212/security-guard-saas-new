@@ -2,14 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Assets\Overview as AssetsOverview;
 use App\Livewire\Dashboard\Overview as DashboardOverview;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Messenger\MessengerIndex;
-use App\Models\Incident;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\IncidentService;
+use App\Services\NavigationBuilder;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -114,5 +115,43 @@ class OpsSurfacesPolishTest extends TestCase
         Livewire::actingAs($this->admin)
             ->test(DashboardOverview::class)
             ->assertSeeInOrder(["Today's schedule", 'Open dispatches', 'Quick actions']);
+    }
+
+    public function test_application_shell_has_valid_navigation_semantics(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSeeHtml('aria-label="Close navigation"')
+            ->assertSeeHtml('aria-haspopup="dialog"')
+            ->getContent();
+
+        $document = new DOMDocument;
+        @$document->loadHTML($html);
+        $xpath = new DOMXPath($document);
+
+        $this->assertSame(0, $xpath->query('//a//button')->length);
+        $this->assertGreaterThan(0, $xpath->query('//button[@aria-controls="workspace-command-palette"]')->length);
+    }
+
+    public function test_navigation_search_excludes_duplicate_destinations(): void
+    {
+        $this->actingAs($this->admin);
+        $links = app(NavigationBuilder::class)->searchableLinks();
+        $hrefs = array_column($links, 'href');
+
+        $this->assertSame(count($hrefs), count(array_unique($hrefs)));
+    }
+
+    public function test_subscription_page_belongs_to_settings_not_back_office_navigation(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('billing.subscription'))
+            ->assertOk();
+
+        $nav = app(NavigationBuilder::class);
+
+        $this->assertFalse($nav->isLinkActive(['href' => '/billing']));
+        $this->assertTrue($nav->isLinkActive(['href' => '/settings']));
     }
 }

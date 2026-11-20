@@ -1,12 +1,3 @@
-@php
-    $currencySymbol = match ($currency) {
-        'NGN' => '₦',
-        'GHS' => 'GH₵',
-        'USD' => '$',
-        default => $currency.' ',
-    };
-@endphp
-
 <div>
     <x-page-shell
         title="Your GuardCore Pro plan"
@@ -124,12 +115,12 @@
                             <div class="flex flex-1 flex-col gap-4 p-4">
                                 <div>
                                     <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">
-                                        {{ $currencySymbol }}{{ number_format($plan->monthly_price, 0) }}
+                                        {{ money($plan->monthly_price, 0) }}
                                     </span>
                                     <span class="text-sm text-zinc-500">/ month</span>
                                     @if ($plan->annual_price)
                                         <p class="mt-1 text-xs tabular-nums text-zinc-500">
-                                            or {{ $currencySymbol }}{{ number_format($plan->annual_price, 0) }}/year
+                                            or {{ money($plan->annual_price, 0) }}/year
                                         </p>
                                     @endif
                                 </div>

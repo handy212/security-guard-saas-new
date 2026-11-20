@@ -69,7 +69,7 @@
                             </div>
                             <div class="meta-tile">
                                 <div class="meta-tile-label">Total</div>
-                                <div class="meta-tile-value tabular-nums">${{ number_format($selected->grand_total, 2) }}</div>
+                                <div class="meta-tile-value tabular-nums">{{ money($selected->grand_total) }}</div>
                             </div>
                         </div>
 

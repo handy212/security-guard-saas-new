@@ -87,6 +87,17 @@ class StaffUserIndex extends Component
 
         if ($this->editingId) {
             $user = $this->staffQuery()->findOrFail($this->editingId);
+            if ((int) $user->id === (int) auth()->id() && $data['status'] !== 'active') {
+                $this->addError('form.status', 'You cannot deactivate your own account.');
+
+                return;
+            }
+
+            if ($this->removesOnlyActiveAdmin($user, $data['status'], $data['role'])) {
+                $this->addError('form.role', 'Keep an active company administrator in the tenant.');
+
+                return;
+            }
 
             $payload = [
                 'name' => $data['name'],
@@ -128,6 +139,7 @@ class StaffUserIndex extends Component
 
         $user = $this->staffQuery()->findOrFail($id);
         abort_if((int) $user->id === (int) auth()->id(), 403, 'You cannot deactivate your own account.');
+        abort_if($this->removesOnlyActiveAdmin($user, 'inactive', $this->userRoleName($user)), 422, 'Keep an active company administrator in the tenant.');
 
         $user->update(['status' => 'inactive']);
         $audit->record('settings.staff.deactivated', $user, ['email' => $user->email]);
@@ -152,6 +164,7 @@ class StaffUserIndex extends Component
         abort_if((int) $user->id === (int) auth()->id(), 403, 'You cannot delete your own account.');
         abort_if($user->guardProfile()->exists(), 403, 'This user is linked to a guard profile. Deactivate instead.');
         abort_if($user->status === 'active', 403, 'Deactivate this user before deleting.');
+        abort_if($this->removesOnlyActiveAdmin($user, 'inactive', $this->userRoleName($user)), 422, 'Keep an active company administrator in the tenant.');
 
         $audit->record('settings.staff.deleted', $user, ['email' => $user->email]);
         $user->delete();
@@ -179,6 +192,8 @@ class StaffUserIndex extends Component
 
         return view('livewire.settings.staff-user-index', [
             'users' => $users,
+            'activeCount' => $this->staffQuery()->where('status', 'active')->count(),
+            'inactiveCount' => $this->staffQuery()->where('status', 'inactive')->count(),
             'roles' => $this->assignableRoles(),
             'roleLabels' => collect($this->assignableRoles())->mapWithKeys(fn (Role $role) => [
                 $role->name => str($role->name)->headline()->toString(),
@@ -222,6 +237,23 @@ class StaffUserIndex extends Component
         setPermissionsTeamId($user->tenant_id);
         $provisioner->provision($user->tenant);
         $user->syncRoles([$roleName]);
+    }
+
+    private function removesOnlyActiveAdmin(User $user, string $status, string $role): bool
+    {
+        if ($status === 'active' && $role === 'company-admin') {
+            return false;
+        }
+
+        if ($user->status !== 'active' || ! $user->hasRole('company-admin')) {
+            return false;
+        }
+
+        return ! $this->staffQuery()
+            ->whereKeyNot($user->id)
+            ->where('status', 'active')
+            ->whereHas('roles', fn ($query) => $query->where('name', 'company-admin'))
+            ->exists();
     }
 
     private function resetForm(): void

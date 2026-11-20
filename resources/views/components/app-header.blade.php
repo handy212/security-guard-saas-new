@@ -6,6 +6,7 @@
 <header class="workspace-header sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/90">
     <div class="page-content flex h-[var(--app-header-height)] items-center gap-3 py-0">
         <button
+            id="workspace-command-trigger"
             type="button"
             @click="sidebarOpen = true"
             class="btn-secondary !p-2 lg:hidden"
@@ -15,42 +16,20 @@
         </button>
 
         <div class="flex w-full items-center gap-1.5 sm:gap-2">
-            <div
-                class="relative mr-auto flex items-center"
-                x-data="{ searchOpen: false }"
-                @keydown.escape.window="searchOpen = false"
-            >
+            <div class="mr-auto min-w-0">
                 <button
                     type="button"
-                    x-show="!searchOpen"
-                    @click="searchOpen = true; $nextTick(() => $refs.headerSearch?.focus())"
-                    class="workspace-search flex h-10 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-500 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                    aria-label="Search"
+                    @click="openCommand()"
+                    class="workspace-search flex h-10 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
+                    aria-label="Search pages and workspaces"
+                    aria-haspopup="dialog"
+                    aria-controls="workspace-command-palette"
+                    :aria-expanded="commandOpen ? 'true' : 'false'"
                 >
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <span class="hidden sm:inline">Search workspaces…</span>
-                    <kbd class="ml-auto hidden rounded border border-zinc-200 px-1.5 py-0.5 text-xs dark:border-zinc-700 sm:inline">⌘ K</kbd>
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span class="hidden truncate sm:inline">Search pages and workspaces…</span>
+                    <kbd class="ml-auto hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[11px] dark:border-zinc-700 sm:inline">⌘ K</kbd>
                 </button>
-                <div
-                    x-show="searchOpen"
-                    x-cloak
-                    x-transition:enter="transition ease-out duration-150"
-                    x-transition:enter-start="opacity-0 scale-95"
-                    x-transition:enter-end="opacity-100 scale-100"
-                    class="absolute right-0 top-0 z-50 flex w-[min(20rem,calc(100vw-6rem))] items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 sm:w-72"
-                    @click.outside="searchOpen = false"
-                >
-                    <svg class="h-4 w-4 shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input
-                        x-ref="headerSearch"
-                        type="text"
-                        placeholder="Search pages…"
-                        class="min-w-0 flex-1 border-0 bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                        @focus="commandOpen = true; searchOpen = false"
-                        @keydown.enter.prevent="commandOpen = true; searchOpen = false"
-                    >
-                    <kbd class="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline">⌘K</kbd>
-                </div>
             </div>
 
             @if (! \App\Support\TenantContext::isPlatformConsole())
@@ -60,12 +39,14 @@
 
             <x-theme-toggle />
 
-            <div class="relative" x-data="{ userOpen: false }">
+            <div class="relative" x-data="{ userOpen: false }" @keydown.escape.window="userOpen = false">
                 <button
                     type="button"
                     @click="userOpen = !userOpen"
                     class="flex h-9 items-center gap-2 rounded-lg py-1 pl-1 pr-2 text-sm transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     aria-label="User menu"
+                    aria-haspopup="menu"
+                    :aria-expanded="userOpen ? 'true' : 'false'"
                 >
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100 text-xs font-semibold text-accent-700">
                         {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
@@ -78,6 +59,7 @@
                     @click.outside="userOpen = false"
                     x-transition
                     x-cloak
+                    role="menu"
                     class="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <div class="border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
@@ -100,22 +82,28 @@
 </header>
 
 <div
+    id="workspace-command-palette"
     x-cloak
     x-show="commandOpen"
     x-transition.opacity
+    role="dialog"
+    aria-modal="true"
+    aria-label="Search pages and workspaces"
     class="fixed inset-0 z-[80] flex items-start justify-center bg-zinc-900/50 px-4 pt-[12vh]"
-    @click.self="commandOpen = false"
-    @keydown.escape.window="commandOpen = false"
+    @click.self="closeCommand()"
+    @keydown.escape.window.prevent="closeCommand()"
 >
     <div
         class="w-full max-w-lg overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
         @click.stop
+        x-trap.noscroll="commandOpen"
         x-data="commandPalette(@js($searchableLinks))"
         x-effect="if ($root.commandOpen) { $nextTick(() => $refs.query?.focus()) }"
     >
         <div class="flex items-center gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
             <svg class="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input
+                id="workspace-command-query"
                 x-ref="query"
                 x-model="query"
                 type="text"
@@ -124,8 +112,12 @@
                 @keydown.arrow-down.prevent="move(1)"
                 @keydown.arrow-up.prevent="move(-1)"
                 @keydown.enter.prevent="go()"
+                @keydown.escape.stop.prevent="closeCommand()"
             >
             <kbd class="rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400">esc</kbd>
+            <button type="button" @click="closeCommand()" class="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" aria-label="Close search">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
         </div>
         <ul class="max-h-72 overflow-y-auto py-2">
             <template x-for="(item, index) in filtered" :key="item.href">
@@ -135,7 +127,7 @@
                         class="flex items-center justify-between px-4 py-2 text-sm transition"
                         :class="index === activeIndex ? 'bg-accent-50 text-accent-700 dark:bg-accent-600/20 dark:text-accent-400' : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800'"
                         @mouseenter="activeIndex = index"
-                        @click="commandOpen = false"
+                        @click="closeCommand()"
                     >
                         <span x-text="item.label"></span>
                         <span class="text-xs text-zinc-400" x-text="item.group"></span>
@@ -172,7 +164,7 @@
                     go() {
                         const item = this.filtered[this.activeIndex];
                         if (item) {
-                            this.$root.commandOpen = false;
+                            this.closeCommand();
                             window.location.href = item.href;
                         }
                     },
