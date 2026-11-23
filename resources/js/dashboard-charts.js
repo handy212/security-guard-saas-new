@@ -2,12 +2,12 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
-function tenantBrandColor() {
-    return getComputedStyle(document.documentElement).getPropertyValue('--tenant-brand').trim() || '#0f766e';
+function workspaceAccentColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--workspace-accent').trim() || '#0f766e';
 }
 
 function chartPalette() {
-    const brand = tenantBrandColor();
+    const brand = workspaceAccentColor();
     return [brand, '#d97706', '#0891b2', '#e11d48', '#65a30d'];
 }
 
@@ -60,7 +60,7 @@ function initDashboardCharts() {
                     labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: tenantBrandColor(),
+                        backgroundColor: workspaceAccentColor(),
                         borderRadius: 3,
                         barThickness: 20,
                     }],

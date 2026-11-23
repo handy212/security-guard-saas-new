@@ -146,7 +146,7 @@ Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'thr
     });
 });
 
-Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'throttle:60,1'])->prefix('enterprise')->group(function () {
+Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'plan.feature:api', 'throttle:60,1'])->prefix('enterprise')->group(function () {
     Route::get('/analytics', [EnterpriseApiController::class, 'analytics']);
     Route::get('/deployment-sheet', [EnterpriseApiController::class, 'deploymentSheet']);
     Route::get('/patrol-playback/{session}', [EnterpriseApiController::class, 'patrolPlayback']);

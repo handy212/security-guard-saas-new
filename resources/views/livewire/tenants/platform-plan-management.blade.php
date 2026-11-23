@@ -3,7 +3,7 @@
         title="Plans"
         description="Pricing tiers, limits, and feature entitlements."
         :breadcrumbs="[
-            ['label' => 'Platform', 'href' => route('saas.tenants')],
+            ['label' => 'SaaS', 'href' => route('saas')],
             ['label' => 'Plans'],
         ]"
     >
@@ -11,11 +11,13 @@
             <x-button wire:click="openCreate">Add plan</x-button>
         </x-slot:actions>
 
+        <x-flash-status type="success" />
+        @error('plan')<p role="alert" class="form-error">{{ $message }}</p>@enderror
+
         <div class="stat-grid">
             <x-stat-card compact label="Total plans" :value="$planStats['total']" icon="plan" />
             <x-stat-card compact label="Active" :value="$planStats['active']" icon="check" tone="success" />
             <x-stat-card compact label="In use" :value="$planStats['assigned']" icon="users" tone="info" />
-            <x-stat-card compact label="Showing" :value="$plans->count()" icon="billing" />
         </div>
 
         <x-page-toolbar search="search" searchPlaceholder="Search plans…">
@@ -36,28 +38,32 @@
                     </div>
                     <div class="flex flex-1 flex-col gap-3 p-4">
                         <div>
-                            <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">{{ money($plan->monthly_price, 0) }}</span>
+                            <span class="text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">{{ money($plan->monthly_price) }}</span>
                             <span class="text-sm text-zinc-500">/mo</span>
+                            @if ($plan->annual_price > 0)
+                                <span class="ml-2 text-sm text-zinc-500 tabular-nums">{{ money($plan->annual_price) }}/yr</span>
+                            @endif
                         </div>
                         <p class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
-                            {{ $plan->max_guards ? number_format($plan->max_guards).' guards' : '∞ guards' }}
-                            · {{ $plan->max_sites ? number_format($plan->max_sites).' sites' : '∞ sites' }}
+                            {{ number_format($plan->max_guards ?? \App\Services\PlanLimitService::DEFAULT_MAX_GUARDS) }} guards
+                            · {{ number_format($plan->max_sites ?? \App\Services\PlanLimitService::DEFAULT_MAX_SITES) }} sites
                         </p>
-                        @if ($plan->features)
-                            <div class="flex max-h-16 flex-wrap gap-1 overflow-hidden">
-                                @foreach (collect($plan->features)->take(8) as $feature)
+                        @php $includedFeatures = $plan->features ?? $defaultFeatures; @endphp
+                        @if ($includedFeatures)
+                            <div class="flex flex-wrap gap-1">
+                                @foreach (collect($includedFeatures)->take(4) as $feature)
                                     <span class="status-chip status-chip-neutral !px-2 !py-0.5 text-[10px]">{{ $featureLabels[$feature]['label'] ?? $feature }}</span>
                                 @endforeach
-                                @if (count($plan->features) > 8)
-                                    <span class="status-chip status-chip-neutral !px-2 !py-0.5 text-[10px]">+{{ count($plan->features) - 8 }}</span>
+                                @if (count($includedFeatures) > 4)
+                                    <span class="status-chip status-chip-neutral !px-2 !py-0.5 text-[10px]">+{{ count($includedFeatures) - 4 }}</span>
                                 @endif
                             </div>
                         @endif
                         <div class="mt-auto flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                            <span class="text-xs tabular-nums text-zinc-500">{{ $plan->subscriptions_count }} tenants</span>
+                            <span class="text-xs tabular-nums text-zinc-500">{{ $plan->subscriptions_count }} subscriptions</span>
                             <div class="flex gap-1.5">
                                 <x-button wire:click="openEdit({{ $plan->id }})" variant="secondary" size="sm">Edit</x-button>
-                                @if ($plan->subscriptions_count === 0)
+                                @if ($plan->subscriptions_count === 0 && $plan->tenants_count === 0)
                                     <x-button wire:click="delete({{ $plan->id }})" wire:confirm="Delete {{ $plan->name }}?" variant="danger" size="sm">Delete</x-button>
                                 @endif
                             </div>
@@ -80,38 +86,38 @@
         <x-drawer
             :title="$editingPlanId ? 'Edit plan' : 'Add plan'"
             description="Set pricing, limits, and feature entitlements."
-            width="lg"
+            width="xl"
             closeMethod="closeDrawer"
         >
             <x-drawer-form wire:submit="save" :submit-label="$editingPlanId ? 'Save changes' : 'Create plan'">
                 <x-form-section title="Plan">
-                    <x-input wire:model.live="form.name" label="Plan name" class="sm:col-span-2" />
-                    <x-input wire:model.live="form.slug" label="Slug" />
-                    <x-input wire:model.live="form.paystack_plan_code" label="Paystack plan code" />
-                    <x-input wire:model.live="form.monthly_price" label="Monthly price" type="number" step="0.01" />
-                    <x-input wire:model.live="form.annual_price" label="Annual price" type="number" step="0.01" />
-                    <x-input wire:model.live="form.max_guards" label="Max guards" type="number" placeholder="Unlimited" />
-                    <x-input wire:model.live="form.max_sites" label="Max sites" type="number" placeholder="Unlimited" />
-                    <x-select wire:model.live="form.status" label="Status" class="sm:col-span-2">
+                    <x-input wire:model="form.name" label="Plan name" class="sm:col-span-2" />
+                    <x-input wire:model="form.slug" label="Slug" hint="Leave blank to generate from the plan name." />
+                    <x-input wire:model="form.paystack_plan_code" label="Paystack plan code" />
+                    <x-input wire:model="form.monthly_price" label="Monthly price" type="number" step="0.01" />
+                    <x-input wire:model="form.annual_price" label="Annual price" type="number" step="0.01" />
+                    <x-input wire:model="form.max_guards" label="Max guards" type="number" placeholder="Default limit" />
+                    <x-input wire:model="form.max_sites" label="Max sites" type="number" placeholder="Default limit" />
+                    <x-select wire:model="form.status" label="Status" class="sm:col-span-2">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </x-select>
                 </x-form-section>
 
-                <x-form-section title="Feature entitlements" description="Modules available on this plan.">
-                    <div class="sm:col-span-2 max-h-64 space-y-4 overflow-y-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                <x-form-section title="Feature entitlements" description="Select the modules this plan includes. Clearing every selection disables all plan-controlled modules.">
+                    <div class="sm:col-span-2 grid items-start gap-3 sm:grid-cols-2">
                         @foreach ($featureGroups as $group => $features)
-                            <div wire:key="group-{{ $group }}">
-                                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{{ $group }}</p>
-                                <div class="space-y-2">
+                            <fieldset wire:key="group-{{ $group }}" class="min-w-0 rounded-lg border border-zinc-200 px-3 pb-2 dark:border-zinc-700">
+                                <legend class="px-1 text-xs font-semibold text-zinc-600 dark:text-zinc-400">{{ $group }}</legend>
+                                <div class="space-y-0.5">
                                     @foreach ($features as $feature)
-                                        <label class="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                            <input type="checkbox" wire:model.live="form.selectedFeatures" value="{{ $feature['key'] }}" class="mt-0.5 rounded border-zinc-300 text-accent-600 focus:ring-accent-600/20 dark:border-zinc-600 dark:bg-zinc-900" />
+                                        <label class="flex cursor-pointer items-center gap-2 py-1 text-sm text-zinc-700 dark:text-zinc-300">
+                                            <input type="checkbox" wire:model="form.selectedFeatures" value="{{ $feature['key'] }}" class="size-4 shrink-0 accent-accent-600" />
                                             <span>{{ $feature['label'] }}</span>
                                         </label>
                                     @endforeach
                                 </div>
-                            </div>
+                            </fieldset>
                         @endforeach
                     </div>
                 </x-form-section>

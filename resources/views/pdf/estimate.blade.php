@@ -22,9 +22,7 @@
     </style>
 </head>
 <body>
-    @if ($estimate->tenant?->name)
-        <div class="brand">{{ $estimate->tenant->name }}</div>
-    @endif
+    @include('partials.document-issuer')
     <h1>Estimate {{ $estimate->estimate_number }}</h1>
     <p class="muted">Status: {{ ucfirst($estimate->status) }}</p>
 

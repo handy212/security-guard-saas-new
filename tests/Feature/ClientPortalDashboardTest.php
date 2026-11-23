@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\CheckpointScan;
 use App\Models\ClientAccount;
 use App\Models\ClientReportApproval;
 use App\Models\DailyActivityReport;
+use App\Models\PatrolSession;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
 use App\Models\User;
+use App\Services\TenantBrandingService;
 use App\Services\TenantRoleProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -69,6 +73,20 @@ class ClientPortalDashboardTest extends TestCase
             ]);
     }
 
+    public function test_client_portal_uses_the_shared_organization_palette(): void
+    {
+        TenantSetting::create([
+            'tenant_id' => $this->tenant->id,
+            'key' => TenantBrandingService::THEME_KEY,
+            'value' => ['light' => '#b91c1c', 'dark' => '#ef4444'],
+        ]);
+
+        $this->actingAs($this->portalUser)
+            ->get(route('client-portal.dashboard'))
+            ->assertOk()
+            ->assertSeeInOrder(['<body', '--tenant-accent: #b91c1c;', '--tenant-dark-accent: #ef4444;'], escape: false);
+    }
+
     public function test_dashboard_reports_when_no_decisions_are_waiting(): void
     {
         ClientReportApproval::where('tenant_id', $this->tenant->id)->delete();
@@ -95,16 +113,15 @@ class ClientPortalDashboardTest extends TestCase
             ->assertDontSee('Daily Activity Report #'.$foreignApproval->approvable_id);
     }
 
-
     public function test_approved_daily_report_shows_shift_patrol_evidence(): void
     {
-        $report = \App\Models\DailyActivityReport::query()
+        $report = DailyActivityReport::query()
             ->where('tenant_id', $this->tenant->id)
             ->where('title', 'Day shift summary')
             ->firstOrFail();
         $report->update(['status' => 'approved']);
 
-        $scan = \App\Models\CheckpointScan::query()
+        $scan = CheckpointScan::query()
             ->where('tenant_id', $this->tenant->id)
             ->whereHas('session', fn ($query) => $query
                 ->where('shift_assignment_id', $report->shift_assignment_id)
@@ -128,7 +145,7 @@ class ClientPortalDashboardTest extends TestCase
 
     public function test_client_cannot_view_an_approved_report_for_another_client(): void
     {
-        $report = \App\Models\DailyActivityReport::query()
+        $report = DailyActivityReport::query()
             ->where('tenant_id', $this->tenant->id)
             ->where('title', 'Day shift summary')
             ->firstOrFail();
@@ -146,15 +163,14 @@ class ClientPortalDashboardTest extends TestCase
             ->assertNotFound();
     }
 
-
     public function test_approved_report_without_patrols_shows_an_empty_evidence_state(): void
     {
-        $report = \App\Models\DailyActivityReport::query()
+        $report = DailyActivityReport::query()
             ->where('tenant_id', $this->tenant->id)
             ->where('title', 'Day shift summary')
             ->firstOrFail();
         $report->update(['status' => 'approved']);
-        \App\Models\PatrolSession::query()
+        PatrolSession::query()
             ->where('tenant_id', $this->tenant->id)
             ->where('shift_assignment_id', $report->shift_assignment_id)
             ->delete();

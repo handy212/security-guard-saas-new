@@ -34,6 +34,8 @@
 
             @php
                 $settingsBlurbs = [
+                    '/settings/company-profile' => 'Manage the company details and logo used on documents.',
+                    '/settings/themes' => 'Set the shared color scheme for your organization.',
                     '/billing/subscription' => 'Manage your GuardCore Pro subscription and plan limits.',
                     '/settings/branches' => 'Offices and operating locations for this tenant.',
                     '/settings/id-card' => 'Guard ID card templates, colors, and logo.',

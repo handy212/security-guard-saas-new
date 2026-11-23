@@ -1,6 +1,6 @@
 @props(['submitLabel' => 'Save', 'cancelLabel' => 'Cancel', 'closeMethod' => 'closeDrawer', 'target' => 'save'])
 
-<form {{ $attributes->merge(['class' => 'flex h-full min-h-0 flex-col']) }}>
+<form {{ $attributes->merge(['class' => 'flex min-h-0 flex-col']) }}>
     <div class="drawer-form-body">
         <div class="drawer-form-fields">
             {{ $slot }}

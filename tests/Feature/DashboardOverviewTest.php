@@ -96,6 +96,11 @@ class DashboardOverviewTest extends TestCase
         $this->assertTrue($items->contains('staffing'));
         $this->assertTrue($items->contains('dispatch'));
 
+        $this->actingAs($this->admin)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSeeInOrder(['Needs attention', 'active SOS', 'unassigned dispatch', 'understaffed shift', 'Coverage & response', 'Operations at a glance', 'This week in review'])
+            ->assertSee(route('dispatch.control-room', ['status' => 'unassigned']));
+
         Livewire::actingAs($this->admin)
             ->test(AttentionIndicator::class)
             ->assertSee('Needs attention')

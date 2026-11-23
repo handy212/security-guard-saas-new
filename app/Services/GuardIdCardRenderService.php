@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Guard;
-use App\Models\GuardVerificationToken;
 use App\Models\Tenant;
 
 class GuardIdCardRenderService
@@ -14,6 +13,7 @@ class GuardIdCardRenderService
         private GuardIdCardLogoService $logos,
         private GuardVerificationService $verification,
         private QrCodeService $qr,
+        private CompanyProfileService $companyProfiles,
     ) {}
 
     /**
@@ -26,7 +26,7 @@ class GuardIdCardRenderService
         $token = $guard->activeVerificationToken();
         abort_unless($token, 403, 'No active verification token.');
 
-        $brand = $this->presenter->branding($guard->tenant, $guard->branch);
+        $brand = $this->withCompanyProfile($this->presenter->branding($guard->tenant, $guard->branch), $guard->tenant);
         $card = $this->presenter->cardData($guard, $token);
 
         $verifyUrl = $this->verification->verificationUrl($token);
@@ -74,7 +74,7 @@ class GuardIdCardRenderService
      */
     public function forSample(Tenant $tenant, array $brandOverrides = []): array
     {
-        $brand = $this->presenter->brandingWithOverrides($tenant, $brandOverrides);
+        $brand = $this->withCompanyProfile($this->presenter->brandingWithOverrides($tenant, $brandOverrides), $tenant);
         $card = $this->presenter->sampleCardData();
 
         $verifyUrl = url('/g/SAMPLE');
@@ -112,7 +112,7 @@ class GuardIdCardRenderService
 
         $logoSrc = ! empty($brand['logo_path'])
             ? $this->logos->dataUri($brand['logo_path'])
-            : null;
+            : ($brand['logo_url'] ?? null);
 
         $backLogoSrc = ! empty($brand['back_logo_path'])
             ? $this->logos->dataUri($brand['back_logo_path'])
@@ -140,6 +140,21 @@ class GuardIdCardRenderService
             'qrSvg' => null,
             'qrPng' => $qrPng,
         ]);
+    }
+
+    private function withCompanyProfile(array $brand, Tenant $tenant): array
+    {
+        $profile = $this->companyProfiles->forTenant($tenant);
+        $brand['company_name'] = $profile['name'];
+        if ($brand['emergency_text'] === "This card is the property of {$tenant->name}. In case of emergency or if found, kindly contact:") {
+            $brand['emergency_text'] = "This card is the property of {$profile['name']}. In case of emergency or if found, kindly contact:";
+        }
+        foreach (['phone', 'email', 'address', 'website'] as $field) {
+            $brand[$field] ??= $profile[$field];
+        }
+        $brand['logo_url'] ??= $this->companyProfiles->logoDataUri($profile['logo_path']);
+
+        return $brand;
     }
 
     private function qrPngPayload(?string $qrPath, string $verifyUrl, int $size, ?string $qrPng = null): ?string

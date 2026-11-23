@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Know Your Guard — {{ $guard->full_name }}</title>
+    <link rel="icon" href="{{ $platformBranding->faviconUrl() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +26,7 @@
     $tone = $statusTone ?? (($isSuspended ?? false) ? 'suspended' : ($isAuthorisedToday ? 'authorised' : ($isVerified ? 'unassigned' : 'pending')));
 @endphp
 
-<style>:root { --tenant-brand: {{ $brandColor ?? '#0f766e' }}; }</style>
+@include('partials.brand-colors')
 
 @if ($tone === 'suspended')
     <div class="pointer-events-none fixed inset-0 z-0 bg-red-600/20" aria-hidden="true"></div>
@@ -40,7 +41,7 @@
     'bg-zinc-950' => ! in_array($tone, ['suspended', 'unassigned'], true),
 ])>
     <div class="pointer-events-none absolute inset-0 opacity-45" style="background:
-        radial-gradient(ellipse 80% 70% at 12% 20%, color-mix(in srgb, var(--tenant-brand) 55%, transparent), transparent 55%);"></div>
+        radial-gradient(ellipse 80% 70% at 12% 20%, color-mix(in srgb, var(--workspace-accent) 55%, transparent), transparent 55%);"></div>
     <div class="relative mx-auto flex max-w-lg items-start justify-between gap-4">
         <div class="min-w-0">
             <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">{{ $companyNameUpper }}</p>

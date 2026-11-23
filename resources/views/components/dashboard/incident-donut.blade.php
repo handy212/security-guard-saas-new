@@ -15,7 +15,7 @@
             <p class="card-header-meta">Last 7 days</p>
         </div>
     </div>
-    <div class="space-y-4 p-5">
+    <div class="space-y-3 p-4">
         <x-dashboard.chart-metric
             :value="$total"
             label="Incidents"
@@ -23,7 +23,7 @@
         />
 
         @if ($total > 0)
-            <div class="flex flex-col items-center gap-5 sm:flex-row">
+            <div class="flex flex-wrap items-center gap-3">
                 <div class="relative h-44 w-44 shrink-0">
                     <canvas
                         data-dashboard-chart="donut"
@@ -35,7 +35,7 @@
                         <span class="text-[11px] font-medium text-zinc-400">7 days</span>
                     </div>
                 </div>
-                <div class="min-w-0 flex-1 space-y-0">
+                <div class="min-w-[8rem] flex-1 space-y-0">
                     @foreach ($breakdown as $label => $count)
                         <div class="flex items-center justify-between border-b border-zinc-100 py-2 text-sm last:border-0 dark:border-zinc-800">
                             <div class="flex min-w-0 items-center gap-2">
@@ -47,8 +47,6 @@
                     @endforeach
                 </div>
             </div>
-        @else
-            <x-empty-state title="No incidents" description="Incident categories will appear here once logged." />
         @endif
     </div>
 </section>

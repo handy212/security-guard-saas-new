@@ -7,7 +7,7 @@
     @if(config('notifications.push.vapid.public_key'))
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
-    <title>{{ ($tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal') }} — {{ config('app.name', 'GuardCore Pro') }}</title>
+    <title>{{ $tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal' }} — {{ $platformBranding->name() }}</title>
     @include('partials.theme-init')
     @include('partials.brand-assets')
     <link rel="manifest" href="/manifest-client.json">
@@ -15,6 +15,7 @@
     @livewireStyles
 </head>
 <body class="min-h-screen bg-zinc-50 font-sans text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100" x-data="{ navOpen: false }">
+@include('partials.brand-colors')
 <header class="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/95 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/95">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <div class="flex min-w-0 items-center gap-2.5">

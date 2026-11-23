@@ -3,7 +3,7 @@
         title="Tenants"
         description="Onboard and manage security companies."
         :breadcrumbs="[
-            ['label' => 'Platform', 'href' => route('saas.tenants')],
+            ['label' => 'SaaS', 'href' => route('saas')],
             ['label' => 'Tenants'],
         ]"
     >
@@ -11,6 +11,11 @@
             <x-button wire:click="exportTenants" variant="secondary">Export CSV</x-button>
             <x-button wire:click="openCreateTenant">Add tenant</x-button>
         </x-slot:actions>
+
+        @unless ($showDetail)
+            <x-flash-status type="success" />
+            @error('tenant')<p role="alert" class="form-error">{{ $message }}</p>@enderror
+        @endunless
 
         <div class="stat-grid">
             <x-stat-card
@@ -114,7 +119,13 @@
                                     {{ strtoupper(substr($tenant->name, 0, 2)) }}
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="truncate font-medium text-zinc-900 dark:text-zinc-100">{{ $tenant->name }}</div>
+                                    <button
+                                        id="tenant-details-{{ $tenant->id }}"
+                                        type="button"
+                                        aria-haspopup="dialog"
+                                        wire:click.stop="openViewTenant({{ $tenant->id }})"
+                                        class="block max-w-full truncate text-left font-medium text-zinc-900 hover:underline dark:text-zinc-100"
+                                    >{{ $tenant->name }}</button>
                                     <div class="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{{ $tenant->slug }}</div>
                                     @if ($trialEndingSoon)
                                         <div class="mt-0.5 text-[10px] font-medium tabular-nums text-amber-700 dark:text-amber-400">
@@ -166,15 +177,14 @@
 
     @if ($showDetail && $viewingTenant)
         @php
-            $currentPlanId = $viewingTenant->plan_id ?? $viewingTenant->subscription?->subscription_plan_id;
-            $planName = $plans->firstWhere('id', $currentPlanId)?->name ?? 'No plan';
+            $currentPlanId = $viewingTenant->subscription?->subscription_plan_id ?? $viewingTenant->plan_id;
             $billingStatus = $viewingTenant->subscription?->status;
             $trialEndingSoon = $viewingTenant->trial_ends_at
                 && $viewingTenant->trial_ends_at->isFuture()
                 && $viewingTenant->trial_ends_at->lte(now()->addDays(14));
-            $tenantHost = $viewingTenant->subdomain
+            $tenantHost = $viewingTenant->domain ?: ($viewingTenant->subdomain && config('tenancy.base_domain')
                 ? $viewingTenant->subdomain.'.'.config('tenancy.base_domain')
-                : null;
+                : null);
         @endphp
 
         <x-drawer
@@ -182,28 +192,24 @@
             :description="'Tenant · '.($viewingTenant->slug)"
             width="xl"
             closeMethod="closeDetail"
+            :return-focus-selector="'#tenant-details-'.$viewingTenant->id"
         >
             <div class="flex h-full min-h-0 flex-col">
-                <div class="drawer-form-body space-y-5">
+                <div class="drawer-form-body">
                     <x-flash-status type="success" />
+                    @error('tenant')<p role="alert" class="form-error">{{ $message }}</p>@enderror
 
-                    <div class="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-                        <div class="flex min-w-0 items-start gap-3">
-                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-zinc-700 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-200 dark:ring-zinc-700">
-                                {{ strtoupper(substr($viewingTenant->name, 0, 2)) }}
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <x-badge :status="$viewingTenant->status ?? 'active'" />
-                                    @if ($billingStatus)
-                                        <x-badge :status="$billingStatus" />
-                                    @endif
-                                </div>
-                                <p class="mt-1 font-mono text-xs text-zinc-500">{{ $viewingTenant->slug }}</p>
-                                @if ($tenantHost)
-                                    <p class="mt-0.5 truncate text-xs text-zinc-500">{{ $tenantHost }}</p>
-                                @endif
-                            </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <x-badge :status="$viewingTenant->status ?? 'active'" />
+                            @if ($billingStatus)
+                                <x-badge :status="$billingStatus" />
+                            @endif
+                            @if ($trialEndingSoon)
+                                <span class="text-xs font-medium text-amber-800 dark:text-amber-300">
+                                    Trial ends {{ $viewingTenant->trial_ends_at->format('M j, Y') }}
+                                </span>
+                            @endif
                         </div>
                         <div class="flex flex-wrap gap-2">
                             @if ($viewingTenant->status === 'active')
@@ -213,21 +219,17 @@
                         </div>
                     </div>
 
-                    @if ($trialEndingSoon)
-                        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                            Trial ends {{ $viewingTenant->trial_ends_at->format('M j, Y') }} ({{ $viewingTenant->trial_ends_at->diffForHumans() }})
-                        </div>
-                    @endif
-
-                    <div class="stat-grid">
-                        <x-stat-card compact label="Users" :value="number_format($viewingTenant->users_count)" icon="users" />
-                        <x-stat-card compact label="Guards" :value="number_format($viewingTenant->guards_count)" icon="guards" tone="info" />
-                        <x-stat-card compact label="Sites" :value="number_format($viewingTenant->sites_count)" icon="sites" />
-                        <x-stat-card compact label="Plan" :value="\Illuminate\Support\Str::limit($planName, 14)" icon="plan" />
-                    </div>
+                    <dl class="grid grid-cols-3 divide-x divide-zinc-200 rounded-lg border border-zinc-200 bg-zinc-50 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/40">
+                        @foreach (['Users' => $viewingTenant->users_count, 'Guards' => $viewingTenant->guards_count, 'Sites' => $viewingTenant->sites_count] as $label => $count)
+                            <div class="min-w-0 px-3 py-2">
+                                <dt class="text-xs text-zinc-600 dark:text-zinc-400">{{ $label }}</dt>
+                                <dd class="text-base font-semibold tabular-nums">{{ number_format($count) }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
 
                     @if ($detailUsage && $currentPlanId)
-                        <x-section-card title="Plan usage" description="Guard and site limits for the assigned plan.">
+                        <x-section-card title="Plan usage" compact>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 @foreach (['guards' => 'Guards', 'sites' => 'Sites'] as $key => $label)
                                     @php
@@ -249,8 +251,8 @@
                         </x-section-card>
                     @endif
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                        <x-section-card title="Subscription" description="Assign or change the tenant plan.">
+                    <div class="grid items-start gap-3 sm:grid-cols-2">
+                        <x-section-card title="Subscription" compact>
                             <x-select
                                 wire:change="assignTenantPlan({{ $viewingTenant->id }}, $event.target.value)"
                                 label="Plan"
@@ -268,18 +270,18 @@
                             @endif
                         </x-section-card>
 
-                        <x-section-card title="Access & domains" description="Identifiers used for login and tenant routing.">
+                        <x-section-card title="Access & domains" compact>
                             <dl class="space-y-3 text-sm">
                                 @foreach ([
                                     ['label' => 'Slug', 'value' => $viewingTenant->slug, 'mono' => true, 'copy' => $viewingTenant->slug],
                                     ['label' => 'Subdomain', 'value' => $viewingTenant->subdomain ?: '—', 'mono' => true, 'copy' => $viewingTenant->subdomain],
                                     ['label' => 'Custom domain', 'value' => $viewingTenant->domain ?: '—'],
-                                    ['label' => 'Tenant URL', 'value' => $tenantHost ?: '—', 'mono' => true, 'copy' => $tenantHost],
+                                    ['label' => 'Sign-in host', 'value' => $tenantHost ?: '—', 'mono' => true, 'copy' => $tenantHost],
                                 ] as $row)
                                     <div class="flex items-start justify-between gap-3">
                                         <dt class="shrink-0 text-zinc-500">{{ $row['label'] }}</dt>
                                         <dd class="min-w-0 text-right">
-                                            <span @class(['text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $row['mono'] ?? false])>{{ $row['value'] }}</span>
+                                            <span @class(['break-words text-zinc-900 dark:text-zinc-100', 'font-mono text-xs' => $row['mono'] ?? false])>{{ $row['value'] }}</span>
                                             @if (! empty($row['copy']))
                                                 <button
                                                     type="button"
@@ -296,7 +298,7 @@
                         </x-section-card>
                     </div>
 
-                    <x-section-card title="Timeline">
+                    <x-section-card title="Timeline" compact>
                         <dl class="grid gap-3 text-sm sm:grid-cols-2">
                             <div>
                                 <dt class="text-zinc-500">Created</dt>
@@ -321,10 +323,10 @@
                         </dl>
                     </x-section-card>
 
-                    <x-section-card title="Company admins" description="Users with access to this tenant account.">
-                        @if ($viewingTenant->users->isNotEmpty())
+                    <x-section-card title="Company admins" compact>
+                        @if ($companyAdmins->isNotEmpty())
                             <ul class="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-700 dark:bg-zinc-900">
-                                @foreach ($viewingTenant->users as $user)
+                                @foreach ($companyAdmins as $user)
                                     <li class="px-3 py-3" wire:key="tenant-user-{{ $user->id }}">
                                         @if ($resettingUserId === $user->id)
                                             <form wire:submit="resetAdminPassword({{ $viewingTenant->id }})" class="space-y-3">
@@ -332,7 +334,7 @@
                                                     <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Reset password</p>
                                                     <p class="text-xs text-zinc-500">{{ $user->name }} · {{ $user->email }}</p>
                                                 </div>
-                                                <x-input wire:model.live="resetPassword" label="New password" type="password" hint="Min. 12 characters." />
+                                                <x-input wire:model="resetPassword" label="New password" type="password" autocomplete="new-password" hint="Min. 12 characters." />
                                                 <div class="flex gap-2">
                                                     <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="resetAdminPassword">Save</x-button>
                                                     <x-button type="button" size="sm" variant="secondary" wire:click="cancelResetPassword">Cancel</x-button>
@@ -354,33 +356,29 @@
                                 @endforeach
                             </ul>
                         @else
-                            <x-empty-state compact title="No admins yet" description="Invite a company admin to manage this tenant." />
-                        @endif
-
-                        @if (! $showInviteForm && $viewingTenant->users->isEmpty())
-                            <x-button type="button" size="sm" variant="secondary" class="mt-3" wire:click="$set('showInviteForm', true)">Invite admin</x-button>
+                            <x-empty-state compact title="No admins yet" description="Add a company admin to manage this tenant." />
                         @endif
 
                         @if ($showInviteForm)
                             <form wire:submit="inviteAdmin({{ $viewingTenant->id }})" class="mt-4 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Invite company admin</p>
+                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Add company admin</p>
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <x-input wire:model.live="inviteForm.name" label="Name" placeholder="Jane Admin" />
                                     <x-input wire:model.live="inviteForm.email" label="Email" type="email" placeholder="admin@acme.test" />
                                 </div>
-                                <x-input wire:model.live="inviteForm.password" label="Password" type="password" hint="Min. 12 characters." />
+                                <x-input wire:model="inviteForm.password" label="Password" type="password" autocomplete="new-password" hint="Min. 12 characters." />
                                 <div class="flex gap-2">
-                                    <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="inviteAdmin">Send invite</x-button>
+                                    <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="inviteAdmin">Create admin</x-button>
                                     <x-button type="button" size="sm" variant="secondary" wire:click="$set('showInviteForm', false)">Cancel</x-button>
                                 </div>
                             </form>
-                        @elseif ($viewingTenant->users->isNotEmpty())
-                            <x-button type="button" size="sm" variant="secondary" class="mt-3" wire:click="$set('showInviteForm', true)">Invite another admin</x-button>
+                        @else
+                            <x-button type="button" size="sm" variant="secondary" class="mt-3" wire:click="$set('showInviteForm', true)">Add admin</x-button>
                         @endif
                     </x-section-card>
                 </div>
 
-                <div class="drawer-form-footer">
+                <div class="drawer-form-footer flex-wrap">
                     @if ($viewingTenant->status === 'active')
                         <x-button wire:click="updateTenantStatus({{ $viewingTenant->id }}, 'suspended')" wire:confirm="Suspend this tenant?" variant="secondary">Suspend</x-button>
                     @else

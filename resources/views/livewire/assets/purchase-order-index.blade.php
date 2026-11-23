@@ -150,7 +150,7 @@
                 <div class="sm:col-span-2 rounded-lg border border-zinc-200 p-3">
                     <div class="mb-2 flex items-center justify-between">
                         <h3 class="text-sm font-semibold">Line items</h3>
-                        <button type="button" wire:click="addLine" class="text-xs font-medium text-sky-600">+ Add line</button>
+                        <button type="button" wire:click="addLine" class="page-link text-xs">+ Add line</button>
                     </div>
                     @foreach($items as $index => $item)
                         <div class="mb-3 grid gap-2 border-t border-zinc-100 pt-3 sm:grid-cols-6" wire:key="line-{{ $index }}">

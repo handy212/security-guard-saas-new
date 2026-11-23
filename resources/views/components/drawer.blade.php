@@ -61,11 +61,11 @@
     ></div>
 
     <div class="relative flex h-full w-full {{ $widthClass }} flex-col border-l border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-5 py-5 sm:px-6 dark:border-zinc-800">
+        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-5 dark:border-zinc-800">
             <div class="min-w-0">
-                <h2 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h2>
+                <h2 class="break-words text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{{ $title }}</h2>
                 @if ($description)
-                    <p class="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
+                    <p class="mt-0.5 break-words text-sm text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
                 @endif
             </div>
             <button type="button" wire:click="{{ $closeMethod }}" class="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" aria-label="Close">

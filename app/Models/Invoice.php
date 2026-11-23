@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasDocumentIssuer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasDocumentIssuer;
+
+    protected $hidden = ['issuer_profile'];
 
     protected $fillable = [
         'tenant_id',
@@ -35,6 +38,7 @@ class Invoice extends Model
             'due_date' => 'date',
             'billing_period' => 'date',
             'sent_at' => 'datetime',
+            'issuer_profile' => 'array',
             'paid_at' => 'datetime',
         ];
     }

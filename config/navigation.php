@@ -47,7 +47,7 @@ return [
     ],
 
     'billing' => [
-        ['href' => '/billing', 'label' => 'Overview'],
+        ['href' => '/billing', 'label' => 'Overview', 'permission' => 'billing.manage', 'feature' => 'billing'],
         ['href' => '/billing/invoices', 'label' => 'Invoices', 'permission' => 'billing.manage', 'feature' => 'billing'],
         ['href' => '/billing/estimates', 'label' => 'Estimates', 'permission' => 'billing.manage', 'feature' => 'estimates'],
         ['href' => '/billing/payments', 'label' => 'Payments', 'permission' => 'billing.manage', 'feature' => 'billing'],
@@ -103,9 +103,12 @@ return [
         ['href' => '/saas/tenants', 'label' => 'Tenants', 'icon' => 'tenants', 'permission' => 'tenants.manage'],
         ['href' => '/saas/plans', 'label' => 'Plans', 'icon' => 'plans', 'permission' => 'tenants.manage'],
         ['href' => '/saas/subscriptions', 'label' => 'Subscriptions', 'icon' => 'subscriptions', 'permission' => 'tenants.manage'],
+        ['href' => '/saas/branding', 'label' => 'App Branding', 'icon' => 'settings', 'permission' => 'tenants.manage'],
     ],
 
     'settings' => [
+        ['href' => '/settings/company-profile', 'label' => 'Company Profile', 'permission' => 'settings.manage'],
+        ['href' => '/settings/themes', 'label' => 'Themes', 'permission' => 'settings.manage'],
         ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
         ['href' => '/settings/branches', 'label' => 'Branches', 'permission' => 'settings.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],

@@ -25,9 +25,14 @@ class InvoiceDeliveryService
 
         abort_if($recipients === [], 422, 'At least one recipient email is required.');
 
+        $issuer = $invoice->documentIssuer();
+        if ($invoice->status === 'draft') {
+            $invoice->issuer_profile = $issuer;
+        }
+
         $path = $this->pdf->exportInvoice($invoice);
         $absolute = Storage::path($path);
-        $company = $invoice->clientAccount?->tenant?->name ?? config('app.name');
+        $company = $issuer['name'];
         $clientName = $invoice->clientAccount?->name ?? 'Client';
         $subject = "Invoice {$invoice->invoice_number} — {$clientName}";
         $body = implode("\n", array_filter([

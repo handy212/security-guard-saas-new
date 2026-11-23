@@ -10,6 +10,10 @@ use App\Models\TenantSubscription;
 
 class PlanLimitService
 {
+    public const DEFAULT_MAX_GUARDS = 25;
+
+    public const DEFAULT_MAX_SITES = 10;
+
     public function limitsForTenant(int $tenantId): array
     {
         $billing = BillingLimit::where('tenant_id', $tenantId)->first();
@@ -21,8 +25,8 @@ class PlanLimitService
         $plan = $subscription?->plan;
 
         return [
-            'max_guards' => $billing?->max_guards ?? $plan?->max_guards ?? 25,
-            'max_sites' => $billing?->max_sites ?? $plan?->max_sites ?? 10,
+            'max_guards' => $billing?->max_guards ?? $plan?->max_guards ?? self::DEFAULT_MAX_GUARDS,
+            'max_sites' => $billing?->max_sites ?? $plan?->max_sites ?? self::DEFAULT_MAX_SITES,
             'max_clients' => $billing?->max_clients ?? 50,
             'storage_mb' => $billing?->storage_mb ?? 1024,
         ];

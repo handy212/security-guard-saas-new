@@ -37,6 +37,14 @@ class NavigationBuilder
         return true;
     }
 
+    public function routeVisible(string $route, string $permission): bool
+    {
+        return $this->linkVisible([
+            'permission' => $permission,
+            'feature' => config('plan_entitlements.routes', [])[$route] ?? null,
+        ]);
+    }
+
     public function settingsLinks(): Collection
     {
         return collect(config('navigation.settings', []))
@@ -55,7 +63,16 @@ class NavigationBuilder
             return collect();
         }
 
-        return collect(config('navigation.pinned', []))->filter(fn (array $link) => $this->linkVisible($link))->values();
+        return collect(config('navigation.pinned', []))
+            ->filter(fn (array $link) => $this->linkVisible($link))
+            ->map(function (array $link): array {
+                if (isset($link['hub'])) {
+                    $link['hub_href'] = $link['href'];
+                    $link['href'] = $this->flyoutChildren($link)[0]['href'];
+                }
+
+                return $link;
+            })->values();
     }
 
     public function groups(): Collection
@@ -94,7 +111,7 @@ class NavigationBuilder
     /** Child links shown in collapsed-rail hover flyouts for hub items. */
     public function flyoutChildren(array $link): array
     {
-        $href = $link['href'] ?? '';
+        $href = $link['hub_href'] ?? $link['href'] ?? '';
 
         $source = match ($href) {
             '/schedules' => [
@@ -215,7 +232,7 @@ class NavigationBuilder
             return request()->is('sites') || request()->is('sites/*');
         }
 
-        if ($link['href'] === '/billing') {
+        if (($link['hub_href'] ?? $link['href']) === '/billing') {
             return (request()->is('billing') || request()->is('billing/*'))
                 && ! request()->is('billing/subscription*')
                 || request()->is('compliance') || request()->is('compliance/*')
@@ -255,6 +272,14 @@ class NavigationBuilder
 
         foreach ($this->platform() as $link) {
             $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Platform'];
+        }
+
+        if ($this->isPlatformConsole()) {
+            return $items;
+        }
+
+        foreach ($this->settingsLinks() as $link) {
+            $items[] = ['label' => $link['label'], 'href' => $link['href'], 'group' => 'Settings'];
         }
 
         foreach (config('navigation.assets', []) as $link) {

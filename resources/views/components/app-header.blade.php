@@ -6,11 +6,13 @@
 <header class="workspace-header sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-zinc-800 dark:bg-zinc-950/90">
     <div class="page-content flex h-[var(--app-header-height)] items-center gap-3 py-0">
         <button
-            id="workspace-command-trigger"
+            id="workspace-navigation-trigger"
             type="button"
             @click="sidebarOpen = true"
             class="btn-secondary !p-2 lg:hidden"
             aria-label="Open navigation"
+            aria-controls="workspace-sidebar"
+            :aria-expanded="sidebarOpen"
         >
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
@@ -19,7 +21,8 @@
             <div class="mr-auto min-w-0">
                 <button
                     type="button"
-                    @click="openCommand()"
+                    id="workspace-command-trigger"
+                    @click="openCommand($el)"
                     class="workspace-search flex h-10 items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
                     aria-label="Search pages and workspaces"
                     aria-haspopup="dialog"
@@ -45,7 +48,7 @@
                     @click="userOpen = !userOpen"
                     class="flex h-9 items-center gap-2 rounded-lg py-1 pl-1 pr-2 text-sm transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     aria-label="User menu"
-                    aria-haspopup="menu"
+                    aria-controls="workspace-user-menu"
                     :aria-expanded="userOpen ? 'true' : 'false'"
                 >
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-100 text-xs font-semibold text-accent-700">
@@ -59,7 +62,7 @@
                     @click.outside="userOpen = false"
                     x-transition
                     x-cloak
-                    role="menu"
+                    id="workspace-user-menu"
                     class="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <div class="border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
@@ -91,7 +94,6 @@
     aria-label="Search pages and workspaces"
     class="fixed inset-0 z-[80] flex items-start justify-center bg-zinc-900/50 px-4 pt-[12vh]"
     @click.self="closeCommand()"
-    @keydown.escape.window.prevent="closeCommand()"
 >
     <div
         class="w-full max-w-lg overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
@@ -105,6 +107,7 @@
             <input
                 id="workspace-command-query"
                 x-ref="query"
+                aria-label="Search pages"
                 x-model="query"
                 type="text"
                 placeholder="Search pages…"
@@ -145,6 +148,7 @@
             document.addEventListener('alpine:init', () => {
                 Alpine.data('commandPalette', (links) => ({
                     query: '',
+                    init() { this.$watch('query', () => this.activeIndex = 0) },
                     activeIndex: 0,
                     links,
                     get filtered() {

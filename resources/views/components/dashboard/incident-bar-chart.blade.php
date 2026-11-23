@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <div class="space-y-4 p-5">
+    <div class="space-y-3 p-4">
         <x-dashboard.chart-metric
             :value="$total"
             label="Incidents logged"
@@ -35,8 +35,6 @@
                     class="h-full w-full"
                 ></canvas>
             </div>
-        @else
-            <x-empty-state title="No data" description="Incident trends will chart here over time." />
         @endif
     </div>
 </section>

@@ -203,7 +203,11 @@ class TenantManagement extends Component
             $tenant = Tenant::findOrFail($this->editingTenantId);
             $wasSuspended = $tenant->status === 'suspended';
             $tenant->update($payload);
-            $this->syncTenantPlan($tenant, $data['plan_id'] ?: null);
+            if ($tenant->wasChanged('plan_id')) {
+                $this->syncTenantPlan($tenant, $data['plan_id'] ?: null);
+            } elseif ($tenant->wasChanged('trial_ends_at')) {
+                $tenant->subscription?->update(['trial_ends_at' => $tenant->trial_ends_at]);
+            }
 
             if ($payload['status'] === 'suspended' && ! $wasSuspended) {
                 $this->clearTenantSession($tenant);
@@ -264,12 +268,15 @@ class TenantManagement extends Component
 
         $this->showInviteForm = false;
         $this->resetInviteForm();
-        session()->flash('status', 'Company admin invited.');
+        session()->flash('status', 'Company admin added.');
     }
 
     public function startResetPassword(int $userId): void
     {
         $this->ensurePlatformAdmin();
+        abort_if($this->viewingTenantId === null, 404);
+        abort_unless($this->companyAdmins($this->viewingTenantId)->whereKey($userId)->exists(), 404);
+
         $this->resettingUserId = $userId;
         $this->resetPassword = '';
         $this->resetValidation('resetPassword');
@@ -285,6 +292,7 @@ class TenantManagement extends Component
     public function resetAdminPassword(int $tenantId, AuditLogService $audit): void
     {
         $this->ensurePlatformAdmin();
+        abort_unless($this->viewingTenantId === $tenantId, 404);
 
         $data = $this->validate([
             'resettingUserId' => [
@@ -296,8 +304,11 @@ class TenantManagement extends Component
         ]);
 
         $tenant = Tenant::findOrFail($tenantId);
-        $user = User::findOrFail($data['resettingUserId']);
-        $user->update(['password' => Hash::make($data['resetPassword'])]);
+        $user = $this->companyAdmins($tenantId)->findOrFail($data['resettingUserId']);
+        $user->forceFill([
+            'password' => Hash::make($data['resetPassword']),
+            'remember_token' => Str::random(60),
+        ])->save();
 
         $audit->recordPlatform('platform.tenant.password_reset', $tenant, [
             'email' => $user->email,
@@ -397,24 +408,29 @@ class TenantManagement extends Component
 
         return response()->streamDownload(function () use ($tenants) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Name', 'Slug', 'Subdomain', 'Status', 'Plan', 'Trial ends', 'Users', 'Guards', 'Created']);
+            fputcsv($handle, ['Name', 'Slug', 'Subdomain', 'Status', 'Plan', 'Trial ends', 'Users', 'Guards', 'Created'], escape: '');
 
             foreach ($tenants as $tenant) {
                 fputcsv($handle, [
-                    $tenant->name,
-                    $tenant->slug,
-                    $tenant->subdomain,
+                    $this->spreadsheetText($tenant->name),
+                    $this->spreadsheetText($tenant->slug),
+                    $this->spreadsheetText($tenant->subdomain ?? ''),
                     $tenant->status,
-                    $tenant->subscription?->plan?->name ?? '',
+                    $this->spreadsheetText($tenant->subscription?->plan?->name ?? ''),
                     $tenant->trial_ends_at?->toDateString() ?? '',
                     $tenant->users_count,
                     $tenant->guards_count,
                     $tenant->created_at?->toDateString(),
-                ]);
+                ], escape: '');
             }
 
             fclose($handle);
         }, 'tenants-'.now()->format('Y-m-d').'.csv');
+    }
+
+    private function spreadsheetText(string $value): string
+    {
+        return preg_match('/^\s*[=+\-@]|^[\t\r\n]/u', $value) ? "'".$value : $value;
     }
 
     public function updatedTenantFormName(string $value): void
@@ -431,7 +447,7 @@ class TenantManagement extends Component
         $tenants = $this->sortedTenantsQuery()->paginate(25);
 
         $viewingTenant = $this->viewingTenantId
-            ? Tenant::with(['subscription.plan', 'users' => fn ($q) => $q->select('id', 'tenant_id', 'name', 'email', 'status')->latest()])
+            ? Tenant::with('subscription.plan')
                 ->withCount(['users', 'guards', 'sites'])
                 ->find($this->viewingTenantId)
             : null;
@@ -443,11 +459,27 @@ class TenantManagement extends Component
         return view('livewire.tenants.tenant-management', [
             'tenants' => $tenants,
             'viewingTenant' => $viewingTenant,
+            'companyAdmins' => $viewingTenant ? $this->companyAdmins($viewingTenant->id)->orderBy('name')->get(['id', 'name', 'email', 'status']) : collect(),
             'detailUsage' => $detailUsage,
             'tenantStats' => $this->tenantStats(),
-            'plans' => SubscriptionPlan::where('status', 'active')->orderBy('name')->get(),
+            'plans' => SubscriptionPlan::query()->where('status', 'active')
+                ->orWhere('id', $viewingTenant?->subscription?->subscription_plan_id ?? $viewingTenant?->plan_id ?? ($this->tenantForm['plan_id'] ?: null))
+                ->orderBy('name')->get(),
             'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all' || $this->planFilter !== 'all',
         ])->layout('layouts.app');
+    }
+
+    private function companyAdmins(int $tenantId): Builder
+    {
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId($tenantId);
+
+        try {
+            return User::query()->where('tenant_id', $tenantId)
+                ->whereHas('roles', fn (Builder $roles) => $roles->where('roles.name', 'company-admin'));
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
     }
 
     private function tenantsQuery(): Builder
@@ -515,15 +547,12 @@ class TenantManagement extends Component
 
         $tenant->update(['plan_id' => $plan->id]);
 
-        TenantSubscription::updateOrCreate(
-            ['tenant_id' => $tenant->id],
-            [
-                'subscription_plan_id' => $plan->id,
-                'status' => $tenant->trial_ends_at && $tenant->trial_ends_at->isFuture() ? 'trial' : 'active',
-                'starts_at' => now(),
-                'trial_ends_at' => $tenant->trial_ends_at,
-            ]
-        );
+        $subscription = $tenant->subscription()->first() ?? new TenantSubscription([
+            'tenant_id' => $tenant->id,
+            'status' => $tenant->trial_ends_at && $tenant->trial_ends_at->isFuture() ? 'trial' : 'active',
+            'starts_at' => now(),
+        ]);
+        $subscription->fill(['subscription_plan_id' => $plan->id, 'trial_ends_at' => $tenant->trial_ends_at])->save();
 
         app(PlanEntitlementService::class)->syncBillingLimits($tenant, $plan);
     }

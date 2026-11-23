@@ -1,7 +1,7 @@
 <div class="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-10">
     <header class="relative mb-5 overflow-hidden rounded-[var(--radius-card)] bg-zinc-950 px-5 py-6 text-white">
         <div class="pointer-events-none absolute inset-0 opacity-50" style="background:
-            radial-gradient(ellipse 80% 70% at 15% 20%, color-mix(in srgb, var(--tenant-brand, #0f766e) 50%, transparent), transparent 55%);"></div>
+            radial-gradient(ellipse 80% 70% at 15% 20%, color-mix(in srgb, var(--workspace-accent, #0f766e) 50%, transparent), transparent 55%);"></div>
         <div class="relative">
             <x-brand-mark size="sm" />
             <p class="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">{{ strtoupper($companyName) }}</p>

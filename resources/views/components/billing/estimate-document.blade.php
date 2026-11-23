@@ -14,6 +14,7 @@
     </header>
 
     <div class="billing-document-parties">
+        <x-billing.document-issuer :issuer="$estimate->documentIssuer()" />
         <div>
             <div class="billing-document-label">Prepared for</div>
             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $estimate->clientAccount?->name ?? '—' }}</div>

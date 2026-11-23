@@ -25,9 +25,14 @@ class EstimateDeliveryService
         abort_if($recipients === [], 422, 'At least one recipient email is required.');
         abort_unless(in_array($estimate->status, ['draft', 'sent'], true), 422, 'Only draft or sent estimates can be emailed.');
 
+        $issuer = $estimate->documentIssuer();
+        if ($estimate->status === 'draft') {
+            $estimate->issuer_profile = $issuer;
+        }
+
         $path = $this->pdf->exportEstimate($estimate);
         $absolute = Storage::path($path);
-        $company = $estimate->clientAccount?->tenant?->name ?? config('app.name');
+        $company = $issuer['name'];
         $clientName = $estimate->clientAccount?->name ?? 'Client';
         $subject = "Estimate {$estimate->estimate_number} — {$clientName}";
         $body = implode("\n", array_filter([

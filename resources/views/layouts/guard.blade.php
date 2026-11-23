@@ -12,12 +12,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <title>Field — {{ $tenantBranding['name'] ?? config('app.name', 'GuardCore Pro') }}</title>
+    <title>Field — {{ $platformBranding->name() }}@isset($tenantBranding['name']) — {{ $tenantBranding['name'] }}@endisset</title>
     @include('partials.brand-assets')
     @vite(['resources/css/app.css', 'resources/js/guard-pwa.js'])
     @livewireStyles
 </head>
-<body
+<body data-theme-mode="dark"
     class="bg-zinc-950 font-sans text-zinc-100 antialiased"
     x-data="{ hash: window.location.hash || '#assignments' }"
     x-init="
@@ -25,12 +25,13 @@
         if (!window.location.hash) { hash = '#assignments'; }
     "
 >
+@include('partials.brand-colors')
 <header class="sticky top-0 z-20 border-b border-zinc-800/90 bg-zinc-950/95 px-4 py-3 backdrop-blur">
     <div class="mx-auto flex max-w-lg items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-2.5">
             <x-brand-mark size="sm" />
             <div class="min-w-0">
-                <div class="truncate text-sm font-semibold tracking-tight">{{ $tenantBranding['name'] ?? 'GuardCore Pro' }} Field</div>
+                <div class="truncate text-sm font-semibold tracking-tight">{{ $tenantBranding['name'] ?? $platformBranding->name() }} Field</div>
                 <div class="truncate text-[10px]" id="guard-connection-status">Online</div>
             </div>
         </div>

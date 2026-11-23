@@ -10,7 +10,7 @@
         </x-slot:actions>
 
         @if($sosAlerts->isNotEmpty())
-            <section class="card-surface mb-4 overflow-hidden border-red-200/90 dark:border-red-900/50">
+            <section id="dispatch-sos" class="card-surface mb-4 scroll-mt-20 overflow-hidden border-red-200/90 dark:border-red-900/50">
                 <div class="card-header border-red-100 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/40">
                     <div class="flex items-center gap-2">
                         <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
@@ -67,7 +67,7 @@
 
         <x-page-toolbar search="search" searchPlaceholder="Search dispatches…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active ('.$stats['active'].')', 'all' => 'All ('.$stats['all'].')', 'en_route' => 'En route ('.$stats['en_route'].')', 'closed' => 'Closed ('.$stats['closed'].')']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active ('.$stats['active'].')', 'all' => 'All ('.$stats['all'].')', 'unassigned' => 'Unassigned', 'en_route' => 'En route ('.$stats['en_route'].')', 'closed' => 'Closed ('.$stats['closed'].')']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)

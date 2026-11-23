@@ -5,16 +5,18 @@ namespace App\Services;
 use App\Enums\DispatchStatus;
 use App\Enums\ShiftStatus;
 use App\Models\AttendanceLog;
+use App\Models\CheckpointScan;
 use App\Models\DailyActivityReport;
 use App\Models\DispatchEvent;
 use App\Models\Guard;
 use App\Models\GuardIdleAlert;
 use App\Models\Incident;
+use App\Models\PassdownLog;
 use App\Models\PatrolSession;
 use App\Models\Shift;
 use App\Models\Site;
 use App\Models\SosAlert;
-use App\Support\EnumHelper;
+use App\Models\TaskSubmission;
 use Illuminate\Support\Collection;
 
 class DashboardMetricsService
@@ -57,9 +59,10 @@ class DashboardMetricsService
             ->whereDate('started_at', today())
             ->where('status', 'completed')
             ->count();
-        $openDispatches = DispatchEvent::where('tenant_id', $tenantId)
-            ->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])
-            ->count();
+        $openDispatchQuery = DispatchEvent::where('tenant_id', $tenantId)
+            ->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]);
+        $openDispatches = (clone $openDispatchQuery)->count();
+        $unassignedDispatches = $openDispatchQuery->whereNull('guard_id')->count();
         $pendingKyg = Guard::where('tenant_id', $tenantId)
             ->where('verification_status', '!=', 'verified')
             ->where('status', 'active')
@@ -104,6 +107,7 @@ class DashboardMetricsService
                 'key' => 'shifts',
                 'label' => 'Shifts',
                 'value' => $todayShifts,
+                'understaffed' => $understaffed,
                 'hint' => $understaffed
                     ? "{$understaffed} understaffed · {$sites} sites"
                     : $sites.' active sites',
@@ -114,6 +118,7 @@ class DashboardMetricsService
                 'key' => 'alerts',
                 'label' => 'Alerts',
                 'value' => $openSos + $idleAlerts + $openDispatches,
+                'unassigned_dispatches' => $unassignedDispatches,
                 'hint' => collect([
                     $openSos ? "SOS {$openSos}" : null,
                     $openDispatches ? "Dispatch {$openDispatches}" : null,
@@ -163,7 +168,8 @@ class DashboardMetricsService
     public function todayShifts(int $tenantId, int $limit = 8): Collection
     {
         return Shift::query()
-            ->with(['site', 'assignments.assignedGuard'])
+            ->with('site')
+            ->withCount(['assignments as staffed_count' => fn ($query) => $query->whereNotIn('status', ['cancelled', 'no_show'])])
             ->where('tenant_id', $tenantId)
             ->whereDate('starts_at', today())
             ->whereNotIn('status', [ShiftStatus::CANCELLED, ShiftStatus::COMPLETED])
@@ -171,11 +177,7 @@ class DashboardMetricsService
             ->limit($limit)
             ->get()
             ->map(function (Shift $shift) {
-                $staffed = $shift->assignments
-                    ->filter(fn ($a) => ! in_array(EnumHelper::value($a->status), ['cancelled', 'no_show'], true))
-                    ->count();
-                $shift->setAttribute('staffed_count', $staffed);
-                $shift->setAttribute('is_understaffed', $staffed < (int) $shift->required_guards);
+                $shift->setAttribute('is_understaffed', $shift->staffed_count < (int) $shift->required_guards);
 
                 return $shift;
             });
@@ -183,13 +185,21 @@ class DashboardMetricsService
 
     public function understaffedShifts(int $tenantId): Collection
     {
-        return $this->todayShifts($tenantId, 50)->filter(fn (Shift $shift) => $shift->is_understaffed)->values();
+        return Shift::query()
+            ->select(['id', 'required_guards'])
+            ->withCount(['assignments as staffed_count' => fn ($query) => $query->whereNotIn('status', ['cancelled', 'no_show'])])
+            ->where('tenant_id', $tenantId)
+            ->whereDate('starts_at', today())
+            ->whereNotIn('status', [ShiftStatus::CANCELLED, ShiftStatus::COMPLETED])
+            ->get()->filter(fn (Shift $shift) => $shift->staffed_count < $shift->required_guards)->values();
     }
 
     public function openDispatches(int $tenantId, int $limit = 5): Collection
     {
         return DispatchEvent::query()
             ->with(['site', 'assignedGuard', 'clientAccount'])
+            ->orderByRaw("case priority when 'critical' then 0 when 'high' then 1 when 'normal' then 2 else 3 end")
+            ->orderByRaw('case when guard_id is null then 0 else 1 end')
             ->where('tenant_id', $tenantId)
             ->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])
             ->latest()
@@ -331,10 +341,10 @@ class DashboardMetricsService
 
         return [
             'site_tours' => PatrolSession::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
-            'tasks' => \App\Models\TaskSubmission::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
-            'checklists' => \App\Models\CheckpointScan::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'tasks' => TaskSubmission::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'checklists' => CheckpointScan::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
             'check_ins' => AttendanceLog::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
-            'passdowns' => \App\Models\PassdownLog::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
+            'passdowns' => PassdownLog::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
             'idle_alerts' => GuardIdleAlert::where('tenant_id', $tenantId)->where('created_at', '>=', $from)->count(),
         ];
     }

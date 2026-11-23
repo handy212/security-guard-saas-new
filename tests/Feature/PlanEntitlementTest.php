@@ -41,6 +41,25 @@ class PlanEntitlementTest extends TestCase
             ->assertOk();
     }
 
+    public function test_empty_plan_disables_features_and_null_inherits_defaults(): void
+    {
+        $this->seed();
+        $admin = User::where('email', 'admin@demo.test')->firstOrFail();
+        $plan = $admin->tenant->subscription->plan;
+        $plan->update(['features' => []]);
+
+        $this->actingAs($admin)->get(route('guards.index'))->assertForbidden();
+        $this->get(route('guards.applications'))->assertForbidden();
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee("Today's schedule")
+            ->assertDontSee('Open dispatches')
+            ->assertDontSee('7-day patrol activity');
+
+        $plan->update(['features' => null]);
+        $this->get(route('guards.index'))->assertOk();
+    }
+
     public function test_enterprise_plan_includes_all_modules(): void
     {
         $this->seed();

@@ -22,9 +22,7 @@
     </style>
 </head>
 <body>
-    @if ($invoice->tenant?->name)
-        <div class="brand">{{ $invoice->tenant->name }}</div>
-    @endif
+    @include('partials.document-issuer')
     <h1>Invoice {{ $invoice->invoice_number }}</h1>
     <p class="muted">Status: {{ ucfirst($invoice->status) }}</p>
 

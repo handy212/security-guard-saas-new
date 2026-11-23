@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\GuardVerificationPagePresenter;
 use App\Services\GuardVerificationService;
+use App\Services\TenantBrandingService;
 use App\Services\TenantFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,6 +16,7 @@ class GuardVerificationController extends Controller
         GuardVerificationService $verification,
         GuardVerificationPagePresenter $pagePresenter,
         TenantFileStorageService $storage,
+        TenantBrandingService $branding,
         ?string $tenant = null,
         ?string $token = null,
     ): View {
@@ -48,6 +50,7 @@ class GuardVerificationController extends Controller
             now(),
             $this->verificationPhotoUrl($guard, $token, $storage),
         ) + [
+            'tenantBranding' => ['theme' => $branding->themeForTenant($guard->tenant_id)],
             'isSuspended' => $isSuspended,
             'suspendedMessage' => $isSuspended ? $verification->dutyTypeSuspendedMessage($guard) : null,
         ]);

@@ -5,6 +5,7 @@ namespace App\Livewire\Dashboard;
 use App\Models\Incident;
 use App\Models\PatrolSession;
 use App\Services\DashboardMetricsService;
+use App\Services\NavigationBuilder;
 use App\Services\TenantOnboardingService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -22,12 +23,22 @@ class Overview extends Component
         abort_unless(auth()->user()->can('dashboard.view'), 403);
     }
 
-    public function render(DashboardMetricsService $metrics, TenantOnboardingService $onboarding)
+    public function render(DashboardMetricsService $metrics, TenantOnboardingService $onboarding, NavigationBuilder $nav)
     {
+        abort_unless(auth()->user()?->can('dashboard.view'), 403);
         $tenantId = TenantContext::id();
+        $destinations = [
+            'client' => ['clients.index', 'clients.manage'],
+            'site' => ['sites.index', 'sites.manage'],
+            'guard' => ['guards.index', 'guards.manage'],
+            'shift' => ['schedules.index', 'schedules.manage'],
+            'subscription' => ['billing.subscription', 'billing.manage'],
+        ];
+        $steps = collect($onboarding->steps($tenantId))
+            ->filter(fn (array $step): bool => $nav->routeVisible(...$destinations[$step['key']]));
+        $completed = $steps->where('done', true)->count();
 
         return view('livewire.dashboard.overview', [
-            'greeting' => $metrics->greeting(),
             'kpis' => $metrics->kpis($tenantId),
             'weekSummary' => $metrics->weekSummary($tenantId),
             'incidentTrend' => $metrics->weekTrend($tenantId, Incident::class),
@@ -38,9 +49,9 @@ class Overview extends Component
             'incidentsList' => $metrics->recentIncidents($tenantId),
             'attendance' => $metrics->liveAttendance($tenantId),
             'openDispatches' => $metrics->openDispatches($tenantId),
-            'onboardingSteps' => $onboarding->steps($tenantId),
-            'onboardingProgress' => $onboarding->progress($tenantId),
-            'showOnboarding' => ! $onboarding->isComplete($tenantId),
+            'onboardingSteps' => $steps,
+            'onboardingProgress' => (int) round($completed / max(1, $steps->count()) * 100),
+            'showOnboarding' => $completed < $steps->count(),
         ])->layout('layouts.app');
     }
 }

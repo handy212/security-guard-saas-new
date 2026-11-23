@@ -261,9 +261,10 @@ class DispatcherBoard extends Component
 
         $dispatches = DispatchEvent::query()
             ->with(['site', 'clientAccount', 'assignedGuard', 'createdBy'])
-            ->when($this->statusFilter === 'active', fn ($q) => $q->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED]))
+            ->when(in_array($this->statusFilter, ['active', 'unassigned'], true), fn ($q) => $q->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]))
+            ->when($this->statusFilter === 'unassigned', fn ($q) => $q->whereNull('guard_id'))
             ->when($this->statusFilter === 'closed', fn ($q) => $q->whereIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]))
-            ->when($this->statusFilter !== 'active' && $this->statusFilter !== 'closed' && $this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
+            ->when(! in_array($this->statusFilter, ['active', 'unassigned', 'closed', 'all'], true), fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->priorityFilter !== 'all', fn ($q) => $q->where('priority', $this->priorityFilter))
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($inner) {

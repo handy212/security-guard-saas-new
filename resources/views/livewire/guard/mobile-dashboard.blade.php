@@ -32,7 +32,7 @@
                 'field-choice',
                 'field-choice-active' => $activeAssignmentId === $assignment->id,
             ])>
-                <input type="radio" wire:model.live="activeAssignmentId" value="{{ $assignment->id }}" class="mt-1 accent-[var(--tenant-brand,#0f766e)]">
+                <input type="radio" wire:model.live="activeAssignmentId" value="{{ $assignment->id }}" class="mt-1 accent-accent-600">
                 <div class="min-w-0">
                     <div class="font-medium text-zinc-100">{{ $assignment->shift?->title ?? $assignment->shift?->site?->name }}</div>
                     <div class="text-xs tabular-nums text-zinc-400">

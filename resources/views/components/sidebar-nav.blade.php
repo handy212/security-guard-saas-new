@@ -14,12 +14,13 @@
     <div class="flex-1 overflow-y-auto overscroll-contain px-1.5 py-3 lg:px-2">
         @if ($platform->isNotEmpty())
             <div class="space-y-0.5">
-                <p class="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400" x-show="!sidebarCollapsed" x-cloak>Platform</p>
+                <p class="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400" x-show="!sidebarCollapsed" x-cloak>SaaS</p>
                 @foreach ($platform as $link)
                     @php $active = $nav->isLinkActive($link); @endphp
                     <a href="{{ $link['href'] }}"
                        @click="sidebarOpen = false"
                        title="{{ $link['label'] }}"
+                       @if ($active) aria-current="page" @endif
                        class="nav-link {{ $active ? 'nav-link-active' : '' }}"
                        :class="sidebarCollapsed ? 'nav-rail-item' : ''">
                         <span class="nav-rail-icon"><x-nav-icon :name="$link['icon'] ?? 'dashboard'" class="h-[18px] w-[18px] shrink-0" /></span>

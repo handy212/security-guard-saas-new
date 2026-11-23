@@ -16,9 +16,7 @@
     </style>
 </head>
 <body>
-    @if ($incident->tenant?->name ?? $incident->site?->tenant?->name ?? null)
-        <div class="brand">{{ $incident->tenant?->name ?? $incident->site?->tenant?->name }}</div>
-    @endif
+    @include('partials.document-issuer')
     <h1>{{ $incident->title }}</h1>
     <div class="meta">
         <div><span class="label">Site</span> {{ $incident->site?->name ?? '—' }}</div>

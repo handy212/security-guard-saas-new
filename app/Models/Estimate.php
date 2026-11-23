@@ -3,13 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasDocumentIssuer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Estimate extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasDocumentIssuer;
+
+    protected $hidden = ['issuer_profile'];
 
     protected $fillable = [
         'tenant_id', 'client_account_id', 'estimate_number', 'estimate_date', 'valid_until',
@@ -22,6 +25,7 @@ class Estimate extends Model
             'estimate_date' => 'date',
             'valid_until' => 'date',
             'sent_at' => 'datetime',
+            'issuer_profile' => 'array',
             'accepted_at' => 'datetime',
         ];
     }

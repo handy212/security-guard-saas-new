@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\BillingLimit;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
-use App\Models\TenantSubscription;
 
 class PlanEntitlementService
 {
@@ -24,13 +23,13 @@ class PlanEntitlementService
     /** @return list<string> */
     public function featuresForTenant(int $tenantId): array
     {
-        $plan = $this->planForTenant($tenantId);
+        return $this->featuresForPlan($this->planForTenant($tenantId));
+    }
 
-        if ($plan && is_array($plan->features) && $plan->features !== []) {
-            return array_values(array_unique($plan->features));
-        }
-
-        return config('plan_entitlements.default_features', []);
+    /** @return list<string> */
+    public function featuresForPlan(?SubscriptionPlan $plan): array
+    {
+        return array_values(array_unique($plan?->features ?? config('plan_entitlements.default_features', [])));
     }
 
     public function tenantHasFeature(int $tenantId, string $feature): bool
@@ -66,15 +65,11 @@ class PlanEntitlementService
 
     public function syncBillingLimits(Tenant $tenant, SubscriptionPlan $plan): void
     {
-        BillingLimit::updateOrCreate(
-            ['tenant_id' => $tenant->id],
-            [
-                'max_guards' => $plan->max_guards,
-                'max_sites' => $plan->max_sites,
-                'max_clients' => 50,
-                'storage_mb' => 1024,
-            ]
-        );
+        $limits = BillingLimit::firstOrNew(['tenant_id' => $tenant->id], ['max_clients' => 50, 'storage_mb' => 1024]);
+        $limits->fill([
+            'max_guards' => $plan->max_guards ?? PlanLimitService::DEFAULT_MAX_GUARDS,
+            'max_sites' => $plan->max_sites ?? PlanLimitService::DEFAULT_MAX_SITES,
+        ])->save();
     }
 
     /** @return array<string, list<array{key: string, label: string}>> */

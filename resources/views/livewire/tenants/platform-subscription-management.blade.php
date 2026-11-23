@@ -3,20 +3,22 @@
         title="Subscriptions"
         description="Tenant billing status and plan assignments."
         :breadcrumbs="[
-            ['label' => 'Platform', 'href' => route('saas.tenants')],
+            ['label' => 'SaaS', 'href' => route('saas')],
             ['label' => 'Subscriptions'],
         ]"
     >
+        <x-flash-status type="success" />
+
         <div class="stat-grid">
             <x-stat-card compact label="Total" :value="$stats['total']" icon="users" />
             <x-stat-card compact label="Active" :value="$stats['active']" icon="check" tone="success" />
             <x-stat-card compact label="Trial" :value="$stats['trial']" icon="plan" tone="info" />
-            <x-stat-card compact label="Showing" :value="$subscriptions->count()" icon="billing" />
+            <x-stat-card compact label="Past due" :value="$stats['past_due']" icon="billing" tone="warning" />
         </div>
 
         <x-page-toolbar search="search" searchPlaceholder="Search tenants…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'trial' => 'Trial', 'cancelled' => 'Cancelled']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['all' => 'All', 'active' => 'Active', 'trial' => 'Trial', 'past_due' => 'Past due', 'cancelled' => 'Cancelled']" />
             </x-slot:tabs>
         </x-page-toolbar>
 
@@ -54,8 +56,8 @@
                 @empty
                     <x-table.empty colspan="5">
                         <x-empty-state
-                            title="No subscriptions"
-                            description="Subscriptions appear when tenants are assigned a plan."
+                            title="No matching subscriptions"
+                            description="Try changing the search or status filter."
                         />
                     </x-table.empty>
                 @endforelse
@@ -66,7 +68,7 @@
     </x-page-shell>
 
     @if ($showForm)
-        <x-drawer title="Edit subscription" description="Update plan and billing status." width="md" closeMethod="closeDrawer">
+        <x-drawer title="Edit subscription" description="Update the plan and status recorded in GuardCore. Payment provider billing is managed separately." width="md" closeMethod="closeDrawer">
             <x-drawer-form wire:submit="save" submit-label="Save subscription">
                 <x-form-section title="Billing">
                     <x-select wire:model.live="form.subscription_plan_id" label="Plan" class="sm:col-span-2">

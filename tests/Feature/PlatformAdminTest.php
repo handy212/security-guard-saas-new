@@ -2,18 +2,75 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Tenants\PlatformPlanManagement;
+use App\Livewire\Tenants\PlatformSubscriptionManagement;
+use App\Livewire\Tenants\TenantManagement;
+use App\Models\BillingLimit;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class PlatformAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_editing_tenant_details_preserves_its_past_due_subscription(): void
+    {
+        $this->seed();
+        $tenant = Tenant::where('slug', 'demo-security')->firstOrFail();
+        $subscription = $tenant->subscription()->firstOrFail();
+        $subscription->update(['status' => 'past_due', 'starts_at' => now()->subMonth()]);
+
+        Livewire::actingAs($this->platformAdmin())->test(TenantManagement::class)
+            ->call('openEditTenant', $tenant->id)
+            ->set('tenantForm.name', 'Renamed Security Company')
+            ->call('saveTenant')
+            ->assertHasNoErrors();
+
+        $this->assertSame('past_due', $subscription->fresh()->status);
+        $this->assertEquals($subscription->starts_at, $subscription->fresh()->starts_at);
+    }
+
+    public function test_platform_billing_edits_keep_tenant_limits_in_sync(): void
+    {
+        $this->seed();
+        $tenant = Tenant::where('slug', 'demo-security')->firstOrFail();
+        $oldSubscription = $tenant->subscription()->firstOrFail();
+        $subscription = TenantSubscription::create([
+            'tenant_id' => $tenant->id,
+            'subscription_plan_id' => $oldSubscription->subscription_plan_id,
+            'status' => 'past_due',
+        ]);
+        $plan = SubscriptionPlan::where('slug', 'enterprise')->firstOrFail();
+
+        Livewire::actingAs($this->platformAdmin())->test(PlatformSubscriptionManagement::class)
+            ->set('statusFilter', 'past_due')
+            ->assertSee('Demo Security Company')
+            ->call('openEdit', $subscription->id)
+            ->set('form.subscription_plan_id', $plan->id)
+            ->set('form.status', 'active')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertSee('Subscription updated.');
+
+        $this->assertSame($plan->id, $tenant->fresh()->plan_id);
+        $this->assertSame($plan->max_guards, BillingLimit::where('tenant_id', $tenant->id)->value('max_guards'));
+        $this->assertSame($oldSubscription->subscription_plan_id, $oldSubscription->fresh()->subscription_plan_id);
+
+        Livewire::actingAs($this->platformAdmin())->test(PlatformPlanManagement::class)
+            ->call('openEdit', $plan->id)
+            ->set('form.max_guards', 321)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame(321, BillingLimit::where('tenant_id', $tenant->id)->value('max_guards'));
+    }
 
     private function platformAdmin(): User
     {
@@ -70,7 +127,7 @@ class PlatformAdminTest extends TestCase
         $plan = SubscriptionPlan::first();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\TenantManagement::class)
+            ->test(TenantManagement::class)
             ->set('tenantForm.name', 'New Security Co')
             ->set('tenantForm.slug', 'new-security')
             ->set('tenantForm.plan_id', (string) $plan->id)
@@ -90,7 +147,7 @@ class PlatformAdminTest extends TestCase
         $this->seed();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\TenantManagement::class)
+            ->test(TenantManagement::class)
             ->call('applyStatFilter', 'without_plan')
             ->assertSet('planFilter', 'none')
             ->call('clearFilters')
@@ -106,7 +163,7 @@ class PlatformAdminTest extends TestCase
         $tenant = Tenant::first();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\TenantManagement::class)
+            ->test(TenantManagement::class)
             ->call('updateTenantStatus', $tenant->id, 'suspended');
 
         $this->assertDatabaseHas('audit_logs', [
@@ -122,7 +179,7 @@ class PlatformAdminTest extends TestCase
         $tenant = Tenant::first();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\TenantManagement::class)
+            ->test(TenantManagement::class)
             ->call('enterTenant', $tenant->id)
             ->assertRedirect(route('dashboard'));
 
@@ -149,7 +206,7 @@ class PlatformAdminTest extends TestCase
             ->assertSee('Plans');
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\PlatformPlanManagement::class)
+            ->test(PlatformPlanManagement::class)
             ->set('form.name', 'Pro')
             ->set('form.slug', 'pro')
             ->set('form.monthly_price', 199)
@@ -162,7 +219,7 @@ class PlatformAdminTest extends TestCase
         $plan = SubscriptionPlan::where('slug', 'starter')->first();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\PlatformSubscriptionManagement::class)
+            ->test(PlatformSubscriptionManagement::class)
             ->call('openEdit', $subscription->id)
             ->set('form.subscription_plan_id', (string) $plan->id)
             ->set('form.status', 'active')
@@ -187,7 +244,7 @@ class PlatformAdminTest extends TestCase
         $admin = User::where('email', 'admin@demo.test')->first();
 
         Livewire::actingAs($this->platformAdmin())
-            ->test(\App\Livewire\Tenants\TenantManagement::class)
+            ->test(TenantManagement::class)
             ->call('openViewTenant', $tenant->id)
             ->call('startResetPassword', $admin->id)
             ->set('resetPassword', 'ResetSecurePass1!')
@@ -195,9 +252,24 @@ class PlatformAdminTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertTrue(
-            \Illuminate\Support\Facades\Hash::check('ResetSecurePass1!', $admin->fresh()->password)
+            Hash::check('ResetSecurePass1!', $admin->fresh()->password)
         );
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'platform.tenant.password_reset']);
+    }
+
+    public function test_tenant_details_only_lists_and_resets_company_admins(): void
+    {
+        $this->seed();
+        $tenant = Tenant::where('slug', 'demo-security')->firstOrFail();
+        $guard = User::where('email', 'john.guard@test')->firstOrFail();
+
+        Livewire::actingAs($this->platformAdmin())
+            ->test(TenantManagement::class)
+            ->call('openViewTenant', $tenant->id)
+            ->assertSee('admin@demo.test')
+            ->assertDontSee($guard->email)
+            ->call('startResetPassword', $guard->id)
+            ->assertNotFound();
     }
 }

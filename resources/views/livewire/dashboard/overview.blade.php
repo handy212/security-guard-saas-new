@@ -1,77 +1,108 @@
+@php
+    $nav = app(\App\Services\NavigationBuilder::class);
+    $canOpen = fn (string $route, string $permission) => $nav->routeVisible($route, $permission);
+    $canSchedule = $canOpen('schedules.index', 'schedules.manage');
+    $canDispatch = $canOpen('dispatch.control-room', 'dispatch.manage');
+    $canIncidents = $canOpen('incidents.index', 'incidents.manage');
+    $canTrack = $canOpen('tracking.live', 'dispatch.manage');
+    $canPatrol = $canOpen('patrols.index', 'patrols.manage');
+    $canAttendance = $canOpen('schedules.attendance', 'attendance.manage');
+@endphp
+
 <div wire:poll.30s class="operations-home">
     <x-page-shell
         title="Operations desk"
-        :description="now()->format('l, j F Y').' · '.auth()->user()->tenant?->name"
+        :description="now()->format('l, j F Y').' · '.\App\Support\TenantContext::current()?->name"
     >
         <x-slot:actions>
-            @can('schedules.manage')
+            @if ($canSchedule)
                 <x-button size="sm" variant="secondary" :href="route('schedules.index', ['date' => today()->toDateString()])">
                     Today's roster
                 </x-button>
-            @endcan
-            @can('dispatch.manage')
-                <x-button size="sm" :href="route('dispatch.control-room')">
+            @endif
+            @if ($canOpen('schedules.deploy', 'schedules.manage'))
+                <x-button size="sm" :href="route('schedules.deploy', ['date' => today()->toDateString()])">
+                    Deployment wizard
+                </x-button>
+            @endif
+            @if ($canDispatch)
+                <x-button size="sm" variant="secondary" :href="route('dispatch.control-room')">
                     Open dispatch
                 </x-button>
-            @endcan
+            @endif
         </x-slot:actions>
 
         @php
             $sosKpi = collect($kpis)->firstWhere('key', 'sos');
-            $hasUrgent = ($sosKpi['value'] ?? 0) > 0;
-            $displayKpis = collect($kpis)->whereIn('key', ['reports', 'incidents', 'patrols', 'guards', 'shifts', 'alerts']);
+            $sosCount = $canDispatch ? ($sosKpi['value'] ?? 0) : 0;
+            $unassignedCount = $canDispatch ? (collect($kpis)->firstWhere('key', 'alerts')['unassigned_dispatches'] ?? 0) : 0;
+            $understaffedCount = $canSchedule ? (collect($kpis)->firstWhere('key', 'shifts')['understaffed'] ?? 0) : 0;
+            $rosterUrl = route('schedules.index', ['date' => today()->toDateString()]);
+            $displayKpis = collect($kpis)->whereIn('key', array_keys(array_filter([
+                'reports' => $canOpen('reports.daily', 'reports.approve'),
+                'incidents' => $canIncidents,
+                'patrols' => $canPatrol,
+                'guards' => $canTrack,
+                'shifts' => $canSchedule,
+                'alerts' => $canDispatch,
+            ])));
             $quickActions = array_filter([
-                ['label' => 'Clients', 'href' => route('clients.index'), 'icon' => 'clients', 'permission' => 'clients.manage'],
-                ['label' => 'Sites', 'href' => route('sites.index'), 'icon' => 'sites', 'permission' => 'sites.manage'],
-                ['label' => 'Guards', 'href' => route('guards.index'), 'icon' => 'guards', 'permission' => 'guards.manage'],
-                ['label' => 'Schedules', 'href' => route('schedules.index', ['date' => today()->toDateString()]), 'icon' => 'schedules', 'permission' => 'schedules.manage'],
-                ['label' => 'Dispatch', 'href' => route('dispatch.control-room'), 'icon' => 'dispatch', 'permission' => 'dispatch.manage'],
-                ['label' => 'Incidents', 'href' => route('incidents.index'), 'icon' => 'incidents', 'permission' => 'incidents.manage'],
-                ['label' => 'Live tracking', 'href' => route('tracking.live'), 'icon' => 'gps', 'permission' => 'dispatch.manage'],
-                ['label' => 'Messenger', 'href' => route('messenger.index'), 'icon' => 'messenger', 'permission' => 'dispatch.manage'],
-            ], fn ($action) => empty($action['permission']) || auth()->user()?->can($action['permission']));
+                ['label' => 'Clients', 'route' => 'clients.index', 'href' => route('clients.index'), 'icon' => 'clients', 'permission' => 'clients.manage'],
+                ['label' => 'Sites', 'route' => 'sites.index', 'href' => route('sites.index'), 'icon' => 'sites', 'permission' => 'sites.manage'],
+                ['label' => 'Guards', 'route' => 'guards.index', 'href' => route('guards.index'), 'icon' => 'guards', 'permission' => 'guards.manage'],
+                ['label' => 'Schedules', 'route' => 'schedules.index', 'href' => route('schedules.index', ['date' => today()->toDateString()]), 'icon' => 'schedules', 'permission' => 'schedules.manage'],
+                ['label' => 'Dispatch', 'route' => 'dispatch.control-room', 'href' => route('dispatch.control-room'), 'icon' => 'dispatch', 'permission' => 'dispatch.manage'],
+                ['label' => 'Incidents', 'route' => 'incidents.index', 'href' => route('incidents.index'), 'icon' => 'incidents', 'permission' => 'incidents.manage'],
+                ['label' => 'Live tracking', 'route' => 'tracking.live', 'href' => route('tracking.live'), 'icon' => 'gps', 'permission' => 'dispatch.manage'],
+                ['label' => 'Messenger', 'route' => 'messenger.index', 'href' => route('messenger.index'), 'icon' => 'messenger', 'permission' => 'dispatch.manage'],
+            ], fn ($action) => $canOpen($action['route'], $action['permission']));
         @endphp
 
-        @if ($hasUrgent)
-            <x-alert tone="danger" :title="$sosKpi['value'].' active SOS alert'.($sosKpi['value'] > 1 ? 's' : '')" class="animate-fade-in-up">
-                Respond from dispatch immediately.
-                <x-slot:action>
-                    <a href="{{ route('dispatch.control-room') }}" class="btn-danger shrink-0">Open dispatch</a>
-                </x-slot:action>
-            </x-alert>
+        @if ($sosCount || $unassignedCount || $understaffedCount)
+            <section aria-labelledby="priority-work-heading" class="space-y-2">
+                <h2 id="priority-work-heading" class="text-base font-semibold">Needs attention</h2>
+                <div class="flex flex-wrap gap-2">
+                    @if ($sosCount)
+                        <a href="{{ route('dispatch.control-room') }}#dispatch-sos" class="flex min-h-11 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">
+                            {{ $sosCount }} active {{ \Illuminate\Support\Str::plural('SOS alert', $sosCount) }}
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    @endif
+                    @if ($unassignedCount)
+                        <a href="{{ route('dispatch.control-room', ['status' => 'unassigned']) }}" class="flex min-h-11 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                            {{ $unassignedCount }} unassigned {{ \Illuminate\Support\Str::plural('dispatch', $unassignedCount) }}
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    @endif
+                    @if ($understaffedCount)
+                        <a href="{{ $rosterUrl }}" class="flex min-h-11 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                            {{ $understaffedCount }} understaffed {{ \Illuminate\Support\Str::plural('shift', $understaffedCount) }}
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    @endif
+                </div>
+            </section>
         @endif
 
-        <section class="ops-summary" aria-label="Operations at a glance">
-            @foreach ($displayKpis as $kpi)
-                <x-dashboard.kpi
-                    class="ops-summary-card"
-                    :label="$kpi['label']"
-                    :value="$kpi['value']"
-                    :hint="$kpi['hint']"
-                    :tone="$kpi['tone']"
-                    :href="url($kpi['href'])"
-                    :icon="$kpi['key']"
-                />
-            @endforeach
-        </section>
-
+        @if ($canSchedule || $canDispatch)
         <div class="ops-section-heading">
             <div>
-                <p class="ops-eyebrow">Today’s operations</p>
+
                 <h2>Coverage &amp; response</h2>
             </div>
             <p class="ops-period">Updates every 30 seconds</p>
         </div>
 
-        <div class="page-grid-2 ops-primary-grid">
-            <section class="card-surface overflow-hidden">
+        <div @class(['ops-primary-grid', 'ops-two-column' => $canSchedule && $canDispatch])>
+            @if ($canSchedule)
+                <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">Today's schedule</h2>
                             <p class="card-header-meta">
-                                {{ $todayShifts->count() }} shift{{ $todayShifts->count() === 1 ? '' : 's' }}
-                                @if ($todayShifts->where('is_understaffed', true)->count())
-                                    · <span class="font-medium text-amber-600 dark:text-amber-400">{{ $todayShifts->where('is_understaffed', true)->count() }} understaffed</span>
+                                {{ trans_choice('{0} No shifts shown|{1} :count shift shown|[2,*] :count shifts shown', $todayShifts->count()) }}
+                                @if ($understaffedCount)
+                                    · <span class="font-medium text-amber-600 dark:text-amber-400">{{ $understaffedCount }} understaffed</span>
                                 @endif
                             </p>
                         </div>
@@ -106,22 +137,16 @@
                             <span class="hidden sm:inline-flex"><x-badge :status="$shift->status" /></span>
                         </a>
                     @empty
-                        <div class="p-3">
-                            <x-empty-state
-                                compact
-                                title="No shifts today"
-                                description="Create a shift on the day roster to staff coverage."
-                            >
-                                <x-slot:actions>
-                                    <x-button size="sm" :href="route('schedules.index', ['date' => today()->toDateString()])">Create shift</x-button>
-                                    <x-button size="sm" variant="secondary" :href="route('sites.index')">View sites</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                        <div class="flex min-h-[3.75rem] flex-wrap items-center justify-between gap-2 px-3.5 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p>No shifts scheduled today.</p>
+                            <a href="{{ route('schedules.index', ['date' => today()->toDateString()]) }}" class="page-link">Create shift</a>
                         </div>
                     @endforelse
                 </section>
+@endif
 
-                <section class="card-surface overflow-hidden">
+                @if ($canDispatch)
+                    <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">Open dispatches</h2>
@@ -131,7 +156,7 @@
                     </div>
 
                     @forelse ($openDispatches as $dispatch)
-                        <a href="{{ route('dispatch.control-room') }}" class="list-row-start">
+                        <a href="{{ route('dispatch.control-room', ['q' => $dispatch->dispatch_number]) }}" class="list-row-start">
                             <div @class([
                                 'mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 'bg-red-500' => in_array(\App\Support\EnumHelper::value($dispatch->priority), ['critical', 'high'], true),
@@ -157,24 +182,38 @@
                             </div>
                         </a>
                     @empty
-                        <div class="p-3">
-                            <x-empty-state
-                                compact
-                                title="No open dispatches"
-                                description="Create a dispatch when a client or site needs response."
-                            >
-                                <x-slot:actions>
-                                    <x-button size="sm" :href="route('dispatch.control-room')">Open dispatch</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                        <div class="flex min-h-[3.75rem] flex-wrap items-center justify-between gap-2 px-3.5 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p>No open dispatches.</p>
                         </div>
                     @endforelse
                 </section>
+@endif
         </div>
 
-        <div class="ops-secondary-grid">
+        @endif
+
+        @if ($displayKpis->isNotEmpty())
+        <section class="ops-summary" aria-label="Operations at a glance">
+            @foreach ($displayKpis as $kpi)
+                <x-dashboard.kpi
+                    class="ops-summary-card"
+                    :label="$kpi['label']"
+                    :value="$kpi['value']"
+                    :hint="$kpi['hint']"
+                    :tone="$kpi['tone']"
+                    :href="url($kpi['href'])"
+                    :icon="$kpi['key']"
+                />
+            @endforeach
+        </section>
+
+        @endif
+
+        @if ($canIncidents || $canTrack || $showOnboarding)
+        <div @class(['ops-secondary-grid' => $canIncidents && ($canTrack || $showOnboarding)])>
             <div class="space-y-3">
-                <section class="card-surface overflow-hidden">
+                @if ($canIncidents)
+                    <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">Recent incidents</h2>
@@ -201,19 +240,12 @@
                             <x-badge :status="$incident->status" />
                         </a>
                     @empty
-                        <div class="p-3">
-                            <x-empty-state
-                                compact
-                                title="No incidents yet"
-                                description="Quiet is good — open the board when something needs review."
-                            >
-                                <x-slot:actions>
-                                    <x-button size="sm" variant="secondary" :href="route('incidents.index')">Incidents board</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                        <div class="flex min-h-[3.75rem] flex-wrap items-center justify-between gap-2 px-3.5 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p>No recent incidents.</p>
                         </div>
                     @endforelse
                 </section>
+@endif
             </div>
 
             <div class="space-y-3">
@@ -221,7 +253,8 @@
                     <x-onboarding-checklist :steps="$onboardingSteps" :progress="$onboardingProgress" />
                 @endif
 
-                <section class="card-surface overflow-hidden">
+                @if ($canTrack)
+                    <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">On duty now</h2>
@@ -244,35 +277,31 @@
                             </div>
                         </a>
                     @empty
-                        <div class="p-3">
-                            <x-empty-state
-                                compact
-                                title="Nobody on duty"
-                                description="Clock-ins from today's shifts appear here."
-                            >
-                                <x-slot:actions>
-                                    <x-button size="sm" variant="secondary" :href="route('schedules.attendance')">Attendance</x-button>
-                                    <x-button size="sm" variant="secondary" :href="route('tracking.live')">Live map</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                        <div class="flex min-h-[3.75rem] flex-wrap items-center justify-between gap-2 px-3.5 py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p>Nobody is clocked in.</p>
                         </div>
                     @endforelse
                 </section>
+@endif
 
 
             </div>
         </div>
 
-        <section class="ops-reporting" aria-labelledby="ops-reporting-title">
+        @endif
+
+        @if ($canIncidents || $canPatrol || $canTrack || $canAttendance || $canOpen('passdown.index', 'patrols.manage'))
+            <section class="ops-reporting" aria-labelledby="ops-reporting-title">
             <div class="ops-section-heading">
                 <div>
-                    <p class="ops-eyebrow">The wider picture</p>
+
                     <h2 id="ops-reporting-title">This week in review</h2>
                 </div>
                 <span class="ops-period">Last 7 days</span>
             </div>
             <div class="ops-report-grid">
-                <section class="card-surface overflow-hidden">
+                @if ($canPatrol)
+                    <section class="card-surface overflow-hidden">
                     <div class="card-header">
                         <div>
                             <h2 class="card-header-title">7-day patrol activity</h2>
@@ -296,21 +325,28 @@
                             :hint="$weekSummary['missed_patrols'].' missed this week'"
                             :delta="$patrolTotal > 0 ? $patrolDelta : null"
                         />
-                        <x-dashboard.trend-chart :series="$patrolTrend" color="accent" />
+                        @if ($patrolTotal > 0)
+                            <x-dashboard.trend-chart :series="$patrolTrend" color="accent" />
+                        @endif
                     </div>
                 </section>
+@endif
+                @if ($canIncidents)
                 <x-dashboard.incident-donut :breakdown="$incidentBreakdown" />
                 <x-dashboard.incident-bar-chart :series="$incidentTrend" />
+                @endif
             </div>
             <x-dashboard.activity-summary :summary="$activitySummary" />
         </section>
+
+        @endif
 
         @if (count($quickActions))
             <section class="ops-tools">
                 <div class="flex items-end justify-between gap-3">
                     <div>
                         <h2 class="section-heading">Quick actions</h2>
-                        <p class="section-subheading">Open a workspace</p>
+
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-1.5">

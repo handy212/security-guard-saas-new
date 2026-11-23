@@ -27,7 +27,7 @@
             x-show="open"
             x-cloak
             x-transition
-            class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+            class="fixed inset-x-3 top-[var(--app-header-height)] z-50 mt-1 sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
             <div class="border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
                 <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Needs attention</span>

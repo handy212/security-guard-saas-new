@@ -7,7 +7,7 @@
     @if(config('notifications.push.vapid.public_key'))
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
-    <title>{{ $tenantBranding['name'] ?? config('app.name', 'GuardCore Pro') }}</title>
+    <title>{{ $platformBranding->name() }}@isset($tenantBranding['name']) — {{ $tenantBranding['name'] }}@endisset</title>
     @include('partials.theme-init')
     @include('partials.brand-assets')
     <script>
@@ -24,6 +24,7 @@
 <body class="workspace-app bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
     x-data="{
         sidebarOpen: false,
+        desktopNavigation: matchMedia('(min-width: 1024px)').matches,
         sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
         commandOpen: false,
         toggleSidebarCollapse() {
@@ -31,20 +32,27 @@
             document.documentElement.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
             localStorage.setItem('GuardCore Pro-sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
         },
-        openCommand() {
+        commandTrigger: null,
+        openCommand(trigger = document.activeElement) {
+            if (this.commandOpen) return;
+            this.commandTrigger = trigger;
             this.commandOpen = true;
             this.$nextTick(() => {
                 window.setTimeout(() => document.getElementById('workspace-command-query')?.focus(), 0);
             });
         },
         closeCommand() {
+            if (!this.commandOpen) return;
             this.commandOpen = false;
-            this.$nextTick(() => document.getElementById('workspace-command-trigger')?.focus());
+            this.$nextTick(() => (this.commandTrigger === document.body ? document.getElementById('workspace-command-trigger') : this.commandTrigger)?.focus());
         }
     }"
+    @resize.window="desktopNavigation = matchMedia('(min-width: 1024px)').matches; if (desktopNavigation) sidebarOpen = false"
+    @keydown.escape.window="if (commandOpen) { $event.preventDefault(); closeCommand() } else if (sidebarOpen) { sidebarOpen = false }"
     @keydown.window.cmd.k.prevent="openCommand()"
     @keydown.window.ctrl.k.prevent="openCommand()"
 >
+@include('partials.brand-colors')
 <div>
     <div
         x-show="sidebarOpen"
@@ -54,11 +62,11 @@
     ></div>
 
     <aside
+        id="workspace-sidebar"
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        :aria-hidden="!sidebarOpen && window.innerWidth < 1024 ? 'true' : null"
+        :inert="!sidebarOpen && !desktopNavigation"
         aria-label="Primary navigation"
-        x-trap.noscroll="sidebarOpen && window.innerWidth < 1024"
-        @keydown.escape.window="sidebarOpen = false"
+        x-trap.noscroll="sidebarOpen && !desktopNavigation"
         class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
         <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
@@ -69,8 +77,8 @@
                :class="sidebarCollapsed ? 'justify-center' : ''">
                 <x-brand-mark />
                 <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="truncate text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $tenantBranding['name'] ?? 'GuardCore Pro' }}</div>
-                    <div class="truncate text-[11px] text-zinc-500">{{ $tenantBranding['tagline'] ?? 'Security operations' }}</div>
+                    <div class="truncate text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $platformBranding->name() }}</div>
+                    <div class="truncate text-[11px] text-zinc-500">{{ $tenantBranding['name'] ?? 'Security operations' }}</div>
                 </div>
             </a>
             <button
@@ -120,7 +128,7 @@
         </div>
 
         @if (session('status'))
-            <x-flash-status type="success" class="fixed inset-x-0 top-0 z-[70]" />
+            <x-status-toast :message="session('status')" />
         @endif
 
         @if (\App\Support\TenantContext::isViewingAsTenant())
