@@ -33,9 +33,14 @@
                             <div>
                                 <h2 class="card-header-title" tabindex="-1" data-deploy-heading>Where are they going?</h2>
                                 <p class="card-header-meta">Pick a client, site, date, and optional post.</p>
-                                <p class="card-header-meta">Refreshing restarts at Site. Selections are not saved until you deploy.</p>
                             </div>
                         </div>
+                        @if ($canResumeDraft)
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+                                <p class="text-sm text-zinc-600 dark:text-zinc-400">You have an unfinished deployment for this date.</p>
+                                <x-button size="sm" variant="secondary" wire:click="resumeDraft">Resume draft</x-button>
+                            </div>
+                        @endif
                         <div class="space-y-4 p-4">
                             <div class="grid gap-4 md:grid-cols-2">
                                 <x-input wire:model.live="date" type="date" label="Deployment date" />

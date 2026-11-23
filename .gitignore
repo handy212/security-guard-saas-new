@@ -21,3 +21,4 @@ storage/logs/laravel.log
 /storage/*
 /tasks/*
 /docs/WM-5000Z-SDK-20230320/*
+/.env.patriot.local

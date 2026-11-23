@@ -21,6 +21,82 @@ use Illuminate\Support\Collection;
 
 class DashboardMetricsService
 {
+    public function commandDashboard(int $tenantId, NavigationBuilder $nav, GuardLocationService $locations): array
+    {
+        $coverage = collect();
+        if ($nav->routeVisible('sites.index', 'sites.manage') && $nav->routeVisible('schedules.index', 'schedules.manage')) {
+            $required = Shift::query()->where('tenant_id', $tenantId)
+                ->where('starts_at', '<=', now())->where('ends_at', '>', now())
+                ->whereNotIn('status', [ShiftStatus::DRAFT, ShiftStatus::CANCELLED, ShiftStatus::COMPLETED])
+                ->selectRaw('site_id, SUM(required_guards) AS required')->groupBy('site_id')->pluck('required', 'site_id');
+            $onDuty = AttendanceLog::query()->where('tenant_id', $tenantId)
+                ->whereNotNull('clock_in_at')->whereNull('clock_out_at')
+                ->selectRaw('site_id, COUNT(DISTINCT guard_id) AS staffed')->groupBy('site_id')->pluck('staffed', 'site_id');
+            $coverage = Site::query()->where('tenant_id', $tenantId)->whereIn('id', $required->keys())
+                ->orderBy('name')->get(['id', 'name'])->map(fn (Site $site): array => [
+                    'name' => $site->name,
+                    'required' => (int) $required[$site->id],
+                    'onDuty' => (int) ($onDuty[$site->id] ?? 0),
+                    'url' => route('sites.show', $site),
+                ]);
+        }
+
+        $markers = [];
+        $mapSite = null;
+        if ($nav->routeVisible('tracking.live', 'dispatch.manage')) {
+            $markers = $locations->latestForTenant($tenantId, 60)->take(75)->map(fn ($location): array => [
+                'lat' => $location->latitude,
+                'lng' => $location->longitude,
+                'label' => $location->assignedGuard?->full_name ?? 'Guard',
+                'url' => route('tracking.live', ['guard' => $location->guard_id]),
+            ])->values()->all();
+
+            if ($markers === []) {
+                $mapSite = Site::query()->where('tenant_id', $tenantId)
+                    ->whereNotNull('latitude')->whereNotNull('longitude')
+                    ->orderBy('id')->first(['latitude', 'longitude']);
+            }
+        }
+
+        $response = collect();
+        $averageResponse = null;
+        if ($nav->routeVisible('dispatch.control-room', 'dispatch.manage')) {
+            $samples = DispatchEvent::query()->where('tenant_id', $tenantId)
+                ->where('on_scene_at', '>=', today()->subDays(6))->whereNotNull('opened_at')
+                ->whereColumn('on_scene_at', '>=', 'opened_at')->get(['opened_at', 'on_scene_at']);
+            $averageResponse = $samples->isEmpty() ? null : $samples->avg(fn (DispatchEvent $event) => $event->opened_at->diffInSeconds($event->on_scene_at));
+            $response = $samples->groupBy(fn (DispatchEvent $event) => $event->on_scene_at->toDateString())
+                ->sortKeys()->map(fn (Collection $events) => (int) round($events->avg(fn (DispatchEvent $event) => $event->opened_at->diffInSeconds($event->on_scene_at))));
+        }
+
+        $canViewPatrols = $nav->routeVisible('patrols.index', 'patrols.manage');
+        $recentPatrols = $canViewPatrols
+            ? PatrolSession::query()->where('tenant_id', $tenantId)
+                ->with('route:id,name')->whereNotNull('started_at')->latest('started_at')->limit(5)->get()
+            : collect();
+
+        $patrolResults = $canViewPatrols
+            ? PatrolSession::query()->where('tenant_id', $tenantId)->where('started_at', '>=', today()->subDays(6))
+                ->whereIn('status', ['completed', 'missed'])->selectRaw('status, COUNT(*) AS total')->groupBy('status')->pluck('total', 'status')
+            : collect();
+
+        $urgentIncidents = $nav->routeVisible('incidents.index', 'incidents.manage')
+            ? Incident::query()->with('site')->where('tenant_id', $tenantId)
+                ->whereIn('severity', ['critical', 'high'])->whereNotIn('status', ['closed', 'rejected'])
+                ->orderByRaw("CASE WHEN severity = 'critical' THEN 0 ELSE 1 END")->latest()->limit(4)->get()
+            : collect();
+
+        $attendanceByDay = collect();
+        if ($nav->routeVisible('schedules.attendance', 'attendance.manage')) {
+            $attendanceByDay = AttendanceLog::query()->where('tenant_id', $tenantId)
+                ->where('clock_in_at', '>=', today()->subDays(6))
+                ->selectRaw("DATE(clock_in_at) AS day, COUNT(*) AS total, SUM(CASE WHEN COALESCE(original_status, status) = 'late' THEN 1 ELSE 0 END) AS late")
+                ->groupByRaw('DATE(clock_in_at)')->orderBy('day')->get();
+        }
+
+        return compact('coverage', 'markers', 'mapSite', 'response', 'averageResponse', 'patrolResults', 'urgentIncidents', 'attendanceByDay', 'recentPatrols');
+    }
+
     public function greeting(): string
     {
         $hour = (int) now()->format('G');
@@ -89,6 +165,7 @@ class DashboardMetricsService
                 'key' => 'patrols',
                 'label' => 'Tours',
                 'value' => $activeTours + $completedTours,
+                'active' => $activeTours,
                 'hint' => "Completed {$completedTours}",
                 'tone' => $patrolRate >= 80 ? 'success' : ($patrolRate >= 50 ? 'warning' : 'danger'),
                 'href' => '/patrols',
@@ -97,6 +174,7 @@ class DashboardMetricsService
                 'key' => 'guards',
                 'label' => 'On duty',
                 'value' => $onDuty,
+                'roster' => $activeGuards,
                 'hint' => $onDuty > 0
                     ? "{$onDuty} clocked in · {$activeGuards} on roster"
                     : ($activeGuards ? "{$activeGuards} on roster · none clocked in" : 'No active guards'),

@@ -110,7 +110,7 @@ return [
         ['href' => '/settings/company-profile', 'label' => 'Company Profile', 'permission' => 'settings.manage'],
         ['href' => '/settings/themes', 'label' => 'Themes', 'permission' => 'settings.manage'],
         ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
-        ['href' => '/settings/branches', 'label' => 'Branches', 'permission' => 'settings.manage'],
+        ['href' => '/settings/branches', 'label' => 'Regions', 'permission' => 'settings.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
         ['href' => '/settings/know-your-guard', 'label' => 'KYG public page', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],

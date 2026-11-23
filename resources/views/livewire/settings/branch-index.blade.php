@@ -1,7 +1,7 @@
 <div>
-    <x-page-shell title="Branches" description="Manage regional or office branches used when assigning guards.">
+    <x-page-shell title="Regions" description="Manage regions, dispatch standby points, and response teams.">
         <x-slot:actions>
-            <x-button wire:click="openCreate">Add branch</x-button>
+            <x-button wire:click="openCreate">Add region</x-button>
         </x-slot:actions>
 
         <x-sub-sidebar-layout class="settings-workspace">
@@ -9,12 +9,12 @@
 
             <x-flash-status />
 
-            <x-page-toolbar search="search" searchPlaceholder="Search branches…" />
+            <x-page-toolbar search="search" searchPlaceholder="Search regions…" />
 
             <x-data-table>
                 <x-table.head>
                     <tr>
-                        <x-table.th>Branch</x-table.th>
+                        <x-table.th>Region</x-table.th>
                         <x-table.th responsive="md">Code</x-table.th>
                         <x-table.th responsive="lg">Location</x-table.th>
                         <x-table.th>Status</x-table.th>
@@ -36,15 +36,15 @@
                             <x-table.td align="right">
                                 <x-row-menu>
                                     <x-row-menu-item wire:click="edit({{ $branch->id }})">Edit</x-row-menu-item>
-                                    <x-row-menu-item wire:click="delete({{ $branch->id }})" wire:confirm="Delete this branch?" danger>Delete</x-row-menu-item>
+                                    <x-row-menu-item wire:click="delete({{ $branch->id }})" wire:confirm="Delete this region?" danger>Delete</x-row-menu-item>
                                 </x-row-menu>
                             </x-table.td>
                         </tr>
                     @empty
                         <x-table.empty colspan="5">
-                            <x-empty-state compact title="No branches" description="Add a branch so you can assign guards to it.">
+                            <x-empty-state compact title="No regions" description="Add a region to organize guards and standby points.">
                                 <x-slot:actions>
-                                    <x-button size="sm" wire:click="openCreate">Add branch</x-button>
+                                    <x-button size="sm" wire:click="openCreate">Add region</x-button>
                                 </x-slot:actions>
                             </x-empty-state>
                         </x-table.empty>
@@ -53,17 +53,78 @@
             </x-data-table>
 
             <x-pagination :paginator="$branches" />
+            <x-section-card title="Dispatch standby points" description="Register existing sites as standby points for an active region." class="mt-4">
+                <ul class="mb-3 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                    @forelse ($standbySites as $site)
+                        <li class="flex flex-wrap items-center justify-between gap-2 py-2" wire:key="standby-site-{{ $site->id }}">
+                            <span><strong>{{ $site->name }}</strong> · {{ $regions->find($site->dispatch_region_id)?->name }}</span>
+                            <button type="button" class="table-action" wire:click="removeStandbyPoint({{ $site->id }})" wire:confirm="Remove this site as a standby point?">Remove standby point</button>
+                        </li>
+                    @empty
+                        <li class="py-2 text-zinc-500">No standby points registered.</li>
+                    @endforelse
+                </ul>
+                <form wire:submit="registerStandbyPoint" class="grid items-end gap-3 sm:grid-cols-2">
+                    <x-select wire:model="pointRegionId" label="Region">
+                        <option value="">Choose an active region</option>
+                        @foreach ($regions as $region)
+                            <option value="{{ $region->id }}">{{ $region->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <x-select wire:model="pointSiteId" label="Standby site">
+                        <option value="">Choose an active site</option>
+                        @foreach ($pointCandidates as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }}</option>
+                        @endforeach
+                    </x-select>
+                    <div><x-button type="submit" size="sm" :disabled="$regions->isEmpty() || $pointCandidates->isEmpty()">Add standby point</x-button></div>
+                </form>
+            </x-section-card>
+
+        <x-section-card title="Response teams" class="mt-4">
+            <div class="my-3 space-y-2">
+                @foreach ($dispatchTeams as $team)
+                    @php $outstanding = $team->outstandingDispatches->first(); @endphp
+                    <p class="text-sm"><strong>{{ $team->name }}</strong> · {{ $team->standbySite?->name ?? 'No standby site' }} · {{ $team->active_officers_count }} active officers · {{ $outstanding?->awaitingStationReturn() ? 'Returning' : ($outstanding ? 'Dispatched' : ($team->standby_site_id && $team->active_officers_count ? 'Available' : 'Unavailable')) }}</p>
+                @endforeach
+            </div>
+            <form wire:submit="createDispatchTeam" class="space-y-3">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <x-input wire:model="teamName" label="Team name" />
+                    <x-select wire:model="standbySiteId" label="Standby site">
+                        <option value="">Choose a site</option>
+                        @foreach ($standbySites as $site)
+                            <option value="{{ $site->id }}">{{ $site->name }} · {{ $regions->find($site->dispatch_region_id)?->name }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+                <fieldset class="space-y-1 text-sm">
+                    <legend class="font-medium">Active dispatch officers</legend>
+                    @forelse ($unrosteredOfficers as $officer)
+                        <label class="mr-3 inline-flex items-center gap-2"><input type="checkbox" wire:model="teamMembers" value="{{ $officer->id }}"> {{ $officer->full_name }}</label>
+                    @empty
+                        <p>No unrostered dispatch officers.</p>
+                    @endforelse
+                </fieldset>
+                @foreach ($errors->get('teamMembers.*') as $messages)
+                    <p class="text-sm text-red-600">{{ $messages[0] }}</p>
+                @endforeach
+                @error('teamMembers') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                <x-button type="submit" size="sm" :disabled="$unrosteredOfficers->isEmpty() || $standbySites->isEmpty()">Create response team</x-button>
+            </form>
+        </x-section-card>
+
         </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showForm)
         <x-drawer
-            :title="$editingId ? 'Edit branch' : 'Add branch'"
-            :description="$editingId ? 'Update branch details used on guard assignments.' : 'Add a regional or office branch for rostering.'"
+            :title="$editingId ? 'Edit region' : 'Add region'"
+            :description="$editingId ? 'Update region details used on guard assignments.' : 'Create a region for rostering and dispatch.'"
             width="md"
         >
-            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update branch' : 'Create branch'">
-                <x-form-section title="Branch">
+            <x-drawer-form wire:submit="save" :submit-label="$editingId ? 'Update region' : 'Create region'">
+                <x-form-section title="Region">
                     <x-input wire:model.live="form.name" label="Name" class="sm:col-span-2" />
                     <x-input wire:model.live="form.code" label="Code" />
                     <x-input wire:model.live="form.phone" label="Phone" />

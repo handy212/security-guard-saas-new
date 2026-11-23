@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Incidents;
 
+use App\Enums\IncidentSeverity;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Livewire\Concerns\HasPerPage;
-use App\Enums\IncidentSeverity;
 use App\Models\Incident;
 use App\Models\IncidentMedia;
 use App\Models\Site;
@@ -63,6 +63,11 @@ class IncidentIndex extends Component
     public function mount(): void
     {
         $this->authorizePolicy('viewAny', Incident::class);
+
+        $incidentId = filter_var(request()->query('incident'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($incidentId !== false) {
+            $this->viewIncident($incidentId);
+        }
     }
 
     public function applyStatFilter(string $filter): void

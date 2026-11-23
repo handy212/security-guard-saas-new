@@ -163,6 +163,13 @@
                     </form>
                 </x-form-card>
 
+                <x-form-card title="Patriot site link" description="Use the Patriot client reference to route incoming alarm dispatches to this site. Leave blank to remove the link.">
+                    <form wire:submit="savePatriotMapping" class="flex flex-wrap items-end gap-3">
+                        <x-input wire:model="patriotClientRef" label="Patriot client reference" />
+                        <x-button type="submit" variant="secondary" wire:loading.attr="disabled" wire:target="savePatriotMapping">Save Patriot link</x-button>
+                    </form>
+                </x-form-card>
+
                 <x-form-card title="Site preferences" description="Clock-in, notifications, and patrol defaults">
                     <form wire:submit="saveSettings" class="space-y-4 max-w-lg">
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">

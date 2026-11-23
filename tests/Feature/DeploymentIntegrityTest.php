@@ -247,6 +247,24 @@ class DeploymentIntegrityTest extends TestCase
         $this->assertSame(0, $this->shift->assignments()->count());
     }
 
+    public function test_unfinished_deployment_can_resume_after_refresh(): void
+    {
+        $date = $this->shift->starts_at->toDateString();
+        Livewire::actingAs($this->admin)->test(DeployWizard::class)
+            ->set('date', $date)
+            ->set('site_id', (string) $this->shift->site_id)
+            ->call('nextStep')
+            ->assertSet('step', 2);
+
+        Livewire::actingAs($this->admin)->withQueryParams(['date' => $date])->test(DeployWizard::class)
+            ->assertSee('Resume draft')
+            ->call('resumeDraft')
+            ->assertSet('step', 2)
+            ->assertSet('site_id', (string) $this->shift->site_id)
+            ->call('resetWizard')
+            ->assertDontSee('Resume draft');
+    }
+
     public function test_pending_success_explains_confirmation_and_remaining_coverage(): void
     {
         $this->wizard()

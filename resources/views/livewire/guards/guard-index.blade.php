@@ -58,7 +58,7 @@
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </x-filter-select>
-                <x-filter-select aria-label="Branch" wire:model.live="branchFilter">
+                <x-filter-select aria-label="Region" wire:model.live="branchFilter">
                     <option value="all">All branches</option>
                     @foreach ($branches as $branch)
                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
@@ -72,7 +72,7 @@
                 <tr>
                     <x-table.th>Guard</x-table.th>
                     <x-table.th responsive="md">ID</x-table.th>
-                    <x-table.th responsive="lg">Branch</x-table.th>
+                    <x-table.th responsive="lg">Region</x-table.th>
                     <x-table.th>Verification</x-table.th>
                     <x-table.th responsive="md">Status</x-table.th>
                     <x-table.th align="right" class="w-12"><span class="sr-only">Actions</span></x-table.th>
@@ -162,13 +162,13 @@
                     </x-select>
                     <x-input wire:model.live="form.rank" label="Rank / position" />
                     <div class="sm:col-span-2">
-                        <x-select wire:model.live="form.branch_id" label="Branch">
+                        <x-select wire:model.live="form.branch_id" label="Region">
                             <option value="">None</option>
                             @foreach($branches as $branch)
                                 <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                             @endforeach
                         </x-select>
-                        <a href="{{ route('settings.branches') }}" class="mt-1.5 inline-block text-xs font-medium text-accent-700 hover:underline">Manage branches</a>
+                        <a href="{{ route('settings.branches') }}" class="mt-1.5 inline-block text-xs font-medium text-accent-700 hover:underline">Manage regions</a>
                     </div>
                 </x-form-section>
 

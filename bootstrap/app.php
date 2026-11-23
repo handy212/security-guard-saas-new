@@ -1,9 +1,21 @@
 <?php
 
+use App\Http\Middleware\EnforcePlanLimits;
+use App\Http\Middleware\EnsureClientPortal;
+use App\Http\Middleware\EnsurePlanFeature;
+use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\RequireTwoFactor;
+use App\Http\Middleware\ResolveTenant;
+use App\Http\Middleware\SyncPermissionsTeamId;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,18 +30,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings(except: ['external_id', 'guard_external_id', 'checkpoint_external_id']);
 
         $middleware->web(append: [
-            \App\Http\Middleware\SyncPermissionsTeamId::class,
+            SyncPermissionsTeamId::class,
         ]);
 
         $middleware->alias([
-            'tenant' => \App\Http\Middleware\ResolveTenant::class,
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'plan.limits' => \App\Http\Middleware\EnforcePlanLimits::class,
-            'client.portal' => \App\Http\Middleware\EnsureClientPortal::class,
-            'two-factor' => \App\Http\Middleware\RequireTwoFactor::class,
-            'platform' => \App\Http\Middleware\EnsurePlatformAdmin::class,
-            'plan.feature' => \App\Http\Middleware\EnsurePlanFeature::class,
+            'tenant' => ResolveTenant::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'plan.limits' => EnforcePlanLimits::class,
+            'client.portal' => EnsureClientPortal::class,
+            'two-factor' => RequireTwoFactor::class,
+            'platform' => EnsurePlatformAdmin::class,
+            'plan.feature' => EnsurePlanFeature::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -38,12 +50,36 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('guardops:missed-patrols')->everyFifteenMinutes();
         $schedule->command('guardops:detect-idle-guards')->everyFiveMinutes();
         $schedule->command('guardops:deliver-client-reports')->hourly();
+
+        $localPatriotEnvironment = is_readable(base_path('.env.patriot.local'));
+        if (config('services.patriot.polling_enabled') || $localPatriotEnvironment) {
+            $options = ['--scheduled', '--no-interaction'];
+            if (! config('services.patriot.polling_enabled')) {
+                $options[] = '--env=patriot.local';
+            }
+
+            $schedule->command('guardops:patriot-import', $options)
+                ->everyMinute()
+                ->withoutOverlapping(3)
+                ->onFailure(fn () => logger()->warning('Scheduled Patriot dispatch import failed.'));
+        }
+
+        if (config('services.patriot.writeback_enabled') || $localPatriotEnvironment) {
+            $options = ['--no-interaction'];
+            if (! config('services.patriot.writeback_enabled')) {
+                $options[] = '--env=patriot.local';
+            }
+            $schedule->command('guardops:patriot-send-updates', $options)
+                ->everyMinute()
+                ->withoutOverlapping(5)
+                ->onFailure(fn () => logger()->warning('Patriot dispatch write-back requires attention.'));
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Laravel maps TokenMismatchException → HttpException(419) before render callbacks.
-        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
-            $isCsrfMismatch = $e instanceof \Illuminate\Session\TokenMismatchException
-                || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 419);
+        $exceptions->render(function (Throwable $e, Request $request) {
+            $isCsrfMismatch = $e instanceof TokenMismatchException
+                || ($e instanceof HttpExceptionInterface && $e->getStatusCode() === 419);
 
             if (! $isCsrfMismatch) {
                 return null;

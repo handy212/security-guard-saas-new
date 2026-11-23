@@ -17,7 +17,7 @@ class PlatformBrandingService
 
     public function __construct(private TenantFileStorageService $files, private AuditLogService $audit) {}
 
-    /** @return array{name: ?string, sign_in_message: ?string, support_email: ?string, light_accent: ?string, dark_accent: ?string, logo: ?string, favicon: ?string, background: ?string} */
+    /** @return array{command_dashboard: bool, name: ?string, sign_in_message: ?string, support_email: ?string, light_accent: ?string, dark_accent: ?string, logo: ?string, favicon: ?string, background: ?string} */
     public function current(): array
     {
         return $this->branding ??= $this->decode($this->settings()->value('value'));
@@ -62,7 +62,7 @@ class PlatformBrandingService
     }
 
     /**
-     * @param  array{name: ?string, sign_in_message: ?string, support_email: ?string, light_accent: ?string, dark_accent: ?string}  $identity
+     * @param  array{command_dashboard: bool, name: ?string, sign_in_message: ?string, support_email: ?string, light_accent: ?string, dark_accent: ?string}  $identity
      * @param  array{logo?: ?UploadedFile, favicon?: ?UploadedFile, background?: ?UploadedFile}  $files
      * @param  array{logo?: bool, favicon?: bool, background?: bool}  $remove
      */
@@ -92,6 +92,7 @@ class PlatformBrandingService
                 $settings->update(['value' => json_encode($branding, JSON_THROW_ON_ERROR)]);
                 $this->audit->recordPlatform('platform.branding.updated', metadata: [
                     'name' => $identity['name'],
+                    'command_dashboard' => $identity['command_dashboard'],
                     'custom_logo' => isset($branding['logo']),
                     'custom_favicon' => isset($branding['favicon']),
                     'custom_background' => isset($branding['background']),
@@ -155,7 +156,7 @@ class PlatformBrandingService
     private function decode(?string $value): array
     {
         return array_replace(
-            ['name' => null, 'sign_in_message' => null, 'support_email' => null, 'light_accent' => null, 'dark_accent' => null, 'logo' => null, 'favicon' => null, 'background' => null],
+            ['command_dashboard' => false, 'name' => null, 'sign_in_message' => null, 'support_email' => null, 'light_accent' => null, 'dark_accent' => null, 'logo' => null, 'favicon' => null, 'background' => null],
             json_decode($value ?? '{}', true, flags: JSON_THROW_ON_ERROR),
         );
     }

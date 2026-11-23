@@ -249,7 +249,35 @@
                     <div class="font-semibold text-zinc-100">{{ $dispatch->dispatch_number }}</div>
                     <div class="text-xs text-zinc-400">{{ $dispatch->site?->name }} · {{ ucfirst(str_replace('_', ' ', $dispatch->status->value)) }}</div>
                     <div class="mt-1 text-xs text-zinc-300">{{ $dispatch->incident_location }}</div>
-                    @if($dispatch->status->next())
+                    @if ($dispatch->patriot_pending_action)
+                        <p class="text-xs text-amber-200">{{ $dispatch->patriot_writeback_error ? 'Patriot update needs Control’s attention.' : 'Waiting for Patriot confirmation.' }}</p>
+                    @endif
+                    @error('patriotDecision') <p class="text-xs text-red-300">{{ $message }}</p> @enderror
+                    @if ($dispatch->dispatchTeam)
+                        <p class="mt-1 text-xs text-zinc-300">{{ $dispatch->dispatchTeam->name }} · Standby: {{ $dispatch->dispatchTeam->standbySite?->name ?? 'Contact Control' }}</p>
+                    @endif
+                    @if ($dispatch->awaitingStationReturn())
+                        <p class="mt-1 text-xs text-amber-200">Returning to station</p>
+                        @if ($dispatch->guard_id === auth()->user()->guardProfile?->id)
+                            <button type="button" wire:click="confirmDispatchReturn({{ $dispatch->id }})" class="field-btn-warning mt-2 !py-2 text-xs">Confirm back at station</button>
+                        @endif
+                    @elseif ($dispatch->patriot_pending_action)
+                        {{-- The response is already queued. --}}
+                    @elseif ($dispatch->patriot_job_id && $dispatch->guard_id === auth()->user()->guardProfile?->id && $dispatch->status === \App\Enums\DispatchStatus::ASSIGNED && $dispatch->patriot_response_state === null)
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <button type="button" wire:click="respondToPatriotDispatch({{ $dispatch->id }}, 'accept')" wire:loading.attr="disabled" class="field-btn-warning !py-2 text-xs">Accept dispatch</button>
+                            <button type="button" wire:click="respondToPatriotDispatch({{ $dispatch->id }}, 'decline')" wire:confirm="Decline this dispatch?" wire:loading.attr="disabled" class="field-btn-light !py-2 text-xs">Decline dispatch</button>
+                        </div>
+                    @elseif ($dispatch->dispatchTeam && $dispatch->guard_id === auth()->user()->guardProfile?->id && $dispatch->status === \App\Enums\DispatchStatus::ASSIGNED && ! $dispatch->acknowledged_at)
+                        <button type="button" wire:click="acknowledgeDispatch({{ $dispatch->id }})" class="field-btn-warning mt-2 !py-2 text-xs">Acknowledge dispatch</button>
+                    @elseif (($dispatch->dispatchTeam || $dispatch->patriot_job_id) && $dispatch->guard_id === auth()->user()->guardProfile?->id && $dispatch->status === \App\Enums\DispatchStatus::ON_SCENE)
+                        <form wire:submit="submitDispatchOutcome({{ $dispatch->id }})" class="mt-2 space-y-2">
+                            <label class="block text-xs" for="dispatch-outcome-{{ $dispatch->id }}">Response outcome</label>
+                            <textarea id="dispatch-outcome-{{ $dispatch->id }}" wire:model="dispatchOutcomes.{{ $dispatch->id }}" maxlength="2000" required class="w-full rounded-md bg-zinc-900 p-2"></textarea>
+                            @error('dispatchOutcomes.'.$dispatch->id) <p class="text-xs text-red-300">{{ $message }}</p> @enderror
+                            <button type="submit" class="field-btn-warning !py-2 text-xs">Submit outcome</button>
+                        </form>
+                    @elseif($dispatch->status->next() && $dispatch->guard_id === auth()->user()->guardProfile?->id)
                         <button type="button" wire:click="advanceDispatch({{ $dispatch->id }})" class="field-btn-warning mt-2 !py-2 text-xs">
                             Mark {{ strtolower($dispatch->status->next()->label()) }}
                         </button>

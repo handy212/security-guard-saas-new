@@ -28,6 +28,7 @@ class PlatformBrandingController extends Controller
             'name' => ['nullable', 'string', 'max:100'],
             'sign_in_message' => ['nullable', 'string', 'max:180'],
             'support_email' => ['nullable', 'email', 'max:255'],
+            'command_dashboard' => ['sometimes', 'boolean'],
             'light_accent' => ['nullable', 'string', 'regex:/\A#[0-9a-f]{6}\z/i'],
             'dark_accent' => ['nullable', 'string', 'regex:/\A#[0-9a-f]{6}\z/i'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:max_width=3000,max_height=3000'],
@@ -42,6 +43,7 @@ class PlatformBrandingController extends Controller
         ]);
 
         $branding->save([
+            'command_dashboard' => $request->boolean('command_dashboard'),
             'name' => $data['name'] ?? null,
             'sign_in_message' => $data['sign_in_message'] ?? null,
             'support_email' => $data['support_email'] ?? null,

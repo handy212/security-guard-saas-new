@@ -1,16 +1,24 @@
-<div>
+<div wire:poll.15s x-data>
     <x-page-shell
         title="Dispatch Center"
-        description="Create dispatches, assign guards, and track response status."
+        compact
         :breadcrumbs="[['label' => 'Dispatch']]"
     >
+        <x-slot:headingIcon>
+            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-700 text-white"><x-nav-icon name="dispatch" class="size-5" /></span>
+        </x-slot:headingIcon>
         <x-slot:actions>
-            <x-button variant="secondary" :href="route('tracking.live')">Live map</x-button>
-            <x-button wire:click="openForm">New dispatch</x-button>
+            <div class="dispatch-metrics dispatch-heading-metrics" aria-label="Dispatch totals">
+                <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" tone="danger" wire:click="applyStatFilter('critical')" :active="$priorityFilter === 'critical'" />
+                <x-stat-card compact label="Pending" :value="$stats['pending']" icon="pause" tone="warning" wire:click="applyStatFilter('unassigned')" :active="$statusFilter === 'unassigned'" />
+                <x-stat-card compact label="Assigned" :value="$stats['assigned']" icon="users" tone="info" wire:click="applyStatFilter('assigned')" :active="$statusFilter === 'assigned'" />
+                <x-stat-card compact label="En route" :value="$stats['en_route']" icon="gps" tone="info" wire:click="applyStatFilter('en_route')" :active="$statusFilter === 'en_route'" />
+            </div>
+            <x-button size="sm" wire:click="openForm">New dispatch</x-button>
         </x-slot:actions>
 
         @if($sosAlerts->isNotEmpty())
-            <section id="dispatch-sos" class="card-surface mb-4 scroll-mt-20 overflow-hidden border-red-200/90 dark:border-red-900/50">
+            <section id="dispatch-sos" class="card-surface scroll-mt-20 overflow-hidden border-red-200/90 dark:border-red-900/50">
                 <div class="card-header border-red-100 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/40">
                     <div class="flex items-center gap-2">
                         <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
@@ -56,18 +64,28 @@
             </section>
         @endif
 
-        <div class="stat-grid">
-            <x-stat-card compact label="Active" :value="$stats['active']" icon="dispatch" :tone="$stats['active'] ? 'warning' : 'success'" wire:click="applyStatFilter('active')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'active' && $priorityFilter === 'all'" />
-            <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" :tone="$stats['critical'] ? 'danger' : 'default'" wire:click="applyStatFilter('critical')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$priorityFilter === 'critical'" />
-            <x-stat-card compact label="En route" :value="$stats['en_route']" icon="gps" tone="info" wire:click="applyStatFilter('en_route')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$statusFilter === 'en_route'" />
-            <x-stat-card compact label="Open SOS" :value="$stats['sos']" icon="incidents" :tone="$stats['sos'] ? 'danger' : 'success'" wire:click="applyStatFilter('sos')" class="cursor-pointer text-left transition hover:border-zinc-300" :active="$priorityFilter === 'critical' && $stats['sos'] > 0" />
-        </div>
-
         <x-flash-status />
 
-        <x-page-toolbar search="search" searchPlaceholder="Search dispatches…">
+        @if ($criticalAlert)
+            <section class="dispatch-critical-banner" aria-label="Critical alarm">
+                <span class="dispatch-critical-label"><x-nav-icon name="siren" class="size-5 shrink-0" /> Critical alarm</span>
+                <div class="min-w-0 grow">
+                    <p class="font-semibold">{{ $criticalAlert->dispatch_number ?? 'Dispatch #'.$criticalAlert->id }} · {{ $criticalAlert->patriot_payload['alarm_description'] ?? ($incidentTypes[$criticalAlert->event_type] ?? $criticalAlert->event_type) }}</p>
+                    @if ($criticalAlert->site)<p class="text-xs">{{ $criticalAlert->site->name }}</p>@endif
+                </div>
+                <x-button size="sm" class="dispatch-critical-action" x-on:click="
+                    await $wire.selectDispatch({{ $criticalAlert->id }});
+                    $nextTick(() => {
+                        $refs.dispatchResponder?.focus({ preventScroll: true });
+                        $refs.dispatchResponder?.scrollIntoView({ block: 'start' });
+                    });
+                " wire:loading.attr="disabled" wire:target="selectDispatch">{{ $criticalAlert->mayAssignFromPatriot() ? 'Assign responder' : 'Review dispatch' }}</x-button>
+            </section>
+        @endif
+
+        <x-page-toolbar class="dispatch-filter-bar" search="search" searchPlaceholder="Dispatch, account, or ticket…">
             <x-slot:tabs>
-                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active ('.$stats['active'].')', 'all' => 'All ('.$stats['all'].')', 'unassigned' => 'Unassigned', 'en_route' => 'En route ('.$stats['en_route'].')', 'closed' => 'Closed ('.$stats['closed'].')']" />
+                <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'unassigned' => 'Unassigned', 'assigned' => 'Assigned', 'en_route' => 'En route', 'returning' => 'Returning', 'closed' => 'Closed', 'all' => 'All dispatches']" />
             </x-slot:tabs>
             <x-slot:controls>
                 @if ($hasActiveFilters)
@@ -80,6 +98,9 @@
                     <option value="normal">Normal</option>
                     <option value="low">Low</option>
                 </x-filter-select>
+                @if ($patriotCounts['attention'])
+                    <x-button size="sm" variant="secondary" wire:click="applyStatFilter('patriot-attention')" aria-pressed="{{ $statusFilter === 'patriot-attention' ? 'true' : 'false' }}">Needs attention</x-button>
+                @endif
             </x-slot:controls>
         </x-page-toolbar>
 
@@ -91,9 +112,17 @@
             class="mb-3 text-sm text-zinc-500 dark:text-zinc-400"
         >Updating dispatch view…</div>
 
-        <div class="page-board min-h-[28rem]">
-            <x-section-card title="Dispatch queue" description="Most urgent priority first, then newest." flush class="flex flex-col">
-                <div class="flex-1 overflow-y-auto px-2 py-2">
+        <div class="dispatch-workbench">
+            <x-section-card compact title="Dispatch queue" aria-label="Priority queue" :description="match ($statusFilter) {
+                'patriot' => 'Requests received from Patriot',
+                'patriot-attention' => 'Patriot updates requiring review',
+                'returning' => 'Teams awaiting return confirmation',
+                'unassigned' => 'Active dispatches awaiting a responder',
+                'en_route' => 'Responders travelling to an incident',
+                'closed' => 'Resolved, closed, and cancelled dispatches',
+                default => 'Highest priority first',
+            }" flush class="dispatch-queue flex flex-col">
+                <div class="px-2 py-2 lg:max-h-[65dvh] lg:overflow-y-auto">
                     @forelse($dispatches as $dispatch)
                         @php
                             $priorityTone = match ($dispatch->priority->value ?? '') {
@@ -105,7 +134,18 @@
                         @endphp
                         <button
                             type="button"
-                            wire:click="selectDispatch({{ $dispatch->id }})"
+                            x-on:click="
+                                await $wire.selectDispatch({{ $dispatch->id }});
+                                if (matchMedia('(max-width: 1023px)').matches) {
+                                    $nextTick(() => {
+                                        const panel = $refs.dispatchResponder ?? $refs.dispatchDetail;
+                                        panel.focus({ preventScroll: true });
+                                        panel.scrollIntoView({ block: 'start' });
+                                    });
+                                }
+                            "
+                            wire:loading.attr="disabled"
+                            wire:target="selectDispatch"
                             aria-pressed="{{ $selectedId === $dispatch->id ? 'true' : 'false' }}"
                             @class([
                                 'board-item',
@@ -117,8 +157,18 @@
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
                                     <div class="board-item-title tabular-nums">{{ $dispatch->dispatch_number ?? '#'.$dispatch->id }}</div>
+                                    @if ($dispatch->patriot_job_id !== null)
+                                        <p class="text-xs font-medium {{ $dispatch->patriot_writeback_error ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-300' }}">
+                                            {{ $dispatch->patriot_writeback_error ? 'Patriot update needs attention' : ($dispatch->patriot_pending_action ? 'Reporting to Patriot' : ($dispatch->patriot_response_state ? str_replace('_', ' ', ucfirst($dispatch->patriot_response_state)).' · Reported to Patriot' : ($dispatch->guard_id ? 'Awaiting officer response' : 'Assign a responder'))) }}
+                                        </p>
+                                    @endif
+                                    @if ($dispatch->patriot_job_id !== null && $dispatch->site_id === null)
+                                        <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Needs site mapping</p>
+                                    @endif
                                     <div class="board-item-meta">{{ $dispatch->clientAccount?->name ?? '—' }} · {{ $dispatch->site?->name }}</div>
-                                    <div class="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-300">{{ $dispatch->caller_name }} — {{ $dispatch->incident_location }}</div>
+                                    @if ($dispatch->caller_name || $dispatch->incident_location)
+                                        <div class="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-300">{{ collect([$dispatch->caller_name, $dispatch->incident_location])->filter()->join(' · ') }}</div>
+                                    @endif
                                     <div class="mt-1 text-[11px] text-zinc-400">
                                         {{ $dispatch->assignedGuard?->full_name ?? 'Unassigned' }}
                                         · {{ $dispatch->opened_at?->diffForHumans() ?? $dispatch->created_at?->diffForHumans() }}
@@ -126,6 +176,9 @@
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
                                     <x-badge :status="$dispatch->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
+                                    @if ($dispatch->awaitingStationReturn())
+                                        <x-badge status="returning" :map="['returning' => 'warning']" />
+                                    @endif
                                     <x-badge :status="$dispatch->status->value" :map="['open'=>'info','assigned'=>'info','en_route'=>'warning','on_scene'=>'warning','resolved'=>'success','closed'=>'neutral','cancelled'=>'danger']" />
                                 </div>
                             </div>
@@ -149,92 +202,96 @@
                 </div>
             </x-section-card>
 
-            <x-section-card
-                :title="$selected ? ($selected->dispatch_number ?? 'Dispatch #'.$selected->id) : 'Dispatch detail'"
-                class="flex flex-col"
-            >
-                @if($selected)
-                    <div class="flex-1 overflow-y-auto">
-                        <div class="mb-3 flex flex-wrap items-center gap-2">
-                            <x-badge :status="$selected->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
-                            <x-badge :status="$selected->status->value" :map="['open'=>'info','assigned'=>'info','en_route'=>'warning','on_scene'=>'warning','resolved'=>'success','closed'=>'neutral','cancelled'=>'danger']" />
-                            @if ($trackingUrl)
-                                <a href="{{ $trackingUrl }}" class="page-link">View on live map</a>
-                            @endif
-                        </div>
+            @if ($selected)
+                <div class="dispatch-response min-w-0 space-y-3">
+                    <x-section-card compact title="Responder & actions" x-ref="dispatchResponder" tabindex="-1" aria-label="Responder and actions" class="scroll-mt-20">
+                        @if ($selected->patriot_job_id !== null)
+                            <div class="space-y-2">
+                                @error('patriotDecision') <p class="text-sm text-red-600 dark:text-red-300">{{ $message }}</p> @enderror
 
-                        <div class="meta-tile mb-4">
-                            <div class="meta-tile-value">{{ $selected->assignedGuard?->full_name ?? 'Unassigned' }}</div>
-                            <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ $selected->clientAccount?->name ?? '—' }} · {{ $selected->site?->name ?? '—' }}</div>
-                        </div>
-
-                        <ol class="mb-4 grid gap-2 sm:grid-cols-3">
-                            @foreach ($timeline as $step)
-                                <li @class(['timeline-step', $step['at'] ? 'timeline-step-done' : 'timeline-step-pending'])>
-                                    <div class="font-semibold">{{ $step['label'] }}</div>
-                                    <div class="tabular-nums">{{ $step['at']?->format('M j, H:i') ?? 'Pending' }}</div>
-                                </li>
-                            @endforeach
-                        </ol>
-
-                        @if (! empty($mapMarkers))
-                            <div class="mb-4">
-                                <x-map
-                                    id="dispatch-detail-map-{{ $selected->id }}"
-                                    :lat="$mapMarkers[0]['lat']"
-                                    :lng="$mapMarkers[0]['lng']"
-                                    :markers="$mapMarkers"
-                                    :fit-bounds="false"
-                                    height="180px"
-                                />
+                                @if ($selected->site_id === null && $selected->status === \App\Enums\DispatchStatus::OPEN)
+                                    <form wire:submit="linkPatriotSite" class="space-y-2">
+                                        <x-select wire:model="patriotSiteId" label="Match to a site">
+                                            <option value="">Select site</option>
+                                            @foreach ($patriotSites as $site)
+                                                <option value="{{ $site->id }}">{{ $site->name }}</option>
+                                            @endforeach
+                                        </x-select>
+                                        @error('patriotSiteId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                        <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="linkPatriotSite">Link site</x-button>
+                                    </form>
+                                @endif
                             </div>
                         @endif
 
-                        <dl class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
-                            <div class="meta-tile">
-                                <dt class="meta-tile-label">Caller</dt>
-                                <dd class="meta-tile-value">{{ ucfirst($selected->caller_type) }} — {{ $selected->caller_name }}</dd>
+                        @if ($selected->dispatchTeam)
+                            <div class="mb-4 rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                                <p><strong>{{ $selected->dispatchTeam->name }}</strong> · {{ $selected->dispatchTeam->standbySite?->name ?? 'Standby site unavailable' }}</p>
+                                @if ($selected->acknowledged_at)
+                                    <p>Acknowledged at {{ $selected->acknowledged_at->format('H:i') }}</p>
+                                @endif
+                                @if ($selected->awaitingStationReturn())
+                                    <p class="my-2">Returning to station</p>
+                                    <x-button size="sm" wire:click="confirmTeamReturn">Confirm back at station</x-button>
+                                @elseif ($selected->returned_at)
+                                    <p>Return confirmed at {{ $selected->returned_at->format('H:i') }}</p>
+                                @endif
                             </div>
-                            <div class="meta-tile">
-                                <dt class="meta-tile-label">Incident</dt>
-                                <dd class="meta-tile-value">{{ $incidentTypes[$selected->event_type] ?? $selected->event_type }}</dd>
-                            </div>
-                            <div class="meta-tile sm:col-span-2">
-                                <dt class="meta-tile-label">Location</dt>
-                                <dd class="meta-tile-value">{{ $selected->incident_location }}</dd>
-                            </div>
-                            <div class="meta-tile">
-                                <dt class="meta-tile-label">When</dt>
-                                <dd class="meta-tile-value tabular-nums">{{ $selected->incident_date?->format('M j, Y') }} {{ $selected->incident_time }}</dd>
-                            </div>
-                            <div class="meta-tile sm:col-span-2">
-                                <dt class="meta-tile-label">Details</dt>
-                                <dd class="mt-0.5 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{{ $selected->description ?: '—' }}</dd>
-                            </div>
-                            @if ($selected->attachment_path)
-                                <div class="meta-tile sm:col-span-2">
-                                    <dt class="meta-tile-label">Attachment</dt>
-                                    <dd class="mt-0.5">
-                                        <button type="button" wire:click="downloadAttachment" class="page-link text-sm">Download attachment</button>
-                                    </dd>
-                                </div>
-                            @endif
-                        </dl>
-
-                        @if($selected->isActive())
-                            <div class="mb-4 space-y-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-                                <p class="meta-tile-label">Actions</p>
-                                <x-select wire:model.live="assignGuardId" label="Assign guard">
-                                    <option value="">Select guard</option>
-                                    @foreach($guards as $guard)
-                                        <option value="{{ $guard->id }}">{{ $guard->full_name }}</option>
+                        @elseif ($selected->mayAssignFromPatriot() && ($selected->site_id || ($selected->latitude !== null && $selected->longitude !== null)) && $selected->status === \App\Enums\DispatchStatus::OPEN && $dispatchTeams->isNotEmpty())
+                            <form wire:submit="assignDispatchTeam" class="mb-4 space-y-2">
+                                <x-select wire:model="assignTeamId" label="Assign response team">
+                                    <option value="">Choose an available team</option>
+                                    @foreach ($dispatchTeams as $team)
+                                        <option value="{{ $team->id }}" @disabled($team->outstandingDispatches->isNotEmpty() || ! $team->standby_site_id || ! $team->active_officers_count)>{{ $team->name }} · {{ $team->standbySite?->name }}</option>
                                     @endforeach
                                 </x-select>
+                                @error('assignTeamId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                <x-button type="submit" size="sm" wire:loading.attr="disabled">Assign team</x-button>
+                            </form>
+                        @endif
+
+                        @if($selected->isActive() && ($selected->mayAssignFromPatriot() || $selected->status->next() || auth()->user()->can('incidents.manage')))
+                            <div class="mb-4 space-y-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                                <p class="meta-tile-label">Actions</p>
+                                @if ($selected->patriot_job_id === null)
+                                    @error('patriotDecision') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                @endif
+                                @if (! $selected->dispatch_team_id && $selected->mayAssignFromPatriot())
+                                <fieldset class="space-y-2">
+                                    <legend class="mb-2 text-sm font-semibold">{{ $selected->patriot_job_id !== null ? 'Dispatch officers' : 'Responders' }}</legend>
+                                    <div class="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                                        @forelse ($assignmentGuards as $guard)
+                                            <label class="dispatch-responder-option" wire:key="dispatch-responder-{{ $guard->id }}">
+                                                <input type="radio" wire:model.live="assignGuardId" value="{{ $guard->id }}" class="shrink-0 accent-teal-700">
+                                                <span class="dispatch-responder-avatar" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($guard->first_name, 0, 1).\Illuminate\Support\Str::substr($guard->last_name, 0, 1)) }}</span>
+                                                <span class="min-w-0">
+                                                    <strong class="block break-words text-sm">{{ $guard->full_name }}</strong>
+                                                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">
+                                                        @if ($busyResponders->has($guard->id))
+                                                            Responding · {{ $busyResponders[$guard->id]->first()['number'] ?? 'Active job' }}
+                                                        @elseif ($onDutyResponders->has($guard->id))
+                                                            On duty · No active dispatch
+                                                        @else
+                                                            No active check-in
+                                                        @endif
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        @empty
+                                            <p class="text-xs text-zinc-500">{{ $selected->patriot_job_id !== null ? 'No active dispatch officers are configured.' : 'No eligible responders for this dispatch.' }}</p>
+                                            @can('guards.manage')
+                                                <a href="{{ route('guards.index') }}" class="page-link">Manage guard duty types</a>
+                                            @endcan
+                                        @endforelse
+                                    </div>
+                                </fieldset>
                                 @error('assignGuardId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                                    <x-button size="sm" class="dispatch-assign-button" wire:click="assignGuard" wire:loading.attr="disabled" wire:target="assignGuard" :disabled="! $assignGuardId || ($selected->patriot_job_id !== null && $selected->site_id === null)">Assign responder</x-button>
+                                @endif
                                 <div class="flex flex-wrap gap-2">
-                                    <x-button size="sm" variant="secondary" wire:click="assignGuard" :disabled="! $assignGuardId">Assign guard</x-button>
-                                    @if($selected->status->next())
-                                        <x-button size="sm" wire:click="advanceStatus">
+                                    @if ($selected->status->next() && $selected->status !== \App\Enums\DispatchStatus::OPEN
+                                        && ($selected->patriot_job_id === null || $selected->patriot_response_state !== null))
+                                        <x-button size="sm" wire:click="advanceStatus" :disabled="(bool) $selected->patriot_pending_action" wire:loading.attr="disabled" wire:target="advanceStatus">
                                             Mark {{ strtolower($selected->status->next()->label()) }}
                                         </x-button>
                                     @endif
@@ -243,7 +300,9 @@
                                             <x-button size="sm" variant="secondary" wire:click="promoteToIncident">Create incident</x-button>
                                         @endif
                                     @endcan
-                                    <x-button size="sm" variant="danger" wire:click="confirmCancel">Cancel</x-button>
+                                    @if ($selected->patriot_job_id === null && ! in_array($selected->status, [\App\Enums\DispatchStatus::RESOLVED, \App\Enums\DispatchStatus::CLOSED], true))
+                                        <x-button size="sm" variant="secondary" wire:click="confirmCancel">Cancel dispatch</x-button>
+                                    @endif
                                 </div>
                                 @if ($selected->incident_id)
                                     <p class="text-xs text-zinc-500">
@@ -254,13 +313,49 @@
                             </div>
                         @endif
 
-                        <form wire:submit="saveDetail" class="space-y-2 border-t border-zinc-100 pt-3">
-                            <x-textarea wire:model.live="detail.action_taken" label="Action taken" rows="2" />
-                            <x-textarea wire:model.live="detail.internal_notes" label="Internal notes" rows="2" />
-                            <x-file-input wire:model.live="attachmentFile" label="Attachment" />
-                            <x-button type="submit" size="sm" variant="secondary">Save notes</x-button>
-                        </form>
+                    </x-section-card>
+                    @if ($selected->patriot_job_id !== null)
+                        <x-section-card compact title="Patriot synchronization" :description="'Patriot job #'.$selected->patriot_job_id">
+                                @if ($selected->patriot_writeback_error)
+                                    <p role="alert" class="text-sm text-red-600 dark:text-red-300">Patriot needs attention: {{ $selected->patriot_writeback_error }}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if ($selected->patriot_pending_action === 'decline')
+                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('confirm-release')" wire:confirm="Only continue if you verified in Patriot that this request was released.">Record verified release</x-button>
+                                        @else
+                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('check')">Check Patriot status</x-button>
+                                        @endif
+                                        <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('retry')" wire:confirm="Only retry if you checked in Patriot and confirmed this update was not applied.">Retry verified update</x-button>
+                                    </div>
+                                @elseif ($selected->patriot_pending_action)
+                                    <p role="status" class="text-sm text-amber-700 dark:text-amber-300">Waiting for Patriot to confirm {{ str_replace(['check:', '-'], ['', ' '], $selected->patriot_pending_action) }}.</p>
+                                @elseif ($selected->patriot_response_state)
+                                    <p class="text-sm">{{ match ($selected->patriot_response_state) {
+                                        'accepted' => 'Officer acceptance reported to Patriot.',
+                                        'declined' => 'Officer decline reported to Patriot.',
+                                        'on_site' => 'Arrival reported to Patriot.',
+                                        'completed' => 'Completion reported to Patriot.',
+                                        default => 'Patriot update confirmed.',
+                                    } }}</p>
+                                @elseif (in_array($selected->status, [\App\Enums\DispatchStatus::OPEN, \App\Enums\DispatchStatus::ASSIGNED], true))
+                                    <p class="text-sm">{{ $selected->guard_id ? 'Waiting for the assigned officer to accept or decline.' : 'Assign a responder. The officer can accept or decline in the guard app.' }}</p>
+                                @endif
+                        </x-section-card>
+                    @endif
 
+                    <x-section-card compact title="Dispatch activity">
+                        @if (collect($timeline)->contains(fn ($step) => $step['at']) || $selected->acknowledged_at || $selected->returned_at)
+                            <ol class="space-y-2 border-l border-zinc-200 pl-3 text-xs dark:border-zinc-700" aria-label="Dispatch timeline">
+                                @foreach (collect($timeline)->concat([
+                                    ['label' => 'Officer accepted', 'at' => $selected->acknowledged_at],
+                                    ['label' => 'Back at station', 'at' => $selected->returned_at],
+                                ])->filter(fn ($step) => $step['at'])->sortBy('at') as $step)
+                                    <li class="flex flex-wrap justify-between gap-x-2">
+                                        <strong>{{ $step['label'] }}</strong>
+                                        <time class="tabular-nums text-zinc-500 dark:text-zinc-400" datetime="{{ $step['at']->toIso8601String() }}">{{ $step['at']->format('M j, H:i') }}</time>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @endif
                         <div class="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                             <h4 class="meta-tile-label mb-2">Activity</h4>
                             @forelse($selected->activityLogs as $log)
@@ -273,6 +368,142 @@
                                 <p class="text-xs text-zinc-500">No activity yet.</p>
                             @endforelse
                         </div>
+                    </x-section-card>
+                </div>
+            @endif
+            <x-section-card
+                compact
+                :title="$selected ? ($selected->dispatch_number ?? 'Dispatch #'.$selected->id) : 'Dispatch detail'"
+                class="dispatch-detail flex flex-col scroll-mt-20"
+                x-ref="dispatchDetail"
+                tabindex="-1"
+                aria-label="Dispatch details"
+            >
+                @if($selected)
+                    <div x-data="{ panel: 'overview' }" wire:key="dispatch-detail-{{ $selected->id }}" class="min-w-0">
+                        <div class="mb-2 flex flex-wrap items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold">{{ $selected->assignedGuard?->full_name ?? 'Unassigned' }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ collect([$selected->site?->name, $selected->clientAccount?->name])->filter()->unique()->join(' · ') ?: 'Site not linked' }}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <x-badge :status="$selected->priority->value" :map="['critical'=>'danger','high'=>'warning','normal'=>'info','low'=>'neutral']" />
+                                <x-badge :status="$selected->status->value" :map="['open'=>'info','assigned'=>'info','en_route'=>'warning','on_scene'=>'warning','resolved'=>'success','closed'=>'neutral','cancelled'=>'danger']" />
+                            </div>
+                        </div>
+
+                        <div class="dispatch-detail-tabs" role="group" aria-label="Job details navigation">
+                            @foreach (['overview' => 'Overview', 'site' => 'Site info'] + ($selected->patriot_job_id !== null ? ['patriot' => 'Patriot'] : []) + ['notes' => 'Notes & files'] as $key => $label)
+                                <button type="button" x-bind:aria-pressed="panel === @js($key)"
+                                    x-on:click="panel = @js($key); if (panel === 'overview') $nextTick(() => window.dispatchEvent(new Event('resize')));">
+                                    {{ $label }}
+                                </button>
+                            @endforeach
+                        </div>
+
+                        @php
+                            $location = $selected->incident_location ?: ($patriotPayload['location']['address'] ?? $selected->site?->address);
+                            $incidentTime = trim(($selected->incident_date?->format('M j, Y') ?? '').' '.$selected->incident_time);
+                        @endphp
+                        <section x-show="panel === 'overview'" aria-label="Job overview" class="dispatch-overview">
+                        <div class="dispatch-event-summary space-y-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                            <h3 class="font-semibold">{{ $patriotPayload['alarm_description'] ?? ($incidentTypes[$selected->event_type] ?? $selected->event_type) }}</h3>
+                            @if ($selected->description && $selected->description !== ($patriotPayload['alarm_description'] ?? null))<p>{{ $selected->description }}</p>@endif
+                            @if ($location || $incidentTime || $selected->caller_name)
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ collect([$location, $incidentTime, $selected->caller_name])->filter()->join(' · ') }}</p>
+                            @endif
+                        </div>
+
+                        @if (! empty($mapMarkers))
+                            <div class="min-w-0">
+                                <x-map
+                                    id="dispatch-detail-map-{{ $selected->id }}"
+                                    :lat="$mapMarkers[0]['lat']"
+                                    :lng="$mapMarkers[0]['lng']"
+                                    :markers="$mapMarkers"
+                                    :fit-bounds="false"
+                                    height="180px"
+                                />
+                            </div>
+                        @endif
+
+                        </section>
+                        @if ($selected->opened_at)
+                            @php
+                                $timerEnd = $selected->on_scene_at ?? $selected->resolved_at ?? $selected->closed_at ?? now();
+                                $elapsed = max(0, (int) $selected->opened_at->diffInSeconds($timerEnd));
+                            @endphp
+                            <div x-show="panel === 'overview'" class="dispatch-timer">
+                                <x-nav-icon name="attendance" class="size-5 shrink-0" />
+                                <div>
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $selected->on_scene_at ? 'Time to arrive' : ($selected->closed_at || $selected->resolved_at ? 'Elapsed before closure' : 'Elapsed since opened') }}</p>
+                                    <p class="font-semibold tabular-nums">{{ sprintf('%02d:%02d:%02d', intdiv($elapsed, 3600), intdiv($elapsed % 3600, 60), $elapsed % 60) }}</p>
+                                </div>
+                            </div>
+                        @endif
+                        <section x-show="panel === 'site'" x-cloak aria-label="Site information" class="dispatch-tab-card">
+
+                            <h3 class="font-semibold">{{ $selected->site?->name ?? 'Site not linked' }}</h3>
+                            @if ($selected->clientAccount)<p>{{ $selected->clientAccount->name }}</p>@endif
+                            @if ($location)<p class="text-zinc-500 dark:text-zinc-400">{{ $location }}</p>@endif
+                            @if ($trackingUrl)<a href="{{ $trackingUrl }}" class="page-link">View on live map</a>@endif
+                        </section>
+
+                        @if ($selected->patriot_job_id !== null)
+                            <section x-show="panel === 'patriot'" x-cloak aria-label="Patriot details" class="space-y-3">
+                                <div class="dispatch-tab-card">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <h3 class="font-semibold">Patriot record</h3>
+                                        @if ($selected->site && auth()->user()->can('update', $selected->site))
+                                            <a href="{{ route('sites.show', ['site' => $selected->site, 'tab' => 'profile']) }}" class="page-link">Manage site link</a>
+                                        @endif
+                                    </div>
+                                    @php
+                                        $patriotFields = [
+                                            'Activation ticket' => $patriotPayload['activation_id'] ?? null,
+                                            'Account' => $patriotPayload['account_number'] ?? null,
+                                            'Client reference' => $selected->patriot_client_ref,
+                                            'Customer' => $patriotPayload['customer_name'] ?? null,
+                                            'Priority code' => $patriotPayload['priority'] ?? null,
+                                            'Dispatched at' => isset($patriotPayload['dispatch_time'])
+                                                ? \Illuminate\Support\Carbon::parse($patriotPayload['dispatch_time'])->utc()->format('j M Y, H:i \U\T\C')
+                                                : null,
+                                        ];
+                                    @endphp
+                                    <dl class="dispatch-patriot-fields">
+                                        @foreach ($patriotFields as $label => $value)
+                                            @if ($value !== null)
+                                                <div>
+                                                    <dt>{{ $label }}</dt>
+                                                    <dd>{{ $value }}</dd>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </dl>
+                                </div>
+                                @foreach (['instructions' => 'Dispatch instructions', 'job_notes' => 'Job notes'] as $key => $label)
+                                    @if ($patriotPayload[$key] ?? null)
+                                        <div class="dispatch-tab-card">
+                                            <h3 class="font-semibold">{{ $label }}</h3>
+                                            <p class="whitespace-pre-wrap break-words">{{ $patriotPayload[$key] }}</p>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </section>
+                        @endif
+
+                        <section x-show="panel === 'notes'" x-cloak aria-label="Notes and files" class="dispatch-tab-card">
+                            @if ($selected->attachment_path)
+                                <button type="button" wire:click="downloadAttachment" class="page-link">Download attachment</button>
+                            @endif
+                            <form wire:submit="saveDetail" class="grid gap-3">
+                            <x-textarea wire:model.live="detail.action_taken" label="Action taken" rows="2" />
+                            <x-textarea wire:model.live="detail.internal_notes" label="Internal notes" rows="2" />
+                            <x-file-input wire:model.live="attachmentFile" label="Attachment" />
+                            <x-button type="submit" size="sm" variant="secondary">Save notes</x-button>
+                            </form>
+                        </section>
+
                     </div>
                 @else
                     <div class="flex flex-1 items-center justify-center py-8">

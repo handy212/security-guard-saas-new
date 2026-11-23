@@ -3,15 +3,21 @@
 namespace Tests\Feature;
 
 use App\Models\ClientAccount;
-use App\Models\Guard;
 use App\Models\Tenant;
-use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class TenantIsolationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolePermissionSeeder::class);
+    }
 
     public function test_tenant_scope_limits_client_records(): void
     {

@@ -223,7 +223,7 @@
                     </div>
 
                     @forelse ($incidentsList as $incident)
-                        <a href="{{ route('incidents.index', ['status' => 'open']) }}" class="list-row-start">
+                        <a href="{{ route('incidents.index', ['incident' => $incident->id]) }}#incident-detail" class="list-row-start">
                             <div @class([
                                 'mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 'bg-red-500' => in_array($incident->severity, ['critical', 'high']),

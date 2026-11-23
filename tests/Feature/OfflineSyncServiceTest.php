@@ -2,21 +2,31 @@
 
 namespace Tests\Feature;
 
+use App\Models\ClientAccount;
 use App\Models\Guard;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
+use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\OfflineSyncService;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class OfflineSyncServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolePermissionSeeder::class);
+    }
 
     public function test_processes_checkpoint_scan_from_offline_batch(): void
     {
@@ -32,10 +42,10 @@ class OfflineSyncServiceTest extends TestCase
             'status' => 'active',
         ]);
 
-        $client = \App\Models\ClientAccount::create(['tenant_id' => $tenant->id, 'name' => 'Client', 'status' => 'active']);
+        $client = ClientAccount::create(['tenant_id' => $tenant->id, 'name' => 'Client', 'status' => 'active']);
         $site = Site::create(['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'name' => 'Site', 'status' => 'active', 'latitude' => 6.2, 'longitude' => -1.6]);
         $route = PatrolRoute::create(['tenant_id' => $tenant->id, 'site_id' => $site->id, 'name' => 'Round', 'status' => 'active']);
-        $shift = \App\Models\Shift::create([
+        $shift = Shift::create([
             'tenant_id' => $tenant->id,
             'client_account_id' => $client->id,
             'site_id' => $site->id,
@@ -103,9 +113,9 @@ class OfflineSyncServiceTest extends TestCase
             'last_name' => 'Guard',
             'status' => 'active',
         ]);
-        $client = \App\Models\ClientAccount::create(['tenant_id' => $tenant->id, 'name' => 'Client', 'status' => 'active']);
+        $client = ClientAccount::create(['tenant_id' => $tenant->id, 'name' => 'Client', 'status' => 'active']);
         $site = Site::create(['tenant_id' => $tenant->id, 'client_account_id' => $client->id, 'name' => 'Site', 'status' => 'active', 'latitude' => 6.2, 'longitude' => -1.6]);
-        $shift = \App\Models\Shift::create([
+        $shift = Shift::create([
             'tenant_id' => $tenant->id,
             'client_account_id' => $client->id,
             'site_id' => $site->id,

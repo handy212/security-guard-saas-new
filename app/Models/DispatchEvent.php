@@ -18,8 +18,12 @@ class DispatchEvent extends Model
         'event_type', 'priority', 'caller_type', 'caller_name', 'incident_location',
         'incident_date', 'incident_time', 'status', 'description', 'action_taken', 'internal_notes',
         'attachment_path', 'latitude', 'longitude', 'sos_alert_id', 'incident_id',
+        'patriot_job_id', 'patriot_client_ref', 'dispatch_team_id', 'returned_at', 'acknowledged_at',
+        'patriot_payload', 'patriot_response_state', 'patriot_pending_action', 'patriot_writeback_started_at', 'patriot_writeback_error',
         'opened_at', 'assigned_at', 'en_route_at', 'on_scene_at', 'resolved_at', 'closed_at',
     ];
+
+    protected $hidden = ['patriot_payload'];
 
     protected function casts(): array
     {
@@ -32,6 +36,10 @@ class DispatchEvent extends Model
             'en_route_at' => 'datetime',
             'on_scene_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'returned_at' => 'datetime',
+            'acknowledged_at' => 'datetime',
+            'patriot_writeback_started_at' => 'datetime',
+            'patriot_payload' => 'array',
             'closed_at' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
@@ -46,6 +54,25 @@ class DispatchEvent extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    public function dispatchTeam(): BelongsTo
+    {
+        return $this->belongsTo(DispatchTeam::class);
+    }
+
+    public function mayAssignFromPatriot(): bool
+    {
+        return $this->patriot_job_id === null
+            || ($this->site_id !== null && $this->status === DispatchStatus::OPEN
+                && $this->patriot_pending_action === null && $this->patriot_writeback_error === null
+                && in_array($this->patriot_response_state, [null, 'accepted'], true));
+    }
+
+    public function awaitingStationReturn(): bool
+    {
+        return $this->dispatch_team_id !== null && $this->returned_at === null
+            && in_array($this->status, [DispatchStatus::RESOLVED, DispatchStatus::CLOSED, DispatchStatus::CANCELLED], true);
     }
 
     public function assignedGuard(): BelongsTo

@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\BillingLimit;
 use App\Models\Guard;
-use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WebhookSubscription;
 use App\Services\GuardLocationService;
 use App\Services\PlanLimitService;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,10 +17,17 @@ class RoadmapInfrastructureTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolePermissionSeeder::class);
+    }
+
     public function test_plan_limits_block_guard_creation_when_at_capacity(): void
     {
         $tenant = Tenant::create(['name' => 'Limit Co', 'slug' => 'limit-co', 'status' => 'active']);
-        \App\Models\BillingLimit::create([
+        BillingLimit::create([
             'tenant_id' => $tenant->id,
             'max_guards' => 1,
             'max_sites' => 1,
@@ -66,7 +75,7 @@ class RoadmapInfrastructureTest extends TestCase
     {
         $tenant = Tenant::create(['name' => 'Hook Co', 'slug' => 'hook-co', 'status' => 'active']);
 
-        \App\Models\WebhookSubscription::create([
+        WebhookSubscription::create([
             'tenant_id' => $tenant->id,
             'event' => 'incident.submitted',
             'target_url' => 'https://example.com/hook',

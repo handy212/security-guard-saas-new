@@ -75,6 +75,9 @@ Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'thr
     Route::post('/sos', [MobileAppController::class, 'sos']);
     Route::get('/dispatches', [MobileAppController::class, 'myDispatches']);
     Route::post('/dispatches/{dispatchEvent}/advance', [MobileAppController::class, 'advanceDispatch']);
+    Route::post('/dispatches/{dispatchEvent}/respond', [MobileAppController::class, 'respondToDispatch']);
+    Route::post('/dispatches/{dispatchEvent}/outcome', [MobileAppController::class, 'submitDispatchOutcome']);
+    Route::post('/dispatches/{dispatchEvent}/return', [MobileAppController::class, 'confirmDispatchReturn']);
     Route::post('/location', [MobileAppController::class, 'updateLocation']);
     Route::post('/offline-sync', [MobileAppController::class, 'offlineSync']);
     Route::post('/visitors/check-in', [MobileAppController::class, 'visitorCheckIn']);

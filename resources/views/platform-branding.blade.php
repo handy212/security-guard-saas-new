@@ -105,6 +105,17 @@
                     </div>
                 </x-form-card>
 
+                <x-form-card title="Tenant dashboard">
+                    <input type="hidden" name="command_dashboard" value="0">
+                    <label class="flex items-start gap-3 text-sm">
+                        <input type="checkbox" name="command_dashboard" value="1" @checked(old('command_dashboard', $identity['command_dashboard'])) class="mt-0.5 size-4 accent-accent-600">
+                        <span>
+                            <span class="block font-medium">Enable Command Center</span>
+                            <span class="mt-1 block text-zinc-600 dark:text-zinc-400">Use the Command Center dashboard for all tenants.</span>
+                        </span>
+                    </label>
+                </x-form-card>
+
                 <x-form-card title="Sign-in page">
                     <div class="space-y-4">
                         <x-textarea id="sign-in-message" name="sign_in_message" label="Message" rows="2" maxlength="180" x-model="message" :error="$errors->first('sign_in_message')" hint="Optional text displayed above the sign-in form.">{{ $message }}</x-textarea>

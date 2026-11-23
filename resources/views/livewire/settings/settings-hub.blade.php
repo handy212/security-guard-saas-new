@@ -37,7 +37,7 @@
                     '/settings/company-profile' => 'Manage the company details and logo used on documents.',
                     '/settings/themes' => 'Set the shared color scheme for your organization.',
                     '/billing/subscription' => 'Manage your GuardCore Pro subscription and plan limits.',
-                    '/settings/branches' => 'Offices and operating locations for this tenant.',
+                    '/settings/branches' => 'Regions, standby points, and response teams.',
                     '/settings/id-card' => 'Guard ID card templates, colors, and logo.',
                     '/settings/know-your-guard' => 'Public verification page clients see when scanning QR codes.',
                     '/settings/roles' => 'Define roles and what each role can access.',

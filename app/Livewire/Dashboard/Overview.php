@@ -5,7 +5,9 @@ namespace App\Livewire\Dashboard;
 use App\Models\Incident;
 use App\Models\PatrolSession;
 use App\Services\DashboardMetricsService;
+use App\Services\GuardLocationService;
 use App\Services\NavigationBuilder;
+use App\Services\PlatformBrandingService;
 use App\Services\TenantOnboardingService;
 use App\Support\TenantContext;
 use Livewire\Component;
@@ -23,7 +25,7 @@ class Overview extends Component
         abort_unless(auth()->user()->can('dashboard.view'), 403);
     }
 
-    public function render(DashboardMetricsService $metrics, TenantOnboardingService $onboarding, NavigationBuilder $nav)
+    public function render(DashboardMetricsService $metrics, TenantOnboardingService $onboarding, NavigationBuilder $nav, PlatformBrandingService $branding, GuardLocationService $locations)
     {
         abort_unless(auth()->user()?->can('dashboard.view'), 403);
         $tenantId = TenantContext::id();
@@ -38,7 +40,10 @@ class Overview extends Component
             ->filter(fn (array $step): bool => $nav->routeVisible(...$destinations[$step['key']]));
         $completed = $steps->where('done', true)->count();
 
-        return view('livewire.dashboard.overview', [
+        $commandDashboard = $branding->current()['command_dashboard'];
+        $commandMetrics = $commandDashboard ? $metrics->commandDashboard($tenantId, $nav, $locations) : [];
+
+        return view($commandDashboard ? 'livewire.dashboard.command-center' : 'livewire.dashboard.overview', $commandMetrics + [
             'kpis' => $metrics->kpis($tenantId),
             'weekSummary' => $metrics->weekSummary($tenantId),
             'incidentTrend' => $metrics->weekTrend($tenantId, Incident::class),

@@ -70,7 +70,7 @@
                     <x-section-card title="General information">
                         <dl class="profile-dl">
                             <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Branch</dt>
+                                <dt class="profile-dl-label">Region</dt>
                                 <dd class="profile-dl-value">{{ $guard->branch?->name ?? '—' }}</dd>
                             </div>
                             <div class="profile-dl-row">
@@ -265,16 +265,16 @@
                 </div>
 
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <x-form-card title="Department" description="Branch, duty type, and rank.">
+                    <x-form-card title="Department" description="Region, duty type, and rank.">
                         <form wire:submit="saveDepartment" class="space-y-3">
                             <div>
-                                <x-select wire:model.live="departmentForm.branch_id" label="Branch / department">
+                                <x-select wire:model.live="departmentForm.branch_id" label="Region">
                                     <option value="">None</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                     @endforeach
                                 </x-select>
-                                <a href="{{ route('settings.branches') }}" class="page-link mt-1 inline-block text-xs">Manage branches</a>
+                                <a href="{{ route('settings.branches') }}" class="page-link mt-1 inline-block text-xs">Manage regions</a>
                             </div>
                             <x-select wire:model.live="departmentForm.duty_type" label="Duty type">
                                 @foreach($dutyTypes as $value => $label)

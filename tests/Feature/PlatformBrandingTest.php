@@ -86,4 +86,50 @@ class PlatformBrandingTest extends TestCase
         $this->actingAs($admin)->get(route('saas.branding'))->assertForbidden();
         $this->post(route('saas.branding.update'))->assertForbidden();
     }
+
+    public function test_platform_toggle_switches_the_tenant_dashboard_and_can_be_restored(): void
+    {
+        $this->seed();
+        $platform = User::where('email', 'platform@guardops.test')->firstOrFail();
+        $tenantAdmin = User::where('email', 'admin@demo.test')->firstOrFail();
+
+        $this->actingAs($platform)->post(route('saas.branding.update'), ['command_dashboard' => '1'])
+            ->assertRedirect(route('saas.branding'));
+
+        $this->actingAs($tenantAdmin)->get(route('dashboard'))
+            ->assertOk()->assertSee('command-center', false)->assertSee('Site coverage')->assertSee('Deployment wizard');
+
+        $this->travel(2)->hours();
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('id="command-center-map"', false)
+            ->assertSee('No guard locations received in the last hour.');
+        $this->travelBack();
+
+        $this->get(route('guards.index'))
+            ->assertOk()
+            ->assertSee('command-navigation', false)
+            ->assertSee('title="Guards" aria-label="Guards"', false)
+            ->assertSee('command-sidebar-more', false)
+            ->assertDontSee('class="command-center"', false);
+
+        $this->get(route('settings.index'))
+            ->assertOk()
+            ->assertSee('command-navigation', false)
+            ->assertSee('command-sidebar-secondary', false);
+
+        $this->actingAs($platform)->get(route('saas.branding'))
+            ->assertOk()
+            ->assertDontSee('command-navigation', false);
+
+        $this->actingAs($platform)->post(route('saas.branding.update'), ['command_dashboard' => '0'])
+            ->assertRedirect(route('saas.branding'));
+
+        $this->actingAs($tenantAdmin)->get(route('dashboard'))
+            ->assertOk()->assertDontSee('class="command-center"', false)->assertSee('Coverage & response');
+
+        $this->get(route('guards.index'))
+            ->assertOk()
+            ->assertDontSee('command-navigation', false);
+    }
 }

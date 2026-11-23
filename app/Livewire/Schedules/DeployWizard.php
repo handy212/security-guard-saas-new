@@ -3,6 +3,7 @@
 namespace App\Livewire\Schedules;
 
 use App\Exceptions\AssignmentException;
+use App\Livewire\Concerns\EmbedsInScheduler;
 use App\Models\ClientAccount;
 use App\Models\EquipmentAsset;
 use App\Models\Guard;
@@ -25,7 +26,7 @@ use RuntimeException;
 
 class DeployWizard extends Component
 {
-    use \App\Livewire\Concerns\EmbedsInScheduler;
+    use EmbedsInScheduler;
 
     public int $step = 1;
 
@@ -119,6 +120,7 @@ class DeployWizard extends Component
         if ($this->step === 1) {
             $this->validateSiteDetails();
             $this->step = 2;
+            $this->saveDraft();
 
             return;
         }
@@ -132,6 +134,7 @@ class DeployWizard extends Component
                 return;
             }
             $this->step = 3;
+            $this->saveDraft();
 
             return;
         }
@@ -148,6 +151,7 @@ class DeployWizard extends Component
                 return;
             }
             $this->step = 4;
+            $this->saveDraft();
 
             return;
         }
@@ -158,6 +162,7 @@ class DeployWizard extends Component
                 'selectedAssetIds.*' => ['integer', TenantValidation::exists('equipment_assets')],
             ]);
             $this->step = 5;
+            $this->saveDraft();
         }
     }
 
@@ -216,11 +221,13 @@ class DeployWizard extends Component
 
         $this->createdAssignmentId = $assignment->id;
         $this->step = 6;
+        session()->forget($this->draftKey());
         session()->flash('status', $this->confirm_now ? 'Assignment confirmed.' : 'Assignment created. Awaiting confirmation.');
     }
 
     public function resetWizard(): void
     {
+        session()->forget($this->draftKey());
         $this->step = 1;
         $this->site_post_id = '';
         $this->shift_id = '';
@@ -231,6 +238,40 @@ class DeployWizard extends Component
         $this->title = '';
         $this->resetShiftTimes();
         $this->resetErrorBag();
+    }
+
+    public function resumeDraft(): void
+    {
+        abort_unless(auth()->user()?->can('schedules.manage'), 403);
+        $draft = session()->get($this->draftKey());
+
+        if (! $this->matchesDraft($draft)) {
+            return;
+        }
+
+        $this->fill($draft);
+        $this->resetErrorBag();
+    }
+
+    private function saveDraft(): void
+    {
+        session()->put($this->draftKey(), $this->only([
+            'date', 'step', 'client_account_id', 'site_id', 'site_post_id', 'shift_mode',
+            'shift_id', 'title', 'starts_at', 'ends_at', 'required_guards', 'guard_id',
+            'selectedAssetIds', 'confirm_now',
+        ]));
+    }
+
+    private function matchesDraft(?array $draft): bool
+    {
+        return $this->step === 1
+            && ($draft['date'] ?? null) === $this->date
+            && ($this->site_id === '' || $this->site_id === $draft['site_id']);
+    }
+
+    private function draftKey(): string
+    {
+        return 'deployment_draft.'.TenantContext::id().'.'.TenantContext::userId();
     }
 
     public function render(AssetManagementService $assets)
@@ -279,6 +320,7 @@ class DeployWizard extends Component
             ->values();
 
         return view('livewire.schedules.deploy-wizard', [
+            'canResumeDraft' => $this->matchesDraft(session()->get($this->draftKey())),
             'selectedShift' => $this->shift_id
                 ? Shift::with(['site', 'sitePost'])->where('tenant_id', $tenantId)->find($this->shift_id)
                 : null,

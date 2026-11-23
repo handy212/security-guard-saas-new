@@ -1,3 +1,5 @@
+@props(['commandWorkspace' => false])
+
 @php
     $nav = app(\App\Services\NavigationBuilder::class);
     $pinned = $nav->pinned();
@@ -5,12 +7,86 @@
     $footer = $nav->footer();
     $platform = $nav->platform();
     $activeGroup = $nav->activeGroupLabel();
+
+    if ($commandWorkspace) {
+        $commandLinks = collect([
+            '/dashboard' => ['Operations Desk', 'home', 'Desk'],
+            '/tracking' => ['Live Tracking', 'gps', 'Tracking'],
+            '/incidents' => ['Incidents & Alerts', 'incidents', 'Alerts'],
+            '/dispatch' => ['Dispatch', 'radio', 'Dispatch'],
+            '/guards' => ['Guards', 'guards', 'Guards'],
+            '/sites' => ['Sites & Posts', 'sites', 'Sites'],
+            '/patrols' => ['Patrols & Tours', 'route', 'Patrols'],
+            '/schedules' => ['Schedules & Rosters', 'schedules', 'Roster'],
+            '/reports' => ['Reports & Analytics', 'analytics', 'Reports'],
+        ]);
+        $available = $pinned->keyBy('href');
+        $reports = collect(config('navigation.reports'))->firstWhere('href', '/reports');
+        if ($reports && $nav->linkVisible($reports)) {
+            $available->put('/reports', $reports);
+        }
+        $commandFooter = $available->only('/clients')->values()->concat($footer);
+        $moreLinks = $pinned->reject(fn (array $link) => $commandLinks->has($link['href']) || $link['href'] === '/clients')
+            ->concat($groups->pluck('links')->collapse()->reject(fn (array $link) => $commandLinks->has($link['href'])));
+        $moreActive = $moreLinks->contains(fn (array $link) => $nav->isLinkActive($link));
+    }
 @endphp
 
 <nav
     class="flex min-h-0 flex-1 flex-col overflow-hidden"
     x-data="sidebarNav(@js($activeGroup))"
 >
+    @if ($commandWorkspace)
+        <div class="command-sidebar-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+            @foreach ($commandLinks as $href => [$label, $icon, $shortLabel])
+                @continue(! $available->has($href))
+                @php $active = $nav->isLinkActive($available[$href]); @endphp
+                <a href="{{ url($href) }}" title="{{ $label }}" aria-label="{{ $label }}" @click="sidebarOpen = false"
+                   @if ($active) aria-current="page" @endif
+                   class="nav-link {{ $active ? 'nav-link-active' : '' }}"
+                   :class="sidebarCollapsed ? 'nav-rail-item' : ''">
+                    <x-nav-icon :name="$icon" class="size-[18px] shrink-0" />
+                    <span x-show="!sidebarCollapsed" x-cloak>{{ $label }}</span>
+                    <span class="command-rail-label" x-show="sidebarCollapsed" x-cloak aria-hidden="true">{{ $shortLabel }}</span>
+                </a>
+            @endforeach
+            @if ($commandFooter->isNotEmpty())
+                <div class="command-sidebar-secondary">
+                    @foreach ($commandFooter as $link)
+                        <a href="{{ url($link['href']) }}" title="{{ $link['label'] }}" @click="sidebarOpen = false"
+                           @if ($nav->isLinkActive($link)) aria-current="page" @endif
+                           @class(['nav-link', 'nav-link-active' => $nav->isLinkActive($link)])
+                           :class="sidebarCollapsed ? 'nav-rail-item' : ''">
+                            <x-nav-icon :name="$link['icon']" class="size-[18px] shrink-0" />
+                            <span x-show="!sidebarCollapsed" x-cloak>{{ $link['label'] }}</span>
+                            <span class="command-rail-label" x-show="sidebarCollapsed" x-cloak>{{ $link['label'] }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+            @if ($moreLinks->isNotEmpty())
+                <details class="command-sidebar-more" @if ($moreActive) open @endif>
+                    <summary class="nav-link" :class="sidebarCollapsed ? 'nav-rail-item' : ''">
+                        <x-nav-icon name="dashboard" class="size-[18px] shrink-0" />
+                        <span :class="sidebarCollapsed ? 'command-rail-label' : ''">More</span>
+                        <span class="command-more-chevron" aria-hidden="true" x-show="!sidebarCollapsed" x-cloak></span>
+                    </summary>
+                    @foreach ($moreLinks as $link)
+                        <a href="{{ url($link['href']) }}" title="{{ $link['label'] }}" aria-label="{{ $link['label'] }}" @click="sidebarOpen = false"
+                           @if ($nav->isLinkActive($link)) aria-current="page" @endif
+                           @class(['nav-link', 'nav-link-active' => $nav->isLinkActive($link)])
+                           :class="sidebarCollapsed ? 'nav-rail-item' : ''">
+                            <x-nav-icon :name="$link['icon'] ?? 'dashboard'" class="size-[18px] shrink-0" />
+                            <span x-show="!sidebarCollapsed" x-cloak>{{ $link['label'] }}</span>
+                            <span class="command-rail-label" x-show="sidebarCollapsed" x-cloak aria-hidden="true">{{ $nav->shortLabel($link['label']) }}</span>
+                        </a>
+                    @endforeach
+                </details>
+            @endif
+            <img class="command-sidebar-art" src="{{ asset('icons/command-sidebar.webp') }}" alt=""
+                 width="194" height="536" x-show="!sidebarCollapsed" x-cloak>
+        </div>
+    @else
     <div class="flex-1 overflow-y-auto overscroll-contain px-1.5 py-3 lg:px-2">
         @if ($platform->isNotEmpty())
             <div class="space-y-0.5">
@@ -295,5 +371,6 @@
                 </div>
             @endforeach
         </div>
+    @endif
     @endif
 </nav>

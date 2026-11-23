@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Sites;
 
+use App\Enums\DispatchStatus;
 use App\Models\CheckpointTask;
 use App\Models\ClientAccount;
+use App\Models\DispatchEvent;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PostOrder;
@@ -17,11 +19,14 @@ use App\Models\SitePost;
 use App\Models\SiteReportSchedule;
 use App\Models\SiteSlaRequirement;
 use App\Models\TaskSubmission;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FileUploadService;
 use App\Services\SiteOverviewService;
 use App\Services\TenantFileStorageService;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -52,6 +57,8 @@ class SiteProfile extends Component
     public string $activeTab = 'overview';
 
     public array $profileForm = [];
+
+    public string $patriotClientRef = '';
 
     public array $contactForm = ['name' => '', 'role' => '', 'phone' => '', 'email' => '', 'priority' => 1];
 
@@ -106,6 +113,7 @@ class SiteProfile extends Component
         abort_unless((int) $site->tenant_id === (int) TenantContext::id(), 404);
 
         $this->site = $site;
+        $this->patriotClientRef = (string) $site->patriot_client_ref;
         $this->loadProfileForm();
         $this->loadSettingsForm();
         $this->loadGeofenceForm();
@@ -162,6 +170,33 @@ class SiteProfile extends Component
         $this->site->refresh()->load('clientAccount');
         $this->loadProfileForm();
         session()->flash('status', 'Site profile updated.');
+    }
+
+    public function savePatriotMapping(): void
+    {
+        $this->authorize('update', $this->site);
+        $this->patriotClientRef = trim($this->patriotClientRef);
+        $this->validate(['patriotClientRef' => ['nullable', 'string', 'max:160']]);
+        $reference = $this->patriotClientRef === '' ? null : $this->patriotClientRef;
+        $tenantId = TenantContext::id();
+
+        DB::transaction(function () use ($tenantId, $reference): void {
+            Tenant::query()->lockForUpdate()->findOrFail($tenantId);
+            $site = Site::forTenant($tenantId)->lockForUpdate()->findOrFail($this->site->id);
+            if ($reference !== null && Site::forTenant($tenantId)->where('patriot_client_ref', $reference)->whereKeyNot($site->id)->exists()) {
+                throw ValidationException::withMessages(['patriotClientRef' => 'This Patriot reference is already linked to another site in this company.']);
+            }
+
+            $site->forceFill(['patriot_client_ref' => $reference])->save();
+            if ($reference !== null) {
+                DispatchEvent::forTenant($tenantId)->whereNotNull('patriot_job_id')->where('patriot_client_ref', $reference)
+                    ->whereNull('site_id')->where('status', DispatchStatus::OPEN)
+                    ->update(['site_id' => $site->id, 'client_account_id' => $site->client_account_id]);
+            }
+        }, attempts: 3);
+
+        $this->site->refresh();
+        session()->flash('status', $reference ? 'Patriot site link saved.' : 'Patriot site link removed.');
     }
 
     public function saveGeofence(): void

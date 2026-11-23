@@ -4,16 +4,22 @@ namespace App\Livewire\Dispatch;
 
 use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
+use App\Enums\GuardDutyType;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
+use App\Models\AttendanceLog;
 use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
+use App\Models\DispatchTeam;
 use App\Models\Guard;
 use App\Models\Site;
 use App\Models\SosAlert;
+use App\Models\Tenant;
 use App\Services\DispatchService;
+use App\Services\PatriotDispatchPayload;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
@@ -38,6 +44,10 @@ class DispatcherBoard extends Component
     public ?int $selectedId = null;
 
     public ?int $assignGuardId = null;
+
+    public ?int $assignTeamId = null;
+
+    public ?int $patriotSiteId = null;
 
     public bool $confirmingCancel = false;
 
@@ -76,8 +86,9 @@ class DispatcherBoard extends Component
         match ($filter) {
             'active' => [$this->statusFilter, $this->priorityFilter] = ['active', 'all'],
             'critical' => [$this->statusFilter, $this->priorityFilter] = ['active', 'critical'],
+            'assigned' => [$this->statusFilter, $this->priorityFilter] = ['assigned', 'all'],
             'en_route' => [$this->statusFilter, $this->priorityFilter] = ['en_route', 'all'],
-            'sos' => [$this->statusFilter, $this->priorityFilter] = ['active', 'critical'],
+            'patriot', 'patriot-attention', 'returning', 'closed', 'unassigned', 'all' => [$this->statusFilter, $this->priorityFilter] = [$filter, 'all'],
             default => null,
         };
     }
@@ -99,12 +110,13 @@ class DispatcherBoard extends Component
     {
         $this->selectedId = $id;
         $this->confirmingCancel = false;
-        $dispatch = DispatchEvent::with('activityLogs.user')->findOrFail($id);
+        $dispatch = DispatchEvent::forTenant(TenantContext::id())->findOrFail($id);
         $this->detail = [
             'action_taken' => $dispatch->action_taken ?? '',
             'internal_notes' => $dispatch->internal_notes ?? '',
         ];
         $this->assignGuardId = $dispatch->guard_id;
+        $this->reset('patriotSiteId', 'assignTeamId');
     }
 
     public function save(DispatchService $service): void
@@ -114,17 +126,17 @@ class DispatcherBoard extends Component
         $this->normalizeForm();
 
         $validated = $this->validate([
-            'form.client_account_id' => 'required|exists:client_accounts,id',
-            'form.site_id' => 'required|exists:sites,id',
-            'form.guard_id' => 'nullable|exists:guards,id',
+            'form.client_account_id' => ['required', TenantValidation::exists('client_accounts')],
+            'form.site_id' => ['required', TenantValidation::exists('sites')->where('client_account_id', $this->form['client_account_id'])],
+            'form.guard_id' => ['nullable', TenantValidation::exists('guards')->where('status', 'active')],
             'form.priority' => ['required', Rule::enum(DispatchPriority::class)],
             'form.caller_type' => 'required|in:'.implode(',', array_keys(config('dispatch.caller_types'))),
             'form.caller_name' => 'required|string|max:255',
             'form.incident_location' => 'required|string|max:255',
             'form.event_type' => 'required|string|max:100',
             'form.incident_date' => 'required|date',
-            'form.incident_time' => 'required|string|max:10',
-            'form.description' => 'required|string',
+            'form.incident_time' => 'required|date_format:H:i',
+            'form.description' => 'required|string|max:5000',
             'form.action_taken' => 'nullable|string',
             'form.internal_notes' => 'nullable|string',
             'attachmentFile' => 'nullable|file|max:10240',
@@ -165,15 +177,128 @@ class DispatcherBoard extends Component
         session()->flash('status', 'Dispatch notes saved.');
     }
 
+    public function reviewPatriotSync(string $resolution): void
+    {
+        abort_unless(in_array($resolution, ['check', 'retry', 'confirm-release'], true), 422);
+        $dispatch = $this->authorizeSelectedDispatch();
+
+        DB::transaction(function () use ($dispatch, $resolution): void {
+            $event = DispatchEvent::forTenant($dispatch->tenant_id)->lockForUpdate()->findOrFail($dispatch->id);
+            $action = str_replace('check:', '', (string) $event->patriot_pending_action);
+            abort_unless($event->patriot_job_id && $event->patriot_writeback_error && in_array($action, ['accept', 'decline', 'on-site', 'complete'], true), 422);
+            abort_if(($resolution === 'check' && $action === 'decline') || ($resolution === 'confirm-release' && $action !== 'decline'), 422);
+
+            $event->update([
+                'patriot_pending_action' => match ($resolution) {
+                    'check' => 'check:'.$action,
+                    'retry' => $action,
+                    'confirm-release' => null,
+                },
+                'patriot_writeback_started_at' => null,
+                'patriot_writeback_error' => null,
+            ] + ($resolution === 'confirm-release' ? [
+                'patriot_response_state' => 'declined',
+                'status' => DispatchStatus::CANCELLED,
+                'closed_at' => now(),
+                'returned_at' => $event->dispatch_team_id ? now() : null,
+            ] : []));
+            $event->activityLogs()->create([
+                'tenant_id' => $event->tenant_id,
+                'user_id' => TenantContext::userId(),
+                'action' => 'patriot_review',
+                'message' => match ($resolution) {
+                    'check' => 'Requested a read-only Patriot status check.',
+                    'retry' => 'Control verified that the Patriot update was not applied and requested a retry.',
+                    'confirm-release' => 'Control confirmed the release in Patriot.',
+                },
+            ]);
+        }, attempts: 3);
+    }
+
+    public function assignDispatchTeam(DispatchService $service): void
+    {
+        $event = $this->authorizeSelectedDispatch();
+        $this->validate(['assignTeamId' => ['required', TenantValidation::exists('dispatch_teams')]]);
+        $service->assignTeam($event, $this->assignTeamId, TenantContext::userId());
+        $this->reset('assignTeamId');
+        session()->flash('status', 'Dispatch assigned to the response team.');
+    }
+
+    public function confirmTeamReturn(DispatchService $service): void
+    {
+        $event = $this->authorizeSelectedDispatch();
+        $service->confirmStationReturn($event, TenantContext::userId());
+        session()->flash('status', 'Team return confirmed.');
+    }
+
+    public function linkPatriotSite(): void
+    {
+        $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless($dispatch->patriot_job_id !== null, 404);
+        $this->validate(['patriotSiteId' => ['required', TenantValidation::exists('sites')]]);
+
+        $linked = DB::transaction(function () use ($dispatch): bool {
+            Tenant::query()->lockForUpdate()->findOrFail($dispatch->tenant_id);
+            $event = DispatchEvent::forTenant($dispatch->tenant_id)->lockForUpdate()->findOrFail($dispatch->id);
+            if ($event->site_id || $event->status !== DispatchStatus::OPEN) {
+                return false;
+            }
+
+            $site = Site::forTenant($dispatch->tenant_id)->lockForUpdate()->findOrFail($this->patriotSiteId);
+            $reference = $event->patriot_client_ref;
+            if ($reference !== null) {
+                if (($site->patriot_client_ref !== null && $site->patriot_client_ref !== $reference)
+                    || Site::forTenant($event->tenant_id)->where('patriot_client_ref', $reference)->whereKeyNot($site->id)->exists()) {
+                    return false;
+                }
+
+                $site->forceFill(['patriot_client_ref' => $reference])->save();
+            }
+
+            $pending = DispatchEvent::forTenant($event->tenant_id)->where('status', DispatchStatus::OPEN)->whereNull('site_id');
+            if ($reference === null) {
+                $pending->whereKey($event->id);
+            } else {
+                $pending->where('patriot_client_ref', $reference);
+            }
+            $pending->update(['site_id' => $site->id, 'client_account_id' => $site->client_account_id]);
+
+            return true;
+        }, attempts: 3);
+
+        if (! $linked) {
+            $this->addError('patriotSiteId', 'This dispatch or site already has a mapping. Refresh the dispatch and check the selected site.');
+
+            return;
+        }
+
+        $this->reset('patriotSiteId');
+        session()->flash('status', 'Patriot dispatch linked to the site.');
+    }
+
     public function assignGuard(DispatchService $service): void
     {
         $dispatch = $this->authorizeSelectedDispatch();
 
+        $eligibleGuard = TenantValidation::exists('guards');
+        if ($dispatch->patriot_job_id !== null) {
+            $eligibleGuard->where('status', 'active')->where('duty_type', GuardDutyType::Dispatch->value);
+        }
+
         $this->validate([
-            'assignGuardId' => ['required', TenantValidation::exists('guards')],
+            'assignGuardId' => ['required', $eligibleGuard],
         ], [
             'assignGuardId.required' => 'Select a guard before assigning.',
+            'assignGuardId.exists' => $dispatch->patriot_job_id !== null
+                ? 'Select an active dispatch officer for this Patriot job.'
+                : 'Select a valid guard.',
         ]);
+
+        if ($dispatch->patriot_job_id !== null && $dispatch->site_id === null) {
+            $this->addError('assignGuardId', 'Link this Patriot dispatch to a site before assigning a guard.');
+
+            return;
+        }
 
         $service->assignGuard($dispatch, (int) $this->assignGuardId, TenantContext::userId());
         session()->flash('status', 'Guard assigned to '.$dispatch->fresh()->dispatch_number.'.');
@@ -206,6 +331,12 @@ class DispatcherBoard extends Component
     {
         $dispatch = $this->authorizeSelectedDispatch();
 
+        if ($dispatch->patriot_job_id !== null) {
+            $this->confirmingCancel = false;
+            $this->addError('patriotDecision', 'The assigned dispatch officer must respond to the Patriot request from the guard app.');
+
+            return;
+        }
         $service->setStatus($dispatch, DispatchStatus::CANCELLED, TenantContext::userId());
         $this->selectedId = null;
         $this->confirmingCancel = false;
@@ -222,6 +353,17 @@ class DispatcherBoard extends Component
         session()->flash('status', 'Incident #'.$incident->id.' created from dispatch.');
     }
 
+    public function downloadPatriotPayload(PatriotDispatchPayload $payloads): StreamedResponse
+    {
+        $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless($dispatch->patriot_job_id !== null, 404);
+        $json = json_encode($payloads->forDispatch($dispatch), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+
+        return response()->streamDownload(static function () use ($json): void {
+            echo $json.PHP_EOL;
+        }, 'patriot-'.((int) $dispatch->patriot_job_id).'.json', ['Content-Type' => 'application/json', 'Cache-Control' => 'private, no-store']);
+    }
+
     public function downloadAttachment(): StreamedResponse
     {
         $dispatch = $this->authorizeSelectedDispatch();
@@ -233,7 +375,7 @@ class DispatcherBoard extends Component
     public function acknowledgeSos(SosAlert $alert): void
     {
         $this->authorize('acknowledge', $alert);
-        $alert->update([
+        SosAlert::forTenant(TenantContext::id())->whereKey($alert->id)->where('status', 'open')->update([
             'status' => 'acknowledged',
             'acknowledged_by_user_id' => TenantContext::userId(),
             'acknowledged_at' => now(),
@@ -243,7 +385,7 @@ class DispatcherBoard extends Component
     public function dispatchFromSos(int $alertId, DispatchService $service): void
     {
         $this->authorize('create', DispatchEvent::class);
-        $alert = SosAlert::with(['assignedGuard', 'site'])->findOrFail($alertId);
+        $alert = SosAlert::forTenant(TenantContext::id())->findOrFail($alertId);
         $event = $service->createFromSos($alert, TenantContext::userId());
         $this->selectedId = $event->id;
         $this->selectDispatch($event->id);
@@ -259,19 +401,33 @@ class DispatcherBoard extends Component
     {
         $tenantId = TenantContext::id();
 
-        $dispatches = DispatchEvent::query()
+        $patriotQueue = DispatchEvent::forTenant($tenantId)->whereNotNull('patriot_job_id');
+        $patriotCounts = [
+            'awaiting' => (clone $patriotQueue)->whereNull('patriot_response_state')->whereNull('patriot_pending_action')
+                ->whereIn('status', [DispatchStatus::OPEN, DispatchStatus::ASSIGNED])->count(),
+            'sending' => (clone $patriotQueue)->whereNotNull('patriot_pending_action')->whereNull('patriot_writeback_error')->count(),
+            'attention' => (clone $patriotQueue)->whereNotNull('patriot_writeback_error')->count(),
+        ];
+
+        $dispatches = DispatchEvent::forTenant($tenantId)
             ->with(['site', 'clientAccount', 'assignedGuard', 'createdBy'])
             ->when(in_array($this->statusFilter, ['active', 'unassigned'], true), fn ($q) => $q->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]))
+            ->when(in_array($this->statusFilter, ['patriot', 'patriot-attention'], true), fn ($q) => $q->whereNotNull('patriot_job_id'))
+            ->when($this->statusFilter === 'patriot-attention', fn ($q) => $q->whereNotNull('patriot_writeback_error'))
             ->when($this->statusFilter === 'unassigned', fn ($q) => $q->whereNull('guard_id'))
+            ->when($this->statusFilter === 'returning', fn ($q) => $q->whereNotNull('dispatch_team_id')->whereNull('returned_at')
+                ->whereIn('status', [DispatchStatus::RESOLVED, DispatchStatus::CLOSED, DispatchStatus::CANCELLED]))
             ->when($this->statusFilter === 'closed', fn ($q) => $q->whereIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]))
-            ->when(! in_array($this->statusFilter, ['active', 'unassigned', 'closed', 'all'], true), fn ($q) => $q->where('status', $this->statusFilter))
+            ->when(! in_array($this->statusFilter, ['active', 'unassigned', 'closed', 'returning', 'patriot', 'patriot-attention', 'all'], true), fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->priorityFilter !== 'all', fn ($q) => $q->where('priority', $this->priorityFilter))
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($inner) {
                     $inner->where('dispatch_number', 'like', '%'.$this->search.'%')
                         ->orWhere('caller_name', 'like', '%'.$this->search.'%')
                         ->orWhere('incident_location', 'like', '%'.$this->search.'%')
-                        ->orWhere('description', 'like', '%'.$this->search.'%');
+                        ->orWhere('description', 'like', '%'.$this->search.'%')
+                        ->orWhere('patriot_payload->account_number', $this->search)
+                        ->orWhere('patriot_payload->activation_id', $this->search);
                 });
             })
             // Queue ordering rule: most urgent priority first, then newest. Covered by DispatchSystemTest.
@@ -281,7 +437,7 @@ class DispatcherBoard extends Component
             ->get();
 
         $selected = $this->selectedId
-            ? DispatchEvent::with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert', 'incident'])->find($this->selectedId)
+            ? DispatchEvent::forTenant($tenantId)->with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert', 'incident', 'dispatchTeam.standbySite'])->find($this->selectedId)
             : null;
 
         $sosAlerts = SosAlert::with(['assignedGuard', 'site'])
@@ -306,43 +462,87 @@ class DispatcherBoard extends Component
         }
 
         $mapMarkers = [];
-        if ($selected?->latitude && $selected?->longitude) {
+        $trackingUrl = null;
+        $patriotPayload = $selected?->patriot_job_id !== null ? app(PatriotDispatchPayload::class)->forDispatch($selected) : null;
+        $latitude = $selected?->latitude ?? $patriotPayload['location']['latitude'] ?? $selected?->site?->latitude;
+        $longitude = $selected?->longitude ?? $patriotPayload['location']['longitude'] ?? $selected?->site?->longitude;
+        if ($selected && $latitude !== null && $longitude !== null) {
             $mapMarkers[] = [
-                'lat' => (float) $selected->latitude,
-                'lng' => (float) $selected->longitude,
+                'lat' => $latitude,
+                'lng' => $longitude,
                 'label' => $selected->dispatch_number ?? 'Dispatch',
                 'meta' => $selected->incident_location ?? $selected->site?->name,
             ];
-        }
 
-        $trackingUrl = null;
-        if ($selected?->latitude && $selected?->longitude) {
-            $trackingUrl = route('tracking.live', array_filter([
-                'lat' => $selected->latitude,
-                'lng' => $selected->longitude,
+            $trackingUrl = route('tracking.live', [
+                'lat' => $latitude,
+                'lng' => $longitude,
                 'guard' => $selected->guard_id,
-            ]));
+            ]);
         } elseif ($selected?->guard_id) {
             $trackingUrl = route('tracking.live', ['guard' => $selected->guard_id]);
         }
 
+        $criticalAlert = DispatchEvent::forTenant($tenantId)->where('priority', DispatchPriority::CRITICAL)
+            ->where('status', DispatchStatus::OPEN)->whereNull('guard_id')->with('site')
+            ->orderBy('opened_at')->orderBy('id')->first();
+
         $stats = [
-            'active' => DispatchEvent::where('tenant_id', $tenantId)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])->count(),
-            'critical' => DispatchEvent::where('tenant_id', $tenantId)->where('priority', DispatchPriority::CRITICAL)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])->count(),
+            'active' => DispatchEvent::forTenant($tenantId)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])->count(),
+            'critical' => DispatchEvent::where('tenant_id', $tenantId)->where('priority', DispatchPriority::CRITICAL)->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])->count(),
+            'pending' => DispatchEvent::forTenant($tenantId)->where('status', DispatchStatus::OPEN)->whereNull('guard_id')->count(),
+            'assigned' => DispatchEvent::forTenant($tenantId)->where('status', DispatchStatus::ASSIGNED)->count(),
             'en_route' => DispatchEvent::where('tenant_id', $tenantId)->where('status', DispatchStatus::EN_ROUTE)->count(),
             'sos' => $sosAlerts->where('status', 'open')->count(),
             'all' => DispatchEvent::where('tenant_id', $tenantId)->count(),
             'closed' => DispatchEvent::where('tenant_id', $tenantId)->whereIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED])->count(),
         ];
 
+        $guards = Guard::forTenant($tenantId)->where('status', 'active')->orderBy('first_name')->get();
+        $assignmentGuards = $selected?->patriot_job_id !== null ? $guards->where('duty_type', GuardDutyType::Dispatch) : $guards;
+        $onDuty = collect();
+        $busy = collect();
+        if ($selected?->mayAssignFromPatriot()) {
+            $onDuty = AttendanceLog::forTenant($tenantId)->whereIn('guard_id', $assignmentGuards->modelKeys())
+                ->whereNotNull('clock_in_at')->whereNull('clock_out_at')->distinct()->pluck('guard_id')->flip();
+            $teamMembers = $assignmentGuards->whereNotNull('dispatch_team_id')->groupBy('dispatch_team_id');
+            $busy = DispatchEvent::forTenant($tenantId)->whereKeyNot($selected->id)
+                ->where(fn ($query) => $query->whereIn('guard_id', $assignmentGuards->modelKeys())
+                    ->orWhereIn('dispatch_team_id', $teamMembers->keys()))
+                ->where(function ($query): void {
+                    $query->whereIn('status', [DispatchStatus::ASSIGNED, DispatchStatus::EN_ROUTE, DispatchStatus::ON_SCENE])
+                        ->orWhere(fn ($returning) => $returning->whereNotNull('dispatch_team_id')->whereNull('returned_at')
+                            ->whereIn('status', [DispatchStatus::RESOLVED, DispatchStatus::CLOSED, DispatchStatus::CANCELLED]));
+                })
+                ->latest('id')->get(['guard_id', 'dispatch_team_id', 'dispatch_number'])
+                ->flatMap(fn (DispatchEvent $event) => collect([$event->guard_id])
+                    ->merge($teamMembers->get($event->dispatch_team_id, collect())->pluck('id'))
+                    ->filter()->unique()->map(fn ($guardId) => ['guard_id' => $guardId, 'number' => $event->dispatch_number]))
+                ->groupBy('guard_id');
+            $assignmentGuards = $assignmentGuards->sortBy(fn (Guard $guard): int => $busy->has($guard->id) ? 2 : ($onDuty->has($guard->id) ? 0 : 1));
+        }
+
         return view('livewire.dispatch.dispatcher-board', [
             'dispatches' => $dispatches,
+            'patriotCounts' => $patriotCounts,
+            'hasPatriotJobs' => $patriotQueue->exists(),
             'selected' => $selected,
+            'patriotPayload' => $patriotPayload,
             'sosAlerts' => $sosAlerts,
             'clients' => ClientAccount::orderBy('name')->get(),
             'sitesForClient' => $sitesForClient,
-            'guards' => Guard::where('status', 'active')->orderBy('first_name')->get(),
+            'patriotSites' => $selected?->patriot_job_id !== null && $selected->site_id === null
+                ? Site::forTenant($tenantId)->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'guards' => $guards,
+            'dispatchTeams' => DispatchTeam::forTenant($tenantId)->with(['standbySite', 'outstandingDispatches'])->withCount([
+                'members as active_officers_count' => fn ($query) => $query->where('status', 'active')->where('duty_type', GuardDutyType::Dispatch->value),
+            ])->orderBy('name')->get(),
+            'assignmentGuards' => $assignmentGuards,
+            'onDutyResponders' => $onDuty,
+            'busyResponders' => $busy,
             'stats' => $stats,
+            'criticalAlert' => $criticalAlert,
             'timeline' => $timeline,
             'mapMarkers' => $mapMarkers,
             'trackingUrl' => $trackingUrl,
@@ -354,7 +554,7 @@ class DispatcherBoard extends Component
 
     private function selectedDispatch(): ?DispatchEvent
     {
-        return $this->selectedId ? DispatchEvent::find($this->selectedId) : null;
+        return $this->selectedId ? DispatchEvent::forTenant(TenantContext::id())->find($this->selectedId) : null;
     }
 
     private function authorizeSelectedDispatch(): DispatchEvent

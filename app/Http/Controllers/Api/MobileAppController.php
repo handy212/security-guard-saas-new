@@ -135,17 +135,60 @@ class MobileAppController extends Controller
 
     public function myDispatches(Request $request, DispatchService $service): JsonResponse
     {
-        return response()->json(
-            $service->myActiveDispatches($this->guardId($request))
-        );
+        abort_unless($request->user()->can('mobile.use'), 403);
+
+        return response()->json($service->myActiveDispatches($this->guardId($request))
+            ->map(fn (DispatchEvent $event) => $this->dispatchForField($event)));
     }
 
     public function advanceDispatch(Request $request, DispatchEvent $dispatchEvent, DispatchService $service): DispatchEvent
     {
-        abort_unless($dispatchEvent->tenant_id === $request->user()->tenant_id, 403);
-        abort_unless($dispatchEvent->guard_id === $this->guardId($request), 403);
+        $this->authorizeFieldDispatch($request, $dispatchEvent);
 
-        return $service->advanceStatus($dispatchEvent, $request->user()->id);
+        return $this->dispatchForField($service->advanceStatus($dispatchEvent, $request->user()->id));
+    }
+
+    public function respondToDispatch(Request $request, DispatchEvent $dispatchEvent, DispatchService $service): DispatchEvent
+    {
+        $this->authorizeFieldDispatch($request, $dispatchEvent);
+        $data = $request->validate(['decision' => ['required', 'in:accept,decline']]);
+        if ($dispatchEvent->patriot_job_id !== null) {
+            $service->queuePatriotDecision($dispatchEvent, $data['decision'], $request->user()->id);
+        } else {
+            abort_unless($data['decision'] === 'accept', 422, 'This dispatch must be declined through Control.');
+            $service->acknowledgeTeamDispatch($dispatchEvent, $request->user()->id);
+        }
+
+        return $this->dispatchForField($dispatchEvent->refresh());
+    }
+
+    public function submitDispatchOutcome(Request $request, DispatchEvent $dispatchEvent, DispatchService $service): DispatchEvent
+    {
+        $this->authorizeFieldDispatch($request, $dispatchEvent);
+        $data = $request->validate(['outcome' => ['required', 'string', 'max:2000']]);
+        $service->recordTeamOutcome($dispatchEvent, $data['outcome'], $request->user()->id);
+
+        return $this->dispatchForField($dispatchEvent->refresh());
+    }
+
+    public function confirmDispatchReturn(Request $request, DispatchEvent $dispatchEvent, DispatchService $service): DispatchEvent
+    {
+        $this->authorizeFieldDispatch($request, $dispatchEvent);
+        abort_unless($dispatchEvent->awaitingStationReturn() || $dispatchEvent->returned_at, 422);
+        $service->confirmStationReturn($dispatchEvent, $request->user()->id);
+
+        return $this->dispatchForField($dispatchEvent->refresh());
+    }
+
+    private function authorizeFieldDispatch(Request $request, DispatchEvent $event): void
+    {
+        abort_unless($request->user()->can('mobile.use') && $event->tenant_id === $request->user()->tenant_id
+            && $event->guard_id === $this->guardId($request), 403);
+    }
+
+    private function dispatchForField(DispatchEvent $event): DispatchEvent
+    {
+        return $event->makeHidden(['internal_notes', 'attachment_path', 'clientAccount', 'client_account', 'patriot_client_ref', 'patriot_writeback_error']);
     }
 
     public function updateLocation(Request $request, GuardLocationService $locations): JsonResponse

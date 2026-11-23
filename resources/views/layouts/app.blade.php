@@ -1,3 +1,9 @@
+@php
+    $commandSidebar = $platformBranding->current()['command_dashboard']
+        && ! app(\App\Services\NavigationBuilder::class)->isPlatformConsole()
+        && \App\Support\TenantContext::current() !== null;
+    $commandWorkspace = $commandSidebar && request()->routeIs('dashboard');
+@endphp
 <!doctype html>
 <html lang="en">
 <head>
@@ -8,7 +14,7 @@
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
     <title>{{ $platformBranding->name() }}@isset($tenantBranding['name']) — {{ $tenantBranding['name'] }}@endisset</title>
-    @include('partials.theme-init')
+    @include('partials.theme-init', ['defaultDark' => $commandWorkspace])
     @include('partials.brand-assets')
     <script>
         try {
@@ -21,11 +27,15 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body class="workspace-app bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+<body @class([
+    'workspace-app bg-[#f8fafc] antialiased text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100',
+    'command-navigation' => $commandSidebar,
+    'command-workspace' => $commandWorkspace,
+])
     x-data="{
         sidebarOpen: false,
         desktopNavigation: matchMedia('(min-width: 1024px)').matches,
-        sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed'),
+        sidebarCollapsed: matchMedia('(min-width: 1024px)').matches && document.documentElement.classList.contains('sidebar-collapsed'),
         commandOpen: false,
         toggleSidebarCollapse() {
             this.sidebarCollapsed = !this.sidebarCollapsed;
@@ -47,7 +57,7 @@
             this.$nextTick(() => (this.commandTrigger === document.body ? document.getElementById('workspace-command-trigger') : this.commandTrigger)?.focus());
         }
     }"
-    @resize.window="desktopNavigation = matchMedia('(min-width: 1024px)').matches; if (desktopNavigation) sidebarOpen = false"
+    @resize.window="desktopNavigation = matchMedia('(min-width: 1024px)').matches; sidebarCollapsed = desktopNavigation && document.documentElement.classList.contains('sidebar-collapsed'); if (desktopNavigation) sidebarOpen = false"
     @keydown.escape.window="if (commandOpen) { $event.preventDefault(); closeCommand() } else if (sidebarOpen) { sidebarOpen = false }"
     @keydown.window.cmd.k.prevent="openCommand()"
     @keydown.window.ctrl.k.prevent="openCommand()"
@@ -69,17 +79,29 @@
         x-trap.noscroll="sidebarOpen && !desktopNavigation"
         class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
-        <div class="flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
+        <div class="workspace-sidebar-brand flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
             <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant()
                 ? route('saas.tenants')
                 : app(\App\Services\UserHomeRouteService::class)->resolve(auth()->user()) }}"
                class="flex min-w-0 flex-1 items-center gap-2.5"
                :class="sidebarCollapsed ? 'justify-center' : ''">
+                @if ($commandSidebar)
+                    <img class="command-sidebar-logo" src="{{ $platformBranding->logoUrl() ?? asset('icons/icon-192.png') }}" alt="" />
+                    <span class="command-sidebar-name" x-show="!sidebarCollapsed" x-cloak>
+                        @if ($platformBranding->name() === 'GuardCore Pro')
+                            GuardCore <em>Pro</em>
+                        @else
+                            {{ $platformBranding->name() }}
+                        @endif
+                    </span>
+                    <span class="sr-only" x-show="sidebarCollapsed">{{ $platformBranding->name() }}</span>
+                @else
                 <x-brand-mark />
                 <div class="min-w-0 leading-tight" x-show="!sidebarCollapsed" x-cloak>
                     <div class="truncate text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">{{ $platformBranding->name() }}</div>
                     <div class="truncate text-[11px] text-zinc-500">{{ $tenantBranding['name'] ?? 'Security operations' }}</div>
                 </div>
+                @endif
             </a>
             <button
                 type="button"
@@ -105,7 +127,7 @@
             </button>
         </div>
 
-        <x-sidebar-nav />
+        <x-sidebar-nav :command-workspace="$commandSidebar" />
 
         @auth
             <div class="shrink-0 border-t border-zinc-200 p-2 dark:border-zinc-800" x-show="sidebarCollapsed" x-cloak>

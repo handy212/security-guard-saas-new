@@ -200,6 +200,56 @@ class MobileDashboard extends Component
         $this->statusMessage = 'Dispatch status: '.$event->fresh()->status->label();
     }
 
+    public array $dispatchOutcomes = [];
+
+    public function respondToPatriotDispatch(int $dispatchId, string $decision, DispatchService $dispatch): void
+    {
+        abort_unless(auth()->user()->can('mobile.use'), 403);
+        $event = $this->assignedDispatch($dispatchId);
+        $dispatch->queuePatriotDecision($event, $decision, auth()->id());
+        $this->statusMessage = 'Your response is queued for Patriot.';
+    }
+
+    public function acknowledgeDispatch(int $dispatchId, DispatchService $dispatch): void
+    {
+        $dispatch->acknowledgeTeamDispatch($this->assignedTeamDispatch($dispatchId), auth()->id());
+        $this->statusMessage = 'Dispatch acknowledged.';
+    }
+
+    public function submitDispatchOutcome(int $dispatchId, DispatchService $dispatch): void
+    {
+        $event = $this->assignedDispatch($dispatchId);
+        $this->validate(['dispatchOutcomes.'.$dispatchId => ['required', 'string', 'max:2000']]);
+        $dispatch->recordTeamOutcome($event, $this->dispatchOutcomes[$dispatchId], auth()->id());
+        unset($this->dispatchOutcomes[$dispatchId]);
+        $this->statusMessage = 'Outcome recorded. Confirm when your team is back at station.';
+    }
+
+    private function assignedDispatch(int $dispatchId): DispatchEvent
+    {
+        $guardId = auth()->user()->guardProfile?->id;
+        abort_unless($guardId, 403);
+
+        return DispatchEvent::forTenant(TenantContext::id())->where('guard_id', $guardId)->findOrFail($dispatchId);
+    }
+
+    private function assignedTeamDispatch(int $dispatchId): DispatchEvent
+    {
+        $event = $this->assignedDispatch($dispatchId);
+        abort_unless($event->dispatch_team_id !== null, 404);
+
+        return $event;
+    }
+
+    public function confirmDispatchReturn(int $dispatchId, DispatchService $dispatch): void
+    {
+        $event = $this->assignedTeamDispatch($dispatchId);
+        abort_unless($event->awaitingStationReturn(), 422);
+
+        $dispatch->confirmStationReturn($event, auth()->id());
+        $this->statusMessage = 'Return to standby station confirmed.';
+    }
+
     public function toggleScanner(): void
     {
         $this->showScanner = ! $this->showScanner;

@@ -90,8 +90,9 @@
             </x-section-card>
 
             <x-section-card
+                id="incident-detail"
                 :title="$viewingIncident ? $viewingIncident->title : 'Incident detail'"
-                class="flex flex-col"
+                class="flex scroll-mt-20 flex-col"
             >
                 @if ($viewingIncident)
                     <div class="flex-1 space-y-4 overflow-y-auto">
