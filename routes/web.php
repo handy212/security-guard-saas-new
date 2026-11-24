@@ -54,6 +54,7 @@ use App\Livewire\Guards\GuardProfile;
 use App\Livewire\Incidents\IncidentIndex;
 use App\Livewire\Messenger\MessengerIndex;
 use App\Livewire\Mobile\OfflineSyncMonitor;
+use App\Livewire\Notifications\NotificationCenter;
 use App\Livewire\Passdown\PassdownIndex;
 use App\Livewire\Patrols\FleetIndex;
 use App\Livewire\Patrols\JwmDeviceManager;
@@ -187,6 +188,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/reports/daily', DailyReportIndex::class)->name('reports.daily');
     Route::get('/reports/templates', ReportTemplateBuilder::class)->name('reports.templates');
     Route::get('/tracking', LiveTracker::class)->name('tracking.live');
+    Route::get('/notifications', NotificationCenter::class)->name('notifications.index');
     Route::get('/dispatch', DispatcherBoard::class)->name('dispatch.control-room');
     Route::middleware('client.portal')->group(function () {
         Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');

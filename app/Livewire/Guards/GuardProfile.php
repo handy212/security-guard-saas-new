@@ -9,14 +9,15 @@ use App\Models\DisciplinaryRecord;
 use App\Models\Guard;
 use App\Models\GuardAvailability;
 use App\Models\GuardCertification;
-use App\Models\GuardNote;
 use App\Models\GuardDocument;
+use App\Models\GuardNote;
 use App\Models\GuardReminder;
 use App\Models\GuardSiteAssignment;
 use App\Models\GuardSkill;
 use App\Models\Site;
 use App\Models\TrainingRecord;
 use App\Models\User;
+use App\Services\ClientCommunicationService;
 use App\Services\FileUploadService;
 use App\Services\GuardIdCardPresenter;
 use App\Services\GuardOverviewService;
@@ -344,6 +345,14 @@ class GuardProfile extends Component
         $this->siteAssignForm = ['site_id' => '', 'is_primary' => false, 'notes' => ''];
         $this->reloadGuard();
         session()->flash('status', 'Site assigned.');
+    }
+
+    public function notifyPosting(int $id, string $channel, ClientCommunicationService $communication): void
+    {
+        $this->authorize('update', $this->guard);
+        $assignment = GuardSiteAssignment::forTenant(TenantContext::id())->where('guard_id', $this->guard->id)->findOrFail($id);
+        $communication->sendPosting($assignment, $channel);
+        session()->flash('status', 'Guard posting update submitted.');
     }
 
     public function removeSiteAssignment(int $id): void

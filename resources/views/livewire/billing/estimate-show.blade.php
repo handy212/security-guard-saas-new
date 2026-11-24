@@ -1,4 +1,7 @@
 <div>
+    @error('clientCommunication')
+        <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
+    @enderror
     <x-page-shell
         :title="$estimate->estimate_number"
         :description="($estimate->clientAccount?->name ?? 'Estimate').' · Document view'"
@@ -12,6 +15,9 @@
             @if (in_array($estimate->status, ['draft', 'sent'], true))
                 <x-button variant="secondary" :href="route('billing.estimates.edit', $estimate)">Edit</x-button>
                 <x-button wire:click="openSend">Send estimate</x-button>
+                @if (\App\Services\ClientCommunicationService::whatsappEnabled($estimate->tenant_id) && $estimate->clientAccount?->phone)
+                    <x-button variant="secondary" wire:click="sendWhatsApp" wire:confirm="Send this PDF to the client account phone number via WhatsApp?">Send via WhatsApp</x-button>
+                @endif
             @endif
             @if ($estimate->status === 'draft')
                 <x-button variant="secondary" wire:click="markSent">Mark as sent</x-button>

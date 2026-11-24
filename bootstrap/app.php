@@ -7,6 +7,8 @@ use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SyncPermissionsTeamId;
+use App\Services\NotificationDispatcher;
+use App\Services\SiteProtectionService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -45,11 +47,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
+        $schedule->call(fn () => app(NotificationDispatcher::class)->escalateDueAlarms())
+            ->name('guardops:escalate-operational-alerts')->everyTenSeconds()
+            ->when(NotificationDispatcher::alarmsEnabled(...))->withoutOverlapping();
+        $schedule->call(fn () => app(SiteProtectionService::class)->monitor(app(NotificationDispatcher::class)))
+            ->name('guardops:monitor-site-protection')->everyMinute()
+            ->when(NotificationDispatcher::alarmsEnabled(...))->withoutOverlapping();
         $schedule->command('guardops:analytics-snapshot')->dailyAt('01:00');
         $schedule->command('guardops:compliance-expiry')->dailyAt('07:00');
         $schedule->command('guardops:missed-patrols')->everyFifteenMinutes();
         $schedule->command('guardops:detect-idle-guards')->everyFiveMinutes();
         $schedule->command('guardops:deliver-client-reports')->hourly();
+        if (config('client_profile.report_scheduler_enabled')) {
+            $schedule->command('guardops:deliver-scheduled-client-reports')->hourly()->withoutOverlapping();
+        }
 
         $localPatriotEnvironment = is_readable(base_path('.env.patriot.local'));
         if (config('services.patriot.polling_enabled') || $localPatriotEnvironment) {

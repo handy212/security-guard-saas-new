@@ -15,6 +15,7 @@ use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
 use App\Models\DispatchTeam;
 use App\Models\Guard;
+use App\Models\OperationalAlert;
 use App\Models\PatriotAccountMapping;
 use App\Models\Site;
 use App\Models\SosAlert;
@@ -55,6 +56,43 @@ class DispatchSystemTest extends TestCase
             ->assertOk()
             ->assertSee('Dispatch Center')
             ->assertSee('New dispatch');
+    }
+
+    public function test_repeated_critical_patriot_intake_creates_one_pending_alarm(): void
+    {
+        config(['services.patriot' => [
+            'url' => 'https://patriot.example.test',
+            'username' => 'test-recipient',
+            'password' => 'test-password',
+            'tenant' => $this->tenant->slug,
+        ]]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                ['jobID' => 2021, 'ticketNo' => 501, 'status' => 'DispatchRequest', 'alarmPriority' => 1],
+                ['jobID' => 2022, 'ticketNo' => 501, 'status' => 'DispatchRequest', 'alarmPriority' => 1],
+            ]),
+        ]);
+
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $this->assertSame(2, DispatchEvent::forTenant($this->tenant->id)->whereIn('patriot_job_id', [2021, 2022])->count());
+        $alert = OperationalAlert::forTenant($this->tenant->id)->where('event_type', 'patriot.intake')->sole();
+
+        $this->assertSame('critical', $alert->severity);
+        $this->assertNull($alert->acknowledged_at);
+        $this->actingAs($this->admin)->get(route('dispatch.control-room'))->assertOk()->assertSee('Critical Patriot alarm');
+
+        $dispatches = app(DispatchService::class);
+        $first = DispatchEvent::forTenant($this->tenant->id)->where('patriot_job_id', 2021)->sole();
+        $second = DispatchEvent::forTenant($this->tenant->id)->where('patriot_job_id', 2022)->sole();
+        $dispatches->setStatus($first, DispatchStatus::CANCELLED, $this->admin->id);
+        $this->assertNull($alert->fresh()->resolved_at);
+        $this->assertSame(route('dispatch.control-room', ['dispatch' => $second->id], absolute: false), $alert->fresh()->action_url);
+
+        $dispatches->setStatus($second, DispatchStatus::CANCELLED, $this->admin->id);
+        $this->assertNotNull($alert->fresh()->resolved_at);
     }
 
     public function test_patriot_jobs_are_imported_once_and_reuse_the_site_mapping(): void

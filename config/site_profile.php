@@ -23,6 +23,7 @@ return [
     ],
 
     'default_settings' => [
+        'risk_level' => 'standard',
         'require_geofence_clock_in' => true,
         'notify_on_incident' => true,
         'patrol_reminder_minutes' => 30,

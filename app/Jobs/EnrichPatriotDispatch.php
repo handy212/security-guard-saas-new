@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Enums\DispatchStatus;
 use App\Models\DispatchEvent;
 use App\Models\Tenant;
+use App\Services\NotificationDispatcher;
 use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchClient;
 use App\Services\PatriotDispatchPayload;
@@ -88,7 +89,15 @@ class EnrichPatriotDispatch implements ShouldBeUnique, ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        $this->eligible()->whereKey($this->dispatchId)->where('patriot_sync_status', '!=', 'verified')->update(['patriot_sync_status' => 'failed']);
+        DB::transaction(function (): void {
+            $changed = $this->eligible()->whereKey($this->dispatchId)->whereNotIn('patriot_sync_status', ['verified', 'failed'])
+                ->update(['patriot_sync_status' => 'failed']);
+            if ($changed) {
+                app(NotificationDispatcher::class)->notifyOperators($this->tenantId, 'patriot.account_sync_failed',
+                    'Patriot account synchronization failed', 'Check the customer and site details in Dispatch.',
+                    route('dispatch.control-room', ['dispatch' => $this->dispatchId], absolute: false));
+            }
+        }, attempts: 3);
         logger()->warning('Patriot client enrichment exhausted its retries.', [
             'tenant_id' => $this->tenantId, 'dispatch_id' => $this->dispatchId,
             'exception' => $exception ? $exception::class : null,

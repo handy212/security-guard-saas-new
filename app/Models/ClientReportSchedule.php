@@ -11,7 +11,7 @@ class ClientReportSchedule extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'client_account_id', 'report_type', 'frequency', 'recipients', 'is_active', 'last_sent_at',
+        'tenant_id', 'client_account_id', 'report_type', 'frequency', 'recipients', 'is_active', 'last_sent_at', 'delivery_channel', 'whatsapp_phone',
     ];
 
     protected function casts(): array

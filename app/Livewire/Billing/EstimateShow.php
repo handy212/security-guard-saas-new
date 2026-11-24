@@ -3,6 +3,7 @@
 namespace App\Livewire\Billing;
 
 use App\Models\Estimate;
+use App\Services\ClientCommunicationService;
 use App\Services\EstimateDeliveryService;
 use App\Services\EstimateService;
 use App\Services\PdfExportService;
@@ -27,6 +28,14 @@ class EstimateShow extends Component
     {
         abort_unless(auth()->user()->can('billing.manage'), 403);
         $this->estimate = $estimate->load(['clientAccount', 'items', 'convertedInvoice']);
+    }
+
+    public function sendWhatsApp(ClientCommunicationService $communication): void
+    {
+        $this->authorize('update', $this->estimate);
+        $communication->sendDocument($this->estimate);
+        $this->estimate->refresh();
+        session()->flash('status', 'Estimate submitted to WhatsApp.');
     }
 
     public function openSend(EstimateDeliveryService $delivery): void

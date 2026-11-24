@@ -8,6 +8,7 @@ use App\Jobs\EnrichPatriotDispatch;
 use App\Models\DispatchEvent;
 use App\Models\Tenant;
 use App\Services\DispatchService;
+use App\Services\NotificationDispatcher;
 use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchClient;
 use App\Services\PatriotDispatchPayload;
@@ -24,7 +25,7 @@ class ImportPatriotDispatches extends Command
 
     protected $description = 'Import pending Patriot requests into the configured tenant dispatch queue';
 
-    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans, PatriotDispatchPayload $payloads, PatriotAccountProvisioner $provisioner, DispatchService $dispatches): int
+    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans, PatriotDispatchPayload $payloads, PatriotAccountProvisioner $provisioner, DispatchService $dispatches, NotificationDispatcher $notifications): int
     {
         if ($this->option('scheduled') && ! config('services.patriot.polling_enabled')) {
             return self::SUCCESS;
@@ -58,9 +59,16 @@ class ImportPatriotDispatches extends Command
             $jobs = $snapshot->filter(fn (object $job): bool => $job->jobID > 0
                 && ($jobId === null || (string) $job->jobID === $jobId));
         } catch (RuntimeException $exception) {
+            if ($this->option('scheduled')) {
+                $notifications->observePatriotConnectivity($tenant->id, false);
+            }
             $this->error($exception->getMessage());
 
             return self::FAILURE;
+        }
+
+        if ($this->option('scheduled')) {
+            $notifications->observePatriotConnectivity($tenant->id, true);
         }
 
         if ($jobId !== null && $jobs->isEmpty()) {
@@ -70,7 +78,7 @@ class ImportPatriotDispatches extends Command
         }
 
         $reconcile = $jobId === null && $this->option('scheduled');
-        [$created, $removed, $enrich, $newDispatches] = DB::transaction(function () use ($tenant, $jobs, $snapshot, $reconcile, $payloads, $provisioner, $instance): array {
+        [$created, $removed, $enrich, $newDispatches] = DB::transaction(function () use ($tenant, $jobs, $snapshot, $reconcile, $payloads, $provisioner, $instance, $dispatches): array {
             Tenant::query()->lockForUpdate()->findOrFail($tenant->id);
 
             $newDispatches = [];
@@ -101,6 +109,10 @@ class ImportPatriotDispatches extends Command
                     }
                     if ($existing->patriot_sync_status === 'pending' && $this->canEnrich($reference)) {
                         $enrich[] = $existing->id;
+                    }
+
+                    if (NotificationDispatcher::alarmsEnabled() && $existing->priority === DispatchPriority::CRITICAL) {
+                        $dispatches->notifyPatriotIntake($existing);
                     }
 
                     continue;
@@ -136,10 +148,13 @@ class ImportPatriotDispatches extends Command
                     $dispatch->update(['patriot_sync_status' => 'review']);
                 }
 
+                if (NotificationDispatcher::alarmsEnabled() && $dispatch->priority === DispatchPriority::CRITICAL) {
+                    $dispatches->notifyPatriotIntake($dispatch);
+                }
                 $newDispatches[] = $dispatch;
             }
 
-            $removed = $reconcile ? $this->removeMissingRequests($tenant->id, $instance, $snapshot->pluck('jobID')->all()) : 0;
+            $removed = $reconcile ? $this->removeMissingRequests($tenant->id, $instance, $snapshot->pluck('jobID')->all(), $dispatches) : 0;
 
             return [count($newDispatches), $removed, $enrich, $newDispatches];
         }, attempts: 3);
@@ -155,7 +170,9 @@ class ImportPatriotDispatches extends Command
         }
 
         foreach ($newDispatches as $dispatch) {
-            $dispatches->notifyPatriotIntake($dispatch);
+            if (! NotificationDispatcher::alarmsEnabled() || $dispatch->priority !== DispatchPriority::CRITICAL) {
+                $dispatches->notifyPatriotIntake($dispatch);
+            }
         }
 
         if ($this->option('scheduled') && $created > 0) {
@@ -199,7 +216,7 @@ class ImportPatriotDispatches extends Command
     }
 
     /** @param list<int> $visibleIds */
-    private function removeMissingRequests(int $tenantId, string $instance, array $visibleIds): int
+    private function removeMissingRequests(int $tenantId, string $instance, array $visibleIds, DispatchService $dispatches): int
     {
         $unassigned = DispatchEvent::forTenant($tenantId)
             ->whereNotNull('patriot_job_id')
@@ -220,8 +237,14 @@ class ImportPatriotDispatches extends Command
         $missing = $unassigned->whereIntegerNotInRaw('patriot_job_id', $visibleIds);
         $observedAt = now();
         $withdrawn = (clone $missing)->where('patriot_missing_since', '<=', $observedAt->copy()->subMinute());
+        $withdrawnEvents = (clone $withdrawn)->lockForUpdate()->get();
         $removed = $withdrawn->update(['status' => DispatchStatus::CANCELLED, 'closed_at' => $observedAt]);
         $missing->whereNull('patriot_missing_since')->update(['patriot_missing_since' => $observedAt]);
+
+        foreach ($withdrawnEvents as $event) {
+            $event->status = DispatchStatus::CANCELLED;
+            $dispatches->resolveDispatchAlarm($event);
+        }
 
         return $removed;
     }

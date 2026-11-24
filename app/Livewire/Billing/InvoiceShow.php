@@ -4,6 +4,7 @@ namespace App\Livewire\Billing;
 
 use App\Models\Invoice;
 use App\Services\BillingService;
+use App\Services\ClientCommunicationService;
 use App\Services\InvoiceDeliveryService;
 use App\Services\PdfExportService;
 use App\Support\EnumHelper;
@@ -46,6 +47,14 @@ class InvoiceShow extends Component
         $this->invoice->update(['status' => 'sent', 'sent_at' => now()]);
         $this->invoice->refresh();
         session()->flash('status', 'Invoice marked as sent.');
+    }
+
+    public function sendWhatsApp(ClientCommunicationService $communication): void
+    {
+        $this->authorize('update', $this->invoice);
+        $communication->sendDocument($this->invoice);
+        $this->invoice->refresh();
+        session()->flash('status', 'Invoice submitted to WhatsApp.');
     }
 
     public function openSend(InvoiceDeliveryService $delivery): void

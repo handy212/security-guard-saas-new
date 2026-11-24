@@ -1,4 +1,7 @@
 <div>
+    @error('clientCommunication')
+        <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
+    @enderror
     <x-page-shell
         :title="$invoice->invoice_number"
         :description="($invoice->clientAccount?->name ?? 'Invoice').' · Document view'"
@@ -15,6 +18,9 @@
             @endif
             @if (in_array($status, ['draft', 'sent', 'partial', 'overdue'], true))
                 <x-button wire:click="openSend">Send invoice</x-button>
+                @if (\App\Services\ClientCommunicationService::whatsappEnabled($invoice->tenant_id) && $invoice->clientAccount?->phone)
+                    <x-button variant="secondary" wire:click="sendWhatsApp" wire:confirm="Send this PDF to the client account phone number via WhatsApp?">Send via WhatsApp</x-button>
+                @endif
             @endif
             @if (! in_array($status, ['paid', 'void'], true))
                 <x-button variant="secondary" wire:click="openPayment">Record payment</x-button>

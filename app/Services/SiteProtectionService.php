@@ -7,11 +7,15 @@ use App\Enums\ShiftAssignmentStatus;
 use App\Enums\ShiftStatus;
 use App\Models\AttendanceLog;
 use App\Models\GuardLocation;
+use App\Models\OperationalAlert;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Site;
+use App\Models\Tenant;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SiteProtectionService
 {
@@ -21,6 +25,53 @@ class SiteProtectionService
         private AttendanceService $attendance,
         private GuardLocationService $locations,
     ) {}
+
+    public function monitor(NotificationDispatcher $notifications): void
+    {
+        Tenant::where('status', 'active')->eachById(function (Tenant $tenant) use ($notifications): void {
+            DB::transaction(function () use ($tenant, $notifications): void {
+                Tenant::query()->lockForUpdate()->findOrFail($tenant->id);
+                $activeAlarms = OperationalAlert::forTenant($tenant->id)
+                    ->whereIn('event_type', ['coverage.unprotected', 'coverage.understaffed'])
+                    ->whereNull('resolved_at')->get()
+                    ->groupBy(fn (OperationalAlert $alert) => Str::before($alert->source_reference, ':'));
+
+                foreach ($this->snapshot($tenant->id)['sites'] as $row) {
+                    $site = $row['site'];
+                    $status = $row['status'];
+                    $existing = $activeAlarms->get($site->id, collect());
+
+                    if ($status === 'verification_required') {
+                        continue;
+                    }
+
+                    $eventType = in_array($status, ['unprotected', 'understaffed'], true) ? 'coverage.'.$status : null;
+                    if ($eventType && ! $existing->contains('event_type', $eventType)) {
+                        $severity = $status === 'unprotected' && in_array(data_get($site->settings, 'risk_level'), ['high', 'critical'], true)
+                            ? 'critical' : 'high';
+                        $notifications->publishAlarm($tenant->id, $eventType, $site->id.':'.Str::ulid(),
+                            ($status === 'unprotected' ? 'Site unprotected' : 'Site understaffed').' · '.$site->name,
+                            'Review verified deployments and restore required guard coverage.',
+                            route('tracking.live', ['site' => $site->id], absolute: false), severity: $severity, context: array_filter([
+                                'Customer' => $site->clientAccount?->name,
+                                'Site' => $site->name,
+                                'Location' => $site->address,
+                                'Source' => 'GuardCore Pro',
+                            ]));
+                    }
+
+                    if ($status === 'protected' && $existing->isNotEmpty()) {
+                        $notifications->notifyProtectionRestored($site);
+                    }
+
+                    foreach ($existing->where('event_type', '!=', $eventType) as $alert) {
+                        $notifications->resolveAlarm($tenant->id, $alert->event_type, $alert->source_reference,
+                            metadata: ['coverage_status' => $status]);
+                    }
+                }
+            }, attempts: 3);
+        });
+    }
 
     /** @return array{sites: Collection, deployments: Collection} */
     public function snapshot(int $tenantId): array

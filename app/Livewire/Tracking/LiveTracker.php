@@ -80,6 +80,9 @@ class LiveTracker extends Component
     {
         abort_unless(auth()->user()->can('dispatch.manage'), 403);
         $this->historyDate = $this->historyDate ?: now()->toDateString();
+        if ($siteId = request()->integer('site')) {
+            $this->openSite($siteId);
+        }
     }
 
     public function selectCoverage(string $status): void

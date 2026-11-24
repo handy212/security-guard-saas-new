@@ -287,7 +287,7 @@
 @script
 <script>
     if (window.Echo && @json(auth()->user()?->tenant_id)) {
-        window.Echo.channel('tenant.{{ auth()->user()->tenant_id }}.dispatch')
+        window.Echo.private('tenant.{{ auth()->user()->tenant_id }}.dispatch')
             .listen('.sos.raised', () => $wire.$refresh());
     }
 </script>

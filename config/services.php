@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'evolution' => [
+        'tenant_id' => env('EVOLUTION_TENANT_ID'),
+        'url' => env('EVOLUTION_API_URL'),
+        'instance' => env('EVOLUTION_INSTANCE'),
+        'key' => env('EVOLUTION_API_KEY'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

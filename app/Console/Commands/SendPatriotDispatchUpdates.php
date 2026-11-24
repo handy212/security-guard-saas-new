@@ -5,10 +5,13 @@ namespace App\Console\Commands;
 use App\Enums\DispatchStatus;
 use App\Models\DispatchEvent;
 use App\Models\Tenant;
+use App\Services\DispatchService;
+use App\Services\NotificationDispatcher;
 use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchClient;
 use App\Services\PlanEntitlementService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class SendPatriotDispatchUpdates extends Command
@@ -17,7 +20,7 @@ class SendPatriotDispatchUpdates extends Command
 
     protected $description = 'Send GuardCore dispatch decisions and field updates to Patriot';
 
-    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans, PatriotAccountProvisioner $provisioner): int
+    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans, PatriotAccountProvisioner $provisioner, DispatchService $dispatches, NotificationDispatcher $notifications): int
     {
         if (! config('services.patriot.writeback_enabled')) {
             return self::SUCCESS;
@@ -50,28 +53,37 @@ class SendPatriotDispatchUpdates extends Command
             try {
                 $patriot->checkWriteback((int) $event->patriot_job_id, $action, ! $reconcile, $action === 'complete' ? $event->action_taken : null, $reconcile);
             } catch (RuntimeException $exception) {
-                $event->update(['patriot_writeback_error' => $exception->getMessage()]);
+                DB::transaction(function () use ($event, $exception, $notifications): void {
+                    $event->update(['patriot_writeback_error' => $exception->getMessage()]);
+                    $notifications->notifyOperators($event->tenant_id, 'patriot.writeback_failed',
+                        'Patriot update needs attention · '.$event->dispatch_number,
+                        'Verify the dispatch in Patriot and review the pending update.',
+                        route('dispatch.control-room', ['dispatch' => $event->id], absolute: false));
+                }, attempts: 3);
                 $failed = true;
 
                 continue;
             }
 
-            $event->update([
-                'patriot_response_state' => match ($action) {
-                    'accept' => 'accepted',
-                    'decline' => 'declined',
-                    'on-site' => 'on_site',
-                    'complete' => 'completed',
-                },
-                'patriot_pending_action' => null,
-                'patriot_writeback_started_at' => null,
-                'patriot_writeback_error' => null,
-            ] + ($action === 'decline' ? ['status' => DispatchStatus::CANCELLED, 'closed_at' => now(), 'returned_at' => $event->dispatch_team_id ? now() : null] : []));
-            $event->activityLogs()->create([
-                'tenant_id' => $tenant->id,
-                'action' => 'patriot_synced',
-                'message' => 'Patriot confirmed '.$action,
-            ]);
+            DB::transaction(function () use ($event, $action, $tenant, $dispatches): void {
+                $event->update([
+                    'patriot_response_state' => match ($action) {
+                        'accept' => 'accepted',
+                        'decline' => 'declined',
+                        'on-site' => 'on_site',
+                        'complete' => 'completed',
+                    },
+                    'patriot_pending_action' => null,
+                    'patriot_writeback_started_at' => null,
+                    'patriot_writeback_error' => null,
+                ] + ($action === 'decline' ? ['status' => DispatchStatus::CANCELLED, 'closed_at' => now(), 'returned_at' => $event->dispatch_team_id ? now() : null] : []));
+                $event->activityLogs()->create([
+                    'tenant_id' => $tenant->id,
+                    'action' => 'patriot_synced',
+                    'message' => 'Patriot confirmed '.$action,
+                ]);
+                $dispatches->resolveDispatchAlarm($event);
+            }, attempts: 3);
         }
 
         return $failed ? self::FAILURE : self::SUCCESS;

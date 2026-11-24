@@ -9,6 +9,7 @@ use App\Models\ClientNote;
 use App\Models\ClientReportSchedule;
 use App\Models\Site;
 use App\Models\User;
+use App\Services\ClientCommunicationService;
 use App\Services\ClientOverviewService;
 use App\Services\FileUploadService;
 use App\Services\TenantFileStorageService;
@@ -55,6 +56,7 @@ class ClientProfile extends Component
 
     public array $reportForm = [
         'report_type' => 'daily_activity',
+        'channel' => 'email',
         'frequency' => 'weekly',
         'recipients' => '',
         'is_active' => true,
@@ -439,30 +441,37 @@ class ClientProfile extends Component
         session()->flash('status', 'Portal user reactivated.');
     }
 
-    public function addReportSchedule(): void
+    public function addReportSchedule(ClientCommunicationService $communication): void
     {
         $this->authorize('update', $this->clientAccount);
 
         $data = $this->validate([
             'reportForm.report_type' => 'required|in:daily_activity,patrol_summary,incidents,custom',
             'reportForm.frequency' => 'required|in:daily,weekly,monthly',
-            'reportForm.recipients' => 'required|string|max:1000',
+            'reportForm.channel' => 'required|in:email,whatsapp',
+            'reportForm.recipients' => 'required_if:reportForm.channel,email|nullable|string|max:1000',
             'reportForm.is_active' => 'boolean',
         ])['reportForm'];
 
-        $recipients = array_values(array_filter(array_map('trim', explode(',', $data['recipients']))));
+        $recipients = [];
+        $number = null;
+        if ($data['channel'] === 'whatsapp') {
+            $number = $communication->whatsappNumber($this->clientAccount);
+        } else {
+            $recipients = array_values(array_filter(array_map('trim', explode(',', $data['recipients']))));
 
-        if ($recipients === []) {
-            $this->addError('reportForm.recipients', 'Enter at least one email address.');
-
-            return;
-        }
-
-        foreach ($recipients as $email) {
-            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $this->addError('reportForm.recipients', "Invalid email: {$email}");
+            if ($recipients === []) {
+                $this->addError('reportForm.recipients', 'Enter at least one email address.');
 
                 return;
+            }
+
+            foreach ($recipients as $email) {
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $this->addError('reportForm.recipients', "Invalid email: {$email}");
+
+                    return;
+                }
             }
         }
 
@@ -472,11 +481,14 @@ class ClientProfile extends Component
             'report_type' => $data['report_type'],
             'frequency' => $data['frequency'],
             'recipients' => $recipients,
+            'delivery_channel' => $data['channel'],
+            'whatsapp_phone' => $number,
             'is_active' => (bool) $data['is_active'],
         ]);
 
         $this->reportForm = [
             'report_type' => 'daily_activity',
+            'channel' => 'email',
             'frequency' => 'weekly',
             'recipients' => '',
             'is_active' => true,
@@ -537,7 +549,7 @@ class ClientProfile extends Component
             'sites' => ['label' => 'Post Sites', 'hint' => 'Sites and locations', 'group' => 'Assets', 'badge' => $this->clientAccount->sites->count() > 0 ? (string) $this->clientAccount->sites->count() : null],
             'portal' => ['label' => 'Client Portal', 'hint' => 'Portal access settings', 'group' => 'Portal'],
             'users' => ['label' => 'User Access', 'hint' => 'Portal logins', 'group' => 'Portal', 'badge' => $this->clientAccount->portalUsers->count() > 0 ? (string) $this->clientAccount->portalUsers->count() : null],
-            'reports' => ['label' => 'Email Reports', 'hint' => 'Scheduled delivery', 'group' => 'Reports', 'badge' => $this->clientAccount->reportSchedules->count() > 0 ? (string) $this->clientAccount->reportSchedules->count() : null],
+            'reports' => ['label' => 'Scheduled Reports', 'hint' => 'Scheduled delivery', 'group' => 'Reports', 'badge' => $this->clientAccount->reportSchedules->count() > 0 ? (string) $this->clientAccount->reportSchedules->count() : null],
         ];
 
         return view('livewire.clients.client-profile', [

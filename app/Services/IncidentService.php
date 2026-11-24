@@ -4,10 +4,8 @@ namespace App\Services;
 
 use App\Models\Incident;
 use App\Notifications\IncidentSubmittedNotification;
-use App\Services\AuditLogService;
-use App\Services\NotificationDispatcher;
-use App\Services\WebhookDeliveryService;
 use App\Support\MutableStatus;
+use Illuminate\Support\Facades\DB;
 
 class IncidentService
 {
@@ -23,18 +21,30 @@ class IncidentService
             $data['incident_type'] = $data['type'];
         }
 
-        $incident = Incident::create($data + [
-            'status' => 'submitted',
-            'reported_at' => now(),
-            'occurred_at' => $data['occurred_at'] ?? now(),
-        ]);
+        $incident = DB::transaction(function () use ($data): Incident {
+            $incident = Incident::create($data + [
+                'status' => 'submitted',
+                'reported_at' => now(),
+                'occurred_at' => $data['occurred_at'] ?? now(),
+            ]);
 
-        $this->notifications->sendToTenantAdmins(
-            $incident->tenant_id,
-            'incident.submitted',
-            ['title' => $incident->title, 'severity' => (string) $incident->severity],
-            new IncidentSubmittedNotification($incident),
-        );
+            if (NotificationDispatcher::alarmsEnabled() && $incident->severity === 'critical') {
+                $this->notifications->publishAlarm($incident->tenant_id, 'incident.critical', (string) $incident->id,
+                    'Critical incident · '.$incident->title, 'Review the incident and coordinate a response.',
+                    route('incidents.index', ['incident' => $incident->id], absolute: false));
+            }
+
+            return $incident;
+        });
+
+        if (! NotificationDispatcher::alarmsEnabled() || $incident->severity !== 'critical') {
+            $this->notifications->sendToTenantAdmins(
+                $incident->tenant_id,
+                'incident.submitted',
+                ['title' => $incident->title, 'severity' => (string) $incident->severity],
+                new IncidentSubmittedNotification($incident),
+            );
+        }
 
         $this->audit->record('incident.submitted', $incident, ['severity' => $incident->severity]);
         $this->webhooks->dispatch($incident->tenant_id, 'incident.submitted', $incident->toArray());
@@ -71,23 +81,32 @@ class IncidentService
     public function approve(Incident $incident, int $userId): Incident
     {
         $incident->update(['status' => 'approved', 'approved_by_user_id' => $userId, 'approved_at' => now()]);
+
         return $incident->fresh();
     }
 
     public function reject(Incident $incident, ?string $resolution = null): Incident
     {
-        $incident->update([
-            'status' => 'rejected',
-            'resolution' => $resolution,
-            'closed_at' => now(),
-        ]);
-
-        return $incident->fresh();
+        return $this->finish($incident, 'rejected', $resolution);
     }
 
     public function close(Incident $incident, ?string $resolution = null): Incident
     {
-        $incident->update(['status' => 'closed', 'resolution' => $resolution, 'closed_at' => now()]);
-        return $incident->fresh();
+        return $this->finish($incident, 'closed', $resolution);
+    }
+
+    private function finish(Incident $incident, string $status, ?string $resolution): Incident
+    {
+        return DB::transaction(function () use ($incident, $status, $resolution): Incident {
+            $incident->update([
+                'status' => $status,
+                'resolution' => $resolution,
+                'closed_at' => now(),
+            ]);
+            $this->notifications->resolveAlarm($incident->tenant_id, 'incident.critical', (string) $incident->id,
+                auth()->id(), ['incident_status' => $status]);
+
+            return $incident->fresh();
+        });
     }
 }

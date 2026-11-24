@@ -678,13 +678,14 @@ class SiteProfile extends Component
     {
         $this->authorize('update', $this->site);
         $data = $this->validate([
+            'settingsForm.risk_level' => 'sometimes|required|in:standard,high,critical',
             'settingsForm.require_geofence_clock_in' => 'boolean',
             'settingsForm.notify_on_incident' => 'boolean',
             'settingsForm.patrol_reminder_minutes' => 'integer|min:0|max:240',
             'settingsForm.show_in_client_portal' => 'boolean',
         ])['settingsForm'];
 
-        $this->site->update(['settings' => $data]);
+        $this->site->update(['settings' => array_replace($this->site->settings ?? [], $data)]);
         $this->site->refresh();
         $this->loadSettingsForm();
         session()->flash('status', 'Site settings saved.');

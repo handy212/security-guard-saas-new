@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
 use App\Enums\GuardDutyType;
 use App\Events\DispatchEventCreated;
@@ -12,6 +13,8 @@ use App\Models\DispatchEvent;
 use App\Models\DispatchTeam;
 use App\Models\Guard;
 use App\Models\Incident;
+use App\Models\OperationalAlert;
+use App\Models\Site;
 use App\Models\SosAlert;
 use App\Models\Tenant;
 use App\Models\User;
@@ -77,7 +80,11 @@ class DispatchService
                 DB::afterCommit(fn () => $this->notifyAssignedGuard($event));
             }
 
-            DB::afterCommit(fn () => $this->notifyDispatchers($event, 'New dispatch '.$dispatchNumber));
+            if (NotificationDispatcher::alarmsEnabled() && $event->priority === DispatchPriority::CRITICAL && ! $event->sos_alert_id) {
+                $this->publishDispatchAlarm($event, 'dispatch.critical', 'Critical dispatch');
+            } else {
+                DB::afterCommit(fn () => $this->notifyDispatchers($event, 'New dispatch '.$dispatchNumber));
+            }
 
             $eventId = $event->id;
             $payload = $this->payload($event);
@@ -110,6 +117,11 @@ class DispatchService
             $this->logActivity($event, 'patriot_queued', $decision === 'accept'
                 ? 'Assigned officer accepted. Reporting to Patriot.'
                 : 'Assigned officer declined. Reporting to Patriot.', $userId);
+            if ($decision === 'decline') {
+                $this->notifications->notifyOperators($event->tenant_id, 'dispatch.guard_declined',
+                    'Guard declined dispatch · '.$event->dispatch_number, 'Review the response request and assign an available guard if needed.',
+                    route('dispatch.control-room', ['dispatch' => $event->id], absolute: false));
+            }
         }, attempts: 3);
     }
 
@@ -353,7 +365,8 @@ class DispatchService
                 'sos_alert_id' => $alert->id,
             ]);
 
-            if ($alert->status === 'open') {
+            if ($alert->status === 'open' && (! NotificationDispatcher::alarmsEnabled() || ! OperationalAlert::forTenant($alert->tenant_id)
+                ->where('event_type', 'sos.raised')->where('source_reference', (string) $alert->id)->exists())) {
                 $alert->update(['status' => 'acknowledged', 'acknowledged_by_user_id' => $userId, 'acknowledged_at' => now()]);
             }
 
@@ -412,16 +425,34 @@ class DispatchService
 
     public function raiseSos(User $user, array $data): SosAlert
     {
-        $alert = SosAlert::create([
-            'tenant_id' => $user->tenant_id,
-            'guard_id' => $user->guardProfile?->id,
-            'site_id' => $data['site_id'] ?? null,
-            'latitude' => $data['latitude'],
-            'longitude' => $data['longitude'],
-            'message' => $data['message'] ?? 'SOS alert raised',
-            'status' => 'open',
-            'raised_at' => now(),
-        ]);
+        $guard = $user->guardProfile;
+        abort_unless($user->tenant_id && $guard?->tenant_id === $user->tenant_id, 403);
+        abort_if(isset($data['site_id']) && ! Site::forTenant($user->tenant_id)->whereKey($data['site_id'])->exists(), 422, 'The SOS site must belong to your company.');
+
+        $alert = DB::transaction(function () use ($user, $data, $guard): SosAlert {
+            $alert = SosAlert::create([
+                'tenant_id' => $user->tenant_id,
+                'guard_id' => $guard->id,
+                'site_id' => $data['site_id'] ?? null,
+                'latitude' => $data['latitude'],
+                'longitude' => $data['longitude'],
+                'message' => $data['message'] ?? 'SOS alert raised',
+                'status' => 'open',
+                'raised_at' => now(),
+            ]);
+
+            if (NotificationDispatcher::alarmsEnabled()) {
+                $this->notifications->publishAlarm($user->tenant_id, 'sos.raised', (string) $alert->id, 'Guard SOS',
+                    'Review the guard location and coordinate a response.', route('dispatch.control-room', absolute: false).'#dispatch-sos', context: array_filter([
+                        'Site' => $alert->site?->name,
+                        'Customer' => $alert->site?->clientAccount?->name,
+                        'Reference' => 'SOS-'.$alert->id,
+                        'Source' => 'GuardCore Pro',
+                    ]));
+            }
+
+            return $alert;
+        }, attempts: 3);
 
         SosAlertRaised::dispatch($alert);
 
@@ -504,6 +535,12 @@ class DispatchService
 
     public function notifyPatriotIntake(DispatchEvent $event): void
     {
+        if (NotificationDispatcher::alarmsEnabled() && $event->priority === DispatchPriority::CRITICAL) {
+            $this->publishDispatchAlarm($event, 'patriot.intake', 'Critical Patriot alarm');
+
+            return;
+        }
+
         $template = 'dispatch.created';
         $this->notifications->sendToTenantAdmins(
             $event->tenant_id,
@@ -512,6 +549,21 @@ class DispatchService
             new GenericGuardOpsNotification('Patriot dispatch '.$event->dispatch_number, 'Review the request in the Dispatch Center.', '/dispatch', $template),
             '/dispatch',
         );
+    }
+
+    private function publishDispatchAlarm(DispatchEvent $event, string $eventType, string $title): void
+    {
+        $this->notifications->publishAlarm($event->tenant_id, $eventType, $this->alarmReference($event),
+            $title.' · '.$event->dispatch_number,
+            'Review the request and coordinate a response in Dispatch.',
+            route('dispatch.control-room', ['dispatch' => $event->id], absolute: false), context: array_filter([
+                'Customer' => $event->clientAccount?->name,
+                'Site' => $event->site?->name,
+                'Location' => $event->incident_location ?? $event->site?->address,
+                'Reference' => $event->dispatch_number,
+                'Activation' => data_get($event->patriot_intake_snapshot, 'activation_id'),
+                'Source' => $event->patriot_job_id ? 'Patriot' : 'GuardCore Pro',
+            ]));
     }
 
     private function notifyDispatchers(DispatchEvent $event, string $subject): void
@@ -530,8 +582,55 @@ class DispatchService
         );
     }
 
+    public function resolveDispatchAlarm(DispatchEvent $event, ?int $actor = null): void
+    {
+        if (! NotificationDispatcher::alarmsEnabled()
+            || ! in_array($event->status, [DispatchStatus::RESOLVED, DispatchStatus::CLOSED, DispatchStatus::CANCELLED], true)) {
+            return;
+        }
+        if ($event->patriot_job_id && $event->status !== DispatchStatus::CANCELLED && $event->patriot_response_state !== 'completed') {
+            return;
+        }
+
+        $reference = $this->alarmReference($event);
+        $activation = data_get($event->patriot_intake_snapshot, 'activation_id');
+        if ($event->patriot_job_id && $activation !== null && $event->status === DispatchStatus::CANCELLED) {
+            $remainingDispatch = DispatchEvent::forTenant($event->tenant_id)
+                ->where('patriot_instance', $event->patriot_instance)
+                ->where('patriot_intake_snapshot->activation_id', $activation)
+                ->whereNotIn('status', [DispatchStatus::CANCELLED, DispatchStatus::CLOSED])
+                ->whereKeyNot($event->id)->oldest('id')->first();
+
+            if ($remainingDispatch) {
+                $this->notifications->changeAlarmLink($event->tenant_id, 'patriot.intake', $reference,
+                    route('dispatch.control-room', ['dispatch' => $remainingDispatch->id], absolute: false));
+
+                return;
+            }
+        }
+
+        $this->notifications->resolveAlarm($event->tenant_id, $event->patriot_job_id ? 'patriot.intake' : 'dispatch.critical',
+            $reference, $actor, ['dispatch_status' => $event->status->value]);
+
+        if ($event->sos_alert_id && $event->status !== DispatchStatus::CANCELLED) {
+            $this->notifications->resolveAlarm($event->tenant_id, 'sos.raised', (string) $event->sos_alert_id, $actor);
+        }
+    }
+
+    private function alarmReference(DispatchEvent $event): string
+    {
+        $activation = data_get($event->patriot_intake_snapshot, 'activation_id');
+        if ($event->patriot_job_id && $activation !== null) {
+            return 'activation:'.hash('sha256', $event->patriot_instance.':'.$activation);
+        }
+
+        return (string) $event->id;
+    }
+
     private function broadcastUpdate(DispatchEvent $event): void
     {
+        $this->resolveDispatchAlarm($event, auth()->id());
+
         $payload = $this->payload($event);
 
         DB::afterCommit(function () use ($event, $payload) {

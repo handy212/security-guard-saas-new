@@ -42,6 +42,8 @@ class GenericGuardOpsNotification extends Notification implements ShouldQueue
             'body' => $this->body,
             'action_url' => $this->actionUrl,
             'type' => 'system',
+            'event_type' => $this->templateCode,
+            'severity' => config('notifications.routine_severities')[$this->templateCode] ?? 'info',
         ];
     }
 

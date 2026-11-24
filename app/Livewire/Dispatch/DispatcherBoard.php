@@ -17,6 +17,7 @@ use App\Models\Site;
 use App\Models\SosAlert;
 use App\Models\Tenant;
 use App\Services\DispatchService;
+use App\Services\NotificationDispatcher;
 use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchPayload;
 use App\Support\TenantContext;
@@ -79,6 +80,10 @@ class DispatcherBoard extends Component
     public function mount(): void
     {
         $this->authorizePermission('dispatch.manage');
+        $requestedId = request()->integer('dispatch');
+        if ($requestedId > 0) {
+            $this->selectedId = DispatchEvent::forTenant(TenantContext::id())->findOrFail($requestedId)->id;
+        }
         $this->form['incident_date'] = now()->toDateString();
         $this->form['incident_time'] = now()->format('H:i');
     }
@@ -355,6 +360,17 @@ class DispatcherBoard extends Component
     public function acknowledgeSos(SosAlert $alert): void
     {
         $this->authorize('acknowledge', $alert);
+        $dispatcher = app(NotificationDispatcher::class);
+        $operationalAlert = NotificationDispatcher::canOperateAlarms(auth()->user())
+            ? $dispatcher->alarmsFor(auth()->user())->where('event_type', 'sos.raised')
+                ->where('source_reference', (string) $alert->id)->first()
+            : null;
+        if ($operationalAlert) {
+            $dispatcher->acknowledgeAlarm(auth()->user(), $operationalAlert->id);
+
+            return;
+        }
+
         SosAlert::forTenant(TenantContext::id())->whereKey($alert->id)->where('status', 'open')->update([
             'status' => 'acknowledged',
             'acknowledged_by_user_id' => TenantContext::userId(),

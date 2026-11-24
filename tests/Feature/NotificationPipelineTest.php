@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Models\Incident;
+use App\Models\ClientAccount;
+use App\Models\Guard;
 use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\IncidentSubmittedNotification;
 use App\Services\DispatchService;
 use App\Services\IncidentService;
 use App\Services\TenantRoleProvisioner;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -20,7 +23,7 @@ class NotificationPipelineTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
     }
 
     public function test_incident_submission_queues_admin_notification(): void
@@ -42,7 +45,7 @@ class NotificationPipelineTest extends TestCase
 
         $site = Site::create([
             'tenant_id' => $tenant->id,
-            'client_account_id' => \App\Models\ClientAccount::create([
+            'client_account_id' => ClientAccount::create([
                 'tenant_id' => $tenant->id,
                 'name' => 'Client',
                 'status' => 'active',
@@ -62,7 +65,7 @@ class NotificationPipelineTest extends TestCase
             'reported_by_user_id' => $admin->id,
         ]);
 
-        Notification::assertSentTo($admin, \App\Notifications\IncidentSubmittedNotification::class);
+        Notification::assertSentTo($admin, IncidentSubmittedNotification::class);
         $this->assertDatabaseHas('audit_logs', ['action' => 'incident.submitted']);
     }
 
@@ -77,7 +80,7 @@ class NotificationPipelineTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
-        \App\Models\Guard::create([
+        Guard::create([
             'tenant_id' => $tenant->id,
             'user_id' => $user->id,
             'employee_number' => 'G-SOS',
@@ -97,5 +100,8 @@ class NotificationPipelineTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'sos.raised']);
         $this->assertDatabaseHas('sos_alerts', ['status' => 'open']);
+        $this->assertDatabaseHas('operational_alerts', [
+            'tenant_id' => $tenant->id, 'severity' => 'critical', 'event_type' => 'sos.raised', 'acknowledged_at' => null,
+        ]);
     }
 }

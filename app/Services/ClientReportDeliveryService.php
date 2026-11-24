@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Models\ClientReportSchedule;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class ClientReportDeliveryService
 {
+    public function __construct(private ClientCommunicationService $communication) {}
+
     public function deliverDueSchedules(): int
     {
         $delivered = 0;
@@ -14,8 +17,33 @@ class ClientReportDeliveryService
         ClientReportSchedule::query()
             ->where('is_active', true)
             ->with(['clientAccount.tenant'])
-            ->each(function (ClientReportSchedule $schedule) use (&$delivered) {
+            ->eachById(function (ClientReportSchedule $schedule) use (&$delivered) {
                 if (! $this->isDue($schedule)) {
+                    return;
+                }
+
+                $client = $schedule->clientAccount;
+                if ($client?->tenant_id !== $schedule->tenant_id || $client->tenant?->status !== 'active') {
+                    return;
+                }
+
+                $reportLabel = config('client_profile.report_types')[$schedule->report_type] ?? $schedule->report_type;
+                if ($schedule->delivery_channel === 'whatsapp') {
+                    if (! ClientCommunicationService::whatsappEnabled($schedule->tenant_id)) {
+                        return;
+                    }
+                    try {
+                        $this->communication->sendScheduledReport($schedule, $reportLabel);
+                    } catch (ValidationException) {
+                        logger()->warning('Scheduled client WhatsApp reminder was not confirmed.', [
+                            'tenant_id' => $schedule->tenant_id, 'schedule_id' => $schedule->id,
+                        ]);
+
+                        return;
+                    }
+                    $schedule->update(['last_sent_at' => now()]);
+                    $delivered++;
+
                     return;
                 }
 
@@ -23,17 +51,14 @@ class ClientReportDeliveryService
                 if ($recipients === []) {
                     return;
                 }
-
-                $client = $schedule->clientAccount;
-                $company = $client?->tenant?->name ?? config('app.name');
-                $reportLabel = config('client_profile.report_types')[$schedule->report_type] ?? $schedule->report_type;
+                $company = $client->tenant->name;
 
                 $subject = "{$reportLabel} — {$client?->name}";
                 $body = implode("\n", [
-                    "Hello,",
+                    'Hello,',
                     '',
                     "Your scheduled {$reportLabel} for {$client?->name} is ready.",
-                    "Frequency: ".ucfirst($schedule->frequency),
+                    'Frequency: '.ucfirst($schedule->frequency),
                     "Prepared by: {$company}",
                     '',
                     'Log in to the client portal for full details and attachments.',

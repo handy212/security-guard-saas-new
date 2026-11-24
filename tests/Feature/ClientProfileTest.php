@@ -35,7 +35,7 @@ class ClientProfileTest extends TestCase
             ->assertSee($client->name)
             ->assertSee('Overview')
             ->assertSee('Post Sites')
-            ->assertSee('Email Reports');
+            ->assertSee('Scheduled Reports');
     }
 
     public function test_client_profile_tabs_switch(): void

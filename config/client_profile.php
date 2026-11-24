@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'report_scheduler_enabled' => env('CLIENT_REPORT_SCHEDULER_ENABLED', false),
+
     'document_types' => [
         'contract' => 'Contract / SOW',
         'insurance' => 'Insurance certificate',

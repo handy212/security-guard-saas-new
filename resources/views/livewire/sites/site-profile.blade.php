@@ -172,6 +172,14 @@
 
                 <x-form-card title="Site preferences" description="Clock-in, notifications, and patrol defaults">
                     <form wire:submit="saveSettings" class="space-y-4 max-w-lg">
+                        <label class="grid gap-1 text-sm font-medium">Coverage risk level
+                            <select wire:model="settingsForm.risk_level" class="rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                                <option value="standard">Standard</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </label>
+                        @error('settingsForm.risk_level') <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p> @enderror
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model.live="settingsForm.require_geofence_clock_in" class="rounded border-zinc-300">
                             Require geofence for clock-in

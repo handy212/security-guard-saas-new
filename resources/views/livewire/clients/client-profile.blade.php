@@ -492,7 +492,7 @@
 
         @if ($activeTab === 'reports')
             <div class="page-split client-records-layout">
-                <x-section-card title="Email report schedules" description="Automated reports sent to this client">
+                <x-section-card title="Report schedules" description="Scheduled report notices for this client">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -509,7 +509,7 @@
                                 <tr class="table-row-hover" wire:key="schedule-{{ $schedule->id }}">
                                     <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $reportTypes[$schedule->report_type] ?? $schedule->report_type }}</x-table.td>
                                     <x-table.td responsive="md" muted>{{ ucfirst($schedule->frequency) }}</x-table.td>
-                                    <x-table.td responsive="lg" muted>{{ implode(', ', $schedule->recipients ?? []) }}</x-table.td>
+                                    <x-table.td responsive="lg" muted>{{ $schedule->delivery_channel === 'whatsapp' ? 'WhatsApp · +'.$schedule->whatsapp_phone : implode(', ', $schedule->recipients ?? []) }}</x-table.td>
                                     <x-table.td responsive="md" muted class="tabular-nums">{{ $schedule->last_sent_at?->format('M j, Y g:i A') ?? 'Never' }}</x-table.td>
                                     <x-table.td>
                                         <x-badge :status="$schedule->is_active ? 'active' : 'inactive'" />
@@ -525,7 +525,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="6">
-                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No schedules.</span> Set up automated email reports for this client.</p>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No schedules.</span> Set up report notices for this client.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
@@ -544,11 +544,22 @@
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-select>
+                        @if (\App\Services\ClientCommunicationService::whatsappEnabled($clientAccount->tenant_id))
+                            <x-select wire:model.live="reportForm.channel" label="Delivery channel">
+                                <option value="email">Email</option>
+                                <option value="whatsapp">WhatsApp</option>
+                            </x-select>
+                        @endif
+                        @if ($reportForm['channel'] === 'whatsapp')
+                            <p class="text-sm">Send a portal reminder to the client number {{ $clientAccount->phone ?: 'on file' }}.</p>
+                            @error('clientCommunication') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        @else
                         <div>
                             <label for="client-report-recipients" class="form-label">Recipients</label>
                             <input id="client-report-recipients" wire:model.live="reportForm.recipients" type="text" class="form-input mt-1" placeholder="email@client.com, ops@client.com">
                             @error('reportForm.recipients') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
+                        @endif
                         <label class="flex items-center gap-2 text-sm">
                             <input type="checkbox" wire:model.live="reportForm.is_active" class="rounded border-zinc-300">
                             Active

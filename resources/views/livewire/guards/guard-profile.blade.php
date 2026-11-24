@@ -1,4 +1,7 @@
 <div>
+    @error('clientCommunication')
+        <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
+    @enderror
     <x-page-shell
         :title="$guard->full_name"
         :description="$guard->employee_number ? 'Employee #'.$guard->employee_number : 'Guard profile'"
@@ -424,6 +427,12 @@
                                     <x-table.td>{{ $assignment->is_primary ? 'Yes' : '—' }}</x-table.td>
                                     <x-table.td align="right">
                                         <div class="table-inline-actions justify-end">
+                                            @if ($assignment->site?->clientAccount?->email)
+                                                <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'email')" wire:confirm="Send the posting details to the client account email?" wire:loading.attr="disabled" class="table-action">Email client</button>
+                                            @endif
+                                            @if (\App\Services\ClientCommunicationService::whatsappEnabled($assignment->tenant_id) && $assignment->site?->clientAccount?->phone)
+                                                <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'whatsapp')" wire:confirm="Send the posting details to the client account phone number via WhatsApp?" wire:loading.attr="disabled" class="table-action">WhatsApp client</button>
+                                            @endif
                                             <button type="button" wire:click="removeSiteAssignment({{ $assignment->id }})" wire:confirm="Remove?" class="table-action text-red-600">Remove</button>
                                         </div>
                                     </x-table.td>

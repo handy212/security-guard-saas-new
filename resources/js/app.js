@@ -1,11 +1,13 @@
 import './dashboard-charts.js';
 import './map.js';
+import { operationalAlarms } from './operational-alarms.js';
 import { initTheme, setTheme } from './theme.js';
 
 initTheme();
 window.setTheme = setTheme;
 
 document.addEventListener('alpine:init', () => {
+    window.Alpine.data('operationalAlarms', operationalAlarms);
     window.Alpine.data('sidebarNav', (activeGroup = null) => ({
         open: activeGroup,
         flyout: null,
@@ -86,6 +88,7 @@ if (reverbKey) {
     // Only expose Echo to Livewire after the socket connects so X-Socket-ID is never "undefined".
     echo.connector.pusher.connection.bind('connected', () => {
         window.Echo = echo;
+        window.dispatchEvent(new Event('guardcore-echo-connected'));
     });
 }
 

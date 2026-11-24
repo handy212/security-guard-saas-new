@@ -26,6 +26,8 @@ class IncidentSubmittedNotification extends Notification implements ShouldQueue
             'body' => $this->incident->description,
             'action_url' => '/incidents',
             'type' => 'incident',
+            'event_type' => 'incident.submitted',
+            'severity' => $this->incident->severity === 'high' ? 'high' : 'info',
         ];
     }
 

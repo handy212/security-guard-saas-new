@@ -8,11 +8,13 @@ use App\Models\DispatchEvent;
 use App\Models\Guard;
 use App\Models\GuardIdleAlert;
 use App\Models\GuardLocation;
+use App\Models\OperationalAlert;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\NotificationDispatcher;
 use App\Services\SiteProtectionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -86,7 +88,7 @@ class LiveTrackerTest extends TestCase
 
         $site = Site::create([
             'tenant_id' => $tenantId, 'client_account_id' => Site::forTenant($tenantId)->value('client_account_id'),
-            'name' => 'Coverage test site', 'latitude' => 5.6, 'longitude' => -0.18, 'status' => 'active',
+            'name' => 'Coverage test site', 'settings' => ['risk_level' => 'high'], 'latitude' => 5.6, 'longitude' => -0.18, 'status' => 'active',
         ]);
         $guard = Guard::create([
             'tenant_id' => $tenantId, 'employee_number' => 'COVERAGE-TEST',
@@ -102,6 +104,11 @@ class LiveTrackerTest extends TestCase
 
         $snapshot = fn () => app(SiteProtectionService::class)->snapshot($tenantId)['sites']->get($site->id);
         $this->assertSame('unprotected', $snapshot()['status']);
+        $dispatcher = app(NotificationDispatcher::class);
+        $monitor = fn () => app(SiteProtectionService::class)->monitor($dispatcher);
+        $monitor();
+        $alarms = OperationalAlert::forTenant($tenantId)->where('source_reference', 'like', $site->id.':%');
+        $this->assertSame('critical', (clone $alarms)->where('event_type', 'coverage.unprotected')->firstOrFail()->severity);
 
         AttendanceLog::create([
             'tenant_id' => $tenantId, 'shift_assignment_id' => $assignment->id, 'guard_id' => $guard->id,
@@ -114,6 +121,10 @@ class LiveTrackerTest extends TestCase
         ]);
 
         $this->assertSame('understaffed', $snapshot()['status']);
+        $monitor();
+        $monitor();
+        $this->assertSame(1, (clone $alarms)->where('event_type', 'coverage.understaffed')->count());
+        $this->assertSame('high', (clone $alarms)->whereNull('resolved_at')->sole()->severity);
         $otherGuard = Guard::create([
             'tenant_id' => $tenantId, 'employee_number' => 'OTHER-COVERAGE-TEST',
             'first_name' => 'Other', 'last_name' => 'Responder', 'status' => 'active',
@@ -136,6 +147,9 @@ class LiveTrackerTest extends TestCase
             ->assertSee('No sites match these filters.');
         $shift->update(['required_guards' => 1]);
         $this->assertSame('protected', $snapshot()['status']);
+        $monitor();
+        $this->assertSame(0, (clone $alarms)->whereNull('resolved_at')->count());
+        $this->assertSame(1, $admin->notifications()->where('data->event_type', 'coverage.restored')->count());
 
         $position->update(['recorded_at' => now()->subHours(2)]);
         $this->assertSame('verification_required', $snapshot()['status']);
