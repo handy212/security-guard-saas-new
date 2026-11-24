@@ -12,13 +12,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenant
 {
-    public function __construct(private TenantDomainResolver $domainResolver)
-    {
-    }
+    public function __construct(private TenantDomainResolver $domainResolver) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        abort_if($user && $user->status !== 'active', 403, 'This account is inactive.');
         $tenant = null;
 
         if ($user?->tenant_id) {

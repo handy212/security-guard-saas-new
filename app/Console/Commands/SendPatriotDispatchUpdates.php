@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\DispatchStatus;
 use App\Models\DispatchEvent;
 use App\Models\Tenant;
+use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchClient;
 use App\Services\PlanEntitlementService;
 use Illuminate\Console\Command;
@@ -16,7 +17,7 @@ class SendPatriotDispatchUpdates extends Command
 
     protected $description = 'Send GuardCore dispatch decisions and field updates to Patriot';
 
-    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans): int
+    public function handle(PatriotDispatchClient $patriot, PlanEntitlementService $plans, PatriotAccountProvisioner $provisioner): int
     {
         if (! config('services.patriot.writeback_enabled')) {
             return self::SUCCESS;
@@ -29,7 +30,8 @@ class SendPatriotDispatchUpdates extends Command
             return self::FAILURE;
         }
 
-        $pending = DispatchEvent::forTenant($tenant->id)->whereNotNull('patriot_job_id')->whereNotNull('patriot_pending_action');
+        $pending = DispatchEvent::forTenant($tenant->id)->whereNotNull('patriot_job_id')->whereNotNull('patriot_pending_action')
+            ->where(fn ($query) => $query->whereNull('patriot_instance')->orWhere('patriot_instance', $provisioner->instance()));
         (clone $pending)->where('patriot_writeback_started_at', '<', now()->subMinutes(5))->whereNull('patriot_writeback_error')
             ->update(['patriot_writeback_error' => 'The previous attempt was interrupted. Verify the job in Patriot.']);
 

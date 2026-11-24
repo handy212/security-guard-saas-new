@@ -24,6 +24,7 @@ use App\Services\TwoFactorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\Sanctum;
@@ -47,7 +48,7 @@ class SettingsWorkflowTest extends TestCase
         setPermissionsTeamId($this->admin->tenant_id);
     }
 
-    public function test_team_password_reset_lists_only_staff_accounts(): void
+    public function test_team_password_reset_can_reset_guard_logins_and_excludes_client_accounts(): void
     {
         $guardUser = User::where('email', 'john.guard@test')->firstOrFail();
         $clientUser = User::create([
@@ -59,10 +60,19 @@ class SettingsWorkflowTest extends TestCase
             'status' => 'active',
         ]);
 
+        $guardUser->createToken('Field app');
+
         Livewire::actingAs($this->admin)
             ->test(TeamPasswordReset::class)
-            ->assertDontSee($guardUser->email)
-            ->assertDontSee($clientUser->email);
+            ->assertSee($guardUser->email)
+            ->assertDontSee($clientUser->email)
+            ->call('selectUser', $guardUser->id)
+            ->set('newPassword', 'New-field-password-123')
+            ->call('resetPassword')
+            ->assertHasNoErrors();
+
+        $this->assertTrue(Hash::check('New-field-password-123', $guardUser->fresh()->password));
+        $this->assertSame(0, $guardUser->tokens()->count());
     }
 
     public function test_staff_cannot_deactivate_self_through_edit_form(): void
@@ -87,6 +97,62 @@ class SettingsWorkflowTest extends TestCase
             ->assertHasErrors('form.role');
 
         $this->assertTrue($this->admin->fresh()->hasRole('company-admin'));
+    }
+
+    public function test_deactivating_a_guard_revokes_api_tokens_and_denies_existing_web_access(): void
+    {
+        $guard = User::where('email', 'john.guard@test')->firstOrFail();
+        $guard->createToken('Field app');
+
+        Livewire::actingAs($this->admin)->test(StaffUserIndex::class)
+            ->call('deactivate', $guard->id)->assertHasNoErrors();
+
+        $this->assertSame('inactive', $guard->fresh()->status);
+        $this->assertSame(0, $guard->tokens()->count());
+        $this->actingAs($guard->fresh())->get(route('guard.mobile'))->assertForbidden();
+    }
+
+    public function test_an_inactive_guard_cannot_sign_in_on_the_web(): void
+    {
+        $guard = User::where('email', 'john.guard@test')->firstOrFail();
+        $guard->update(['status' => 'inactive', 'password' => 'Inactive-password-123']);
+
+        $this->from(route('login'))->post(route('login'), [
+            'email' => $guard->email,
+            'password' => 'Inactive-password-123',
+        ])->assertRedirect(route('login'))->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_staff_email_must_be_unique_across_tenants(): void
+    {
+        $otherTenant = Tenant::factory()->create();
+        $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);
+        setPermissionsTeamId($this->admin->tenant_id);
+
+        Livewire::actingAs($this->admin)->test(StaffUserIndex::class)
+            ->call('openCreate')
+            ->set('form.name', 'Field guard')
+            ->set('form.email', $otherUser->email)
+            ->set('form.password', 'Temporary-password-123')
+            ->set('form.role', 'guard')
+            ->call('save')
+            ->assertHasErrors(['form.email' => 'unique']);
+    }
+
+    public function test_roles_settings_keeps_company_administrator_access(): void
+    {
+        $role = Role::where('tenant_id', $this->admin->tenant_id)->where('name', 'company-admin')->firstOrFail();
+        $permissions = $role->permissions->pluck('name')->all();
+
+        Livewire::actingAs($this->admin)->test(RolePermissionManager::class)
+            ->set("permissions.{$role->id}", array_values(array_diff($permissions, ['settings.manage'])))
+            ->call('sync', $role->id)
+            ->assertHasErrors("permissions.{$role->id}")
+            ->assertSee('Company administrators must retain access to Settings.');
+
+        $this->assertTrue($role->fresh()->hasPermissionTo('settings.manage'));
     }
 
     public function test_custom_role_permissions_survive_staff_role_sync(): void

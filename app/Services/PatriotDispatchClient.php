@@ -30,6 +30,56 @@ class PatriotDispatchClient
         return $jobs;
     }
 
+    public function client(string $reference): object
+    {
+        try {
+            $request = $this->authenticatedRequest();
+            $response = $request->get('/api/v3/clients/'.$reference);
+        } catch (ConnectionException) {
+            throw new RuntimeException('Could not connect to Patriot for client enrichment.');
+        }
+
+        if (! $response->ok()) {
+            throw new RuntimeException("Patriot client lookup failed (HTTP {$response->status()}).");
+        }
+
+        $client = json_decode($response->body());
+        if ((string) ($client->externalRefNo ?? '') !== $reference) {
+            throw new RuntimeException('Patriot client lookup returned an unexpected reference.');
+        }
+
+        $client->guardcoreCallList = config('services.patriot.sync_response_contacts')
+            ? $this->callList($request, $reference) : null;
+
+        return $client;
+    }
+
+    /** @return array{status: string, results: list<object>} */
+    private function callList(PendingRequest $request, string $reference): array
+    {
+        try {
+            $response = $request->timeout(8)->get('/api/v3/userToClients/search', [
+                'clientRef' => $reference, 'callListOnly' => 'true', 'take' => 100, 'skip' => 0,
+            ]);
+        } catch (ConnectionException) {
+            return ['status' => 'unavailable', 'results' => []];
+        }
+
+        if ($response->forbidden()) {
+            return ['status' => 'access_denied', 'results' => []];
+        }
+
+        $page = json_decode($response->body());
+        if (! $response->ok() || ! is_array($page->results ?? null)) {
+            return ['status' => 'unavailable', 'results' => []];
+        }
+
+        return [
+            'status' => ($page->metadata->hasMore ?? false) ? 'partial' : 'complete',
+            'results' => array_slice($page->results, 0, 100),
+        ];
+    }
+
     public function checkWriteback(int $jobId, string $action, bool $apply, ?string $outcome = null, bool $reconcile = false): bool
     {
         $expectedStatus = match ($action) {

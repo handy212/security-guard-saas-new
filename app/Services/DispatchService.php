@@ -122,7 +122,7 @@ class DispatchService
                 ->where('duty_type', GuardDutyType::Dispatch->value)->with('user')->orderBy('id')->get();
 
             if ($event->status !== DispatchStatus::OPEN || $event->guard_id || $event->dispatch_team_id
-                || ! $event->mayAssignFromPatriot() || (! $event->site_id && ($event->latitude === null || $event->longitude === null))
+                || ! $event->mayAssignFromPatriot() || ($event->patriot_job_id === null && ! $event->site_id && ($event->latitude === null || $event->longitude === null))
                 || ! $team->standby_site_id || $members->isEmpty() || $team->outstandingDispatches()->exists()) {
                 throw ValidationException::withMessages(['assignTeamId' => 'Select an available team with active officers and a standby site for an open, site-linked dispatch.']);
             }
@@ -499,6 +499,18 @@ class DispatchService
                 'dispatch.assigned',
             ),
             '/guard',
+        );
+    }
+
+    public function notifyPatriotIntake(DispatchEvent $event): void
+    {
+        $template = 'dispatch.created';
+        $this->notifications->sendToTenantAdmins(
+            $event->tenant_id,
+            $template,
+            ['number' => $event->dispatch_number, 'priority' => $event->priority->value],
+            new GenericGuardOpsNotification('Patriot dispatch '.$event->dispatch_number, 'Review the request in the Dispatch Center.', '/dispatch', $template),
+            '/dispatch',
         );
     }
 

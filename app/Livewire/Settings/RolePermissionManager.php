@@ -66,10 +66,19 @@ class RolePermissionManager extends Component
         abort_if(in_array($role->name, self::HIDDEN_ROLES, true), 403);
         abort_if($role->tenant_id !== TenantContext::id(), 403);
 
-        $allowed = collect($this->permissions[$role->id] ?? [])
-            ->reject(fn (string $permission) => in_array($permission, self::HIDDEN_PERMISSIONS, true))
-            ->values()
-            ->all();
+        abort_unless($role->guard_name === 'web', 403);
+
+        $field = "permissions.{$role->id}";
+        $this->validate([
+            $field => ['sometimes', 'array'],
+            "$field.*" => ['string', Rule::in($this->tenantPermissions()->pluck('name')->all())],
+        ]);
+        $allowed = $this->permissions[$role->id] ?? [];
+        if ($role->name === 'company-admin' && ! in_array('settings.manage', $allowed, true)) {
+            $this->addError($field, 'Company administrators must retain access to Settings.');
+
+            return;
+        }
 
         $role->syncPermissions($allowed);
         session()->flash('status', 'Permissions updated.');
@@ -95,6 +104,7 @@ class RolePermissionManager extends Component
     private function tenantPermissions()
     {
         return Permission::query()
+            ->where('guard_name', 'web')
             ->whereNotIn('name', self::HIDDEN_PERMISSIONS)
             ->orderBy('name')
             ->get();

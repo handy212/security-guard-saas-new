@@ -188,7 +188,16 @@ class MobileAppController extends Controller
 
     private function dispatchForField(DispatchEvent $event): DispatchEvent
     {
-        return $event->makeHidden(['internal_notes', 'attachment_path', 'clientAccount', 'client_account', 'patriot_client_ref', 'patriot_writeback_error']);
+        if ($event->patriot_job_id !== null) {
+            $event->setAttribute('response_instructions', $event->patriot_payload['instructions'] ?? null);
+            $event->setAttribute('incident_location', $event->incident_location ?? $event->site?->address);
+            if ($event->latitude === null || $event->longitude === null) {
+                $event->setAttribute('latitude', $event->site?->latitude);
+                $event->setAttribute('longitude', $event->site?->longitude);
+            }
+        }
+
+        return $event->makeHidden(['internal_notes', 'attachment_path', 'clientAccount', 'client_account', 'patriot_client_ref', 'patriot_instance', 'patriot_sync_status', 'patriot_writeback_error']);
     }
 
     public function updateLocation(Request $request, GuardLocationService $locations): JsonResponse

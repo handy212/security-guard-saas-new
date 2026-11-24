@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
 use App\Enums\GuardDutyType;
+use App\Jobs\EnrichPatriotDispatch;
 use App\Livewire\Dispatch\DispatcherBoard;
 use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Settings\BranchIndex;
@@ -13,15 +15,20 @@ use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
 use App\Models\DispatchTeam;
 use App\Models\Guard;
+use App\Models\PatriotAccountMapping;
 use App\Models\Site;
 use App\Models\SosAlert;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DispatchService;
 use App\Services\PatriotDispatchPayload;
+use Illuminate\Bus\UniqueLock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 class DispatchSystemTest extends TestCase
@@ -82,6 +89,9 @@ class DispatchSystemTest extends TestCase
             ]),
         ]);
 
+        $site = Site::firstOrFail();
+        $site->forceFill(['patriot_client_ref' => '1234'])->save();
+
         $this->artisan('guardops:patriot-import', ['--job-id' => '2017'])->assertSuccessful();
         $this->artisan('guardops:patriot-import', ['--job-id' => '2017'])->assertSuccessful();
 
@@ -89,17 +99,18 @@ class DispatchSystemTest extends TestCase
         $this->assertSame(1, $imported->count());
         $dispatch = $imported->firstOrFail();
         $this->assertSame(DispatchStatus::OPEN, $dispatch->status);
+        $this->assertSame(DispatchPriority::LOW, $dispatch->priority);
+        $dispatch->update(['priority' => DispatchPriority::NORMAL]);
+        $this->artisan('guardops:patriot-import', ['--job-id' => '2017'])->assertSuccessful();
+        $this->assertSame(DispatchPriority::LOW, $dispatch->fresh()->priority);
         $this->assertNull($dispatch->guard_id);
-        $this->assertNull($dispatch->site_id);
+        $this->assertEquals($site->id, $dispatch->site_id);
 
-        $site = Site::firstOrFail();
         Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
-            ->assertSee('Needs site mapping')
             ->call('selectDispatch', $dispatch->id)
             ->assertSee('Patriot job #2017')
-            ->set('patriotSiteId', $site->id)
-            ->call('linkPatriotSite')
-            ->assertHasNoErrors();
+            ->assertSee(route('tracking.live', ['lat' => 5.6, 'lng' => -0.18, 'dispatch' => $dispatch->id]))
+            ->assertSee('Customer verified');
 
         $this->assertDatabaseHas('dispatch_events', ['id' => $dispatch->id, 'site_id' => $site->id, 'guard_id' => null]);
         $payload = app(PatriotDispatchPayload::class)->forDispatch($dispatch->fresh());
@@ -122,8 +133,10 @@ class DispatchSystemTest extends TestCase
             ->assertSee('PAT-2017')
             ->set('search', 'missing-account')
             ->assertSee('No matching dispatches')
-            ->call('downloadPatriotPayload')
-            ->assertFileDownloaded('patriot-2017.json');
+            ->assertSee('Site details')
+            ->assertDontSee('Patriot synchronization')
+            ->assertDontSee('Download diagnostics')
+            ->assertDontSee('Manage site link');
         $this->artisan('guardops:patriot-import', ['--job-id' => '2018'])->assertSuccessful();
         $this->assertDatabaseHas('dispatch_events', [
             'tenant_id' => $this->tenant->id,
@@ -131,6 +144,248 @@ class DispatchSystemTest extends TestCase
             'site_id' => $site->id,
             'guard_id' => null,
         ]);
+    }
+
+    public function test_new_patriot_account_is_provisioned_from_the_job_before_enrichment(): void
+    {
+        config(['services.patriot.url' => 'https://patriot.example.test',
+            'services.patriot.username' => 'recipient', 'services.patriot.password' => 'test',
+            'services.patriot.tenant' => $this->tenant->slug, 'services.patriot.enrichment_enabled' => false]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                ['jobID' => 801, 'clientRef' => 88, 'clientName' => 'New account', 'location' => '1 Main Street', 'status' => 'DispatchRequest'],
+                ['jobID' => 802, 'clientRef' => 88, 'clientName' => 'New account', 'location' => '1 Main Street', 'status' => 'DispatchRequest'],
+            ]),
+        ]);
+
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+
+        $first = DispatchEvent::where('patriot_job_id', 801)->firstOrFail();
+        $second = DispatchEvent::where('patriot_job_id', 802)->firstOrFail();
+        $this->assertNotNull($first->site_id);
+        $this->assertEquals($first->site_id, $second->site_id);
+        $this->assertEquals($first->site->client_account_id, $first->client_account_id);
+        $this->assertTrue($first->mayAssignFromPatriot());
+        $this->assertDatabaseCount('patriot_account_mappings', 1);
+    }
+
+    public function test_enrichment_reuses_a_customer_across_sites_and_a_site_across_base_account_areas(): void
+    {
+        $this->configurePatriotEnrichment();
+        config(['services.patriot.group_by_billing_account' => true]);
+        $customerCount = ClientAccount::count();
+        $siteCount = Site::count();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                $this->patriotJob(900, 90), $this->patriotJob(901, 91), $this->patriotJob(902, 92),
+            ]),
+            'https://patriot.example.test/api/v3/clients/90' => Http::response($this->patriotClient(90, 'MAIN', '1 Main Street')),
+            'https://patriot.example.test/api/v3/clients/91' => Http::response($this->patriotClient(91, 'ANNEX', '2 Main Street')),
+            'https://patriot.example.test/api/v3/clients/92' => Http::response($this->patriotClient(92, 'SUB', '1 Main Street') + ['baseAcct' => 'MAIN']),
+        ]);
+
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        Bus::assertDispatchedTimes(EnrichPatriotDispatch::class, 3);
+        foreach ([900, 901, 902] as $jobId) {
+            $this->enrichPatriotDispatch($jobId);
+        }
+
+        [$main, $annex, $sub] = DispatchEvent::whereIn('patriot_job_id', [900, 901, 902])->orderBy('patriot_job_id')->get();
+        $this->assertDatabaseCount('client_accounts', $customerCount + 1);
+        $this->assertDatabaseCount('sites', $siteCount + 2);
+        $this->assertDatabaseCount('patriot_account_mappings', 3);
+        $this->assertSame($main->client_account_id, $annex->client_account_id);
+        $this->assertNotSame($main->site_id, $annex->site_id);
+        $this->assertSame($main->site_id, $sub->site_id);
+        $this->assertSame('synchronized', $sub->patriot_sync_status);
+        $this->assertNull($main->latitude);
+        $this->assertTrue($main->mayAssignFromPatriot());
+
+        Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
+            ->call('selectDispatch', $main->id)
+            ->assertSee('Customer synchronized')->assertSee('Site linked');
+    }
+
+    public function test_lookup_failure_keeps_the_request_assignable_and_retry_preserves_local_edits(): void
+    {
+        $this->configurePatriotEnrichment();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                $this->patriotJob(910, 99) + ['clientName' => 'Dispatch customer', 'location' => '1 Main Street'],
+            ]),
+            'https://patriot.example.test/api/v3/clients/99' => Http::sequence()
+                ->pushStatus(503)->push($this->patriotClient(99, 'MAIN', '1 Main Street')),
+        ]);
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $event = DispatchEvent::where('patriot_job_id', 910)->firstOrFail();
+        $this->assertTrue($event->mayAssignFromPatriot());
+        $this->assertNull($event->site_id);
+
+        try {
+            $this->enrichPatriotDispatch(910);
+            $this->fail('The enrichment error must reach the queue worker for retry.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Patriot client lookup failed (HTTP 503).', $exception->getMessage());
+        }
+
+        $event->refresh();
+        (new EnrichPatriotDispatch($this->tenant->id, $event->id))->failed(new RuntimeException('Patriot timed out.'));
+        $event->refresh();
+        $this->assertSame('failed', $event->patriot_sync_status);
+        $this->assertNotNull($event->site_id);
+        $this->assertTrue($event->mayAssignFromPatriot());
+        $officer = Guard::firstOrFail();
+        $officer->update(['duty_type' => GuardDutyType::Dispatch, 'status' => 'active']);
+        app(DispatchService::class)->assignGuard($event, $officer->id, $this->admin->id);
+        $event->refresh();
+        $this->assertSame(DispatchStatus::ASSIGNED, $event->status);
+        $event->site->update(['name' => 'Local site', 'instructions' => 'Local instructions']);
+        $event->clientAccount->update(['name' => 'Local customer']);
+        $event->update(['internal_notes' => 'Local notes']);
+
+        $this->enrichPatriotDispatch(910);
+        $event->refresh();
+        $this->assertSame('review', $event->patriot_sync_status);
+        $this->assertSame('Local site', $event->site->name);
+        $this->assertSame('Local instructions', $event->site->instructions);
+        $this->assertSame('Local customer', $event->clientAccount->name);
+        $this->assertSame('Local notes', $event->internal_notes);
+        $this->assertNotNull(PatriotAccountMapping::sole()->synchronized_at);
+    }
+
+    public function test_incomplete_location_requires_verification_and_administrator_can_reconcile(): void
+    {
+        $this->configurePatriotEnrichment();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                $this->patriotJob(920, 121) + ['city' => 'Accra'],
+            ]),
+            'https://patriot.example.test/api/v3/clients/121' => Http::response(['externalRefNo' => 121]),
+        ]);
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $this->enrichPatriotDispatch(920);
+        $event = DispatchEvent::where('patriot_job_id', 920)->firstOrFail();
+        $this->assertNull($event->site_id);
+        $this->assertFalse($event->mayAssignFromPatriot());
+        $site = Site::firstOrFail();
+        $site->update(['address' => '1 Verified Street']);
+
+        Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
+            ->call('selectDispatch', $event->id)
+            ->assertSee('Verify the response location')
+            ->set('patriotSiteId', $site->id)
+            ->call('linkPatriotSite')
+            ->assertHasNoErrors()
+            ->assertSee('Customer verified');
+
+        $this->assertTrue($event->fresh()->mayAssignFromPatriot());
+        $this->assertEquals($site->id, PatriotAccountMapping::sole()->site_id);
+
+        $event->update(['patriot_sync_status' => 'review']);
+        Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
+            ->call('selectDispatch', $event->id)
+            ->assertSee('Site linked')
+            ->assertDontSee('Reconcile with a verified site');
+    }
+
+    public function test_patriot_contact_diagnostics_are_allowlisted_and_hidden_from_model_serialization(): void
+    {
+        $this->configurePatriotEnrichment();
+        config(['services.patriot.sync_response_contacts' => true]);
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::response(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([$this->patriotJob(930, 123)]),
+            'https://patriot.example.test/api/v3/clients/123' => Http::response(
+                $this->patriotClient(123, 'MAIN', '1 Main Street') + ['sitePhone' => '555-1234', 'accountType' => 'Standard'],
+            ),
+            'https://patriot.example.test/api/v3/userToClients/search?*' => Http::response([
+                'results' => [[
+                    'globalDetails' => ['userName' => 'Response contact', 'phoneNo' => '555-9999', 'telePin' => 98765],
+                    'siteDetails' => ['callOrder' => 1, 'pin' => 'secret'],
+                ]],
+                'metadata' => ['hasMore' => true],
+            ]),
+        ]);
+
+        $this->artisan('guardops:patriot-import')->assertSuccessful();
+        $this->enrichPatriotDispatch(930);
+
+        $mapping = PatriotAccountMapping::sole();
+        $this->assertSame([
+            'account_type' => 'Standard', 'site_phone' => '555-1234', 'contact_sync_status' => 'partial',
+            'contacts' => [['name' => 'Response contact', 'telephone' => '555-9999', 'call_order' => 1]],
+        ], $mapping->response_details);
+        $this->assertArrayNotHasKey('response_details', $mapping->toArray());
+        $this->assertStringNotContainsString('555-9999', $mapping->getRawOriginal('response_details'));
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), 'callListOnly=true'));
+
+        $event = DispatchEvent::where('patriot_job_id', 930)->firstOrFail();
+        (new UniqueLock(Cache::store()))->release(new EnrichPatriotDispatch($event->tenant_id, $event->id));
+        Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
+            ->call('selectDispatch', $event->id)
+            ->assertSee('Patriot response contacts')->assertSee('Response contact')->assertSee('555-9999')
+            ->call('refreshPatriotAccount')->assertHasNoErrors();
+        Bus::assertDispatched(EnrichPatriotDispatch::class, fn (EnrichPatriotDispatch $job): bool => $job->dispatchId === $event->id && $job->refresh);
+    }
+
+    public function test_invalid_patrol_response_and_unauthorized_poll_create_no_dispatches(): void
+    {
+        $this->configurePatriotEnrichment();
+        Http::fake([
+            'https://patriot.example.test/api/Account/Token' => Http::sequence()->pushStatus(401)
+                ->push(['access_token' => 'test-token']),
+            'https://patriot.example.test/api/v3/patrolResponse/jobs' => Http::response([
+                ['jobID' => 'not-an-integer', 'status' => 'DispatchRequest'],
+            ]),
+        ]);
+
+        $this->artisan('guardops:patriot-import')->assertFailed();
+        $this->artisan('guardops:patriot-import')->assertFailed();
+        $this->assertFalse(DispatchEvent::whereNotNull('patriot_job_id')->exists());
+        Bus::assertNotDispatched(EnrichPatriotDispatch::class);
+    }
+
+    private function configurePatriotEnrichment(): void
+    {
+        config([
+            'services.patriot.url' => 'https://patriot.example.test',
+            'services.patriot.username' => 'recipient',
+            'services.patriot.password' => 'test',
+            'services.patriot.tenant' => $this->tenant->slug,
+            'services.patriot.enrichment_enabled' => true,
+        ]);
+        Bus::fake([EnrichPatriotDispatch::class]);
+        Http::preventStrayRequests();
+    }
+
+    private function enrichPatriotDispatch(int $jobId): void
+    {
+        $event = DispatchEvent::where('patriot_job_id', $jobId)->firstOrFail();
+        app()->call([(new EnrichPatriotDispatch($this->tenant->id, $event->id)), 'handle']);
+    }
+
+    /** @return array{jobID: int, clientRef: int, status: string} */
+    private function patriotJob(int $jobId, int $reference): array
+    {
+        return ['jobID' => $jobId, 'clientRef' => $reference, 'status' => 'DispatchRequest'];
+    }
+
+    /** @return array<string, mixed> */
+    private function patriotClient(int $reference, string $number, string $address): array
+    {
+        return [
+            'externalRefNo' => $reference,
+            'clientNo' => $number,
+            'accountNo' => 'BILLING-1',
+            'name' => 'Monitored premises',
+            'location' => ['lineOne' => $address],
+        ];
     }
 
     public function test_scheduled_import_removes_only_unassigned_requests_missing_from_two_successful_polls(): void
@@ -163,7 +418,7 @@ class DispatchSystemTest extends TestCase
         $this->travel(2)->minutes();
         $this->artisan('guardops:patriot-import', ['--scheduled' => true])->assertSuccessful();
 
-        $this->assertNull($open->fresh());
+        $this->assertSame(DispatchStatus::CANCELLED, $open->fresh()->status);
         $this->assertNotNull($assigned->fresh());
         $this->assertNotNull($syncing->fresh());
     }
@@ -509,7 +764,7 @@ class DispatchSystemTest extends TestCase
         $this->assertSame(DispatchStatus::OPEN, $event->status);
         $this->assertNull($event->guard_id);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Assign a guard before advancing');
 
         app(DispatchService::class)->advanceStatus($event, $this->admin->id);
@@ -627,8 +882,10 @@ class DispatchSystemTest extends TestCase
     {
         Livewire::actingAs($this->admin)
             ->test(DispatcherBoard::class)
-            ->assertSee('Updating dispatch view', false)
-            ->assertSee('role="status"', false);
+            ->assertSee('Updating dispatch queue', false)
+            ->assertSee('role="status"', false)
+            ->assertSee('wire:loading.delay', false)
+            ->assertSee('pointer-events-none absolute inset-x-0 top-0', false);
     }
 
     public function test_sos_status_precedes_routine_metrics_and_is_textually_clear(): void

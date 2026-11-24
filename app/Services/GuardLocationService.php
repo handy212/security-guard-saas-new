@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\AttendanceLog;
 use App\Models\GuardLocation;
 use App\Models\Site;
 use App\Models\User;
-use App\Models\AttendanceLog;
+use Illuminate\Support\Collection;
 
 class GuardLocationService
 {
@@ -46,11 +47,28 @@ class GuardLocationService
             ->unique('guard_id');
     }
 
-    public function historyForGuard(int $guardId, ?string $date = null)
+    /** @param list<int> $guardIds */
+    public function positionsForGuards(int $tenantId, array $guardIds): Collection
+    {
+        if ($guardIds === []) {
+            return collect();
+        }
+
+        $latestIds = GuardLocation::forTenant($tenantId)->whereIn('guard_id', $guardIds)->where('recorded_at', '<=', now())
+            ->select('id')
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY guard_id ORDER BY recorded_at DESC, id DESC) AS position_rank');
+
+        return GuardLocation::forTenant($tenantId)
+            ->whereIn('id', fn ($query) => $query->fromSub($latestIds, 'positions')->select('id')->where('position_rank', 1))
+            ->get()->keyBy('guard_id');
+    }
+
+    public function historyForGuard(int $guardId, ?string $date = null, ?int $tenantId = null)
     {
         $date = $date ?? now()->toDateString();
 
         return GuardLocation::where('guard_id', $guardId)
+            ->when($tenantId !== null, fn ($query) => $query->where('tenant_id', $tenantId))
             ->whereDate('recorded_at', $date)
             ->orderBy('recorded_at')
             ->get();

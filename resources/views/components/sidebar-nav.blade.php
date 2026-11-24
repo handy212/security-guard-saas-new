@@ -27,7 +27,8 @@
         }
         $commandFooter = $available->only('/clients')->values()->concat($footer);
         $moreLinks = $pinned->reject(fn (array $link) => $commandLinks->has($link['href']) || $link['href'] === '/clients')
-            ->concat($groups->pluck('links')->collapse()->reject(fn (array $link) => $commandLinks->has($link['href'])));
+            ->concat($groups->pluck('links')->collapse()->reject(fn (array $link) => $commandLinks->has($link['href'])))
+            ->reject(fn (array $link) => in_array($link['href'], ['/guards/know-your-guard', '/guards/applications'], true));
         $moreActive = $moreLinks->contains(fn (array $link) => $nav->isLinkActive($link));
     }
 @endphp
@@ -41,7 +42,7 @@
             @foreach ($commandLinks as $href => [$label, $icon, $shortLabel])
                 @continue(! $available->has($href))
                 @php $active = $nav->isLinkActive($available[$href]); @endphp
-                <a href="{{ url($href) }}" title="{{ $label }}" aria-label="{{ $label }}" @click="sidebarOpen = false"
+                <a href="{{ url($href) }}" wire:navigate title="{{ $label }}" aria-label="{{ $label }}"
                    @if ($active) aria-current="page" @endif
                    class="nav-link {{ $active ? 'nav-link-active' : '' }}"
                    :class="sidebarCollapsed ? 'nav-rail-item' : ''">
@@ -53,7 +54,7 @@
             @if ($commandFooter->isNotEmpty())
                 <div class="command-sidebar-secondary">
                     @foreach ($commandFooter as $link)
-                        <a href="{{ url($link['href']) }}" title="{{ $link['label'] }}" @click="sidebarOpen = false"
+                        <a href="{{ url($link['href']) }}" wire:navigate title="{{ $link['label'] }}"
                            @if ($nav->isLinkActive($link)) aria-current="page" @endif
                            @class(['nav-link', 'nav-link-active' => $nav->isLinkActive($link)])
                            :class="sidebarCollapsed ? 'nav-rail-item' : ''">
@@ -72,7 +73,7 @@
                         <span class="command-more-chevron" aria-hidden="true" x-show="!sidebarCollapsed" x-cloak></span>
                     </summary>
                     @foreach ($moreLinks as $link)
-                        <a href="{{ url($link['href']) }}" title="{{ $link['label'] }}" aria-label="{{ $link['label'] }}" @click="sidebarOpen = false"
+                        <a href="{{ url($link['href']) }}" wire:navigate title="{{ $link['label'] }}" aria-label="{{ $link['label'] }}"
                            @if ($nav->isLinkActive($link)) aria-current="page" @endif
                            @class(['nav-link', 'nav-link-active' => $nav->isLinkActive($link)])
                            :class="sidebarCollapsed ? 'nav-rail-item' : ''">
@@ -112,8 +113,7 @@
                     @foreach ($pinned as $link)
                         @php $active = $nav->isLinkActive($link); @endphp
                         <div class="nav-link-shell group">
-                            <a href="{{ $link['href'] }}"
-                               @click="sidebarOpen = false"
+                            <a href="{{ $link['href'] }}" wire:navigate
                                title="{{ $link['label'] }}"
                                class="nav-link nav-link-fav {{ $active ? 'nav-link-active' : '' }} {{ ! empty($link['highlight']) ? 'nav-link-highlight' : '' }}">
                                 <x-nav-icon :name="$link['icon'] ?? 'dashboard'" class="h-[18px] w-[18px] shrink-0" />
@@ -148,8 +148,7 @@
                             @focusin="showFlyout(@js($flyoutId), $el)"
                             @focusout="hideFlyout()"
                         >
-                            <a href="{{ $link['href'] }}"
-                               @click="sidebarOpen = false"
+                            <a href="{{ $link['href'] }}" wire:navigate
                                class="nav-link nav-rail-item {{ $active ? 'nav-link-active' : '' }} {{ ! empty($link['highlight']) ? 'nav-link-highlight' : '' }}"
                                :class="flyout === @js($flyoutId) ? 'nav-rail-item-hot' : ''"
                                aria-haspopup="{{ count($children) ? 'true' : 'false' }}"
@@ -175,8 +174,7 @@
                                         <div class="nav-flyout-list">
                                             @foreach ($children as $child)
                                                 @php $childActive = $nav->isLinkActive($child); @endphp
-                                                <a href="{{ $child['href'] }}"
-                                                   @click="sidebarOpen = false; flyout = null"
+                                                <a href="{{ $child['href'] }}" wire:navigate
                                                    class="nav-flyout-link {{ $childActive ? 'nav-flyout-link-active' : '' }}">
                                                     {{ $child['label'] }}
                                                 </a>
@@ -195,8 +193,7 @@
                     <p class="nav-section-label">Favorites</p>
                     <template x-for="item in favorites" :key="item.href">
                         <div class="nav-favorite-row group">
-                            <a :href="item.href"
-                               @click="sidebarOpen = false"
+                            <a :href="item.href" wire:navigate
                                class="nav-link nav-favorite-link"
                                :class="isActivePath(item.href) ? 'nav-link-active' : ''">
                                 <svg class="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -255,8 +252,7 @@
                         >
                             @foreach ($group['links'] as $link)
                                 @php $active = $nav->isLinkActive($link); @endphp
-                                <a href="{{ $link['href'] }}"
-                                   @click="sidebarOpen = false"
+                                <a href="{{ $link['href'] }}" wire:navigate
                                    class="nav-sublink {{ $active ? 'nav-sublink-active' : '' }}">
                                     <x-nav-icon :name="$link['icon'] ?? $group['icon']" class="h-3.5 w-3.5 shrink-0 opacity-60" />
                                     <span class="truncate">{{ $link['label'] }}</span>
@@ -275,8 +271,7 @@
                         @focusin="showFlyout(@js($flyoutId), $el)"
                         @focusout="hideFlyout()"
                     >
-                        <a href="{{ $group['href'] }}"
-                           @click="sidebarOpen = false"
+                        <a href="{{ $group['href'] }}" wire:navigate
                            class="nav-link nav-rail-item {{ $groupActive ? 'nav-link-active' : '' }}"
                            :class="flyout === @js($flyoutId) ? 'nav-rail-item-hot' : ''"
                            aria-haspopup="true"
@@ -301,8 +296,7 @@
                                 <div class="nav-flyout-list">
                                     @foreach ($group['links'] as $link)
                                         @php $active = $nav->isLinkActive($link); @endphp
-                                        <a href="{{ $link['href'] }}"
-                                           @click="sidebarOpen = false; flyout = null"
+                                        <a href="{{ $link['href'] }}" wire:navigate
                                            class="nav-flyout-link {{ $active ? 'nav-flyout-link-active' : '' }}">
                                             <x-nav-icon :name="$link['icon'] ?? $group['icon']" class="h-4 w-4 shrink-0 opacity-70" />
                                             <span>{{ $link['label'] }}</span>
@@ -330,8 +324,7 @@
                     @mouseenter="sidebarCollapsed && showFlyout(@js($flyoutId), $el)"
                     @mouseleave="sidebarCollapsed && hideFlyout()"
                 >
-                    <a href="{{ $link['href'] }}"
-                       @click="sidebarOpen = false"
+                    <a href="{{ $link['href'] }}" wire:navigate
                        title="{{ $link['label'] }}"
                        class="nav-link {{ $active ? 'nav-link-active' : '' }}"
                        :class="sidebarCollapsed ? 'nav-rail-item' : ''"
@@ -358,8 +351,7 @@
                                 <div class="nav-flyout-list">
                                     @foreach ($children as $child)
                                         @php $childActive = $nav->isLinkActive($child); @endphp
-                                        <a href="{{ $child['href'] }}"
-                                           @click="sidebarOpen = false; flyout = null"
+                                        <a href="{{ $child['href'] }}" wire:navigate
                                            class="nav-flyout-link {{ $childActive ? 'nav-flyout-link-active' : '' }}">
                                             {{ $child['label'] }}
                                         </a>

@@ -1,5 +1,5 @@
 <div>
-    <x-page-shell title="Team passwords" description="Reset passwords when a team member forgets their login.">
+    <x-page-shell title="Team passwords" description="Set a new password for a staff member or guard.">
         <x-sub-sidebar-layout class="settings-workspace">
             <x-slot:sidebar><x-settings-nav /></x-slot:sidebar>
 
@@ -19,9 +19,9 @@
                                     <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Reset password for {{ $user->name }}</p>
                                     <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $user->email }}</p>
                                 </div>
-                                <x-input wire:model.live="newPassword" label="New password" type="password" hint="Min. 12 characters." />
+                                <x-input wire:model="newPassword" autocomplete="new-password" label="New password" type="password" hint="Min. 12 characters." />
                                 <div class="flex gap-2">
-                                    <x-button type="submit" size="sm">Save password</x-button>
+                                    <x-button type="submit" size="sm" wire:loading.attr="disabled" wire:target="resetPassword">Save password</x-button>
                                     <x-button type="button" size="sm" variant="secondary" wire:click="cancel">Cancel</x-button>
                                 </div>
                             </form>

@@ -1,10 +1,9 @@
 <script>
     (function () {
-        var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || (theme === null && @js($defaultDark ?? false))) {
-            document.documentElement.classList.add('dark');
-        } else if (theme === 'light') {
-            document.documentElement.classList.remove('dark');
-        }
+        var theme = null;
+        try {
+            theme = localStorage.getItem('theme');
+        } catch (e) {}
+        document.documentElement.classList.toggle('dark', theme === 'dark' || (theme === null && @js($defaultDark ?? false)));
     })();
 </script>

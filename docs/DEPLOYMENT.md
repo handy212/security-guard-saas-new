@@ -1,6 +1,6 @@
 # Deployment Notes
 
-Production deployment guide for GuardOps.
+Production deployment guide for GuardOps. See [Patriot dispatch intake](./PATRIOT-DISPATCH.md) for its scheduler, queue worker and integration settings.
 
 ## Ubuntu VPS (recommended)
 

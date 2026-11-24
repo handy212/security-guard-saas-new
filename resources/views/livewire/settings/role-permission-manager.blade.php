@@ -23,6 +23,12 @@
                         <x-slot:actions>
                             <x-button size="sm" wire:click="sync({{ $role->id }})">Save permissions</x-button>
                         </x-slot:actions>
+                        @error('permissions.'.$role->id)
+                            <p role="alert" class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        @error('permissions.'.$role->id.'.*')
+                            <p role="alert" class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                         <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             @foreach($allPermissions as $permission)
                                 <label class="permission-check">

@@ -14,15 +14,7 @@
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
     <title>{{ $platformBranding->name() }}@isset($tenantBranding['name']) — {{ $tenantBranding['name'] }}@endisset</title>
-    @include('partials.theme-init', ['defaultDark' => $commandWorkspace])
     @include('partials.brand-assets')
-    <script>
-        try {
-            if (localStorage.getItem('GuardCore Pro-sidebar-collapsed') === 'true') {
-                document.documentElement.classList.add('sidebar-collapsed');
-            }
-        } catch (e) {}
-    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @stack('styles')
@@ -35,7 +27,13 @@
     x-data="{
         sidebarOpen: false,
         desktopNavigation: matchMedia('(min-width: 1024px)').matches,
-        sidebarCollapsed: matchMedia('(min-width: 1024px)').matches && document.documentElement.classList.contains('sidebar-collapsed'),
+        sidebarCollapsed: false,
+        init() {
+            try {
+                document.documentElement.classList.toggle('sidebar-collapsed', localStorage.getItem('GuardCore Pro-sidebar-collapsed') === 'true');
+            } catch (e) {}
+            this.sidebarCollapsed = this.desktopNavigation && document.documentElement.classList.contains('sidebar-collapsed');
+        },
         commandOpen: false,
         toggleSidebarCollapse() {
             this.sidebarCollapsed = !this.sidebarCollapsed;
@@ -62,6 +60,15 @@
     @keydown.window.cmd.k.prevent="openCommand()"
     @keydown.window.ctrl.k.prevent="openCommand()"
 >
+@include('partials.theme-init', ['defaultDark' => $commandWorkspace])
+<script>
+    try {
+        document.documentElement.classList.toggle(
+            'sidebar-collapsed',
+            localStorage.getItem('GuardCore Pro-sidebar-collapsed') === 'true',
+        );
+    } catch (e) {}
+</script>
 @include('partials.brand-colors')
 <div>
     <div
@@ -73,11 +80,11 @@
 
     <aside
         id="workspace-sidebar"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        :data-open="sidebarOpen"
         :inert="!sidebarOpen && !desktopNavigation"
         aria-label="Primary navigation"
         x-trap.noscroll="sidebarOpen && !desktopNavigation"
-        class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
+        class="workspace-sidebar sidebar-width fixed inset-y-0 left-0 z-50 flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 max-lg:-translate-x-full max-lg:data-[open=true]:translate-x-0 max-lg:transition-transform max-lg:duration-200 max-lg:ease-out"
     >
         <div class="workspace-sidebar-brand flex h-[var(--app-header-height)] shrink-0 items-center gap-2 border-b border-zinc-200/70 px-5 dark:border-zinc-800">
             <a href="{{ \App\Support\TenantContext::isPlatformAdmin() && ! \App\Support\TenantContext::isViewingAsTenant()

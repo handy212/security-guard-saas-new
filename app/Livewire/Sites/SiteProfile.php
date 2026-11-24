@@ -6,6 +6,7 @@ use App\Enums\DispatchStatus;
 use App\Models\CheckpointTask;
 use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
+use App\Models\PatriotAccountMapping;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PostOrder;
@@ -22,6 +23,7 @@ use App\Models\TaskSubmission;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FileUploadService;
+use App\Services\PatriotAccountProvisioner;
 use App\Services\SiteOverviewService;
 use App\Services\TenantFileStorageService;
 use App\Support\TenantContext;
@@ -172,7 +174,7 @@ class SiteProfile extends Component
         session()->flash('status', 'Site profile updated.');
     }
 
-    public function savePatriotMapping(): void
+    public function savePatriotMapping(PatriotAccountProvisioner $provisioner): void
     {
         $this->authorize('update', $this->site);
         $this->patriotClientRef = trim($this->patriotClientRef);
@@ -180,18 +182,33 @@ class SiteProfile extends Component
         $reference = $this->patriotClientRef === '' ? null : $this->patriotClientRef;
         $tenantId = TenantContext::id();
 
-        DB::transaction(function () use ($tenantId, $reference): void {
+        DB::transaction(function () use ($tenantId, $reference, $provisioner): void {
             Tenant::query()->lockForUpdate()->findOrFail($tenantId);
             $site = Site::forTenant($tenantId)->lockForUpdate()->findOrFail($this->site->id);
             if ($reference !== null && Site::forTenant($tenantId)->where('patriot_client_ref', $reference)->whereKeyNot($site->id)->exists()) {
                 throw ValidationException::withMessages(['patriotClientRef' => 'This Patriot reference is already linked to another site in this company.']);
             }
 
+            $instance = $provisioner->instance();
+            $mappings = PatriotAccountMapping::forTenant($tenantId)->where('instance', $instance);
+            if ($reference !== null && (clone $mappings)->where('account_reference', $reference)
+                ->whereNotNull('site_id')->where('site_id', '!=', $site->id)->exists()) {
+                throw ValidationException::withMessages(['patriotClientRef' => 'This Patriot reference already has an account mapping. Reconcile it from Dispatch Center.']);
+            }
+            if ($site->patriot_client_ref !== null && $site->patriot_client_ref !== $reference) {
+                (clone $mappings)->where('account_reference', $site->patriot_client_ref)->where('site_id', $site->id)
+                    ->update(['site_id' => null, 'verification_status' => 'pending']);
+            }
+
             $site->forceFill(['patriot_client_ref' => $reference])->save();
             if ($reference !== null) {
+                $mappings->where('account_reference', $reference)
+                    ->update(['site_id' => $site->id, 'verification_status' => 'verified']);
+
                 DispatchEvent::forTenant($tenantId)->whereNotNull('patriot_job_id')->where('patriot_client_ref', $reference)
+                    ->where(fn ($query) => $query->whereNull('patriot_instance')->orWhere('patriot_instance', $instance))
                     ->whereNull('site_id')->where('status', DispatchStatus::OPEN)
-                    ->update(['site_id' => $site->id, 'client_account_id' => $site->client_account_id]);
+                    ->update(['site_id' => $site->id, 'client_account_id' => $site->client_account_id, 'patriot_sync_status' => 'verified']);
             }
         }, attempts: 3);
 

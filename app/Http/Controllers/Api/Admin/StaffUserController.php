@@ -7,6 +7,7 @@ use App\Services\TenantRoleProvisioner;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -42,7 +43,7 @@ class StaffUserController extends AdminController
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required', 'email', 'max:255',
-                Rule::unique('users', 'email')->where(fn ($q) => $q->where('tenant_id', TenantContext::id())),
+                Rule::unique('users', 'email'),
             ],
             'password' => ['required', 'string', Password::min(12)],
             'role' => ['required', 'string', Rule::notIn(self::HIDDEN_ROLES)],
@@ -79,9 +80,7 @@ class StaffUserController extends AdminController
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => [
                 'sometimes', 'required', 'email', 'max:255',
-                Rule::unique('users', 'email')
-                    ->where(fn ($q) => $q->where('tenant_id', TenantContext::id()))
-                    ->ignore($staffUser->id),
+                Rule::unique('users', 'email')->ignore($staffUser),
             ],
             'password' => ['nullable', 'string', Password::min(12)],
             'role' => ['sometimes', 'required', 'string', Rule::notIn(self::HIDDEN_ROLES)],
@@ -99,12 +98,18 @@ class StaffUserController extends AdminController
             $data['password'] = Hash::make($password);
         }
 
-        $staffUser->update($data);
+        DB::transaction(function () use ($staffUser, $data, $request): void {
+            $staffUser->update($data);
 
-        if ($request->filled('role')) {
-            setPermissionsTeamId($staffUser->tenant_id);
-            $staffUser->syncRoles([$request->string('role')]);
-        }
+            if ($request->filled('role')) {
+                setPermissionsTeamId($staffUser->tenant_id);
+                $staffUser->syncRoles([$request->string('role')]);
+            }
+
+            if ($staffUser->status === 'inactive' || isset($data['password'])) {
+                $staffUser->tokens()->delete();
+            }
+        });
 
         return $this->data($this->staffPayload($staffUser->fresh()));
     }
@@ -117,7 +122,10 @@ class StaffUserController extends AdminController
             return response()->json(['message' => 'You cannot deactivate your own account.'], 422);
         }
 
-        $staffUser->update(['status' => 'inactive']);
+        DB::transaction(function () use ($staffUser): void {
+            $staffUser->update(['status' => 'inactive']);
+            $staffUser->tokens()->delete();
+        });
 
         return $this->noContent();
     }

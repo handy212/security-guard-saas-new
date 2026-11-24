@@ -2,11 +2,8 @@ export function initTheme() {
     const root = document.documentElement;
     const stored = localStorage.getItem('theme');
 
-    if (stored === 'dark') {
-        root.classList.add('dark');
-    } else if (stored === 'light') {
-        root.classList.remove('dark');
-    }
+    root.classList.toggle('dark', stored === 'dark'
+        || (stored === null && document.body?.classList.contains('command-workspace')));
 }
 
 export function setTheme(mode) {

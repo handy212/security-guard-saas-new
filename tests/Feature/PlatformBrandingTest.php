@@ -106,12 +106,18 @@ class PlatformBrandingTest extends TestCase
             ->assertSee('No guard locations received in the last hour.');
         $this->travelBack();
 
-        $this->get(route('guards.index'))
+        $guardsPage = $this->get(route('guards.index'))
             ->assertOk()
             ->assertSee('command-navigation', false)
             ->assertSee('title="Guards" aria-label="Guards"', false)
             ->assertSee('command-sidebar-more', false)
+            ->assertSee('Verification queue')
+            ->assertSee('Applications')
             ->assertDontSee('class="command-center"', false);
+
+        $sidebarMore = str($guardsPage->getContent())->after('<details class="command-sidebar-more"')->before('</details>');
+        $this->assertStringNotContainsString('/guards/know-your-guard', (string) $sidebarMore);
+        $this->assertStringNotContainsString('/guards/applications', (string) $sidebarMore);
 
         $this->get(route('settings.index'))
             ->assertOk()

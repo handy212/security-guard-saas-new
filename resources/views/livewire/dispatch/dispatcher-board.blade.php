@@ -88,9 +88,8 @@
                 <x-segment-control field="statusFilter" :active="$statusFilter" :options="['active' => 'Active', 'unassigned' => 'Unassigned', 'assigned' => 'Assigned', 'en_route' => 'En route', 'returning' => 'Returning', 'closed' => 'Closed', 'all' => 'All dispatches']" />
             </x-slot:tabs>
             <x-slot:controls>
-                @if ($hasActiveFilters)
-                    <button type="button" wire:click="clearFilters" class="table-action">Clear filters</button>
-                @endif
+                <button type="button" wire:click="clearFilters" @disabled(! $hasActiveFilters)
+                    class="table-action whitespace-nowrap disabled:cursor-default disabled:opacity-50">Clear filters</button>
                 <x-filter-select wire:model.live="priorityFilter">
                     <option value="all">All priority</option>
                     <option value="critical">Critical</option>
@@ -104,15 +103,14 @@
             </x-slot:controls>
         </x-page-toolbar>
 
-        <div
-            wire:loading
-            wire:target="search,statusFilter,priorityFilter,selectDispatch,applyStatFilter,clearFilters"
-            role="status"
-            aria-live="polite"
-            class="mb-3 text-sm text-zinc-500 dark:text-zinc-400"
-        >Updating dispatch view…</div>
+        <div class="dispatch-workbench relative">
+            <div
+                wire:loading.delay
+                wire:target="search,statusFilter,priorityFilter,applyStatFilter,clearFilters"
+                role="status"
+                class="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 rounded bg-teal-600 dark:bg-teal-400"
+            ><span class="sr-only">Updating dispatch queue…</span></div>
 
-        <div class="dispatch-workbench">
             <x-section-card compact title="Dispatch queue" aria-label="Priority queue" :description="match ($statusFilter) {
                 'patriot' => 'Requests received from Patriot',
                 'patriot-attention' => 'Patriot updates requiring review',
@@ -122,7 +120,7 @@
                 'closed' => 'Resolved, closed, and cancelled dispatches',
                 default => 'Highest priority first',
             }" flush class="dispatch-queue flex flex-col">
-                <div class="px-2 py-2 lg:max-h-[65dvh] lg:overflow-y-auto">
+                <div class="px-2 py-2 lg:max-h-[65dvh] lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
                     @forelse($dispatches as $dispatch)
                         @php
                             $priorityTone = match ($dispatch->priority->value ?? '') {
@@ -162,8 +160,8 @@
                                             {{ $dispatch->patriot_writeback_error ? 'Patriot update needs attention' : ($dispatch->patriot_pending_action ? 'Reporting to Patriot' : ($dispatch->patriot_response_state ? str_replace('_', ' ', ucfirst($dispatch->patriot_response_state)).' · Reported to Patriot' : ($dispatch->guard_id ? 'Awaiting officer response' : 'Assign a responder'))) }}
                                         </p>
                                     @endif
-                                    @if ($dispatch->patriot_job_id !== null && $dispatch->site_id === null)
-                                        <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Needs site mapping</p>
+                                    @if ($dispatch->patriot_job_id !== null && ! $dispatch->hasPatriotResponseLocation())
+                                        <p class="text-xs font-medium text-red-700 dark:text-red-300">Verify response location</p>
                                     @endif
                                     <div class="board-item-meta">{{ $dispatch->clientAccount?->name ?? '—' }} · {{ $dispatch->site?->name }}</div>
                                     @if ($dispatch->caller_name || $dispatch->incident_location)
@@ -208,10 +206,37 @@
                         @if ($selected->patriot_job_id !== null)
                             <div class="space-y-2">
                                 @error('patriotDecision') <p class="text-sm text-red-600 dark:text-red-300">{{ $message }}</p> @enderror
+                                @if ($selected->patriot_writeback_error)
+                                    <p role="alert" class="text-sm text-red-600 dark:text-red-300">Patriot needs attention: {{ $selected->patriot_writeback_error }}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if ($selected->patriot_pending_action === 'decline')
+                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('confirm-release')" wire:confirm="Only continue if you verified in Patriot that this request was released.">Record verified release</x-button>
+                                        @else
+                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('check')">Check Patriot status</x-button>
+                                        @endif
+                                        <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('retry')" wire:confirm="Only retry if you checked in Patriot and confirmed this update was not applied.">Retry verified update</x-button>
+                                    </div>
+                                @elseif ($selected->patriot_pending_action)
+                                    <p role="status" class="text-sm text-amber-700 dark:text-amber-300">Waiting for Patriot to confirm {{ str_replace(['check:', '-'], ['', ' '], $selected->patriot_pending_action) }}.</p>
+                                @elseif ($selected->patriot_response_state)
+                                    <p class="text-sm">{{ match ($selected->patriot_response_state) {
+                                        'accepted' => 'Officer acceptance reported to Patriot.',
+                                        'declined' => 'Officer decline reported to Patriot.',
+                                        'on_site' => 'Arrival reported to Patriot.',
+                                        'completed' => 'Completion reported to Patriot.',
+                                        default => 'Patriot update confirmed.',
+                                    } }}</p>
+                                @elseif ($selected->guard_id && $selected->status === \App\Enums\DispatchStatus::ASSIGNED)
+                                    <p class="text-sm">Waiting for the assigned officer to accept or decline.</p>
+                                @endif
 
-                                @if ($selected->site_id === null && $selected->status === \App\Enums\DispatchStatus::OPEN)
+                                @if (! $selected->hasPatriotResponseLocation())
+                                    <p role="alert" class="text-sm text-red-700 dark:text-red-300">Verify the response location before assigning a responder.</p>
+                                @endif
+
+                                @if ($patriotSites->isNotEmpty())
                                     <form wire:submit="linkPatriotSite" class="space-y-2">
-                                        <x-select wire:model="patriotSiteId" label="Match to a site">
+                                        <x-select wire:model="patriotSiteId" label="Reconcile with a verified site">
                                             <option value="">Select site</option>
                                             @foreach ($patriotSites as $site)
                                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
@@ -237,7 +262,7 @@
                                     <p>Return confirmed at {{ $selected->returned_at->format('H:i') }}</p>
                                 @endif
                             </div>
-                        @elseif ($selected->mayAssignFromPatriot() && ($selected->site_id || ($selected->latitude !== null && $selected->longitude !== null)) && $selected->status === \App\Enums\DispatchStatus::OPEN && $dispatchTeams->isNotEmpty())
+                        @elseif ($selected->mayAssignFromPatriot() && $selected->status === \App\Enums\DispatchStatus::OPEN && $dispatchTeams->isNotEmpty())
                             <form wire:submit="assignDispatchTeam" class="mb-4 space-y-2">
                                 <x-select wire:model="assignTeamId" label="Assign response team">
                                     <option value="">Choose an available team</option>
@@ -286,7 +311,7 @@
                                     </div>
                                 </fieldset>
                                 @error('assignGuardId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                                    <x-button size="sm" class="dispatch-assign-button" wire:click="assignGuard" wire:loading.attr="disabled" wire:target="assignGuard" :disabled="! $assignGuardId || ($selected->patriot_job_id !== null && $selected->site_id === null)">Assign responder</x-button>
+                                    <x-button size="sm" class="dispatch-assign-button" wire:click="assignGuard" wire:loading.attr="disabled" wire:target="assignGuard" :disabled="! $assignGuardId || ! $selected->mayAssignFromPatriot()">Assign responder</x-button>
                                 @endif
                                 <div class="flex flex-wrap gap-2">
                                     @if ($selected->status->next() && $selected->status !== \App\Enums\DispatchStatus::OPEN
@@ -314,34 +339,6 @@
                         @endif
 
                     </x-section-card>
-                    @if ($selected->patriot_job_id !== null)
-                        <x-section-card compact title="Patriot synchronization" :description="'Patriot job #'.$selected->patriot_job_id">
-                                @if ($selected->patriot_writeback_error)
-                                    <p role="alert" class="text-sm text-red-600 dark:text-red-300">Patriot needs attention: {{ $selected->patriot_writeback_error }}</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        @if ($selected->patriot_pending_action === 'decline')
-                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('confirm-release')" wire:confirm="Only continue if you verified in Patriot that this request was released.">Record verified release</x-button>
-                                        @else
-                                            <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('check')">Check Patriot status</x-button>
-                                        @endif
-                                        <x-button size="sm" variant="secondary" wire:click="reviewPatriotSync('retry')" wire:confirm="Only retry if you checked in Patriot and confirmed this update was not applied.">Retry verified update</x-button>
-                                    </div>
-                                @elseif ($selected->patriot_pending_action)
-                                    <p role="status" class="text-sm text-amber-700 dark:text-amber-300">Waiting for Patriot to confirm {{ str_replace(['check:', '-'], ['', ' '], $selected->patriot_pending_action) }}.</p>
-                                @elseif ($selected->patriot_response_state)
-                                    <p class="text-sm">{{ match ($selected->patriot_response_state) {
-                                        'accepted' => 'Officer acceptance reported to Patriot.',
-                                        'declined' => 'Officer decline reported to Patriot.',
-                                        'on_site' => 'Arrival reported to Patriot.',
-                                        'completed' => 'Completion reported to Patriot.',
-                                        default => 'Patriot update confirmed.',
-                                    } }}</p>
-                                @elseif (in_array($selected->status, [\App\Enums\DispatchStatus::OPEN, \App\Enums\DispatchStatus::ASSIGNED], true))
-                                    <p class="text-sm">{{ $selected->guard_id ? 'Waiting for the assigned officer to accept or decline.' : 'Assign a responder. The officer can accept or decline in the guard app.' }}</p>
-                                @endif
-                        </x-section-card>
-                    @endif
-
                     <x-section-card compact title="Dispatch activity">
                         @if (collect($timeline)->contains(fn ($step) => $step['at']) || $selected->acknowledged_at || $selected->returned_at)
                             <ol class="space-y-2 border-l border-zinc-200 pl-3 text-xs dark:border-zinc-700" aria-label="Dispatch timeline">
@@ -393,7 +390,7 @@
                         </div>
 
                         <div class="dispatch-detail-tabs" role="group" aria-label="Job details navigation">
-                            @foreach (['overview' => 'Overview', 'site' => 'Site info'] + ($selected->patriot_job_id !== null ? ['patriot' => 'Patriot'] : []) + ['notes' => 'Notes & files'] as $key => $label)
+                            @foreach (['overview' => 'Overview', 'site' => 'Site details', 'notes' => 'Notes & files'] as $key => $label)
                                 <button type="button" x-bind:aria-pressed="panel === @js($key)"
                                     x-on:click="panel = @js($key); if (panel === 'overview') $nextTick(() => window.dispatchEvent(new Event('resize')));">
                                     {{ $label }}
@@ -403,67 +400,94 @@
 
                         @php
                             $location = $selected->incident_location ?: ($patriotPayload['location']['address'] ?? $selected->site?->address);
+                            $customerName = $selected->clientAccount?->name ?? $patriotPayload['customer_name'] ?? null;
                             $incidentTime = trim(($selected->incident_date?->format('M j, Y') ?? '').' '.$selected->incident_time);
                         @endphp
-                        <section x-show="panel === 'overview'" aria-label="Job overview" class="dispatch-overview">
-                        <div class="dispatch-event-summary space-y-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-                            <h3 class="font-semibold">{{ $patriotPayload['alarm_description'] ?? ($incidentTypes[$selected->event_type] ?? $selected->event_type) }}</h3>
-                            @if ($selected->description && $selected->description !== ($patriotPayload['alarm_description'] ?? null))<p>{{ $selected->description }}</p>@endif
-                            @if ($location || $incidentTime || $selected->caller_name)
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ collect([$location, $incidentTime, $selected->caller_name])->filter()->join(' · ') }}</p>
-                            @endif
-                        </div>
-
-                        @if (! empty($mapMarkers))
-                            <div class="min-w-0">
-                                <x-map
-                                    id="dispatch-detail-map-{{ $selected->id }}"
-                                    :lat="$mapMarkers[0]['lat']"
-                                    :lng="$mapMarkers[0]['lng']"
-                                    :markers="$mapMarkers"
-                                    :fit-bounds="false"
-                                    height="180px"
-                                />
-                            </div>
-                        @endif
-
-                        </section>
-                        @if ($selected->opened_at)
-                            @php
-                                $timerEnd = $selected->on_scene_at ?? $selected->resolved_at ?? $selected->closed_at ?? now();
-                                $elapsed = max(0, (int) $selected->opened_at->diffInSeconds($timerEnd));
-                            @endphp
-                            <div x-show="panel === 'overview'" class="dispatch-timer">
-                                <x-nav-icon name="attendance" class="size-5 shrink-0" />
-                                <div>
-                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $selected->on_scene_at ? 'Time to arrive' : ($selected->closed_at || $selected->resolved_at ? 'Elapsed before closure' : 'Elapsed since opened') }}</p>
-                                    <p class="font-semibold tabular-nums">{{ sprintf('%02d:%02d:%02d', intdiv($elapsed, 3600), intdiv($elapsed % 3600, 60), $elapsed % 60) }}</p>
+                        <section x-show="panel === 'overview'" aria-label="Job overview">
+                            <div class="dispatch-overview">
+                                <div class="dispatch-event-summary space-y-2 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                                    <h3 class="font-semibold">{{ $patriotPayload['alarm_description'] ?? ($incidentTypes[$selected->event_type] ?? $selected->event_type) }}</h3>
+                                    @if ($selected->description && $selected->description !== ($patriotPayload['alarm_description'] ?? null))<p>{{ $selected->description }}</p>@endif
+                                    @if ($location || $incidentTime || $selected->caller_name)
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ collect([$location, $incidentTime, $selected->caller_name])->filter()->join(' · ') }}</p>
+                                    @endif
                                 </div>
+
+                                @if (! empty($mapMarkers))
+                                    <div class="min-w-0">
+                                        <x-map
+                                            id="dispatch-detail-map-{{ $selected->id }}"
+                                            :lat="$mapMarkers[0]['lat']"
+                                            :lng="$mapMarkers[0]['lng']"
+                                            :markers="$mapMarkers"
+                                            :fit-bounds="false"
+                                            height="180px"
+                                        />
+                                    </div>
+                                @endif
                             </div>
-                        @endif
-                        <section x-show="panel === 'site'" x-cloak aria-label="Site information" class="dispatch-tab-card">
-
-                            <h3 class="font-semibold">{{ $selected->site?->name ?? 'Site not linked' }}</h3>
-                            @if ($selected->clientAccount)<p>{{ $selected->clientAccount->name }}</p>@endif
-                            @if ($location)<p class="text-zinc-500 dark:text-zinc-400">{{ $location }}</p>@endif
-                            @if ($trackingUrl)<a href="{{ $trackingUrl }}" class="page-link">View on live map</a>@endif
+                            @if ($selected->opened_at)
+                                @php
+                                    $timerEnd = $selected->on_scene_at ?? $selected->resolved_at ?? $selected->closed_at ?? now();
+                                    $elapsed = max(0, (int) $selected->opened_at->diffInSeconds($timerEnd));
+                                @endphp
+                                <div class="dispatch-timer">
+                                    <x-nav-icon name="attendance" class="size-5 shrink-0" />
+                                    <div>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $selected->on_scene_at ? 'Time to arrive' : ($selected->closed_at || $selected->resolved_at ? 'Elapsed before closure' : 'Elapsed since opened') }}</p>
+                                        <p class="font-semibold tabular-nums">{{ sprintf('%02d:%02d:%02d', intdiv($elapsed, 3600), intdiv($elapsed % 3600, 60), $elapsed % 60) }}</p>
+                                    </div>
+                                </div>
+                            @endif
                         </section>
-
-                        @if ($selected->patriot_job_id !== null)
-                            <section x-show="panel === 'patriot'" x-cloak aria-label="Patriot details" class="space-y-3">
-                                <div class="dispatch-tab-card">
-                                    <div class="flex flex-wrap items-center justify-between gap-2">
-                                        <h3 class="font-semibold">Patriot record</h3>
-                                        @if ($selected->site && auth()->user()->can('update', $selected->site))
-                                            <a href="{{ route('sites.show', ['site' => $selected->site, 'tab' => 'profile']) }}" class="page-link">Manage site link</a>
+                        <section x-show="panel === 'site'" x-cloak aria-label="Site details" class="space-y-3">
+                            <div class="dispatch-tab-card space-y-2">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <h3 class="font-semibold">{{ $selected->site?->name ?? 'Site not linked' }}</h3>
+                                        @if ($customerName && $customerName !== $selected->site?->name)
+                                            <p>{{ $customerName }}</p>
                                         @endif
                                     </div>
+                                    @if ($trackingUrl)
+                                        <a href="{{ $trackingUrl }}" class="page-link">{{ empty($mapMarkers) ? 'Track responder' : 'View on live map' }}</a>
+                                    @endif
+                                </div>
+                                @if ($location)
+                                    <p class="text-zinc-500 dark:text-zinc-400">{{ $location }}</p>
+                                @elseif (! empty($mapMarkers))
+                                    <p class="text-zinc-500 dark:text-zinc-400">GPS {{ $mapMarkers[0]['lat'] }}, {{ $mapMarkers[0]['lng'] }}</p>
+                                @endif
+                            </div>
+
+                            @if ($selected->patriot_job_id !== null)
+                                <div class="dispatch-tab-card space-y-2">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <h3 class="font-semibold">Patriot job #{{ $selected->patriot_job_id }}</h3>
+                                        @can('sites.manage')
+                                            @if ($selected->patriot_instance && $selected->patriot_client_ref)
+                                                <x-button size="sm" variant="secondary" wire:click="refreshPatriotAccount" wire:loading.attr="disabled" wire:target="refreshPatriotAccount">Refresh Patriot account</x-button>
+                                            @endif
+                                        @endcan
+                                    </div>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                                        @if ($selected->site_id)
+                                            <strong>Site linked</strong> ·
+                                        @endif
+                                        {{ match ($selected->patriot_sync_status) {
+                                            'synchronized' => 'Customer synchronized',
+                                            'verified' => 'Customer verified',
+                                            'failed' => 'Customer lookup failed',
+                                            'review' => 'Customer identity under review',
+                                            default => $selected->site_id && $selected->patriot_sync_status === null ? 'Customer verified' : 'Customer details pending',
+                                        } }}
+                                    </p>
                                     @php
                                         $patriotFields = [
                                             'Activation ticket' => $patriotPayload['activation_id'] ?? null,
                                             'Account' => $patriotPayload['account_number'] ?? null,
                                             'Client reference' => $selected->patriot_client_ref,
-                                            'Customer' => $patriotPayload['customer_name'] ?? null,
+                                            'Alarm category' => $patriotPayload['dispatch_category'] ?? null,
                                             'Priority code' => $patriotPayload['priority'] ?? null,
                                             'Dispatched at' => isset($patriotPayload['dispatch_time'])
                                                 ? \Illuminate\Support\Carbon::parse($patriotPayload['dispatch_time'])->utc()->format('j M Y, H:i \U\T\C')
@@ -481,18 +505,55 @@
                                         @endforeach
                                     </dl>
                                 </div>
-                                @foreach (['instructions' => 'Dispatch instructions', 'job_notes' => 'Job notes'] as $key => $label)
-                                    @if ($patriotPayload[$key] ?? null)
-                                        <div class="dispatch-tab-card">
-                                            <h3 class="font-semibold">{{ $label }}</h3>
-                                            <p class="whitespace-pre-wrap break-words">{{ $patriotPayload[$key] }}</p>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </section>
-                        @endif
+                                @if ($patriotResponseDetails !== [])
+                                    <div class="dispatch-tab-card space-y-2">
+                                        <h3 class="font-semibold">Patriot response contacts</h3>
+                                        @if ($patriotResponseDetails['site_phone'] ?? null)
+                                            <p>Site phone {{ $patriotResponseDetails['site_phone'] }}</p>
+                                        @endif
+                                        @if (($patriotResponseDetails['contact_sync_status'] ?? null) === 'access_denied')
+                                            <p>Patriot denied access to the response call list. The integration user needs call-list read access.</p>
+                                        @elseif (($patriotResponseDetails['contact_sync_status'] ?? null) === 'unavailable')
+                                            <p>Patriot call list is unavailable.</p>
+                                        @elseif (($patriotResponseDetails['contact_sync_status'] ?? null) === 'partial')
+                                            <p>Patriot returned a partial call list.</p>
+                                        @elseif (($patriotResponseDetails['contact_sync_status'] ?? null) === 'complete' && empty($patriotResponseDetails['contacts']))
+                                            <p>Patriot returned an empty call list.</p>
+                                        @elseif (! isset($patriotResponseDetails['contact_sync_status']))
+                                            <p>Patriot call list has not been retrieved.</p>
+                                        @endif
+                                        @if (! empty($patriotResponseDetails['contacts']))
+                                            <ul class="space-y-1">
+                                                @foreach ($patriotResponseDetails['contacts'] as $contact)
+                                                    <li>
+                                                        <span class="font-medium">{{ $contact['name'] ?? 'Response contact' }}</span>
+                                                        @foreach (['telephone' => 'Phone', 'mobile' => 'Mobile', 'after_hours' => 'After hours'] as $field => $label)
+                                                            @if (isset($contact[$field]))
+                                                                <span class="block">{{ $label }} {{ $contact[$field] }}</span>
+                                                            @endif
+                                                        @endforeach
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                    </div>
+                                @endif
+                                @if ($patriotPayload['instructions'] ?? null)
+                                    <div class="dispatch-tab-card">
+                                        <h3 class="font-semibold">Dispatch instructions</h3>
+                                        <p class="whitespace-pre-wrap break-words">{{ $patriotPayload['instructions'] }}</p>
+                                    </div>
+                                @endif
+                            @endif
+                        </section>
 
-                        <section x-show="panel === 'notes'" x-cloak aria-label="Notes and files" class="dispatch-tab-card">
+                        <section x-show="panel === 'notes'" x-cloak aria-label="Notes and files" class="dispatch-tab-card space-y-3">
+                            @if ($patriotPayload['job_notes'] ?? null)
+                                <div>
+                                    <h3 class="font-semibold">Patriot job notes</h3>
+                                    <p class="whitespace-pre-wrap break-words">{{ $patriotPayload['job_notes'] }}</p>
+                                </div>
+                            @endif
                             @if ($selected->attachment_path)
                                 <button type="button" wire:click="downloadAttachment" class="page-link">Download attachment</button>
                             @endif

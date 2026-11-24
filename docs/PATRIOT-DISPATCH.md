@@ -1,0 +1,26 @@
+# Patriot dispatch intake
+
+GuardCore Pro reads pending Patrol Response jobs from the tenant's Patriot server each minute. An operator escalation that appears as a `DispatchRequest` enters the Dispatch Center automatically. Guard acceptance, decline, arrival and completion continue through the existing write-back workflow.
+
+## Configure and deploy
+
+1. Confirm Patrol Response and API access in the deployed Patriot instance. The integration user needs access to the intended patrol response queue. Enable client-by-reference read access for enrichment and the existing job write permissions only if GuardCore Pro sends response updates.
+2. Set `PATRIOT_URL` to the HTTPS origin, `PATRIOT_TENANT` to the active tenant slug with Dispatch access, and `PATRIOT_USERNAME` and `PATRIOT_PASSWORD` through deployment secrets. Set `PATRIOT_INSTANCE` to a stable identifier before the first import if the origin may change. Without an explicit value, the HTTPS origin determines the source identity. Use a dedicated tenant for each Patriot source.
+3. Set `PATRIOT_POLLING_ENABLED=true` and leave `PATRIOT_ENRICHMENT_ENABLED=true`. Set `PATRIOT_WRITEBACK_ENABLED=true` if the established dispatch workflow requires Patriot updates. Set `PATRIOT_SYNC_RESPONSE_CONTACTS=true` to retrieve the authorized call list and grant the API user matching read access. Enable `PATRIOT_GROUP_BY_BILLING_ACCOUNT` only after confirming that each Patriot billing number identifies exactly one customer in this tenant.
+4. Run `php artisan migrate --force --no-interaction`, rebuild the configuration cache if used, and restart the queue workers after deploying the code. Run the Laravel scheduler and use a shared asynchronous queue and cache. Set the queue retry-after or visibility timeout above the enrichment job's 50-second timeout. Web, scheduler and workers need the same Patriot configuration.
+5. Run `php artisan guardops:patriot-check --no-interaction` for authentication and queue visibility. Check the scheduler and queue worker health, then verify a controlled test escalation in Dispatch Center. An administrator should confirm the site link, approved location, and response instructions before testing write-back.
+
+## Provisioning and verification
+
+- The tenant's existing site references remain valid. The account mapping table records the source and account reference, account number, billing and base-site references when available, associated site, verification state and last successful lookup. The site owns the customer relationship.
+- Intake saves an allowlisted snapshot and deduplicates by tenant and Patriot job ID. A dispatch withdrawn in two successful polls is cancelled and retained. A pending dispatch or a timeout remains visible when the source becomes unreachable.
+- A dispatch with a usable Patriot address, coordinates or verified site can be assigned while client enrichment runs. Missing locations require operator verification. If a lookup fails and the job contains a customer name and usable location, the worker can provision a provisional customer and site before retrying.
+- The lookup uses `GET /api/v3/clients/{clientRef}` and verifies the returned external reference. An explicit base-account relationship or the main account's full client number must agree with the site identity, and the available location details must corroborate it. A name, phone or address alone never merges records. Deployments with reliable billing identifiers can reuse a customer across multiple sites.
+- Staff with Dispatch access and site management permission can reconcile an open request to a verified tenant site. The account mapping applies to future jobs and eligible unassigned jobs. Historical assignments and local customer and site edits are preserved. Provisional records displaced by reconciliation remain available for administrative review.
+- Queue attempts are spaced at 30, 120 and 600 seconds. Exhausted lookups appear in Patriot attention and Laravel failed jobs. After resolving access or connectivity, inspect `php artisan queue:failed` and rerun the relevant UUID via `php artisan queue:retry <uuid>`. The normalization layer excludes access tokens, verification codes, PINs and the raw client response. In Dispatch Center, site managers can view response contacts and refresh the Patriot account from Site details.
+
+## API limits
+
+The repository integrates with the authenticated polling API. An outage of the polling endpoint prevents retrieval of jobs that Patriot has not yet delivered to GuardCore Pro. Existing saved dispatches remain available. Patriot v3 documents a billing number and a base account for sub-areas. It does not define those fields as a universal legal customer identifier. This integration uses the job and client fields for account and response details. Optional contact lookups use the call-list filter and store up to 100 contacts as encrypted mapping diagnostics. The export reports a partial or unavailable call list. Contact and account-status data do not update local GCS contacts or identify customers. Validate API availability and permissions against the installed server.
+
+[Patriot API v3 reference](https://demoica.patriotsystems.com/swagger/index.html)

@@ -8,6 +8,7 @@
     'polyline' => [],
     'circles' => [],
     'fitBounds' => true,
+    'viewportKey' => null,
 ])
 
 @php
@@ -19,11 +20,12 @@
         'polyline' => $polyline,
         'circles' => $circles,
         'fitBounds' => (bool) $fitBounds,
+        'viewportKey' => $viewportKey,
     ];
 @endphp
 
 <div
-    {{ $attributes->merge(['class' => 'overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900']) }}
+    {{ $attributes->merge(['class' => 'isolate overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900']) }}
     data-map-shell
     data-map-target="{{ $id }}"
 >

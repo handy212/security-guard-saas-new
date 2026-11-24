@@ -8,13 +8,13 @@
         <meta name="vapid-public-key" content="{{ config('notifications.push.vapid.public_key') }}">
     @endif
     <title>{{ $tenantBranding['name'] ?? $portalTenantName ?? 'Client Portal' }} — {{ $platformBranding->name() }}</title>
-    @include('partials.theme-init')
     @include('partials.brand-assets')
     <link rel="manifest" href="/manifest-client.json">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 <body class="min-h-screen bg-zinc-50 font-sans text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100" x-data="{ navOpen: false }">
+@include('partials.theme-init')
 @include('partials.brand-colors')
 <header class="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/95 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/95">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">

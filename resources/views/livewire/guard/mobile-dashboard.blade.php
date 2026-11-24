@@ -248,7 +248,15 @@
                 <div class="mb-2 rounded-md border border-amber-500/30 bg-zinc-950/40 p-3 text-sm last:mb-0" wire:key="dispatch-{{ $dispatch->id }}">
                     <div class="font-semibold text-zinc-100">{{ $dispatch->dispatch_number }}</div>
                     <div class="text-xs text-zinc-400">{{ $dispatch->site?->name }} · {{ ucfirst(str_replace('_', ' ', $dispatch->status->value)) }}</div>
-                    <div class="mt-1 text-xs text-zinc-300">{{ $dispatch->incident_location }}</div>
+                    <div class="mt-1 text-xs text-zinc-300">{{ $dispatch->incident_location ?? ($dispatch->patriot_job_id !== null ? $dispatch->site?->address : null) }}</div>
+                    @if ($dispatch->patriot_job_id !== null)
+                        @if ($dispatch->latitude !== null && $dispatch->longitude !== null)
+                            <p class="mt-1 text-xs text-zinc-300">{{ $dispatch->latitude }}, {{ $dispatch->longitude }}</p>
+                        @endif
+                        @if ($dispatch->patriot_payload['instructions'] ?? null)
+                            <p class="mt-1 whitespace-pre-wrap text-xs text-zinc-300">{{ $dispatch->patriot_payload['instructions'] }}</p>
+                        @endif
+                    @endif
                     @if ($dispatch->patriot_pending_action)
                         <p class="text-xs text-amber-200">{{ $dispatch->patriot_writeback_error ? 'Patriot update needs Control’s attention.' : 'Waiting for Patriot confirmation.' }}</p>
                     @endif

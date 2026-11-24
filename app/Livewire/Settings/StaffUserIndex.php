@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\TenantRoleProvisioner;
 use App\Support\TenantContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -47,6 +48,7 @@ class StaffUserIndex extends Component
 
     public function edit(int $id): void
     {
+        abort_unless(auth()->user()->can('settings.manage'), 403);
         $user = $this->staffQuery()->findOrFail($id);
 
         $this->editingId = $user->id;
@@ -65,13 +67,17 @@ class StaffUserIndex extends Component
         abort_unless(auth()->user()->can('settings.manage'), 403);
 
         $tenantId = TenantContext::id();
+        $user = $this->editingId ? $this->staffQuery()->findOrFail($this->editingId) : null;
+        $uniqueEmail = Rule::unique('users', 'email');
+        if ($user) {
+            $uniqueEmail->ignore($user);
+        }
+
         $rules = [
             'form.name' => 'required|string|max:255',
             'form.email' => [
                 'required', 'email', 'max:255',
-                Rule::unique('users', 'email')
-                    ->where(fn ($q) => $q->where('tenant_id', $tenantId))
-                    ->ignore($this->editingId),
+                $uniqueEmail,
             ],
             'form.role' => ['required', Rule::in($this->assignableRoleNames())],
             'form.status' => 'required|in:active,inactive',
@@ -85,8 +91,7 @@ class StaffUserIndex extends Component
 
         $data = $this->validate($rules)['form'];
 
-        if ($this->editingId) {
-            $user = $this->staffQuery()->findOrFail($this->editingId);
+        if ($user) {
             if ((int) $user->id === (int) auth()->id() && $data['status'] !== 'active') {
                 $this->addError('form.status', 'You cannot deactivate your own account.');
 
@@ -105,12 +110,17 @@ class StaffUserIndex extends Component
                 'status' => $data['status'],
             ];
 
-            if ($data['password'] !== '') {
+            if (filled($data['password'] ?? null)) {
                 $payload['password'] = Hash::make($data['password']);
             }
 
-            $user->update($payload);
-            $this->syncUserRole($user, $data['role'], $provisioner);
+            DB::transaction(function () use ($user, $payload, $data, $provisioner): void {
+                $user->update($payload);
+                $this->syncUserRole($user, $data['role'], $provisioner);
+                if ($payload['status'] === 'inactive' || isset($payload['password'])) {
+                    $user->tokens()->delete();
+                }
+            });
 
             $audit->record('settings.staff.updated', $user, ['email' => $user->email, 'role' => $data['role']]);
             session()->flash('status', "Staff user {$user->name} updated.");
@@ -141,7 +151,10 @@ class StaffUserIndex extends Component
         abort_if((int) $user->id === (int) auth()->id(), 403, 'You cannot deactivate your own account.');
         abort_if($this->removesOnlyActiveAdmin($user, 'inactive', $this->userRoleName($user)), 422, 'Keep an active company administrator in the tenant.');
 
-        $user->update(['status' => 'inactive']);
+        DB::transaction(function () use ($user): void {
+            $user->update(['status' => 'inactive']);
+            $user->tokens()->delete();
+        });
         $audit->record('settings.staff.deactivated', $user, ['email' => $user->email]);
         session()->flash('status', "{$user->name} deactivated.");
     }

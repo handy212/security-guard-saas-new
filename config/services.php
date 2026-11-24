@@ -15,6 +15,10 @@ return [
     'patriot' => [
         'url' => env('PATRIOT_URL'),
         'tenant' => env('PATRIOT_TENANT'),
+        'instance' => env('PATRIOT_INSTANCE'),
+        'enrichment_enabled' => env('PATRIOT_ENRICHMENT_ENABLED', true),
+        'sync_response_contacts' => env('PATRIOT_SYNC_RESPONSE_CONTACTS', false),
+        'group_by_billing_account' => env('PATRIOT_GROUP_BY_BILLING_ACCOUNT', false),
         'polling_enabled' => env('PATRIOT_POLLING_ENABLED', false),
         'writeback_enabled' => env('PATRIOT_WRITEBACK_ENABLED', false),
         'writeback_test_job_id' => env('PATRIOT_WRITEBACK_TEST_JOB_ID'),

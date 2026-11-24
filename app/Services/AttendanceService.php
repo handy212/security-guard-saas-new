@@ -67,7 +67,7 @@ class AttendanceService
 
     public function withinGeofence($site, float $lat, float $lng): bool
     {
-        if (! $site || ! $site->latitude || ! $site->longitude) {
+        if (! $site || $site->latitude === null || $site->longitude === null) {
             return false;
         }
         $earth = 6371000;

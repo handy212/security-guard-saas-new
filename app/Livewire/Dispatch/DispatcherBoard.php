@@ -5,6 +5,7 @@ namespace App\Livewire\Dispatch;
 use App\Enums\DispatchPriority;
 use App\Enums\DispatchStatus;
 use App\Enums\GuardDutyType;
+use App\Jobs\EnrichPatriotDispatch;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
 use App\Livewire\Concerns\HasFormDrawer;
 use App\Models\AttendanceLog;
@@ -16,6 +17,7 @@ use App\Models\Site;
 use App\Models\SosAlert;
 use App\Models\Tenant;
 use App\Services\DispatchService;
+use App\Services\PatriotAccountProvisioner;
 use App\Services\PatriotDispatchPayload;
 use App\Support\TenantContext;
 use App\Support\TenantValidation;
@@ -231,46 +233,25 @@ class DispatcherBoard extends Component
         session()->flash('status', 'Team return confirmed.');
     }
 
-    public function linkPatriotSite(): void
+    public function linkPatriotSite(PatriotAccountProvisioner $provisioner): void
     {
         $dispatch = $this->authorizeSelectedDispatch();
+        abort_unless(auth()->user()->can('sites.manage'), 403);
         abort_unless($dispatch->patriot_job_id !== null, 404);
         $this->validate(['patriotSiteId' => ['required', TenantValidation::exists('sites')]]);
 
-        $linked = DB::transaction(function () use ($dispatch): bool {
+        DB::transaction(function () use ($dispatch, $provisioner): void {
             Tenant::query()->lockForUpdate()->findOrFail($dispatch->tenant_id);
             $event = DispatchEvent::forTenant($dispatch->tenant_id)->lockForUpdate()->findOrFail($dispatch->id);
-            if ($event->site_id || $event->status !== DispatchStatus::OPEN) {
-                return false;
-            }
-
+            abort_unless($event->status === DispatchStatus::OPEN && ! $event->guard_id && ! $event->incident_id, 422);
             $site = Site::forTenant($dispatch->tenant_id)->lockForUpdate()->findOrFail($this->patriotSiteId);
-            $reference = $event->patriot_client_ref;
-            if ($reference !== null) {
-                if (($site->patriot_client_ref !== null && $site->patriot_client_ref !== $reference)
-                    || Site::forTenant($event->tenant_id)->where('patriot_client_ref', $reference)->whereKeyNot($site->id)->exists()) {
-                    return false;
-                }
-
-                $site->forceFill(['patriot_client_ref' => $reference])->save();
-            }
-
-            $pending = DispatchEvent::forTenant($event->tenant_id)->where('status', DispatchStatus::OPEN)->whereNull('site_id');
-            if ($reference === null) {
-                $pending->whereKey($event->id);
-            } else {
-                $pending->where('patriot_client_ref', $reference);
-            }
-            $pending->update(['site_id' => $site->id, 'client_account_id' => $site->client_account_id]);
-
-            return true;
+            $this->authorize('update', $site);
+            $provisioner->reconcile($event, $site);
+            logger()->info('Patriot account mapping reconciled.', [
+                'tenant_id' => $dispatch->tenant_id, 'dispatch_id' => $event->id,
+                'previous_site_id' => $event->site_id, 'site_id' => $site->id, 'user_id' => TenantContext::userId(),
+            ]);
         }, attempts: 3);
-
-        if (! $linked) {
-            $this->addError('patriotSiteId', 'This dispatch or site already has a mapping. Refresh the dispatch and check the selected site.');
-
-            return;
-        }
 
         $this->reset('patriotSiteId');
         session()->flash('status', 'Patriot dispatch linked to the site.');
@@ -294,8 +275,8 @@ class DispatcherBoard extends Component
                 : 'Select a valid guard.',
         ]);
 
-        if ($dispatch->patriot_job_id !== null && $dispatch->site_id === null) {
-            $this->addError('assignGuardId', 'Link this Patriot dispatch to a site before assigning a guard.');
+        if ($dispatch->patriot_job_id !== null && ! $dispatch->hasPatriotResponseLocation()) {
+            $this->addError('assignGuardId', 'Verify the response location before assigning a guard.');
 
             return;
         }
@@ -353,15 +334,14 @@ class DispatcherBoard extends Component
         session()->flash('status', 'Incident #'.$incident->id.' created from dispatch.');
     }
 
-    public function downloadPatriotPayload(PatriotDispatchPayload $payloads): StreamedResponse
+    public function refreshPatriotAccount(): void
     {
         $dispatch = $this->authorizeSelectedDispatch();
-        abort_unless($dispatch->patriot_job_id !== null, 404);
-        $json = json_encode($payloads->forDispatch($dispatch), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+        abort_unless(auth()->user()->can('sites.manage'), 403);
+        abort_unless($dispatch->patriot_instance && $dispatch->patriot_client_ref, 422);
 
-        return response()->streamDownload(static function () use ($json): void {
-            echo $json.PHP_EOL;
-        }, 'patriot-'.((int) $dispatch->patriot_job_id).'.json', ['Content-Type' => 'application/json', 'Cache-Control' => 'private, no-store']);
+        EnrichPatriotDispatch::dispatch($dispatch->tenant_id, $dispatch->id, refresh: true);
+        session()->flash('status', 'Patriot account refresh queued.');
     }
 
     public function downloadAttachment(): StreamedResponse
@@ -406,14 +386,14 @@ class DispatcherBoard extends Component
             'awaiting' => (clone $patriotQueue)->whereNull('patriot_response_state')->whereNull('patriot_pending_action')
                 ->whereIn('status', [DispatchStatus::OPEN, DispatchStatus::ASSIGNED])->count(),
             'sending' => (clone $patriotQueue)->whereNotNull('patriot_pending_action')->whereNull('patriot_writeback_error')->count(),
-            'attention' => (clone $patriotQueue)->whereNotNull('patriot_writeback_error')->count(),
+            'attention' => (clone $patriotQueue)->where(fn ($query) => $query->whereNotNull('patriot_writeback_error')->orWhere('patriot_sync_status', 'failed'))->count(),
         ];
 
         $dispatches = DispatchEvent::forTenant($tenantId)
             ->with(['site', 'clientAccount', 'assignedGuard', 'createdBy'])
             ->when(in_array($this->statusFilter, ['active', 'unassigned'], true), fn ($q) => $q->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED, DispatchStatus::RESOLVED]))
             ->when(in_array($this->statusFilter, ['patriot', 'patriot-attention'], true), fn ($q) => $q->whereNotNull('patriot_job_id'))
-            ->when($this->statusFilter === 'patriot-attention', fn ($q) => $q->whereNotNull('patriot_writeback_error'))
+            ->when($this->statusFilter === 'patriot-attention', fn ($q) => $q->where(fn ($query) => $query->whereNotNull('patriot_writeback_error')->orWhere('patriot_sync_status', 'failed')))
             ->when($this->statusFilter === 'unassigned', fn ($q) => $q->whereNull('guard_id'))
             ->when($this->statusFilter === 'returning', fn ($q) => $q->whereNotNull('dispatch_team_id')->whereNull('returned_at')
                 ->whereIn('status', [DispatchStatus::RESOLVED, DispatchStatus::CLOSED, DispatchStatus::CANCELLED]))
@@ -477,6 +457,7 @@ class DispatcherBoard extends Component
             $trackingUrl = route('tracking.live', [
                 'lat' => $latitude,
                 'lng' => $longitude,
+                'dispatch' => $selected->id,
                 'guard' => $selected->guard_id,
             ]);
         } elseif ($selected?->guard_id) {
@@ -528,10 +509,13 @@ class DispatcherBoard extends Component
             'hasPatriotJobs' => $patriotQueue->exists(),
             'selected' => $selected,
             'patriotPayload' => $patriotPayload,
+            'patriotResponseDetails' => $patriotPayload && auth()->user()->can('sites.manage')
+                ? (app(PatriotAccountProvisioner::class)->diagnostics($selected)['response_details'] ?? [])
+                : [],
             'sosAlerts' => $sosAlerts,
             'clients' => ClientAccount::orderBy('name')->get(),
             'sitesForClient' => $sitesForClient,
-            'patriotSites' => $selected?->patriot_job_id !== null && $selected->site_id === null
+            'patriotSites' => $selected?->patriot_job_id !== null && $selected->site_id === null && $selected->status === DispatchStatus::OPEN && auth()->user()->can('sites.manage')
                 ? Site::forTenant($tenantId)->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'guards' => $guards,
