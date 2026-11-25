@@ -57,7 +57,6 @@ use App\Livewire\Mobile\OfflineSyncMonitor;
 use App\Livewire\Notifications\NotificationCenter;
 use App\Livewire\Passdown\PassdownIndex;
 use App\Livewire\Patrols\FleetIndex;
-use App\Livewire\Patrols\JwmDeviceManager;
 use App\Livewire\Patrols\PatrolBoard;
 use App\Livewire\Patrols\Playback;
 use App\Livewire\Patrols\VehiclePatrolBoard;
@@ -181,8 +180,6 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::redirect('/attendance/timekeeping', '/schedules/attendance');
     Route::redirect('/schedules/marketplace', '/schedules/open-shifts');
     Route::get('/patrols', PatrolBoard::class)->name('patrols.index');
-    Route::get('/patrols/devices', JwmDeviceManager::class)
-        ->middleware('can:patrols.manage')->name('patrols.devices');
     Route::get('/incidents', IncidentIndex::class)->name('incidents.index');
     Route::get('/reports', ReportsHub::class)->name('reports.hub');
     Route::get('/reports/daily', DailyReportIndex::class)->name('reports.daily');

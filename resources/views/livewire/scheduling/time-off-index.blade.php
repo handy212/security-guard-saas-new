@@ -124,7 +124,7 @@
                             <tr class="table-row-hover" wire:key="avail-{{ $a->id }}">
                                 <x-table.td data-label="Guard" class="font-medium text-zinc-900 dark:text-zinc-100">{{ $a->assignedGuard?->full_name }}</x-table.td>
                                 <x-table.td data-label="Day" muted>{{ $weekdays[$a->weekday] ?? $a->weekday }}</x-table.td>
-                                <x-table.td data-label="Window" muted class="tabular-nums">{{ substr((string) $a->starts_at, 0, 5) }} – {{ substr((string) $a->ends_at, 0, 5) }}</x-table.td>
+                                <x-table.td data-label="Window" muted class="tabular-nums">{{ substr((string) $a->starts_at, 0, 5) }} – {{ substr((string) $a->ends_at, 0, 5) }}{{ $a->ends_at < $a->starts_at ? ' (next day)' : '' }}</x-table.td>
                                 <x-table.td data-label="Available">
                                     @if($a->is_available)
                                         <span class="text-xs font-medium text-emerald-700 dark:text-emerald-400">Yes</span>
@@ -204,6 +204,7 @@
                     </x-select>
                     <x-input wire:model.live="availabilityForm.starts_at" type="time" label="From *" />
                     <x-input wire:model.live="availabilityForm.ends_at" type="time" label="To *" />
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">An end time earlier than the start means the window ends the next day.</p>
                     <label class="sm:col-span-2 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                         <input type="checkbox" wire:model.live="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
                         Available during this window

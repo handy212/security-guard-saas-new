@@ -12,7 +12,6 @@ return [
 
     'patrols' => [
         ['href' => '/patrols', 'label' => 'Patrol board', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
-        ['href' => '/patrols/devices', 'label' => 'Patrol readers', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
         ['href' => '/patrols/fleet', 'label' => 'Fleet', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
         ['href' => '/patrols/vehicles', 'label' => 'Vehicle patrols', 'permission' => 'patrols.manage', 'feature' => 'patrols'],
         ['href' => '/patrols/playback', 'label' => 'Patrol playback', 'permission' => 'patrols.manage', 'feature' => 'gps'],

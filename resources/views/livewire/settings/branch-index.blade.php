@@ -53,31 +53,37 @@
             </x-data-table>
 
             <x-pagination :paginator="$branches" />
-            <x-section-card title="Dispatch standby points" description="Register existing sites as standby points for an active region." class="mt-4">
+            <x-section-card title="Dispatch standby points" description="Set the coordinates where response teams wait for dispatch." class="mt-4">
                 <ul class="mb-3 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                    @forelse ($standbySites as $site)
-                        <li class="flex flex-wrap items-center justify-between gap-2 py-2" wire:key="standby-site-{{ $site->id }}">
-                            <span><strong>{{ $site->name }}</strong> · {{ $regions->find($site->dispatch_region_id)?->name }}</span>
-                            <button type="button" class="table-action" wire:click="removeStandbyPoint({{ $site->id }})" wire:confirm="Remove this site as a standby point?">Remove standby point</button>
+                    @forelse ($standbyPoints as $point)
+                        <li class="flex flex-wrap items-center justify-between gap-2 py-2" wire:key="standby-point-{{ $point->id }}">
+                            <span><strong>{{ $point->name }}</strong> · {{ $point->region?->name ?? 'No region' }} · {{ $point->latitude }}, {{ $point->longitude }}</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="table-action" wire:click="editStandbyPoint({{ $point->id }})">Edit</button>
+                                <button type="button" class="table-action" wire:click="removeStandbyPoint({{ $point->id }})" wire:confirm="Remove this standby point?">Remove</button>
+                            </div>
                         </li>
                     @empty
-                        <li class="py-2 text-zinc-500">No standby points registered.</li>
+                        <li class="py-2 text-zinc-500">No standby points yet.</li>
                     @endforelse
                 </ul>
-                <form wire:submit="registerStandbyPoint" class="grid items-end gap-3 sm:grid-cols-2">
+                @error('standbyPoint') <p role="alert" class="mb-3 text-sm text-red-600">{{ $message }}</p> @enderror
+                <form wire:submit="createStandbyPoint" class="grid items-end gap-3 sm:grid-cols-2">
+                    <x-input wire:model="pointName" label="Point name" />
                     <x-select wire:model="pointRegionId" label="Region">
                         <option value="">Choose an active region</option>
                         @foreach ($regions as $region)
                             <option value="{{ $region->id }}">{{ $region->name }}</option>
                         @endforeach
                     </x-select>
-                    <x-select wire:model="pointSiteId" label="Standby site">
-                        <option value="">Choose an active site</option>
-                        @foreach ($pointCandidates as $site)
-                            <option value="{{ $site->id }}">{{ $site->name }}</option>
-                        @endforeach
-                    </x-select>
-                    <div><x-button type="submit" size="sm" :disabled="$regions->isEmpty() || $pointCandidates->isEmpty()">Add standby point</x-button></div>
+                    <x-input wire:model="pointLatitude" label="Latitude" type="number" step="any" min="-90" max="90" />
+                    <x-input wire:model="pointLongitude" label="Longitude" type="number" step="any" min="-180" max="180" />
+                    <div class="flex flex-wrap gap-2">
+                        <x-button type="submit" size="sm" :disabled="$regions->isEmpty()">{{ $editingStandbyPointId ? 'Update standby point' : 'Create standby point' }}</x-button>
+                        @if ($editingStandbyPointId)
+                            <x-button type="button" size="sm" variant="secondary" wire:click="cancelStandbyPointEdit">Cancel</x-button>
+                        @endif
+                    </div>
                 </form>
             </x-section-card>
 
@@ -85,16 +91,33 @@
             <div class="my-3 space-y-2">
                 @foreach ($dispatchTeams as $team)
                     @php $outstanding = $team->outstandingDispatches->first(); @endphp
-                    <p class="text-sm"><strong>{{ $team->name }}</strong> · {{ $team->standbySite?->name ?? 'No standby site' }} · {{ $team->active_officers_count }} active officers · {{ $outstanding?->awaitingStationReturn() ? 'Returning' : ($outstanding ? 'Dispatched' : ($team->standby_site_id && $team->active_officers_count ? 'Available' : 'Unavailable')) }}</p>
+                    <div wire:key="response-team-{{ $team->id }}" class="space-y-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+                        <p class="text-sm">
+                            <strong>{{ $team->name }}</strong> · {{ $team->standbyPoint?->name ?? 'No standby point' }}
+                            · {{ $team->active_officers_count }} active officers
+                            · {{ $outstanding?->awaitingStationReturn() ? 'Returning' : ($outstanding ? 'Dispatched' : ($team->standbyPoint?->region?->is_active && $team->active_officers_count ? 'Available' : 'Unavailable')) }}
+                        </p>
+                        @unless ($outstanding)
+                            <form wire:submit="assignTeamStandbyPoint({{ $team->id }})" class="flex flex-wrap items-end gap-2">
+                                <x-select wire:model="teamStandbyPoints.{{ $team->id }}" label="Change standby point">
+                                    <option value="">Choose a standby point</option>
+                                    @foreach ($availablePoints as $point)
+                                        <option value="{{ $point->id }}">{{ $point->name }} · {{ $point->region->name }}</option>
+                                    @endforeach
+                                </x-select>
+                                <x-button type="submit" size="sm" variant="secondary" :disabled="$availablePoints->isEmpty()">Assign point</x-button>
+                            </form>
+                        @endunless
+                    </div>
                 @endforeach
             </div>
             <form wire:submit="createDispatchTeam" class="space-y-3">
                 <div class="grid gap-3 sm:grid-cols-2">
                     <x-input wire:model="teamName" label="Team name" />
-                    <x-select wire:model="standbySiteId" label="Standby site">
-                        <option value="">Choose a site</option>
-                        @foreach ($standbySites as $site)
-                            <option value="{{ $site->id }}">{{ $site->name }} · {{ $regions->find($site->dispatch_region_id)?->name }}</option>
+                    <x-select wire:model="standbyPointId" label="Standby point">
+                        <option value="">Choose a standby point</option>
+                        @foreach ($availablePoints as $point)
+                            <option value="{{ $point->id }}">{{ $point->name }} · {{ $point->region->name }}</option>
                         @endforeach
                     </x-select>
                 </div>
@@ -110,7 +133,7 @@
                     <p class="text-sm text-red-600">{{ $messages[0] }}</p>
                 @endforeach
                 @error('teamMembers') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-                <x-button type="submit" size="sm" :disabled="$unrosteredOfficers->isEmpty() || $standbySites->isEmpty()">Create response team</x-button>
+                <x-button type="submit" size="sm" :disabled="$unrosteredOfficers->isEmpty() || $availablePoints->isEmpty()">Create response team</x-button>
             </form>
         </x-section-card>
 

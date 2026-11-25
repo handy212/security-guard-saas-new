@@ -13,7 +13,7 @@ class RestrictJwmBridgeToken
     {
         $token = $request->user()?->currentAccessToken();
         if ($token instanceof PersonalAccessToken && $token->exists && in_array('jwm:ingest', $token->abilities, true)) {
-            abort_unless($request->routeIs('api.jwm.events.store'), 403, 'Bridge tokens are restricted to JWM event ingestion.');
+            abort(403, 'This patrol reader token is no longer supported.');
         }
 
         return $next($request);

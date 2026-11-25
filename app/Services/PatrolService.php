@@ -36,6 +36,9 @@ class PatrolService
         }
 
         $route = PatrolRoute::where('tenant_id', $tenantId)->findOrFail($routeId);
+        if ($route->status !== 'active' || ! $route->checkpoints()->exists()) {
+            throw new RuntimeException('Select an active route with at least one checkpoint.');
+        }
         $guard = Guard::where('tenant_id', $tenantId)->findOrFail($guardId);
 
         $assignmentId = $shiftAssignmentId

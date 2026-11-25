@@ -81,7 +81,6 @@ return [
         'attendance.reconciliation' => 'attendance',
         'schedules.reconciliation' => 'attendance',
         'patrols.index' => 'patrols',
-        'patrols.devices' => 'patrols',
         'patrols.playback' => 'gps',
         'patrols.vehicles' => 'patrols',
         'patrols.fleet' => 'patrols',

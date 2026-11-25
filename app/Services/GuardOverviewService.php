@@ -3,11 +3,15 @@
 namespace App\Services;
 
 use App\Enums\ShiftAssignmentStatus;
+use App\Enums\ShiftStatus;
 use App\Models\AttendanceLog;
 use App\Models\Guard;
 use App\Models\Incident;
 use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
+use App\Models\Site;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class GuardOverviewService
 {
@@ -68,8 +72,29 @@ class GuardOverviewService
             'hours_worked' => round($minutesWorked / 60, 1),
             'patrols_completed' => $patrolsCompleted,
             'incidents_reported' => $incidentsReported,
-            'sites_assigned' => $guard->siteAssignments()->count(),
+            'sites_assigned' => $this->assignedSites($guard, $tenantId)->count(),
         ];
+    }
+
+    /** @return Builder<Site> */
+    public function assignedSites(Guard $guard, int $tenantId): Builder
+    {
+        $directSites = $guard->siteAssignments()->where('tenant_id', $tenantId)->select('site_id');
+
+        return Site::forTenant($tenantId)->where(fn (Builder $sites) => $sites
+            ->whereIn('id', $directSites)
+            ->orWhereHas('shifts', fn (Builder $shifts) => $shifts
+                ->where('tenant_id', $tenantId)
+                ->where('ends_at', '>', now())
+                ->whereNotIn('status', [ShiftStatus::CANCELLED->value, ShiftStatus::COMPLETED->value])
+                ->whereHas('assignments', fn (Builder $assignments) => $assignments
+                    ->where('tenant_id', $tenantId)
+                    ->where('guard_id', $guard->id)
+                    ->whereIn('status', [
+                        ShiftAssignmentStatus::ASSIGNED->value,
+                        ShiftAssignmentStatus::CONFIRMED->value,
+                        ShiftAssignmentStatus::IN_PROGRESS->value,
+                    ]))));
     }
 
     /**
@@ -111,7 +136,7 @@ class GuardOverviewService
     }
 
     /**
-     * @return array{shifts: \Illuminate\Support\Collection, incidents: \Illuminate\Support\Collection}
+     * @return array{shifts: Collection, incidents: Collection}
      */
     public function recentActivity(Guard $guard, int $tenantId): array
     {
@@ -145,6 +170,7 @@ class GuardOverviewService
 
     /**
      * @return array<int, array{label: string, value: string|int|float, tone?: string}>
+     *
      * @deprecated Prefer statusMetrics() + overview stats
      */
     public function kpiMetrics(Guard $guard, int $tenantId): array

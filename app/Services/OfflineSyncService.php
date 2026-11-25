@@ -36,10 +36,11 @@ class OfflineSyncService
         $user = $batch->user_id ? User::with('guardProfile')->find($batch->user_id) : null;
         $processed = [];
         $errors = [];
+        $processedIndexes = [];
 
         $guardId = $this->guardIdForBatch($batch, $user);
 
-        foreach ($batch->payload as $item) {
+        foreach ($batch->payload as $index => $item) {
             $type = $item['type'] ?? null;
 
             try {
@@ -59,9 +60,10 @@ class OfflineSyncService
                     'location' => $user
                         ? $this->locations->record($user, (float) $item['latitude'], (float) $item['longitude'], $item['accuracy_meters'] ?? null)
                         : throw new RuntimeException('User required for location sync.'),
-                    default => Log::info('Unhandled offline sync item', ['type' => $type, 'batch_id' => $batch->id]),
+                    default => throw new RuntimeException('Unsupported offline action.'),
                 };
                 $processed[] = $type;
+                $processedIndexes[] = $index;
             } catch (\Throwable $e) {
                 $errors[] = ['type' => $type, 'error' => $e->getMessage()];
                 Log::warning('Offline sync item failed', ['type' => $type, 'batch_id' => $batch->id, 'error' => $e->getMessage()]);
@@ -70,7 +72,7 @@ class OfflineSyncService
 
         $status = $errors ? (empty($processed) ? 'failed' : 'partial') : 'processed';
 
-        return $this->markProcessed($batch, ['processed' => $processed, 'errors' => $errors], $status);
+        return $this->markProcessed($batch, ['processed' => $processed, 'errors' => $errors, 'processed_indexes' => $processedIndexes], $status);
     }
 
     private function processPlaybackPoint(OfflineSyncBatch $batch, array $item, ?int $guardId): void

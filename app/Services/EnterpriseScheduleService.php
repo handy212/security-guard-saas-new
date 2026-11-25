@@ -150,6 +150,10 @@ class EnterpriseScheduleService
             throw new RuntimeException('You are already assigned to this shift.');
         }
 
+        if (! $schedule->isAvailableForShift($guard, $shift)) {
+            throw new RuntimeException('This shift is outside your weekly availability.');
+        }
+
         if ($schedule->hasConflict($guard, $shift->starts_at, $shift->ends_at, $shift->id)) {
             throw new RuntimeException('You have a scheduling conflict for this shift.');
         }

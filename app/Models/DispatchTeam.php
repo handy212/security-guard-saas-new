@@ -11,11 +11,11 @@ class DispatchTeam extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'name', 'standby_site_id'];
+    protected $fillable = ['tenant_id', 'name', 'standby_point_id'];
 
-    public function standbySite(): BelongsTo
+    public function standbyPoint(): BelongsTo
     {
-        return $this->belongsTo(Site::class, 'standby_site_id');
+        return $this->belongsTo(DispatchStandbyPoint::class, 'standby_point_id');
     }
 
     public function members(): HasMany

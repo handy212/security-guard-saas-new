@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ShiftAssignmentStatus;
+use App\Livewire\Guards\GuardProfile;
+use App\Models\EquipmentAsset;
+use App\Models\EquipmentAssignment;
 use App\Models\Guard;
 use App\Models\GuardCertification;
 use App\Models\GuardDocument;
@@ -9,13 +13,15 @@ use App\Models\GuardVerificationToken;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Models\User;
+use App\Services\GuardIdCardPdfService;
 use App\Services\GuardIdCardPresenter;
 use App\Services\GuardIdCardRenderService;
 use App\Services\GuardVerificationService;
 use App\Services\QrCodeService;
+use App\Support\ZipBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class GuardVerificationTest extends TestCase
@@ -41,7 +47,7 @@ class GuardVerificationTest extends TestCase
 
         $shiftAssignment = $guard->assignments()->with('shift')->first();
         $this->assertNotNull($shiftAssignment);
-        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->update(['status' => ShiftAssignmentStatus::ASSIGNED]);
         $shiftAssignment->shift->update([
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addHours(6),
@@ -218,8 +224,8 @@ class GuardVerificationTest extends TestCase
             'verification_status' => 'pending',
         ]);
 
-        \Livewire\Livewire::actingAs($admin)
-            ->test(\App\Livewire\Guards\GuardProfile::class, ['guard' => $guard])
+        Livewire::actingAs($admin)
+            ->test(GuardProfile::class, ['guard' => $guard])
             ->call('markVerified')
             ->assertHasErrors(['verification'])
             ->assertSee('Complete these requirements first');
@@ -237,7 +243,7 @@ class GuardVerificationTest extends TestCase
 
         $this->actingAs($admin);
 
-        \Livewire\Livewire::test(\App\Livewire\Guards\GuardProfile::class, ['guard' => $guard])
+        Livewire::test(GuardProfile::class, ['guard' => $guard])
             ->set('activeTab', 'licenses')
             ->set('certForm.name', 'Fire Safety')
             ->set('certForm.issuer', 'NFPA')
@@ -310,12 +316,12 @@ class GuardVerificationTest extends TestCase
         $guard = Guard::where('employee_number', 'G-001')->first();
 
         $fakePng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
-        $zip = (new \App\Support\ZipBuilder)
+        $zip = (new ZipBuilder)
             ->add('guard-id-G-001-front.png', $fakePng)
             ->add('guard-id-G-001-back.png', $fakePng)
             ->build();
 
-        $this->partialMock(\App\Services\GuardIdCardPdfService::class, function ($mock) use ($zip) {
+        $this->partialMock(GuardIdCardPdfService::class, function ($mock) use ($zip) {
             $mock->shouldReceive('requiresHeavyWorker')->andReturn(false);
             $mock->shouldReceive('generatePngZip')->once()->andReturn($zip);
         });
@@ -375,7 +381,7 @@ class GuardVerificationTest extends TestCase
             )]
         );
 
-        $brand = app(\App\Services\GuardIdCardPresenter::class)->branding($guard->tenant);
+        $brand = app(GuardIdCardPresenter::class)->branding($guard->tenant);
         $this->assertSame('premium', $brand['template']);
         $this->assertSame('landscape', $brand['orientation']);
 
@@ -429,6 +435,27 @@ class GuardVerificationTest extends TestCase
         $this->actingAs($admin)
             ->get(route('files.guard-document', $document))
             ->assertOk();
+    }
+
+    public function test_guard_document_returns_not_found_when_backing_file_is_missing(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@demo.test')->first();
+        $guard = Guard::where('employee_number', 'G-001')->first();
+        $document = GuardDocument::create([
+            'tenant_id' => $guard->tenant_id,
+            'guard_id' => $guard->id,
+            'type' => 'id',
+            'file_path' => "tenants/{$guard->tenant_id}/guards/{$guard->id}/missing.pdf",
+            'status' => 'valid',
+        ]);
+
+        Storage::fake('tenant_private');
+
+        $this->actingAs($admin)
+            ->get(route('files.guard-document', $document))
+            ->assertNotFound();
     }
 
     public function test_verified_guard_without_token_cannot_download_id_card(): void
@@ -496,7 +523,7 @@ class GuardVerificationTest extends TestCase
             'verification_status' => 'pending',
         ]);
 
-        $token = \App\Models\GuardVerificationToken::create([
+        $token = GuardVerificationToken::create([
             'tenant_id' => $tenant->id,
             'guard_id' => $guard->id,
             'token' => 'BADTOKEN01',
@@ -552,8 +579,8 @@ class GuardVerificationTest extends TestCase
             'verification_status' => 'pending',
         ]);
 
-        \Livewire\Livewire::actingAs($admin)
-            ->test(\App\Livewire\Guards\GuardProfile::class, ['guard' => $guard])
+        Livewire::actingAs($admin)
+            ->test(GuardProfile::class, ['guard' => $guard])
             ->call('rotateQrToken')
             ->assertHasErrors(['verification']);
 
@@ -590,7 +617,7 @@ class GuardVerificationTest extends TestCase
 
         $shiftAssignment = $guard->assignments()->with('shift')->first();
         $this->assertNotNull($shiftAssignment);
-        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->update(['status' => ShiftAssignmentStatus::ASSIGNED]);
         $shiftAssignment->shift->update([
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addHours(6),
@@ -616,7 +643,7 @@ class GuardVerificationTest extends TestCase
 
         $shiftAssignment = $guard->assignments()->with('shift')->first();
         $this->assertNotNull($shiftAssignment);
-        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::CANCELLED]);
+        $shiftAssignment->update(['status' => ShiftAssignmentStatus::CANCELLED]);
         $shiftAssignment->shift->update([
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addHours(6),
@@ -641,7 +668,7 @@ class GuardVerificationTest extends TestCase
         $token = $guard->activeVerificationToken();
         $shiftAssignment = $guard->assignments()->with('shift.site')->first();
         $this->assertNotNull($shiftAssignment);
-        $shiftAssignment->update(['status' => \App\Enums\ShiftAssignmentStatus::ASSIGNED]);
+        $shiftAssignment->update(['status' => ShiftAssignmentStatus::ASSIGNED]);
         $shiftAssignment->shift->update([
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addHours(6),
@@ -651,12 +678,12 @@ class GuardVerificationTest extends TestCase
         $this->assertNotNull($supervisor);
         $shiftAssignment->shift->site->update(['supervisor_user_id' => $supervisor->id]);
 
-        $asset = \App\Models\EquipmentAsset::where('tenant_id', $guard->tenant_id)
+        $asset = EquipmentAsset::where('tenant_id', $guard->tenant_id)
             ->where('asset_tag', 'RAD-001')
             ->first();
         $this->assertNotNull($asset);
 
-        \App\Models\EquipmentAssignment::updateOrCreate(
+        EquipmentAssignment::updateOrCreate(
             [
                 'tenant_id' => $guard->tenant_id,
                 'equipment_asset_id' => $asset->id,

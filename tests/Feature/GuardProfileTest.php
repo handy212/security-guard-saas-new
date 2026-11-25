@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Livewire\Guards\GuardProfile;
 use App\Models\Guard;
+use App\Models\GuardCertification;
 use App\Models\GuardNote;
+use App\Models\ShiftAssignment;
 use App\Models\Site;
 use App\Models\Tenant;
 use App\Models\User;
@@ -83,11 +85,10 @@ class GuardProfileTest extends TestCase
             ->assertSee('Add note');
     }
 
-
     public function test_expired_certifications_are_labeled_expired(): void
     {
         $guard = Guard::first();
-        \App\Models\GuardCertification::create([
+        GuardCertification::create([
             'tenant_id' => $guard->tenant_id,
             'guard_id' => $guard->id,
             'name' => 'First aid',
@@ -121,6 +122,24 @@ class GuardProfileTest extends TestCase
             ->call('deleteNote', $note->id);
 
         $this->assertDatabaseMissing('guard_notes', ['id' => $note->id]);
+    }
+
+    public function test_sites_tab_includes_sites_from_shift_assignments(): void
+    {
+        $assignment = ShiftAssignment::with('shift.site')->firstOrFail();
+        $assignment->update(['status' => 'assigned']);
+        $assignment->shift->update(['status' => 'scheduled', 'ends_at' => now()->addHour()]);
+        $guard = Guard::findOrFail($assignment->guard_id);
+        $site = $assignment->shift->site;
+        $guard->siteAssignments()->delete();
+
+        Livewire::actingAs($this->admin)
+            ->withQueryParams(['tab' => 'sites'])
+            ->test(GuardProfile::class, ['guard' => $guard])
+            ->assertSet('activeTab', 'sites')
+            ->assertSee('Scheduled shift')
+            ->assertSeeHtml(route('sites.show', $site))
+            ->assertDontSee('No sites assigned.');
     }
 
     public function test_guard_site_assignment_via_profile(): void

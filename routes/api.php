@@ -9,7 +9,6 @@ use App\Http\Controllers\Api\Admin\ExpenseController;
 use App\Http\Controllers\Api\Admin\FleetVehicleController;
 use App\Http\Controllers\Api\Admin\GuardController;
 use App\Http\Controllers\Api\Admin\IncidentController;
-use App\Http\Controllers\Api\Admin\JwmDeviceController;
 use App\Http\Controllers\Api\Admin\Nested\CheckpointTaskController;
 use App\Http\Controllers\Api\Admin\Nested\ClientContactController;
 use App\Http\Controllers\Api\Admin\Nested\ClientDocumentController;
@@ -36,7 +35,6 @@ use App\Http\Controllers\Api\Admin\VisitorController;
 use App\Http\Controllers\Api\Admin\WebhookController;
 use App\Http\Controllers\Api\AuthTokenController;
 use App\Http\Controllers\Api\EnterpriseApiController;
-use App\Http\Controllers\Api\JwmEventController;
 use App\Http\Controllers\Api\MobileAppController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Middleware\RestrictJwmBridgeToken;
@@ -49,23 +47,6 @@ Route::post('/v1/auth/token', [AuthTokenController::class, 'store'])
 
 Route::middleware(['auth:sanctum', 'tenant', RestrictJwmBridgeToken::class, 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::delete('/auth/token', [AuthTokenController::class, 'destroy']);
-
-    Route::prefix('admin/jwm-devices')->middleware('permission:patrols.manage')->group(function () {
-        $controller = JwmDeviceController::class;
-        Route::get('/', [$controller, 'index']);
-        Route::post('/', [$controller, 'store']);
-        Route::patch('/{device}', [$controller, 'update'])->whereNumber('device');
-        Route::get('/{device}/assignments', [$controller, 'assignments'])->whereNumber('device');
-        Route::post('/{device}/assignments', [$controller, 'assign'])->whereNumber('device');
-        Route::post('/{device}/bridge-token', [$controller, 'bridgeToken'])->whereNumber('device');
-        Route::get('/{device}/guard-mappings', [$controller, 'guardMappings'])->whereNumber('device');
-        Route::post('/{device}/guard-mappings', [$controller, 'mapGuard'])->whereNumber('device');
-        Route::get('/{device}/checkpoint-mappings', [$controller, 'checkpointMappings'])->whereNumber('device');
-        Route::post('/{device}/checkpoint-mappings', [$controller, 'mapCheckpoint'])->whereNumber('device');
-    });
-
-    Route::post('/jwm/devices/{device}/events', [JwmEventController::class, 'store'])
-        ->whereNumber('device')->name('api.jwm.events.store');
 
     Route::get('/me/assignments', [MobileAppController::class, 'myAssignments']);
     Route::post('/attendance/clock-in', [MobileAppController::class, 'clockIn']);

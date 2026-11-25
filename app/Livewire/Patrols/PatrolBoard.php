@@ -4,15 +4,21 @@ namespace App\Livewire\Patrols;
 
 use App\Enums\VehicleStatus;
 use App\Livewire\Concerns\AuthorizesModuleAccess;
+use App\Models\CheckpointScan;
 use App\Models\FleetVehicle;
 use App\Models\Guard;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
 use App\Models\Site;
+use App\Models\TaskSubmission;
 use App\Services\FleetService;
 use App\Services\PatrolService;
 use App\Support\TenantContext;
+use App\Support\TenantValidation;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use RuntimeException;
 
@@ -56,18 +62,33 @@ class PatrolBoard extends Component
 
     public function openCheckpointForm(?int $routeId = null): void
     {
+        $this->authorizePermission('patrols.manage');
         $this->editingCheckpointId = null;
         $this->checkpointForm = [
             'patrol_route_id' => $routeId ? (string) $routeId : '',
             'name' => '',
             'code' => '',
-            'sequence' => 1,
+            'sequence' => $routeId ? $this->nextCheckpointSequence($routeId) : 1,
             'latitude' => '',
             'longitude' => '',
             'instructions' => '',
         ];
         $this->resetErrorBag();
         $this->activeDrawer = 'checkpoint';
+    }
+
+    public function updatedCheckpointFormPatrolRouteId(mixed $routeId): void
+    {
+        if (! $this->editingCheckpointId && is_numeric($routeId)) {
+            $this->checkpointForm['sequence'] = $this->nextCheckpointSequence((int) $routeId);
+        }
+    }
+
+    private function nextCheckpointSequence(int $routeId): int
+    {
+        return (int) PatrolCheckpoint::forTenant(TenantContext::id())
+            ->where('patrol_route_id', $routeId)
+            ->max('sequence') + 1;
     }
 
     public function openAssignForm(): void
@@ -93,6 +114,7 @@ class PatrolBoard extends Component
 
     public function editRoute(int $id): void
     {
+        $this->authorizePermission('patrols.manage');
         $route = PatrolRoute::where('tenant_id', TenantContext::id())->findOrFail($id);
         $this->editingRouteId = $route->id;
         $this->routeForm = [
@@ -110,10 +132,11 @@ class PatrolBoard extends Component
     {
         abort_unless(auth()->user()->can('patrols.manage'), 403);
         $data = $this->validate([
-            'routeForm.site_id' => 'required',
-            'routeForm.name' => 'required',
+            'routeForm.site_id' => ['required', TenantValidation::exists('sites')],
+            'routeForm.name' => 'required|string|max:255',
             'routeForm.description' => 'nullable|string|max:2000',
-            'routeForm.expected_duration_minutes' => 'integer',
+            'routeForm.expected_duration_minutes' => 'required|integer|min:1|max:65535',
+            'routeForm.status' => 'required|in:active,inactive',
         ])['routeForm'];
         $data['description'] = $data['description'] !== '' ? $data['description'] : null;
 
@@ -133,7 +156,11 @@ class PatrolBoard extends Component
     {
         abort_unless(auth()->user()->can('patrols.manage'), 403);
         $route = PatrolRoute::where('tenant_id', TenantContext::id())->findOrFail($id);
-        $route->checkpoints()->delete();
+        if (PatrolSession::forTenant(TenantContext::id())->where('patrol_route_id', $id)->exists()) {
+            $this->addError('patrolAction', 'This route has patrol history. Set it to inactive to stop new patrols.');
+
+            return;
+        }
         $route->delete();
         if ($this->editingRouteId === $id) {
             $this->closeDrawer();
@@ -143,6 +170,7 @@ class PatrolBoard extends Component
 
     public function editCheckpoint(int $id): void
     {
+        $this->authorizePermission('patrols.manage');
         $checkpoint = PatrolCheckpoint::where('tenant_id', TenantContext::id())->findOrFail($id);
         $this->editingCheckpointId = $checkpoint->id;
         $this->checkpointForm = [
@@ -161,13 +189,17 @@ class PatrolBoard extends Component
     public function saveCheckpoint(): void
     {
         abort_unless(auth()->user()->can('patrols.manage'), 403);
+        $checkpoint = $this->editingCheckpointId
+            ? PatrolCheckpoint::forTenant(TenantContext::id())->findOrFail($this->editingCheckpointId)
+            : null;
+
         $data = $this->validate([
-            'checkpointForm.patrol_route_id' => 'required',
-            'checkpointForm.name' => 'required',
-            'checkpointForm.code' => 'required',
-            'checkpointForm.sequence' => 'integer',
-            'checkpointForm.latitude' => 'nullable|numeric',
-            'checkpointForm.longitude' => 'nullable|numeric',
+            'checkpointForm.patrol_route_id' => ['required', TenantValidation::exists('patrol_routes')],
+            'checkpointForm.name' => 'required|string|max:255',
+            'checkpointForm.code' => ['required', 'string', 'max:255', Rule::unique('patrol_checkpoints', 'code')->ignore($checkpoint)],
+            'checkpointForm.sequence' => 'required|integer|min:1|max:65535',
+            'checkpointForm.latitude' => 'nullable|required_with:checkpointForm.longitude|numeric|between:-90,90',
+            'checkpointForm.longitude' => 'nullable|required_with:checkpointForm.latitude|numeric|between:-180,180',
             'checkpointForm.instructions' => 'nullable|string|max:1000',
         ])['checkpointForm'];
 
@@ -175,8 +207,7 @@ class PatrolBoard extends Component
         $data['longitude'] = $data['longitude'] !== '' ? $data['longitude'] : null;
         $data['instructions'] = $data['instructions'] !== '' ? $data['instructions'] : null;
 
-        if ($this->editingCheckpointId) {
-            $checkpoint = PatrolCheckpoint::where('tenant_id', TenantContext::id())->findOrFail($this->editingCheckpointId);
+        if ($checkpoint) {
             $checkpoint->update($data);
             session()->flash('status', 'Checkpoint updated.');
         } else {
@@ -191,6 +222,12 @@ class PatrolBoard extends Component
     {
         abort_unless(auth()->user()->can('patrols.manage'), 403);
         $checkpoint = PatrolCheckpoint::where('tenant_id', TenantContext::id())->findOrFail($id);
+        if (CheckpointScan::forTenant(TenantContext::id())->where('patrol_checkpoint_id', $id)->exists()
+            || PatrolSession::forTenant(TenantContext::id())->where('patrol_route_id', $checkpoint->patrol_route_id)->where('status', 'in_progress')->exists()) {
+            $this->addError('patrolAction', 'This checkpoint has scan history or is part of an active patrol.');
+
+            return;
+        }
         $checkpoint->delete();
         if ($this->editingCheckpointId === $id) {
             $this->closeDrawer();
@@ -203,13 +240,13 @@ class PatrolBoard extends Component
         abort_unless(auth()->user()->can('patrols.manage'), 403);
 
         $data = $this->validate([
-            'assignForm.patrol_route_id' => 'required|exists:patrol_routes,id',
-            'assignForm.guard_id' => 'required|exists:guards,id',
-            'assignForm.vehicle_id' => 'nullable|exists:fleet_vehicles,id',
+            'assignForm.patrol_route_id' => ['required', TenantValidation::exists('patrol_routes')->where('status', 'active')],
+            'assignForm.guard_id' => ['required', TenantValidation::exists('guards')->where('status', 'active')->where('verification_status', 'verified')],
+            'assignForm.vehicle_id' => ['nullable', TenantValidation::exists('fleet_vehicles')->where('status', VehicleStatus::AVAILABLE->value)],
         ])['assignForm'];
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($patrols, $fleet, $data) {
+            DB::transaction(function () use ($patrols, $fleet, $data) {
                 $session = $patrols->assignAndStart(
                     TenantContext::id(),
                     (int) $data['patrol_route_id'],
@@ -225,9 +262,11 @@ class PatrolBoard extends Component
                 }
             });
         } catch (RuntimeException $e) {
-            $field = str_contains(strtolower($e->getMessage()), 'vehicle')
-                ? 'assignForm.vehicle_id'
-                : 'assignForm.guard_id';
+            $field = match (true) {
+                str_contains(strtolower($e->getMessage()), 'vehicle') => 'assignForm.vehicle_id',
+                str_contains(strtolower($e->getMessage()), 'active route') => 'assignForm.patrol_route_id',
+                default => 'assignForm.guard_id',
+            };
             $this->addError($field, $e->getMessage());
 
             return;
@@ -239,10 +278,14 @@ class PatrolBoard extends Component
 
     public function render()
     {
+        $this->authorizePermission('patrols.manage');
         $tenantId = TenantContext::id();
         $search = trim($this->search);
 
+        $visibleRoute = fn (Builder $query) => $query->where('status', '!=', 'archived');
+        $visibleSessions = PatrolSession::forTenant($tenantId)->whereHas('route', $visibleRoute);
         $routes = PatrolRoute::with(['site', 'checkpoints'])
+            ->where($visibleRoute)
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', '%'.$search.'%')
@@ -252,14 +295,17 @@ class PatrolBoard extends Component
             ->latest()
             ->get();
 
-        $sessions = PatrolSession::with(['route.site', 'assignedGuard', 'scans', 'vehiclePatrol.vehicle'])
-            ->where('tenant_id', $tenantId)
+        $sessions = (clone $visibleSessions)
+            ->with(['route' => fn ($query) => $query->with('site')->withCount('checkpoints'), 'assignedGuard', 'vehiclePatrol.vehicle'])
+            ->withCount(['scans', 'scans as verified_checkpoints_count' => fn (Builder $query) => $query
+                ->where('status', 'valid')->select(DB::raw('COUNT(DISTINCT patrol_checkpoint_id)'))])
             ->latest()
             ->limit(20)
             ->get();
 
-        $submissions = \App\Models\TaskSubmission::with(['task', 'scan.assignedGuard', 'scan.checkpoint'])
+        $submissions = TaskSubmission::with(['task', 'scan.assignedGuard', 'scan.checkpoint'])
             ->where('tenant_id', $tenantId)
+            ->whereHas('scan.session.route', $visibleRoute)
             ->latest()
             ->limit(30)
             ->get();
@@ -267,6 +313,9 @@ class PatrolBoard extends Component
         return view('livewire.patrols.patrol-board', [
             'routes' => $routes,
             'sessions' => $sessions,
+            'assignableRoutes' => $this->activeDrawer === 'assign'
+                ? PatrolRoute::with('site')->where('status', 'active')->has('checkpoints')->orderBy('name')->get()
+                : collect(),
             'submissions' => $submissions,
             'sites' => Site::orderBy('name')->get(),
             'guards' => Guard::where('tenant_id', $tenantId)
@@ -281,9 +330,8 @@ class PatrolBoard extends Component
             'stats' => [
                 'routes' => $routes->count(),
                 'checkpoints' => $routes->sum(fn ($r) => $r->checkpoints->count()),
-                'active_sessions' => $sessions->where('status', 'in_progress')->count(),
-                'completed_today' => $sessions->filter(fn ($s) => $s->completed_at?->isToday())->count(),
-                'fleet_available' => FleetVehicle::where('tenant_id', $tenantId)->where('status', VehicleStatus::AVAILABLE)->count(),
+                'active_sessions' => (clone $visibleSessions)->where('status', 'in_progress')->count(),
+                'completed_today' => (clone $visibleSessions)->where('status', 'completed')->whereBetween('completed_at', [today(), today()->endOfDay()])->count(),
             ],
         ])->layout('layouts.app');
     }

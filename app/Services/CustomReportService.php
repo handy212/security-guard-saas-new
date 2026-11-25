@@ -7,6 +7,7 @@ use App\Models\ReportTemplate;
 use App\Models\ReportTemplateAssignment;
 use App\Models\ReportTemplateField;
 use App\Models\User;
+use App\Notifications\GenericGuardOpsNotification;
 use App\Support\TenantContext;
 
 class CustomReportService
@@ -96,7 +97,7 @@ class CustomReportService
             ->where('tenant_id', $submission->tenant_id)
             ->when($submission->site?->client_account_id, fn ($q) => $q->where('client_account_id', $submission->site->client_account_id))
             ->each(function (User $user) use ($submission) {
-                $user->notify(new \App\Notifications\GenericGuardOpsNotification(
+                $user->notify(new GenericGuardOpsNotification(
                     'New report available',
                     'A custom report has been submitted for '.$submission->site?->name,
                     '/client-portal',
@@ -107,7 +108,7 @@ class CustomReportService
 
     public function templatesForSite(int $siteId)
     {
-        return ReportTemplate::where('is_active', true)
+        return ReportTemplate::forTenant(TenantContext::id())->where('is_active', true)
             ->whereHas('assignments', fn ($q) => $q->where('site_id', $siteId))
             ->with('fields')
             ->get();

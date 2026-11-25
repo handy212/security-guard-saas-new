@@ -6,16 +6,19 @@ use App\Enums\VehicleStatus;
 use App\Enums\VehicleType;
 use App\Livewire\Patrols\FleetIndex;
 use App\Livewire\Patrols\PatrolBoard;
-use App\Livewire\Schedules\DeployWizard;
 use App\Livewire\Schedules\DeploymentSheet;
+use App\Livewire\Schedules\DeployWizard;
+use App\Models\EquipmentAsset;
+use App\Models\EquipmentAssignment;
 use App\Models\FleetVehicle;
 use App\Models\Guard;
 use App\Models\PatrolRoute;
-use App\Models\Shift;
+use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
 use App\Models\Site;
 use App\Models\User;
 use App\Models\VehiclePatrol;
+use App\Services\AssetManagementService;
 use App\Services\FleetService;
 use App\Services\ScheduleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +38,30 @@ class FleetAndDeployFlowTest extends TestCase
         $this->admin = User::where('email', 'admin@demo.test')->firstOrFail();
         app()->instance('currentTenant', $this->admin->tenant);
         setPermissionsTeamId($this->admin->tenant_id);
+    }
+
+    public function test_patrol_board_validates_checkpoint_codes_and_preserves_patrol_history(): void
+    {
+        $route = PatrolRoute::whereHas('checkpoints')->firstOrFail();
+        $checkpoint = $route->checkpoints()->firstOrFail();
+        $session = PatrolSession::where('patrol_route_id', $route->id)->firstOrFail();
+
+        Livewire::actingAs($this->admin)->test(PatrolBoard::class)
+            ->call('deleteRoute', $route->id)
+            ->assertHasErrors('patrolAction')
+            ->call('openCheckpointForm', $route->id)
+            ->assertSet('checkpointForm.sequence', (int) $route->checkpoints()->max('sequence') + 1)
+            ->set('checkpointForm.name', 'Duplicate stop')
+            ->set('checkpointForm.code', $checkpoint->code)
+            ->call('saveCheckpoint')
+            ->assertHasErrors(['checkpointForm.code' => 'unique'])
+            ->call('editRoute', $route->id)
+            ->set('routeForm.status', 'inactive')
+            ->call('saveRoute')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('patrol_sessions', ['id' => $session->id]);
+        $this->assertSame('inactive', $route->fresh()->status);
     }
 
     public function test_fleet_vehicle_can_be_created_and_assigned_to_patrol(): void
@@ -69,6 +96,13 @@ class FleetAndDeployFlowTest extends TestCase
             'name' => 'Gate loop',
             'expected_duration_minutes' => 20,
             'status' => 'active',
+        ]);
+
+        $route->checkpoints()->create([
+            'tenant_id' => $tenantId,
+            'name' => 'Gate stop',
+            'code' => 'FLEET-GATE-STOP',
+            'sequence' => 1,
         ]);
 
         $shift = app(ScheduleService::class)->createShift([
@@ -203,11 +237,11 @@ class FleetAndDeployFlowTest extends TestCase
             'employee_number' => 'G-KIT-1',
         ]);
 
-        $radio = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
-        $bodycam = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
+        $radio = EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
+        $bodycam = EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
 
         // Demo seed may have already issued RAD-001 — ensure kit items are available.
-        \App\Models\EquipmentAssignment::where('equipment_asset_id', $radio->id)->where('status', 'issued')->update([
+        EquipmentAssignment::where('equipment_asset_id', $radio->id)->where('status', 'issued')->update([
             'status' => 'returned',
             'returned_at' => now(),
         ]);
@@ -252,10 +286,10 @@ class FleetAndDeployFlowTest extends TestCase
     public function test_available_deploy_kit_excludes_already_issued_assets(): void
     {
         $tenantId = $this->admin->tenant_id;
-        $assets = app(\App\Services\AssetManagementService::class);
+        $assets = app(AssetManagementService::class);
 
-        $radio = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
-        $bodycam = \App\Models\EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
+        $radio = EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'RAD-001')->firstOrFail();
+        $bodycam = EquipmentAsset::where('tenant_id', $tenantId)->where('asset_tag', 'CAM-001')->firstOrFail();
 
         $kit = $assets->availableDeployKit($tenantId);
 

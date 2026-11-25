@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AssetStatus;
 use App\Enums\BidStatus;
 use App\Enums\ConfirmationStatus;
 use App\Enums\DispatchStatus;
@@ -75,6 +76,7 @@ use App\Models\WebhookSubscription;
 use App\Services\TenantRoleProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class ModuleDemoSeeder extends Seeder
 {
@@ -238,9 +240,12 @@ class ModuleDemoSeeder extends Seeder
             ]
         );
 
+        $demoDocumentPath = 'demo/guards/g-002-id.pdf';
+        Storage::disk('tenant_private')->put($demoDocumentPath, "%PDF-1.4\n% GuardCore Pro demo document\n");
+
         GuardDocument::updateOrCreate(
             ['tenant_id' => $tenant->id, 'guard_id' => $guard2->id, 'type' => 'id_card'],
-            ['file_path' => 'demo/guards/g-002-id.pdf', 'expires_at' => now()->addYear(), 'status' => 'active']
+            ['file_path' => $demoDocumentPath, 'expires_at' => now()->addYear(), 'status' => 'active']
         );
 
         $nightShift = Shift::updateOrCreate(
@@ -782,7 +787,7 @@ class ModuleDemoSeeder extends Seeder
                     'returned_at' => null,
                 ]
             );
-            $radioAsset->update(['status' => \App\Enums\AssetStatus::ISSUED]);
+            $radioAsset->update(['status' => AssetStatus::ISSUED]);
         }
 
         $reportTemplate = ReportTemplate::updateOrCreate(

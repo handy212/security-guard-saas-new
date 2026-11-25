@@ -146,60 +146,38 @@ class ScheduleService
         });
     }
 
-    /**
-     * No availability rows = fully available.
-     * Otherwise the shift must sit inside an available window for each weekday it spans.
-     */
     public function isAvailableForShift(Guard $guard, Shift $shift): bool
     {
-        $slots = GuardAvailability::query()
+        $slots = GuardAvailability::forTenant($guard->tenant_id)
             ->where('guard_id', $guard->id)
+            ->orderBy('starts_at')
             ->get();
-
-        if ($slots->isEmpty()) {
-            return true;
-        }
 
         $startsAt = Carbon::parse($shift->starts_at);
         $endsAt = Carbon::parse($shift->ends_at);
-        $cursor = $startsAt->copy();
+        $coveredUntil = $slots->contains('is_available', true) ? $startsAt->copy() : $endsAt;
 
-        while ($cursor->lt($endsAt)) {
-            $dayBoundary = $cursor->copy()->endOfDay();
-            $segmentEnd = $endsAt->lt($dayBoundary) ? $endsAt->copy() : $dayBoundary;
-            $weekday = $cursor->dayOfWeek;
-            $needStart = $cursor->format('H:i');
-            $needEnd = $endsAt->isSameDay($cursor)
-                ? $endsAt->format('H:i')
-                : '23:59';
-
-            $daySlots = $slots->where('weekday', $weekday);
-            if ($daySlots->isEmpty()) {
-                return false;
-            }
-
-            $covered = $daySlots->contains(function (GuardAvailability $slot) use ($needStart, $needEnd) {
-                if (! $slot->is_available) {
-                    return false;
+        for ($day = $startsAt->copy()->startOfDay()->subDay(); $day->lt($endsAt); $day->addDay()) {
+            foreach ($slots->where('weekday', $day->dayOfWeek) as $slot) {
+                $start = $day->copy()->setTimeFromTimeString($slot->starts_at);
+                $end = $day->copy()->setTimeFromTimeString($slot->ends_at);
+                if ($start->eq($end)) {
+                    continue;
+                }
+                if ($end->lt($start)) {
+                    $end->addDay();
                 }
 
-                $slotStart = substr((string) $slot->starts_at, 0, 5);
-                $slotEnd = substr((string) $slot->ends_at, 0, 5);
-
-                return $slotStart <= $needStart && $slotEnd >= $needEnd;
-            });
-
-            if (! $covered) {
-                return false;
-            }
-
-            $cursor = $cursor->copy()->addDay()->startOfDay();
-            if ($cursor->gte($endsAt)) {
-                break;
+                if (! $slot->is_available && $start->lt($endsAt) && $end->gt($startsAt)) {
+                    return false;
+                }
+                if ($slot->is_available && $start->lte($coveredUntil) && $end->gt($coveredUntil)) {
+                    $coveredUntil = $end;
+                }
             }
         }
 
-        return true;
+        return $coveredUntil->gte($endsAt);
     }
 
     public function refreshShiftStaffingStatus(Shift $shift): void

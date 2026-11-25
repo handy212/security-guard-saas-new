@@ -251,7 +251,7 @@
 
                         @if ($selected->dispatchTeam)
                             <div class="mb-4 rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-                                <p><strong>{{ $selected->dispatchTeam->name }}</strong> · {{ $selected->dispatchTeam->standbySite?->name ?? 'Standby site unavailable' }}</p>
+                                <p><strong>{{ $selected->dispatchTeam->name }}</strong> · {{ $selected->dispatchTeam->standbyPoint?->name ?? 'Standby point unavailable' }}</p>
                                 @if ($selected->acknowledged_at)
                                     <p>Acknowledged at {{ $selected->acknowledged_at->format('H:i') }}</p>
                                 @endif
@@ -267,7 +267,7 @@
                                 <x-select wire:model="assignTeamId" label="Assign response team">
                                     <option value="">Choose an available team</option>
                                     @foreach ($dispatchTeams as $team)
-                                        <option value="{{ $team->id }}" @disabled($team->outstandingDispatches->isNotEmpty() || ! $team->standby_site_id || ! $team->active_officers_count)>{{ $team->name }} · {{ $team->standbySite?->name }}</option>
+                                        <option value="{{ $team->id }}" @disabled($team->outstandingDispatches->isNotEmpty() || ! $team->standbyPoint?->region?->is_active || ! $team->active_officers_count)>{{ $team->name }} · {{ $team->standbyPoint?->name }}</option>
                                     @endforeach
                                 </x-select>
                                 @error('assignTeamId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror

@@ -177,7 +177,7 @@ class TimeOffIndex extends Component
             'availabilityForm.guard_id' => ['required', TenantValidation::exists('guards')],
             'availabilityForm.weekday' => 'required|integer|min:0|max:6',
             'availabilityForm.starts_at' => 'required|date_format:H:i',
-            'availabilityForm.ends_at' => 'required|date_format:H:i|after:availabilityForm.starts_at',
+            'availabilityForm.ends_at' => 'required|date_format:H:i|different:availabilityForm.starts_at',
             'availabilityForm.is_available' => 'boolean',
         ])['availabilityForm'];
 

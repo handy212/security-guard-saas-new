@@ -2448,3 +2448,21 @@ html.sidebar-collapsed .workspace-sidebar > nav > div:first-child { padding-inli
 
 
 .tracking-map-workspace[data-sites-collapsed="true"] { grid-template-columns: minmax(0, 1fr); }
+
+.workspace-app .patrol-workspace .patrol-summary > * {
+    padding-block: 8px;
+}
+
+.workspace-app .patrol-workspace .card-header {
+    padding-block: 10px;
+}
+
+.workspace-app .patrol-workspace .patrol-table {
+    border: 0;
+    border-radius: 0;
+}
+
+.workspace-app .patrol-workspace .table-th,
+.workspace-app .patrol-workspace .table-td {
+    padding-block: 8px;
+}

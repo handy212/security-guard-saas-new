@@ -13,6 +13,7 @@ use App\Livewire\Sites\SiteProfile;
 use App\Models\Branch;
 use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
+use App\Models\DispatchStandbyPoint;
 use App\Models\DispatchTeam;
 use App\Models\Guard;
 use App\Models\OperationalAlert;
@@ -590,23 +591,38 @@ class DispatchSystemTest extends TestCase
         }
 
         $region = Branch::create(['tenant_id' => $this->tenant->id, 'name' => 'Greater Accra', 'is_active' => true]);
-        Livewire::actingAs($this->admin)->test(BranchIndex::class)
+        $originalSiteRegion = $site->dispatch_region_id;
+        $settings = Livewire::actingAs($this->admin)->test(BranchIndex::class)
             ->assertSee('Dispatch standby points')
             ->set('pointRegionId', $region->id)
-            ->set('pointSiteId', $site->id)
-            ->call('registerStandbyPoint')
-            ->assertHasNoErrors()
-            ->set('teamName', 'Response One')
-            ->set('standbySiteId', $site->id)
+            ->set('pointName', 'North response station')
+            ->set('pointLatitude', '91')
+            ->set('pointLongitude', '-0.19')
+            ->call('createStandbyPoint')
+            ->assertHasErrors('pointLatitude')
+            ->set('pointLatitude', '5.62')
+            ->call('createStandbyPoint')
+            ->assertHasNoErrors();
+        $point = DispatchStandbyPoint::where('name', 'North response station')->sole();
+        $settings->set('teamName', 'Response One')
+            ->set('standbyPointId', $point->id)
             ->set('teamMembers', $officers->modelKeys())
             ->call('createDispatchTeam')
             ->assertHasNoErrors();
-        $this->assertEquals($region->id, $site->fresh()->dispatch_region_id);
+        $this->assertSame($region->id, $point->region_id);
+        $this->assertSame($originalSiteRegion, $site->fresh()->dispatch_region_id);
 
         $board = Livewire::actingAs($this->admin)->test(DispatcherBoard::class)
             ->assertDontSee('Create response team');
         $team = DispatchTeam::where('name', 'Response One')->sole();
         $this->assertSame(2, $team->members()->count());
+        $this->assertSame($point->id, $team->standby_point_id);
+        $officerUser = $officers->first(fn (Guard $officer) => $officer->user_id !== null)->user;
+        Livewire::actingAs($officerUser)->test(MobileDashboard::class)
+            ->assertSee('North response station')
+            ->assertSee('5.62, -0.19');
+        $this->actingAs($this->admin);
+
         $event = DispatchEvent::create(['event_type' => 'alarm', 'site_id' => $site->id, 'status' => DispatchStatus::OPEN, 'dispatch_number' => 'TEAM-TEST']);
         $board->call('selectDispatch', $event->id)->set('assignTeamId', $team->id)
             ->call('assignDispatchTeam')->assertHasNoErrors();
@@ -627,6 +643,34 @@ class DispatchSystemTest extends TestCase
         $this->assertNotNull($event->fresh()->returned_at);
         $this->assertFalse($team->outstandingDispatches()->exists());
         $this->assertFalse($service->myActiveDispatches($officers->last()->id)->contains('id', $event->id));
+    }
+
+    public function test_settings_manager_can_edit_a_standby_point(): void
+    {
+        $region = Branch::create(['tenant_id' => $this->tenant->id, 'name' => 'North Region', 'is_active' => true]);
+        $point = DispatchStandbyPoint::create([
+            'tenant_id' => $this->tenant->id,
+            'region_id' => $region->id,
+            'name' => 'Old response station',
+            'latitude' => 5.62,
+            'longitude' => -0.19,
+        ]);
+
+        Livewire::actingAs($this->admin)->test(BranchIndex::class)
+            ->call('editStandbyPoint', $point->id)
+            ->assertSet('editingStandbyPointId', $point->id)
+            ->set('pointName', 'North response station')
+            ->set('pointLatitude', '5.64')
+            ->call('createStandbyPoint')
+            ->assertHasNoErrors()
+            ->assertSee('Standby point updated.');
+
+        $this->assertDatabaseHas('dispatch_standby_points', [
+            'id' => $point->id,
+            'name' => 'North response station',
+            'latitude' => 5.64,
+            'longitude' => -0.19,
+        ]);
     }
 
     public function test_create_dispatch_with_full_workflow(): void

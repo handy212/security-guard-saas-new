@@ -317,7 +317,7 @@
 
         @if ($activeTab === 'availability')
             <div class="page-split">
-                <x-section-card class="!h-auto" title="Weekly availability" description="Recurring windows for shift scheduling.">
+                <x-section-card class="!h-auto" title="Weekly availability" description="Available windows set working hours. Unavailable windows block scheduling.">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -331,7 +331,7 @@
                             @forelse ($guard->availabilities as $slot)
                                 <tr class="table-row-hover" wire:key="avail-{{ $slot->id }}">
                                     <x-table.td class="font-medium text-zinc-900 dark:text-zinc-100">{{ $weekdays[$slot->weekday] ?? $slot->weekday }}</x-table.td>
-                                    <x-table.td muted class="whitespace-nowrap tabular-nums">{{ substr($slot->starts_at, 0, 5) }} – {{ substr($slot->ends_at, 0, 5) }}</x-table.td>
+                                    <x-table.td muted class="whitespace-nowrap tabular-nums">{{ substr($slot->starts_at, 0, 5) }} – {{ substr($slot->ends_at, 0, 5) }}{{ $slot->ends_at < $slot->starts_at ? ' (next day)' : '' }}</x-table.td>
                                     <x-table.td><span class="status-chip {{ $slot->is_available ? 'status-chip-info' : 'status-chip-neutral' }}">{{ $slot->is_available ? 'Available' : 'Unavailable' }}</span></x-table.td>
                                     <x-table.td align="right">
                                         <div class="table-inline-actions justify-end">
@@ -342,7 +342,7 @@
                                 </tr>
                             @empty
                                 <x-table.empty colspan="4">
-                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No availability set.</span> Define when this guard is available for shifts.</p>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No availability set.</span> Weekly hours do not restrict scheduling for this guard.</p>
                                 </x-table.empty>
                             @endforelse
                         </tbody>
@@ -358,6 +358,7 @@
                         </x-select>
                         <x-input wire:model.live="availabilityForm.starts_at" label="Start" type="time" />
                         <x-input wire:model.live="availabilityForm.ends_at" label="End" type="time" />
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">An end time earlier than the start means the window ends the next day.</p>
                         <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                             <input type="checkbox" wire:model.live="availabilityForm.is_available" class="rounded border-zinc-300 dark:border-zinc-600">
                             Available
@@ -407,7 +408,7 @@
 
         @if ($activeTab === 'sites')
             <div class="page-split">
-                <x-section-card class="!h-auto" title="Assigned sites" description="Post sites where this guard is deployed.">
+                <x-section-card class="!h-auto" title="Assigned sites" description="Direct site assignments and sites from current or upcoming shifts.">
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -418,23 +419,28 @@
                             </tr>
                         </x-table.head>
                         <tbody>
-                            @forelse ($guard->siteAssignments as $assignment)
-                                <tr class="table-row-hover" wire:key="site-assign-{{ $assignment->id }}">
+                            @forelse ($assignedSites as $site)
+                                @php $assignment = $directSiteAssignments->get($site->id); @endphp
+                                <tr class="table-row-hover" wire:key="site-assign-{{ $site->id }}">
                                     <x-table.td>
-                                        <a href="{{ route('sites.show', $assignment->site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $assignment->site?->name }}</a>
+                                        <a href="{{ route('sites.show', $site) }}" class="font-medium text-zinc-900 transition hover:text-accent-700 dark:text-zinc-100 dark:hover:text-accent-300">{{ $site->name }}</a>
                                     </x-table.td>
-                                    <x-table.td responsive="md" muted>{{ $assignment->site?->clientAccount?->name ?? '—' }}</x-table.td>
-                                    <x-table.td>{{ $assignment->is_primary ? 'Yes' : '—' }}</x-table.td>
+                                    <x-table.td responsive="md" muted>{{ $site->clientAccount?->name ?? '—' }}</x-table.td>
+                                    <x-table.td>{{ $assignment?->is_primary ? 'Yes' : '—' }}</x-table.td>
                                     <x-table.td align="right">
-                                        <div class="table-inline-actions justify-end">
-                                            @if ($assignment->site?->clientAccount?->email)
-                                                <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'email')" wire:confirm="Send the posting details to the client account email?" wire:loading.attr="disabled" class="table-action">Email client</button>
-                                            @endif
-                                            @if (\App\Services\ClientCommunicationService::whatsappEnabled($assignment->tenant_id) && $assignment->site?->clientAccount?->phone)
-                                                <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'whatsapp')" wire:confirm="Send the posting details to the client account phone number via WhatsApp?" wire:loading.attr="disabled" class="table-action">WhatsApp client</button>
-                                            @endif
-                                            <button type="button" wire:click="removeSiteAssignment({{ $assignment->id }})" wire:confirm="Remove?" class="table-action text-red-600">Remove</button>
-                                        </div>
+                                        @if ($assignment)
+                                            <div class="table-inline-actions justify-end">
+                                                @if ($site->clientAccount?->email)
+                                                    <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'email')" wire:confirm="Send the posting details to the client account email?" wire:loading.attr="disabled" class="table-action">Email client</button>
+                                                @endif
+                                                @if (\App\Services\ClientCommunicationService::whatsappEnabled($assignment->tenant_id) && $site->clientAccount?->phone)
+                                                    <button type="button" wire:click="notifyPosting({{ $assignment->id }}, 'whatsapp')" wire:confirm="Send the posting details to the client account phone number via WhatsApp?" wire:loading.attr="disabled" class="table-action">WhatsApp client</button>
+                                                @endif
+                                                <button type="button" wire:click="removeSiteAssignment({{ $assignment->id }})" wire:confirm="Remove?" class="table-action text-red-600">Remove</button>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-zinc-500 dark:text-zinc-400">Scheduled shift</span>
+                                        @endif
                                     </x-table.td>
                                 </tr>
                             @empty

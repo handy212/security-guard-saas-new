@@ -18,71 +18,93 @@
     @livewireStyles
 </head>
 <body data-theme-mode="dark"
-    class="bg-zinc-950 font-sans text-zinc-100 antialiased"
-    x-data="{ hash: window.location.hash || '#assignments' }"
-    x-init="
-        window.addEventListener('hashchange', () => { hash = window.location.hash || '#assignments' });
-        if (!window.location.hash) { hash = '#assignments'; }
-    "
+    class="field-app bg-zinc-950 font-sans text-zinc-100 antialiased"
+    x-data="{
+        tabs: ['assignments', 'dispatches', 'patrol', 'scan', 'tools', 'sos', 'notifications', 'shift'],
+        tab: 'assignments',
+        readTab() {
+            const requested = window.location.hash.slice(1);
+            this.showTab(this.tabs.includes(requested) ? requested : 'assignments', false);
+        },
+        openTool(id) {
+            this.showTab('tools');
+            this.$nextTick(() => {
+                const panel = document.getElementById(id);
+                if (!panel) return;
+                panel.open = true;
+                panel.querySelector('summary')?.focus({ preventScroll: true });
+                panel.scrollIntoView({ block: 'start' });
+            });
+        },
+        activeNav(key) {
+            return this.tab === key || (key === 'assignments' && this.tab === 'shift');
+        },
+        showTab(next, updateUrl = true) {
+            if (this.tab === next) return;
+            this.tab = next;
+            if (updateUrl) history.pushState(null, '', '#' + next);
+            window.scrollTo(0, 0);
+            this.$dispatch('field-tab-changed', { tab: next });
+        }
+    }"
+    x-init="readTab()"
+    x-on:hashchange.window="readTab()"
+    x-on:popstate.window="readTab()"
 >
 @include('partials.brand-colors')
-<header class="sticky top-0 z-20 border-b border-zinc-800/90 bg-zinc-950/95 px-4 py-3 backdrop-blur">
-    <div class="mx-auto flex max-w-lg items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-2.5">
-            <x-brand-mark size="sm" />
-            <div class="min-w-0">
-                <div class="truncate text-sm font-semibold tracking-tight">{{ $tenantBranding['name'] ?? $platformBranding->name() }} Field</div>
-                <div class="truncate text-[10px]" id="guard-connection-status">Online</div>
+<div class="shell">
+    <header class="app-header">
+        <div class="top">
+            <div class="brand">
+                <div class="mark" aria-hidden="true">◆</div>
+                <div class="min-w-0">
+                    <strong>GuardCore <span>Pro</span></strong>
+                    <div class="sub">{{ $tenantBranding['name'] ?? 'Field operations' }}</div>
+                </div>
+            </div>
+            <div class="buttons">
+                <a href="#notifications" x-on:click.prevent="showTab('notifications')" class="iconbtn grid place-items-center" aria-label="Notifications">
+                    <span aria-hidden="true">♧</span>
+                </a>
+                <a href="#sos" x-on:click.prevent="showTab('sos')" class="sos">◉ SOS</a>
             </div>
         </div>
-        @can('dashboard.view')
-            <a href="{{ route('dashboard') }}" class="shrink-0 rounded-md px-2 py-1 text-xs text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200">Admin</a>
-        @endcan
-    </div>
-</header>
+        <div class="statusline">
+            <span class="status" id="guard-gps-status">GPS not checked</span>
+            <span class="status" id="guard-connection-status">Online</span>
+            @can('dashboard.view')
+                <a href="{{ route('dashboard') }}" class="status">Admin</a>
+            @endcan
+        </div>
+    </header>
 
-<main class="mx-auto max-w-lg p-4 pb-28" data-guard-app>{{ $slot }}</main>
+    <main class="content">{{ $slot }}</main>
 
-<nav class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-800/90 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="Field navigation">
-    <div class="mx-auto grid max-w-lg grid-cols-4 text-center">
-        <a href="#assignments" class="field-nav-link" :class="hash === '#assignments' && 'field-nav-link-active'">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            Shift
-        </a>
-        <a href="#patrol" class="field-nav-link" :class="hash === '#patrol' && 'field-nav-link-active'">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-            Patrol
-        </a>
-        <a href="#scan" class="field-nav-link" :class="hash === '#scan' && 'field-nav-link-active'">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-            Scan
-        </a>
-        <a href="#sos" class="field-nav-link" :class="hash === '#sos' && 'field-nav-link-active !text-red-400'">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-            SOS
-        </a>
-    </div>
-</nav>
+    <nav class="bottom" aria-label="Field navigation">
+        @foreach ([
+            'assignments' => ['⌂', 'Home'], 'dispatches' => ['♧', 'Dispatch'], 'patrol' => ['◇', 'Patrol'],
+            'scan' => ['▦', 'Scan'], 'tools' => ['☷', 'More'],
+        ] as $key => [$icon, $label])
+            <a href="#{{ $key }}" x-on:click.prevent="showTab(@js($key))"
+                x-bind:aria-current="activeNav(@js($key)) ? 'page' : null" class="nav" x-bind:class="{ active: activeNav(@js($key)) }">
+                <span class="glyph" aria-hidden="true">{{ $icon }}</span>{{ $label }}
+            </a>
+        @endforeach
+    </nav>
+</div>
 
 @livewireScripts
 <script>
     const statusEl = document.getElementById('guard-connection-status');
     const updateStatus = () => {
         if (!statusEl) return;
-        statusEl.textContent = navigator.onLine ? 'Online' : 'Offline — actions will queue';
-        statusEl.className = navigator.onLine ? 'text-[10px] text-emerald-400' : 'text-[10px] text-amber-400';
+        statusEl.textContent = navigator.onLine ? 'Online' : 'Offline';
+        statusEl.classList.toggle('green', navigator.onLine);
     };
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
     updateStatus();
 
-    document.addEventListener('livewire:init', () => {
-        const root = document.querySelector('[data-guard-app]');
-        if (root && window.Livewire) {
-            const wire = Livewire.find(root.getAttribute('wire:id'));
-            window.flushOfflineQueue?.(wire);
-        }
-    });
 </script>
 </body>
 </html>

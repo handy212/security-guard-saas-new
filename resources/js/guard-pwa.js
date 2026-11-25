@@ -1,3 +1,4 @@
+import '../css/guard-field.css';
 import { Html5Qrcode } from 'html5-qrcode';
 import { initPushNotifications } from './push-notifications';
 
@@ -58,31 +59,53 @@ export async function clearOfflineQueue(ids) {
 export function getCoords() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
-            resolve({ lat: 0, lng: 0 });
+            resolve(null);
             return;
         }
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => resolve(window.guardCoords || { lat: 0, lng: 0 }),
+            () => resolve(null),
             { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
         );
     });
 }
 
 export async function guardWithGeo(wire, callbackName, offlineType = null, buildOfflineData = null) {
+    const isSos = callbackName === 'raiseSos';
+    const showError = (message) => window.dispatchEvent(new CustomEvent('field-feedback', { detail: { message } }));
+    if (isSos && !navigator.onLine) {
+        showError('SOS was not sent. Contact Control through your approved emergency channel now.');
+        return;
+    }
+
     const coords = await getCoords();
-    wire.set('latitude', coords.lat);
-    wire.set('longitude', coords.lng);
+    const gpsStatus = document.getElementById('guard-gps-status');
+    if (gpsStatus) {
+        gpsStatus.textContent = coords ? 'GPS available' : 'GPS unavailable';
+        gpsStatus.classList.toggle('green', Boolean(coords));
+    }
+    if (!coords && !isSos) {
+        showError('GPS is unavailable. Enable location access and try again.');
+        return;
+    }
+
+    wire.set('latitude', coords?.lat ?? null, false);
+    wire.set('longitude', coords?.lng ?? null, false);
 
     if (!navigator.onLine && offlineType) {
         const data = buildOfflineData ? buildOfflineData(coords, wire) : { latitude: coords.lat, longitude: coords.lng };
         await enqueueOfflineAction({ type: offlineType, data });
-        wire.set('statusMessage', `${offlineType.replace(/_/g, ' ')} queued — will sync when online.`);
+        window.dispatchEvent(new CustomEvent('field-feedback', { detail: { message: 'Saved on this device. Waiting to sync.' } }));
         return;
     }
 
     if (typeof wire[callbackName] === 'function') {
-        return wire[callbackName]();
+        try {
+            return await wire[callbackName]();
+        } catch (error) {
+            if (isSos) showError('SOS delivery was not confirmed. Contact Control through your approved emergency channel now.');
+            else showError('The action could not be confirmed. Check your connection and try again.');
+        }
     }
 }
 
@@ -178,14 +201,15 @@ export function watchGeolocation(onUpdate) {
 }
 
 export async function flushOfflineQueue(wire) {
-    if (!navigator.onLine) return 0;
+    if (!wire || !navigator.onLine) return 0;
     const items = await readOfflineQueue();
     if (!items.length) return 0;
 
     const payload = items.map(({ type, data }) => ({ type, ...data }));
-    await wire.syncOfflineQueue(payload);
-    await clearOfflineQueue(items.map((i) => i.id));
-    return items.length;
+    const processed = await wire.syncOfflineQueue(payload);
+    if (!Array.isArray(processed)) return 0;
+    await clearOfflineQueue(processed.map(index => items[index]?.id).filter(Boolean));
+    return processed.length;
 }
 
 export function initGuardPwa() {
@@ -221,7 +245,7 @@ export function initGuardPwa() {
         }
     });
 
-    document.addEventListener('livewire:init', () => {
+    document.addEventListener('livewire:initialized', () => {
         const root = document.querySelector('[data-guard-app]');
         if (root && window.Livewire) {
             const wire = Livewire.find(root.getAttribute('wire:id'));

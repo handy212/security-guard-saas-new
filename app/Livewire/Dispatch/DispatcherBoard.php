@@ -433,7 +433,7 @@ class DispatcherBoard extends Component
             ->get();
 
         $selected = $this->selectedId
-            ? DispatchEvent::forTenant($tenantId)->with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert', 'incident', 'dispatchTeam.standbySite'])->find($this->selectedId)
+            ? DispatchEvent::forTenant($tenantId)->with(['site', 'clientAccount', 'assignedGuard', 'activityLogs.user', 'sosAlert', 'incident', 'dispatchTeam.standbyPoint'])->find($this->selectedId)
             : null;
 
         $sosAlerts = SosAlert::with(['assignedGuard', 'site'])
@@ -535,7 +535,7 @@ class DispatcherBoard extends Component
                 ? Site::forTenant($tenantId)->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'guards' => $guards,
-            'dispatchTeams' => DispatchTeam::forTenant($tenantId)->with(['standbySite', 'outstandingDispatches'])->withCount([
+            'dispatchTeams' => DispatchTeam::forTenant($tenantId)->with(['standbyPoint.region', 'outstandingDispatches'])->withCount([
                 'members as active_officers_count' => fn ($query) => $query->where('status', 'active')->where('duty_type', GuardDutyType::Dispatch->value),
             ])->orderBy('name')->get(),
             'assignmentGuards' => $assignmentGuards,

@@ -135,8 +135,8 @@ class DispatchService
 
             if ($event->status !== DispatchStatus::OPEN || $event->guard_id || $event->dispatch_team_id
                 || ! $event->mayAssignFromPatriot() || ($event->patriot_job_id === null && ! $event->site_id && ($event->latitude === null || $event->longitude === null))
-                || ! $team->standby_site_id || $members->isEmpty() || $team->outstandingDispatches()->exists()) {
-                throw ValidationException::withMessages(['assignTeamId' => 'Select an available team with active officers and a standby site for an open, site-linked dispatch.']);
+                || ! $team->standbyPoint?->region?->is_active || $members->isEmpty() || $team->outstandingDispatches()->exists()) {
+                throw ValidationException::withMessages(['assignTeamId' => 'Select an available team with active officers and a standby point for an open dispatch with a location.']);
             }
 
             $event->update([
@@ -473,7 +473,7 @@ class DispatchService
     public function myActiveDispatches(int $guardId)
     {
         return DispatchEvent::query()
-            ->with(['site', 'clientAccount', 'dispatchTeam.standbySite'])
+            ->with(['site', 'clientAccount', 'dispatchTeam.standbyPoint'])
             ->where(fn ($query) => $query->where('guard_id', $guardId)
                 ->orWhereHas('dispatchTeam.members', fn ($members) => $members->whereKey($guardId)))
             ->where(fn ($query) => $query->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])

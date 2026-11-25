@@ -226,7 +226,7 @@ class GuardProfile extends Component
         $data = $this->validate([
             'availabilityForm.weekday' => 'required|integer|min:0|max:6',
             'availabilityForm.starts_at' => 'required|date_format:H:i',
-            'availabilityForm.ends_at' => 'required|date_format:H:i',
+            'availabilityForm.ends_at' => 'required|date_format:H:i|different:availabilityForm.starts_at',
             'availabilityForm.is_available' => 'boolean',
         ])['availabilityForm'];
 
@@ -678,7 +678,7 @@ class GuardProfile extends Component
             'overview' => ['label' => 'Overview', 'hint' => 'Summary and KYG', 'group' => 'Overview'],
             'profile' => ['label' => 'Profile', 'hint' => 'Personal, department, preferences', 'group' => 'Profile'],
             'availability' => ['label' => 'Availability', 'hint' => 'Weekly schedule', 'group' => 'Work', 'badge' => $this->badge($this->guard->availabilities->count())],
-            'sites' => ['label' => 'Sites', 'hint' => 'Site assignments', 'group' => 'Work', 'badge' => $this->badge($this->guard->siteAssignments->count())],
+            'sites' => ['label' => 'Sites', 'hint' => 'Site assignments', 'group' => 'Work', 'badge' => $this->badge($stats['sites_assigned'])],
             'qualifications' => ['label' => 'Qualifications', 'hint' => 'License, certs, skills, training', 'group' => 'Records', 'badge' => $this->badge($qualBadge), 'icon' => 'compliance'],
             'files' => ['label' => 'Files', 'hint' => 'ID and clearance docs', 'group' => 'Records', 'badge' => $this->badge($this->guard->documents->count())],
             'hr' => ['label' => 'HR', 'hint' => 'Notes, reminders, disciplinary', 'group' => 'Records', 'badge' => $this->badge($hrBadge), 'icon' => 'workforce'],
@@ -693,6 +693,10 @@ class GuardProfile extends Component
             'branches' => Branch::orderBy('name')->get(),
             'users' => User::where('tenant_id', $tenantId)->orderBy('name')->get(),
             'sites' => Site::where('tenant_id', $tenantId)->orderBy('name')->get(),
+            'assignedSites' => $this->activeTab === 'sites'
+                ? $overview->assignedSites($this->guard, $tenantId)->with('clientAccount')->orderBy('name')->get()
+                : collect(),
+            'directSiteAssignments' => $this->guard->siteAssignments->keyBy('site_id'),
             'checklist' => $checklist,
             'profileTabs' => $profileTabs,
             'stats' => $stats,
