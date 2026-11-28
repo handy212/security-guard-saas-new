@@ -46,15 +46,17 @@ return [
     ],
 
     'billing' => [
-        ['href' => '/billing', 'label' => 'Overview', 'permission' => 'billing.manage', 'feature' => 'billing'],
-        ['href' => '/billing/invoices', 'label' => 'Invoices', 'permission' => 'billing.manage', 'feature' => 'billing'],
-        ['href' => '/billing/estimates', 'label' => 'Estimates', 'permission' => 'billing.manage', 'feature' => 'estimates'],
-        ['href' => '/billing/payments', 'label' => 'Payments', 'permission' => 'billing.manage', 'feature' => 'billing'],
-        ['href' => '/billing/expenses', 'label' => 'Expenses', 'permission' => 'billing.manage', 'feature' => 'expenses'],
-        ['href' => '/billing/payroll', 'label' => 'Payroll', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
-        ['href' => '/compliance', 'label' => 'Compliance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
-        ['href' => '/compliance/policies', 'label' => 'Policies', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
-        ['href' => '/analytics', 'label' => 'Analytics', 'permission' => 'analytics.view', 'feature' => 'analytics'],
+        ['href' => '/billing', 'label' => 'Overview', 'group' => 'Overview', 'hub' => 'billing'],
+        ['href' => '/assets', 'label' => 'Assets', 'group' => 'Operations', 'icon' => 'equipment', 'permission' => 'equipment.manage'],
+        ['href' => '/clients?tab=complaints', 'label' => 'Client complaints', 'group' => 'Operations', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
+        ['href' => '/billing/invoices', 'label' => 'Invoices', 'group' => 'Finance', 'permission' => 'billing.manage', 'feature' => 'billing'],
+        ['href' => '/billing/estimates', 'label' => 'Estimates', 'group' => 'Finance', 'permission' => 'billing.manage', 'feature' => 'estimates'],
+        ['href' => '/billing/payments', 'label' => 'Payments', 'group' => 'Finance', 'permission' => 'billing.manage', 'feature' => 'billing'],
+        ['href' => '/billing/expenses', 'label' => 'Expenses', 'group' => 'Finance', 'permission' => 'billing.manage', 'feature' => 'expenses'],
+        ['href' => '/billing/payroll', 'label' => 'Payroll', 'group' => 'Finance', 'permission' => 'payroll.manage', 'feature' => 'payroll'],
+        ['href' => '/compliance', 'label' => 'Compliance', 'group' => 'Governance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+        ['href' => '/compliance/policies', 'label' => 'Policies', 'group' => 'Governance', 'permission' => 'compliance.manage', 'feature' => 'compliance'],
+        ['href' => '/analytics', 'label' => 'Analytics', 'group' => 'Governance', 'permission' => 'analytics.view', 'feature' => 'analytics'],
     ],
 
     /*
@@ -83,14 +85,12 @@ return [
             ['href' => '/guards/know-your-guard', 'label' => 'Know Your Guard', 'icon' => 'guards', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/guards/applications', 'label' => 'Applications', 'icon' => 'workforce', 'permission' => 'guards.manage', 'feature' => 'guards'],
             ['href' => '/visitors', 'label' => 'Visitors', 'icon' => 'visitors', 'permission' => 'visitors.manage', 'feature' => 'visitors'],
-            ['href' => '/clients/complaints', 'label' => 'Complaints', 'icon' => 'clients', 'permission' => 'clients.manage', 'feature' => 'clients'],
         ],
         'Live ops' => [
             ['href' => '/messenger', 'label' => 'Messenger', 'icon' => 'messenger', 'permission' => 'dispatch.manage', 'feature' => 'messenger'],
         ],
         'Resources' => [
             ['href' => '/reports', 'label' => 'Reports', 'icon' => 'reports', 'permission' => 'reports.approve', 'feature' => 'reports'],
-            ['href' => '/assets', 'label' => 'Assets', 'icon' => 'equipment', 'permission' => 'equipment.manage', 'feature' => 'equipment'],
         ],
     ],
 
@@ -109,7 +109,6 @@ return [
         ['href' => '/settings/company-profile', 'label' => 'Company Profile', 'permission' => 'settings.manage'],
         ['href' => '/settings/themes', 'label' => 'Themes', 'permission' => 'settings.manage'],
         ['href' => '/billing/subscription', 'label' => 'Your plan', 'permission' => 'billing.manage'],
-        ['href' => '/settings/branches', 'label' => 'Regions', 'permission' => 'settings.manage'],
         ['href' => '/settings/id-card', 'label' => 'ID Card', 'permission' => 'settings.manage'],
         ['href' => '/settings/know-your-guard', 'label' => 'KYG public page', 'permission' => 'settings.manage'],
         ['href' => '/settings/roles', 'label' => 'Roles & Permissions', 'permission' => 'settings.manage'],

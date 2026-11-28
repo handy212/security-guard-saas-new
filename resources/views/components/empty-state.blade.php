@@ -1,4 +1,20 @@
-@props(['title', 'description' => null, 'action' => null, 'actionLabel' => null, 'compact' => false])
+@props(['title', 'description' => null, 'action' => null, 'actionLabel' => null, 'compact' => false, 'inline' => false])
+
+@if ($inline)
+    <div {{ $attributes->class(['flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-left text-sm']) }}>
+        <div class="min-w-0">
+            <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $title }}</p>
+            @if ($description)
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $description }}</p>
+            @endif
+        </div>
+        @if (isset($actions))
+            <div class="flex flex-wrap items-center gap-2">{{ $actions }}</div>
+        @elseif ($action && $actionLabel)
+            <a href="{{ $action }}" class="page-link">{{ $actionLabel }}</a>
+        @endif
+    </div>
+@else
 
 <div {{ $attributes->class([
     'rounded-2xl border border-dashed border-zinc-200 bg-slate-50/80 text-center dark:border-zinc-700 dark:bg-zinc-900/40',
@@ -22,3 +38,4 @@
         <a href="{{ $action }}" class="btn-primary mt-5 inline-flex">{{ $actionLabel }}</a>
     @endif
 </div>
+@endif

@@ -1,36 +1,19 @@
 <div>
-    <x-page-shell
-        title="Analytics"
-        description="Historical KPI snapshots and operational trends."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Analytics'],
-        ]"
-    >
-        <x-slot:actions>
-            <x-button wire:click="refreshSnapshot" size="sm" variant="secondary" wire:loading.attr="disabled" wire:target="refreshSnapshot">
-                <span wire:loading.remove wire:target="refreshSnapshot">Refresh snapshot</span>
-                <span wire:loading wire:target="refreshSnapshot">Refreshing…</span>
-            </x-button>
-        </x-slot:actions>
+    <x-page-shell title="Analytics" compact stable-header>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />
 
-            <x-page-toolbar>
-                <x-slot:controls>
-                    <div class="date-nav">
+            <div class="flex flex-wrap items-end gap-2">
                         <x-input wire:model.live="snapshotDate" type="date" label="Snapshot date" class="w-auto text-sm" />
                         <x-button type="button" size="sm" variant="secondary" wire:click="goToday" :disabled="$snapshotDate === today()->toDateString()">Today</x-button>
                         <x-button type="button" size="sm" wire:click="refreshSnapshot" wire:loading.attr="disabled" wire:target="refreshSnapshot">
                             <span wire:loading.remove wire:target="refreshSnapshot">Run snapshot</span>
                             <span wire:loading wire:target="refreshSnapshot">Running…</span>
                         </x-button>
-                    </div>
-                </x-slot:controls>
-            </x-page-toolbar>
+            </div>
 
             @if($snapshot)
                 <p class="text-xs text-zinc-500 dark:text-zinc-400">
@@ -39,49 +22,52 @@
                 </p>
 
                 <div class="stat-grid">
-                    <x-stat-card compact label="Active guards" :value="$snapshot->active_guards" icon="guards" />
+                    <x-stat-card compact label="Active guards" hint="At snapshot time" :value="$snapshot->active_guards" icon="guards" />
                     <x-stat-card compact label="Patrol completion" :value="$snapshot->patrol_completion_rate.'%'" icon="patrols" tone="success" />
                     <x-stat-card compact label="Missed patrols" :value="$snapshot->missed_patrols" icon="incidents" :tone="$snapshot->missed_patrols ? 'danger' : 'success'" />
-                    <x-stat-card compact label="SLA coverage" :value="$snapshot->client_sla_performance.'%'" icon="check" tone="info" />
+                    <x-stat-card compact label="SLA coverage" hint="At snapshot time" :value="$snapshot->client_sla_performance.'%'" icon="check" tone="info" />
                 </div>
 
                 <div class="stat-grid">
-                    <x-stat-card compact label="Active sites" :value="$snapshot->active_sites" icon="sites" />
+                    <x-stat-card compact label="Active sites" hint="At snapshot time" :value="$snapshot->active_sites" icon="sites" />
                     <x-stat-card compact label="Late shifts" :value="$snapshot->late_shifts" icon="schedules" :tone="$snapshot->late_shifts ? 'warning' : 'default'" />
                     <x-stat-card compact label="No-shows" :value="$snapshot->no_show_shifts" icon="guards" :tone="$snapshot->no_show_shifts ? 'warning' : 'default'" />
-                    <x-stat-card compact label="Revenue (day)" :value="money($snapshot->revenue_total, 0)" icon="billing" />
+                    <x-stat-card compact label="Invoiced (day)" hint="Excludes draft and void invoices" :value="money($snapshot->revenue_total)" icon="billing" />
                 </div>
 
                 <div class="page-grid-2">
                     <x-section-card title="30-day patrol completion" description="Daily completion rate across recent snapshots">
                         @if ($chartHistory->isNotEmpty())
-                            <div class="chart-bars" role="img" aria-label="Patrol completion trend">
+                            <div class="chart-bars" role="group" aria-label="Patrol completion trend">
                                 @foreach($chartHistory as $point)
                                     @php
                                         $rate = (float) $point->patrol_completion_rate;
-                                        $height = max(8, min(100, $rate));
+                                        $height = max(0, min(100, $rate));
                                         $isSelected = \Carbon\Carbon::parse($point->snapshot_date)->toDateString() === $snapshotDate;
                                     @endphp
                                     <button
                                         type="button"
                                         wire:click="selectDate('{{ \Carbon\Carbon::parse($point->snapshot_date)->toDateString() }}')"
-                                        class="chart-bar-col group"
+                                        class="chart-bar-col group h-full"
+                                        aria-pressed="{{ $isSelected ? 'true' : 'false' }}"
                                         title="{{ \Carbon\Carbon::parse($point->snapshot_date)->format('M j') }}: {{ $rate }}%"
                                     >
+                                        <div class="relative w-full flex-1">
                                         <div
                                             @class([
-                                                'chart-bar',
+                                                'chart-bar absolute bottom-0 left-0',
                                                 'ring-2 ring-accent-400 ring-offset-1 dark:ring-offset-zinc-900' => $isSelected,
                                                 'opacity-50 group-hover:opacity-100' => ! $isSelected,
                                             ])
                                             style="height: {{ $height }}%"
                                         ></div>
+                                        </div>
                                         <span class="chart-bar-label">{{ \Carbon\Carbon::parse($point->snapshot_date)->format('d') }}</span>
                                     </button>
                                 @endforeach
                             </div>
                         @else
-                            <x-empty-state compact title="Not enough history" description="Run more daily snapshots to build a trend." />
+                            <x-empty-state inline title="Not enough history" description="Run more daily snapshots to build a trend." />
                         @endif
                     </x-section-card>
 
@@ -107,13 +93,13 @@
                             @endforeach
                         @else
                             <div class="p-3">
-                                <x-empty-state compact title="No incidents" description="No incidents logged on the snapshot date." />
+                                <x-empty-state inline title="No incidents" description="No incidents logged on the snapshot date." />
                             </div>
                         @endif
                     </x-section-card>
                 </div>
 
-                <x-section-card title="Snapshot history" description="Click a row to view that day’s KPIs." class="mt-4" flush>
+                <x-section-card title="Snapshot history" description="Click a row to view that day’s KPIs." compact flush>
                     <x-data-table>
                         <x-table.head>
                             <tr>
@@ -124,7 +110,7 @@
                                 <x-table.th>Missed</x-table.th>
                                 <x-table.th responsive="md">Late</x-table.th>
                                 <x-table.th responsive="md">No-show</x-table.th>
-                                <x-table.th>Revenue</x-table.th>
+                                <x-table.th>Invoiced</x-table.th>
                             </tr>
                         </x-table.head>
                         <tbody>
@@ -145,16 +131,16 @@
                                     <x-table.td muted class="tabular-nums">{{ $row->missed_patrols }}</x-table.td>
                                     <x-table.td responsive="md" muted class="tabular-nums">{{ $row->late_shifts }}</x-table.td>
                                     <x-table.td responsive="md" muted class="tabular-nums">{{ $row->no_show_shifts }}</x-table.td>
-                                    <x-table.td class="tabular-nums">{{ money($row->revenue_total, 0) }}</x-table.td>
+                                    <x-table.td class="tabular-nums">{{ money($row->revenue_total) }}</x-table.td>
                                 </tr>
                             @empty
-                                <x-table.empty colspan="8"><x-empty-state title="No history yet" /></x-table.empty>
+                                <x-table.empty colspan="8"><x-empty-state inline title="No history yet" /></x-table.empty>
                             @endforelse
                         </tbody>
                     </x-data-table>
                 </x-section-card>
             @elseif ($hasAnySnapshot)
-                <x-empty-state
+                <x-empty-state inline
                     title="No snapshot for this date"
                     description="Pick another day from history, or run a snapshot for {{ \Carbon\Carbon::parse($snapshotDate)->format('M j, Y') }}."
                 >
@@ -166,7 +152,7 @@
                     </x-slot:actions>
                 </x-empty-state>
             @else
-                <x-empty-state title="No analytics yet" description="Run a snapshot to populate KPIs and trends.">
+                <x-empty-state inline title="No analytics yet" description="Run a snapshot to populate KPIs and trends.">
                     <x-slot:actions>
                         <x-button wire:click="refreshSnapshot" size="sm">Run first snapshot</x-button>
                     </x-slot:actions>

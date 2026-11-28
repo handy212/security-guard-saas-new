@@ -11,7 +11,7 @@ class DeliverClientReports extends Command
 {
     protected $signature = 'guardops:deliver-client-reports';
 
-    protected $description = 'Deliver approved custom reports to client portal users';
+    protected $description = 'Deliver submitted custom reports to client portal users';
 
     public function handle(CustomReportService $reports): int
     {

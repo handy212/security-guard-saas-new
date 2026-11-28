@@ -70,6 +70,7 @@ class AssetManagementService
                 'guard_id' => $data['guard_id'] ?? null,
                 'site_id' => $data['site_id'] ?? null,
                 'shift_assignment_id' => $data['shift_assignment_id'] ?? null,
+                'response_deployment_id' => $data['response_deployment_id'] ?? null,
                 'issue_notes' => $data['issue_notes'] ?? null,
                 'issued_at' => now(),
                 'status' => 'issued',
@@ -212,10 +213,13 @@ class AssetManagementService
             ->values();
     }
 
-    public function returnAsset(EquipmentAssignment $assignment, ?string $notes = null): EquipmentAssignment
+    public function returnAsset(EquipmentAssignment $assignment, ?string $notes = null, ?int $deploymentId = null): EquipmentAssignment
     {
-        return DB::transaction(function () use ($assignment, $notes) {
+        return DB::transaction(function () use ($assignment, $notes, $deploymentId) {
             $assignment = EquipmentAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
+            if ($assignment->response_deployment_id && $assignment->response_deployment_id !== $deploymentId) {
+                throw new RuntimeException('Return this item from the response deployment handover.');
+            }
 
             if ($assignment->status !== 'issued' || $assignment->returned_at) {
                 throw new RuntimeException('This asset assignment has already been returned.');

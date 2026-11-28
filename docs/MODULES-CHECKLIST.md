@@ -21,14 +21,15 @@
 - [x] Roles/permissions
 - [x] Tenant scoping trait
 - [ ] Domain/subdomain onboarding wizard
-- [ ] Payment gateway integration
+- [x] Paystack payment gateway integration (live deployment verification pending)
 
 ## Client transparency
 - [x] Client portal dashboard
 - [x] Reports view
 - [x] Incident view
 - [x] Patrol proof view
-- [ ] Client report approval/signature
+- [x] Client report approval with recorded sign-off
+- [ ] Signature-file capture
 
 ## Mobile/API foundation
 - [x] Guard assignments API
@@ -38,4 +39,4 @@
 - [x] Incident submit API
 - [x] SOS API
 - [ ] Native mobile app
-- [ ] Offline scan sync
+- [x] Offline scan sync (real-device acceptance pending)

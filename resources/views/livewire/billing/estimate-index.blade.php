@@ -1,12 +1,5 @@
 <div>
-    <x-page-shell
-        title="Estimates"
-        description="Create estimates and convert to invoices on acceptance."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Estimates'],
-        ]"
-    >
+    <x-page-shell title="Estimates" compact stable-header>
         <x-slot:actions>
             <x-button :href="route('billing.estimates.create')">New estimate</x-button>
         </x-slot:actions>
@@ -98,7 +91,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="6">
-                            <x-empty-state
+                            <x-empty-state inline
                                 compact
                                 :title="$hasActiveFilters ? 'No matching estimates' : 'No estimates'"
                                 :description="$hasActiveFilters ? 'Try clearing filters or widening the date range.' : 'Create an estimate to send to clients.'"

@@ -122,7 +122,6 @@ return [
         'billing.expenses' => 'expenses',
         'billing.payments' => 'billing',
         'billing.payroll' => 'payroll',
-        'billing.hub' => 'billing',
         'reports.hub' => 'reports',
         'messenger.index' => 'messenger',
         'client-portal.dashboard' => 'client_portal',

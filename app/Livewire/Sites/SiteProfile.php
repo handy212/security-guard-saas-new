@@ -380,17 +380,17 @@ class SiteProfile extends Component
     {
         $this->authorize('update', $this->site);
         $data = $this->validate([
-            'postOrderForm.site_post_id' => 'nullable|exists:site_posts,id',
+            'postOrderForm.site_post_id' => ['nullable', 'integer', 'exists:site_posts,id,site_id,'.$this->site->id],
             'postOrderForm.title' => 'required|string|max:255',
             'postOrderForm.instructions' => 'required|string|max:5000',
             'postOrderForm.is_active' => 'boolean',
         ])['postOrderForm'];
 
-        $payload = $data + [
+        $payload = array_merge($data, [
             'tenant_id' => TenantContext::id(),
             'site_id' => $this->site->id,
-            'site_post_id' => $data['site_post_id'] ?: null,
-        ];
+            'site_post_id' => filled($data['site_post_id'] ?? null) ? $data['site_post_id'] : null,
+        ]);
 
         if ($this->editingPostOrderId) {
             PostOrder::query()->where('site_id', $this->site->id)->findOrFail($this->editingPostOrderId)->update($payload);
@@ -612,14 +612,14 @@ class SiteProfile extends Component
         $this->authorize('update', $this->site);
         $data = $this->validate([
             'reportAssignForm.report_template_id' => 'required|exists:report_templates,id',
-            'reportAssignForm.site_post_id' => 'nullable|exists:site_posts,id',
+            'reportAssignForm.site_post_id' => ['nullable', 'integer', 'exists:site_posts,id,site_id,'.$this->site->id],
         ])['reportAssignForm'];
 
         ReportTemplateAssignment::firstOrCreate([
             'tenant_id' => TenantContext::id(),
             'report_template_id' => $data['report_template_id'],
             'site_id' => $this->site->id,
-            'site_post_id' => $data['site_post_id'] ?: null,
+            'site_post_id' => filled($data['site_post_id'] ?? null) ? $data['site_post_id'] : null,
         ]);
 
         $this->reportAssignForm = ['report_template_id' => '', 'site_post_id' => ''];

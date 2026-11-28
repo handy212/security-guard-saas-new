@@ -139,7 +139,8 @@
                             @if ($markers)<span class="command-chip command-chip-alert"><span aria-hidden="true">●</span> Live</span>@endif
                             <a href="{{ route('tracking.live') }}">Open map ↗</a>
                         </div></div>
-                    <x-map id="command-center-map" height="clamp(165px, 42vw, 190px)" :markers="$markers"
+                    <x-map id="command-center-map" height="clamp(210px, 29dvh, 400px)" :markers="$markers"
+                           :viewport-key="$markers ? 'guards' : 'overview'" data-map-fit-control
                            :lat="$mapSite?->latitude ?? 0" :lng="$mapSite?->longitude ?? 0" :zoom="$markers || $mapSite ? 13 : 2" class="m-2" />
                     @if ($markers)
                         <div class="command-map-key"><span class="command-status-dot" aria-hidden="true"></span>{{ count($markers) }} recent guard {{ \Illuminate\Support\Str::plural('location', count($markers)) }} <span>· Last hour</span></div>
@@ -232,10 +233,10 @@
                                         @continue($point === null)
                                         @php $previous = $responsePoints->get($index - 1); @endphp
                                         @if ($previous)
-                                            <polygon points="{{ $previous['x'] }},72 {{ $previous['x'] }},{{ $previous['y'] }} {{ $point['x'] }},{{ $point['y'] }} {{ $point['x'] }},72" fill="#d4272838" />
-                                            <line x1="{{ $previous['x'] }}" y1="{{ $previous['y'] }}" x2="{{ $point['x'] }}" y2="{{ $point['y'] }}" stroke="#ff5955" stroke-width="2" />
+                                            <polygon points="{{ $previous['x'] }},72 {{ $previous['x'] }},{{ $previous['y'] }} {{ $point['x'] }},{{ $point['y'] }} {{ $point['x'] }},72" fill="var(--command-accent)" fill-opacity=".22" />
+                                            <line x1="{{ $previous['x'] }}" y1="{{ $previous['y'] }}" x2="{{ $point['x'] }}" y2="{{ $point['y'] }}" stroke="var(--command-accent)" stroke-width="2" />
                                         @endif
-                                        <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3" fill="#fff" stroke="#ff5955">
+                                        <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3" fill="#fff" stroke="var(--command-accent)">
                                             <title>{{ $week[$index]->format('l') }} · {{ $point['seconds'] }} seconds</title>
                                         </circle>
                                     @endforeach

@@ -376,13 +376,13 @@ class SchedulerWorkflowTest extends TestCase
         $this->assertSame('approved', $leave->fresh()->status->value);
     }
 
-    public function test_availability_end_must_follow_start(): void
+    public function test_availability_cannot_start_and_end_at_the_same_time(): void
     {
         Livewire::test(TimeOffIndex::class)
             ->set('availabilityForm.guard_id', (string) $this->guard->id)
             ->set('availabilityForm.weekday', 1)
             ->set('availabilityForm.starts_at', '17:00')
-            ->set('availabilityForm.ends_at', '09:00')
+            ->set('availabilityForm.ends_at', '17:00')
             ->call('saveAvailability')
             ->assertHasErrors('availabilityForm.ends_at');
 

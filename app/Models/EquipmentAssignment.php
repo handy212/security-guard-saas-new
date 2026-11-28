@@ -12,7 +12,7 @@ class EquipmentAssignment extends Model
 
     protected $fillable = [
         'tenant_id', 'equipment_asset_id', 'quantity', 'guard_id', 'site_id', 'shift_assignment_id',
-        'issued_at', 'returned_at', 'issue_notes', 'return_notes', 'status',
+        'issued_at', 'returned_at', 'issue_notes', 'return_notes', 'status', 'response_deployment_id',
     ];
 
     protected function casts(): array

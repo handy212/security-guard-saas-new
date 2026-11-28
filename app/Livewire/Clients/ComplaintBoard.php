@@ -159,6 +159,6 @@ class ComplaintBoard extends Component
                 'resolved' => (clone $base)->where('status', 'resolved')->count(),
             ],
             'hasActiveFilters' => $this->search !== '' || $this->statusFilter !== 'all',
-        ])->layout('layouts.app');
+        ]);
     }
 }

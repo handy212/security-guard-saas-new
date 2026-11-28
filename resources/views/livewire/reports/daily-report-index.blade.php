@@ -52,6 +52,8 @@
             @endif
         </section>
 
+        @error('approval') <p class="form-error" role="alert">{{ $message }}</p> @enderror
+
         <x-data-table>
             <x-table.head>
                 <tr>
@@ -67,20 +69,24 @@
                 @forelse($reports as $report)
                     <tr class="table-row-hover" wire:key="dar-{{ $report->id }}">
                         <x-table.td>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $report->title }}</div>
-                            @if ($report->summary)
-                                <div class="mt-0.5 line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $report->summary }}</div>
-                            @endif
+                            <details>
+                                <summary class="cursor-pointer font-medium text-zinc-900 dark:text-zinc-100">{{ $report->title }}</summary>
+                                <p class="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-300">{{ $report->summary }}</p>
+                                @if ($report->handover_notes)
+                                    <p class="mt-2 text-xs font-semibold">Handover notes</p>
+                                    <p class="whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-300">{{ $report->handover_notes }}</p>
+                                @endif
+                            </details>
                         </x-table.td>
                         <x-table.td responsive="md" muted>{{ $report->site?->name ?? '—' }}</x-table.td>
                         <x-table.td responsive="lg" muted>{{ $report->assignedGuard?->full_name ?? '—' }}</x-table.td>
                         <x-table.td mono>{{ $report->report_date?->format('M j, Y') ?? '—' }}</x-table.td>
                         <x-table.td><x-badge :status="$report->status" /></x-table.td>
                         <x-table.td align="right">
-                            @if($report->status !== 'approved')
+                            @if ($report->status === 'submitted')
                                 <x-button size="sm" wire:click="approve({{ $report->id }})">Approve</x-button>
-                            @else
-                                <span class="text-xs text-zinc-400">Approved</span>
+                            @elseif ($report->status === 'approved')
+                                <x-button size="sm" variant="secondary" wire:click="download({{ $report->id }})">Download PDF</x-button>
                             @endif
                         </x-table.td>
                     </tr>

@@ -25,7 +25,11 @@
                         </div>
                         <x-badge :status="$item->status" />
                     </div>
-                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}</div>
+                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">@if ($item->approvable instanceof \App\Models\DailyActivityReport)
+                                <a href="{{ route('client-portal.reports.show', $item->approvable_id) }}" class="page-link">{{ $item->approvable->title ?: 'Daily activity report' }}</a>
+                            @else
+                                {{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}
+                            @endif</div>
                     @if($item->status === 'pending')
                         <div class="mt-3 flex gap-2">
                             <x-button size="sm" wire:click="approve({{ $item->id }})" loading-text="…">Approve</x-button>
@@ -55,7 +59,11 @@
                     <tr class="table-row-hover" wire:key="approval-{{ $item->id }}">
                         <x-table.td mono class="tabular-nums">#{{ $item->id }}</x-table.td>
                         <x-table.td muted>{{ $item->clientAccount?->name ?? '—' }}</x-table.td>
-                        <x-table.td muted>{{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}</x-table.td>
+                        <x-table.td muted>@if ($item->approvable instanceof \App\Models\DailyActivityReport)
+                                <a href="{{ route('client-portal.reports.show', $item->approvable_id) }}" class="page-link">{{ $item->approvable->title ?: 'Daily activity report' }}</a>
+                            @else
+                                {{ class_basename($item->approvable_type) }} #{{ $item->approvable_id }}
+                            @endif</x-table.td>
                         <x-table.td><x-badge :status="$item->status" /></x-table.td>
                         <x-table.td align="right">
                             @if($item->status === 'pending')

@@ -1,12 +1,13 @@
 <div>
-    <x-page-shell title="Purchase orders" description="Procure assets and receive into inventory.">
+    <x-page-shell title="Assets" compact stable-header>
         <x-slot:actions>
             <x-button wire:click="openForm">New purchase order</x-button>
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout class="assets-workspace">
-            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+        <x-sub-sidebar-layout class="billing-workspace assets-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+            <x-asset-tabs />
 
 
         <x-flash-status />
@@ -43,7 +44,7 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="3">
-                                <x-empty-state compact title="No purchase orders" />
+                                <x-empty-state inline title="No purchase orders" />
                             </x-table.empty>
                         @endforelse
                     </tbody>
@@ -126,7 +127,7 @@
                     </x-section-card>
                 @else
                     <x-section-card title="PO detail">
-                        <x-empty-state compact title="Select a purchase order" />
+                        <x-empty-state inline title="Select a purchase order" />
                     </x-section-card>
                 @endif
             </div>

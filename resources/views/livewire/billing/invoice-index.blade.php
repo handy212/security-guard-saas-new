@@ -1,12 +1,5 @@
 <div>
-    <x-page-shell
-        title="Invoices"
-        description="Generate client invoices, record payments, and export accounting data."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Invoices'],
-        ]"
-    >
+    <x-page-shell title="Invoices" compact stable-header>
         <x-slot:actions>
             @if ($canExport)
                 <x-button variant="secondary" wire:click="exportInvoicesCsv">Export CSV</x-button>
@@ -117,7 +110,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="7">
-                            <x-empty-state
+                            <x-empty-state inline
                                 compact
                                 :title="($search !== '' || $statusFilter !== 'all' || $hasAdvancedFilters) ? 'No matching invoices' : 'No invoices'"
                                 :description="($search !== '' || $statusFilter !== 'all' || $hasAdvancedFilters) ? 'Try clearing filters or widening the date range.' : 'Create a draft invoice or generate one from client coverage.'"

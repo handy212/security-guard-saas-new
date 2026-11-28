@@ -1,14 +1,11 @@
-<div>
+<div class="guard-profile-page">
     @error('clientCommunication')
         <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
     @enderror
     <x-page-shell
+        :compact="$activeTab === 'overview'"
         :title="$guard->full_name"
         :description="$guard->employee_number ? 'Employee #'.$guard->employee_number : 'Guard profile'"
-        :breadcrumbs="[
-            ['label' => 'Guards', 'href' => route('guards.index')],
-            ['label' => $guard->full_name],
-        ]"
     >
         <x-slot:actions>
             @if ($idCardEligibility['can_download'])
@@ -40,8 +37,8 @@
         <x-profile-layout :tabs="$profileTabs" :active="$activeTab">
 
         @if ($activeTab === 'overview')
-            <div class="space-y-3">
-                <x-section-card title="Last 7 days" flush>
+            <div class="profile-overview space-y-3">
+                <x-section-card title="Last 7 days" compact flush>
                     <div class="overview-stat-grid">
                         <x-stat-card compact label="Shifts completed" :value="$stats['shifts_completed']" icon="schedules" />
                         <x-stat-card compact label="Hours worked" :value="$stats['hours_worked']" icon="schedules" tone="info" />
@@ -69,152 +66,154 @@
                     @endforeach
                 </div>
 
-                <div class="overview-panel-grid">
-                    <x-section-card title="General information">
-                        <dl class="profile-dl">
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Region</dt>
-                                <dd class="profile-dl-value">{{ $guard->branch?->name ?? '—' }}</dd>
+                <div class="profile-overview-columns guard-overview-columns">
+                    <div class="min-w-0 space-y-3">
+                        <x-section-card title="General information" compact>
+                            <dl class="profile-dl">
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Region</dt>
+                                    <dd class="profile-dl-value">{{ $guard->branch?->name ?? '—' }}</dd>
+                                </div>
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Duty</dt>
+                                    <dd class="profile-dl-value font-normal">{{ $guard->dutyTypeLabel() }}</dd>
+                                </div>
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Rank</dt>
+                                    <dd class="profile-dl-value font-normal">{{ $guard->rank ?: '—' }}</dd>
+                                </div>
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Phone</dt>
+                                    <dd class="profile-dl-value font-normal">{{ $guard->phone ?: '—' }}</dd>
+                                </div>
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Hire date</dt>
+                                    <dd class="profile-dl-value tabular-nums font-normal">{{ $guard->hire_date?->format('M j, Y') ?? '—' }}</dd>
+                                </div>
+                                <div class="profile-dl-row">
+                                    <dt class="profile-dl-label">Assigned sites</dt>
+                                    <dd class="profile-dl-value tabular-nums font-normal">{{ $stats['sites_assigned'] }}</dd>
+                                </div>
+                            </dl>
+                            <div class="mt-2 flex flex-wrap gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                                <x-button size="sm" variant="secondary" wire:click="setTab('profile')">Edit profile</x-button>
+                                <x-button size="sm" variant="secondary" wire:click="setTab('sites')">Assign sites</x-button>
+                                <x-button size="sm" variant="secondary" wire:click="setTab('files')">Upload docs</x-button>
+                                <x-button size="sm" variant="secondary" wire:click="setTab('qualifications')">Qualifications</x-button>
                             </div>
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Duty</dt>
-                                <dd class="profile-dl-value font-normal">{{ $guard->dutyTypeLabel() }}</dd>
-                            </div>
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Rank</dt>
-                                <dd class="profile-dl-value font-normal">{{ $guard->rank ?: '—' }}</dd>
-                            </div>
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Phone</dt>
-                                <dd class="profile-dl-value font-normal">{{ $guard->phone ?: '—' }}</dd>
-                            </div>
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Hire date</dt>
-                                <dd class="profile-dl-value tabular-nums font-normal">{{ $guard->hire_date?->format('M j, Y') ?? '—' }}</dd>
-                            </div>
-                            <div class="profile-dl-row">
-                                <dt class="profile-dl-label">Assigned sites</dt>
-                                <dd class="profile-dl-value tabular-nums font-normal">{{ $stats['sites_assigned'] }}</dd>
-                            </div>
-                        </dl>
-                        <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                            <x-button size="sm" variant="secondary" wire:click="setTab('profile')">Edit profile</x-button>
-                            <x-button size="sm" variant="secondary" wire:click="setTab('sites')">Assign sites</x-button>
-                            <x-button size="sm" variant="secondary" wire:click="setTab('files')">Upload docs</x-button>
-                            <x-button size="sm" variant="secondary" wire:click="setTab('qualifications')">Qualifications</x-button>
-                        </div>
-                    </x-section-card>
+                        </x-section-card>
 
-                    <x-section-card title="Know Your Guard">
-                        <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            @foreach($checklist['items'] as $item)
-                                <li class="flex items-center justify-between gap-2 py-2.5 text-sm first:pt-0 last:pb-0">
-                                    <div class="flex min-w-0 items-center gap-2.5">
-                                        @if ($item['passed'])
-                                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15 dark:bg-emerald-950/40 dark:text-emerald-300">
-                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                            </span>
-                                            <span class="text-zinc-600 dark:text-zinc-300">
-                                                {{ $item['label'] }}
-                                                @if (! empty($item['optional']))
-                                                    <span class="text-xs font-normal text-zinc-400">(optional)</span>
-                                                @endif
-                                            </span>
-                                        @else
-                                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-200 text-zinc-300 dark:border-zinc-700">○</span>
-                                            <span class="{{ ! empty($item['optional']) ? 'text-zinc-500 dark:text-zinc-400' : 'font-medium text-zinc-900 dark:text-zinc-100' }}">
-                                                {{ $item['label'] }}
-                                                @if (! empty($item['optional']))
-                                                    <span class="text-xs font-normal text-zinc-400">(optional)</span>
-                                                @endif
-                                            </span>
+                        <x-section-card title="Recent shifts" compact>
+                            @forelse ($recentActivity['shifts'] as $assignment)
+                                <div class="border-t border-zinc-100 py-2 text-sm first:border-t-0 first:pt-0 last:pb-0 dark:border-zinc-800" wire:key="recent-shift-{{ $assignment->id }}">
+                                    <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $assignment->shift?->site?->name ?? 'Site' }}</div>
+                                    <div class="text-xs text-zinc-500">{{ $assignment->shift?->starts_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($assignment->status))) }}</div>
+                                </div>
+                            @empty
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent shifts.</span> Shifts from the last 14 days appear here.</p>
+                            @endforelse
+                        </x-section-card>
+
+                        <x-section-card title="Recent incidents" compact>
+                            @forelse ($recentActivity['incidents'] as $incident)
+                                <div class="border-t border-zinc-100 py-2 text-sm first:border-t-0 first:pt-0 last:pb-0 dark:border-zinc-800" wire:key="recent-inc-{{ $incident->id }}">
+                                    <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $incident->title ?? 'Incident #'.$incident->id }}</div>
+                                    <div class="text-xs text-zinc-500">{{ $incident->created_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($incident->status))) }}</div>
+                                </div>
+                            @empty
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent incidents.</span> Incidents linked to this guard’s shifts appear here.</p>
+                            @endforelse
+                        </x-section-card>
+                    </div>
+
+                    <div class="guard-overview-verification flex min-w-0 flex-col gap-3">
+                        <x-section-card title="Know Your Guard" compact>
+                            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($checklist['items'] as $item)
+                                    <li class="flex items-center justify-between gap-2 py-2 text-sm first:pt-0 last:pb-0">
+                                        <div class="flex min-w-0 items-center gap-2.5">
+                                            @if ($item['passed'])
+                                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                </span>
+                                                <span class="text-zinc-600 dark:text-zinc-300">
+                                                    {{ $item['label'] }}
+                                                    @if (! empty($item['optional']))
+                                                        <span class="text-xs font-normal text-zinc-400">(optional)</span>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-200 text-zinc-300 dark:border-zinc-700">○</span>
+                                                <span class="{{ ! empty($item['optional']) ? 'text-zinc-500 dark:text-zinc-400' : 'font-medium text-zinc-900 dark:text-zinc-100' }}">
+                                                    {{ $item['label'] }}
+                                                    @if (! empty($item['optional']))
+                                                        <span class="text-xs font-normal text-zinc-400">(optional)</span>
+                                                    @endif
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @if (! $item['passed'] && ! empty($item['tab']))
+                                            <button type="button" wire:click="setTab('{{ $item['tab'] }}')" class="page-link shrink-0">
+                                                {{ ! empty($item['optional']) ? 'Add →' : 'Fix →' }}
+                                            </button>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+
+                            <div class="mt-2 flex flex-wrap gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                                @if ($guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
+                                    <x-button wire:click="submitForReview" variant="secondary" size="sm">Submit for review</x-button>
+                                @endif
+                                @if ($checklist['ready'] && $guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
+                                    <x-button wire:click="markVerified" size="sm">Mark verified</x-button>
+                                @endif
+                                @if ($guard->verification_status === 'verified')
+                                    <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend verification? The QR code will stay the same and show suspended when scanned.">Suspend</x-button>
+                                @endif
+                                @if ($guard->verification_status === 'suspended')
+                                    <x-button wire:click="reinstate" size="sm" wire:confirm="Reinstate verification? The existing QR code will keep working.">Reinstate</x-button>
+                                @endif
+                            </div>
+
+                            @if (in_array($guard->verification_status, ['verified', 'suspended'], true) && $verifyUrl && $qrSvg)
+                                <div class="mt-3 flex items-start gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                                    <div class="rounded-lg border border-zinc-200 bg-white p-2 dark:border-zinc-700">{!! $qrSvg !!}</div>
+                                    <div class="text-xs text-zinc-500">
+                                        <p class="break-all">{{ $verifyUrl }}</p>
+                                        @if ($lastScannedAt)
+                                            <p class="mt-1">Last scanned {{ $lastScannedAt->format('M j, Y g:i A') }}</p>
+                                        @endif
+                                        @if ($guard->verification_status === 'verified')
+                                            <x-button wire:click="rotateQrToken" variant="secondary" size="sm" class="mt-2" wire:confirm="Rotate QR code? Printed cards will need reprinting.">Rotate QR</x-button>
+                                        @elseif ($guard->verification_status === 'suspended')
+                                            <p class="mt-2 font-medium text-red-600">Suspended — scans show suspended status. Reinstate to restore normal verification.</p>
                                         @endif
                                     </div>
-                                    @if (! $item['passed'] && ! empty($item['tab']))
-                                        <button type="button" wire:click="setTab('{{ $item['tab'] }}')" class="page-link shrink-0">
-                                            {{ ! empty($item['optional']) ? 'Add →' : 'Fix →' }}
-                                        </button>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ul>
-
-                        <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                            @if ($guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
-                                <x-button wire:click="submitForReview" variant="secondary" size="sm">Submit for review</x-button>
-                            @endif
-                            @if ($checklist['ready'] && $guard->verification_status !== 'verified' && $guard->verification_status !== 'suspended')
-                                <x-button wire:click="markVerified" size="sm">Mark verified</x-button>
-                            @endif
-                            @if ($guard->verification_status === 'verified')
-                                <x-button wire:click="suspend" variant="danger" size="sm" wire:confirm="Suspend verification? The QR code will stay the same and show suspended when scanned.">Suspend</x-button>
-                            @endif
-                            @if ($guard->verification_status === 'suspended')
-                                <x-button wire:click="reinstate" size="sm" wire:confirm="Reinstate verification? The existing QR code will keep working.">Reinstate</x-button>
-                            @endif
-                        </div>
-
-                        @if (in_array($guard->verification_status, ['verified', 'suspended'], true) && $verifyUrl && $qrSvg)
-                            <div class="mt-4 flex items-start gap-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                                <div class="rounded-lg border border-zinc-200 bg-white p-2 dark:border-zinc-700">{!! $qrSvg !!}</div>
-                                <div class="text-xs text-zinc-500">
-                                    <p class="break-all">{{ $verifyUrl }}</p>
-                                    @if ($lastScannedAt)
-                                        <p class="mt-1">Last scanned {{ $lastScannedAt->format('M j, Y g:i A') }}</p>
-                                    @endif
-                                    @if ($guard->verification_status === 'verified')
-                                        <x-button wire:click="rotateQrToken" variant="secondary" size="sm" class="mt-2" wire:confirm="Rotate QR code? Printed cards will need reprinting.">Rotate QR</x-button>
-                                    @elseif ($guard->verification_status === 'suspended')
-                                        <p class="mt-2 font-medium text-red-600">Suspended — scans show suspended status. Reinstate to restore normal verification.</p>
-                                    @endif
                                 </div>
-                            </div>
-                        @elseif ($guard->verification_status === 'verified')
-                            <x-button wire:click="issueQrToken" size="sm" class="mt-4">Issue QR code</x-button>
-                        @endif
-                    </x-section-card>
+                            @elseif ($guard->verification_status === 'verified')
+                                <x-button wire:click="issueQrToken" size="sm" class="mt-4">Issue QR code</x-button>
+                            @endif
+                        </x-section-card>
 
-                    <x-section-card class="lg:col-span-2" title="ID card preview">
-                        @if ($idCardEligibility['can_download'])
-                            <div class="mb-3 flex justify-center">
-                                <x-segment-control field="idCardPreviewSide" :active="$idCardPreviewSide" :options="['front' => 'Front', 'back' => 'Back']" />
-                            </div>
-                            <div class="flex justify-center" wire:key="card-{{ $idCardPreviewSide }}-{{ $guard->id }}">
-                                <x-guard-id-card-preview :brand="$idCardBrand" :card="$idCardData" :side="$idCardPreviewSide" :photo-url="$photoUrl" :logo-url="$idCardBrand['logo_url']" :qr-svg="$qrSvg" />
-                            </div>
-                            <div class="mt-4 flex flex-wrap justify-center gap-2">
-                                <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="justify-center" size="sm">Print ID card</x-button>
-                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])" variant="secondary" class="justify-center" size="sm">Download PDF</x-button>
-                                <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])" variant="secondary" class="justify-center" size="sm">Download PNG</x-button>
-                            </div>
-                        @else
-                            <x-empty-state compact :title="$idCardEligibility['message'] ?? 'ID card unavailable'" description="Complete KYG verification to enable ID cards." />
-                        @endif
-                    </x-section-card>
-                </div>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                    <x-section-card title="Recent shifts">
-                        @forelse ($recentActivity['shifts'] as $assignment)
-                            <div class="border-t border-zinc-100 py-3 text-sm first:border-t-0 dark:border-zinc-800" wire:key="recent-shift-{{ $assignment->id }}">
-                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $assignment->shift?->site?->name ?? 'Site' }}</div>
-                                <div class="text-xs text-zinc-500">{{ $assignment->shift?->starts_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($assignment->status))) }}</div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent shifts.</span> Shifts from the last 14 days appear here.</p>
-                        @endforelse
-                    </x-section-card>
-
-                    <x-section-card title="Recent incidents">
-                        @forelse ($recentActivity['incidents'] as $incident)
-                            <div class="border-t border-zinc-100 py-3 text-sm first:border-t-0 dark:border-zinc-800" wire:key="recent-inc-{{ $incident->id }}">
-                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $incident->title ?? 'Incident #'.$incident->id }}</div>
-                                <div class="text-xs text-zinc-500">{{ $incident->created_at?->format('M j, Y g:i A') }} · {{ ucfirst(str_replace('_', ' ', \App\Support\EnumHelper::value($incident->status))) }}</div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No recent incidents.</span> Incidents linked to this guard’s shifts appear here.</p>
-                        @endforelse
-                    </x-section-card>
+                        <x-section-card title="ID card preview" compact>
+                            @if ($idCardEligibility['can_download'])
+                                <div class="mb-3 flex justify-center">
+                                    <x-segment-control field="idCardPreviewSide" :active="$idCardPreviewSide" :options="['front' => 'Front', 'back' => 'Back']" />
+                                </div>
+                                <div class="flex justify-center" wire:key="card-{{ $idCardPreviewSide }}-{{ $guard->id }}">
+                                    <x-guard-id-card-preview :brand="$idCardBrand" :card="$idCardData" :side="$idCardPreviewSide" :photo-url="$photoUrl" :logo-url="$idCardBrand['logo_url']" :qr-svg="$qrSvg" />
+                                </div>
+                                <div class="mt-4 flex flex-wrap justify-center gap-2">
+                                    <x-button :href="route('guards.id-card.print', $guard)" target="_blank" class="justify-center" size="sm">Print ID card</x-button>
+                                    <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'pdf'])" variant="secondary" class="justify-center" size="sm">Download PDF</x-button>
+                                    <x-button :href="route('guards.id-card', ['guard' => $guard, 'format' => 'png'])" variant="secondary" class="justify-center" size="sm">Download PNG</x-button>
+                                </div>
+                            @else
+                                <x-empty-state compact :title="$idCardEligibility['message'] ?? 'ID card unavailable'" description="Complete KYG verification to enable ID cards." />
+                            @endif
+                        </x-section-card>
+                    </div>
                 </div>
             </div>
         @endif
@@ -277,7 +276,7 @@
                                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                     @endforeach
                                 </x-select>
-                                <a href="{{ route('settings.branches') }}" class="page-link mt-1 inline-block text-xs">Manage regions</a>
+                                <a href="{{ route('dispatch.deployments', ['tab' => 'regions']) }}" class="page-link mt-1 inline-block text-xs">Manage regions</a>
                             </div>
                             <x-select wire:model.live="departmentForm.duty_type" label="Duty type">
                                 @foreach($dutyTypes as $value => $label)

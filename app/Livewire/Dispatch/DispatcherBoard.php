@@ -535,7 +535,7 @@ class DispatcherBoard extends Component
                 ? Site::forTenant($tenantId)->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'guards' => $guards,
-            'dispatchTeams' => DispatchTeam::forTenant($tenantId)->with(['standbyPoint.region', 'outstandingDispatches'])->withCount([
+            'dispatchTeams' => DispatchTeam::forTenant($tenantId)->with(['activeDeployment', 'outstandingDispatches'])->withCount([
                 'members as active_officers_count' => fn ($query) => $query->where('status', 'active')->where('duty_type', GuardDutyType::Dispatch->value),
             ])->orderBy('name')->get(),
             'assignmentGuards' => $assignmentGuards,

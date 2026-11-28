@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Sites\SiteProfile;
 use App\Models\ClientAccount;
+use App\Models\PostOrder;
 use App\Models\Site;
 use App\Models\SiteEmergencyContact;
 use App\Models\SiteNote;
@@ -50,6 +51,29 @@ class SiteProfileTest extends TestCase
             ->call('setTab', 'contacts')
             ->assertSet('activeTab', 'contacts')
             ->assertSee('Add contact');
+    }
+
+    public function test_site_profile_creates_site_wide_post_order_with_null_post(): void
+    {
+        $site = Site::first();
+
+        Livewire::actingAs($this->admin)
+            ->test(SiteProfile::class, ['site' => $site])
+            ->call('setTab', 'post_orders')
+            ->set('postOrderForm.site_post_id', '')
+            ->set('postOrderForm.title', 'Check all the doors every hour')
+            ->set('postOrderForm.instructions', 'Check all the doors every hour')
+            ->set('postOrderForm.is_active', true)
+            ->call('addPostOrder')
+            ->assertHasNoErrors();
+
+        $order = PostOrder::query()
+            ->where('site_id', $site->id)
+            ->where('title', 'Check all the doors every hour')
+            ->first();
+
+        $this->assertNotNull($order);
+        $this->assertNull($order->site_post_id);
     }
 
     public function test_site_contact_crud_via_profile(): void

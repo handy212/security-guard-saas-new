@@ -168,7 +168,7 @@
                                 <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                             @endforeach
                         </x-select>
-                        <a href="{{ route('settings.branches') }}" class="mt-1.5 inline-block text-xs font-medium text-accent-700 hover:underline">Manage regions</a>
+                        <a href="{{ route('dispatch.deployments', ['tab' => 'regions']) }}" class="mt-1.5 inline-block text-xs font-medium text-accent-700 hover:underline">Manage regions</a>
                     </div>
                 </x-form-section>
 

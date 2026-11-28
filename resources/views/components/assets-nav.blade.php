@@ -19,4 +19,4 @@
         ->all();
 @endphp
 
-<x-sub-sidebar :links="$links" />
+<x-sub-sidebar :links="[['href' => route('billing.hub'), 'label' => 'Overview', 'icon' => 'billing', 'group' => 'Back Office'], ...$links]" />

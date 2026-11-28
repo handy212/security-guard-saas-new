@@ -1,12 +1,5 @@
 <div>
-    <x-page-shell
-        title="Expenses"
-        description="Track vendor bills, reimbursements, and operational spend."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Expenses'],
-        ]"
-    >
+    <x-page-shell title="Expenses" compact stable-header>
         <x-slot:actions>
             <x-button wire:click="openForm">Add expense</x-button>
         </x-slot:actions>
@@ -100,7 +93,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="8">
-                            <x-empty-state
+                            <x-empty-state inline
                                 compact
                                 :title="$hasActiveFilters ? 'No matching expenses' : 'No expenses'"
                                 :description="$hasActiveFilters ? 'Try clearing filters or widening the date range.' : 'Record vendor bills and operational costs.'"

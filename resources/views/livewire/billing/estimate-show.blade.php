@@ -2,15 +2,7 @@
     @error('clientCommunication')
         <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
     @enderror
-    <x-page-shell
-        :title="$estimate->estimate_number"
-        :description="($estimate->clientAccount?->name ?? 'Estimate').' · Document view'"
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Estimates', 'href' => route('billing.estimates')],
-            ['label' => $estimate->estimate_number],
-        ]"
-    >
+    <x-page-shell :title="$estimate->estimate_number" compact stable-header>
         <x-slot:actions>
             @if (in_array($estimate->status, ['draft', 'sent'], true))
                 <x-button variant="secondary" :href="route('billing.estimates.edit', $estimate)">Edit</x-button>
@@ -37,6 +29,8 @@
             @endif
         </x-slot:actions>
 
+        <x-sub-sidebar-layout class="billing-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
         <x-flash-status type="success" />
 
         <div class="grid gap-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -69,6 +63,7 @@
                 <x-billing.estimate-document :estimate="$estimate" />
             </div>
         </div>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showSend)

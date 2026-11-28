@@ -43,11 +43,11 @@ use App\Livewire\ClientPortal\PortalInvoiceShow;
 use App\Livewire\ClientPortal\PortalReportShow;
 use App\Livewire\Clients\ClientIndex;
 use App\Livewire\Clients\ClientProfile;
-use App\Livewire\Clients\ComplaintBoard;
 use App\Livewire\Compliance\ComplianceDashboard;
 use App\Livewire\Compliance\PolicyCenter;
 use App\Livewire\Dashboard\Overview;
 use App\Livewire\Dispatch\DispatcherBoard;
+use App\Livewire\Dispatch\ResponseDeployments;
 use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Guards\GuardIndex;
 use App\Livewire\Guards\GuardProfile;
@@ -66,7 +66,6 @@ use App\Livewire\Reports\ReportsHub;
 use App\Livewire\Reports\ReportTemplateBuilder;
 use App\Livewire\Scheduling\SchedulerWorkspace;
 use App\Livewire\Settings\AuditLogIndex;
-use App\Livewire\Settings\BranchIndex;
 use App\Livewire\Settings\CompanyProfile;
 use App\Livewire\Settings\IdCardSettings;
 use App\Livewire\Settings\KygPageSettings;
@@ -85,6 +84,8 @@ use App\Livewire\Tenants\PlatformSubscriptionManagement;
 use App\Livewire\Tenants\TenantManagement;
 use App\Livewire\Tracking\LiveTracker;
 use App\Livewire\Visitors\VisitorLogIndex;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/paystack/webhook', PaystackWebhookController::class)->name('paystack.webhook');
@@ -147,7 +148,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(function () {
     Route::get('/dashboard', Overview::class)->name('dashboard');
     Route::get('/clients', ClientIndex::class)->name('clients.index');
-    Route::get('/clients/complaints', ComplaintBoard::class)->name('clients.complaints');
+    Route::get('/clients/complaints', fn (Request $request): RedirectResponse => redirect()->route(
+        'clients.index',
+        ['tab' => 'complaints'] + $request->query(),
+    ))->name('clients.complaints');
     Route::get('/clients/{clientAccount}', ClientProfile::class)->name('clients.show');
     Route::get('/sites', SiteIndex::class)->name('sites.index');
     Route::redirect('/sites/compliance', '/compliance');
@@ -187,6 +191,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/tracking', LiveTracker::class)->name('tracking.live');
     Route::get('/notifications', NotificationCenter::class)->name('notifications.index');
     Route::get('/dispatch', DispatcherBoard::class)->name('dispatch.control-room');
+    Route::get('/dispatch/deployments', ResponseDeployments::class)->name('dispatch.deployments');
     Route::middleware('client.portal')->group(function () {
         Route::get('/client-portal', PortalDashboard::class)->name('client-portal.dashboard');
         Route::get('/client-portal/reports/{reportId}', PortalReportShow::class)->name('client-portal.reports.show');
@@ -195,6 +200,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
         Route::get('/client-portal/invoices/{invoice}', PortalInvoiceShow::class)->name('client-portal.invoices.show');
     });
     Route::get('/billing', BackOfficeHub::class)->name('billing.hub');
+    Route::get('/billing/regions-response', fn () => redirect()->route('dispatch.deployments', ['tab' => request()->query('tab', 'regions')]))->name('billing.regions-response');
     Route::get('/billing/invoices', InvoiceIndex::class)->name('billing.invoices');
     Route::get('/billing/invoices/create', InvoiceForm::class)->name('billing.invoices.create');
     Route::get('/billing/invoices/{invoice}/edit', InvoiceForm::class)->name('billing.invoices.edit');
@@ -210,7 +216,7 @@ Route::middleware(['auth', 'tenant', 'plan.feature', 'two-factor'])->group(funct
     Route::get('/settings', SettingsHub::class)->name('settings.index');
     Route::get('/settings/company-profile', CompanyProfile::class)->name('settings.company-profile');
     Route::get('/settings/themes', ThemeSettings::class)->name('settings.themes');
-    Route::get('/settings/branches', BranchIndex::class)->name('settings.branches');
+    Route::get('/settings/branches', fn () => redirect()->route('dispatch.deployments', ['tab' => request()->query('tab', 'regions')]))->name('settings.branches');
     Route::get('/settings/id-card', IdCardSettings::class)->name('settings.id-card');
     Route::get('/settings/know-your-guard', KygPageSettings::class)->name('settings.kyg');
     Route::get('/settings/roles', RolePermissionManager::class)->name('settings.roles');

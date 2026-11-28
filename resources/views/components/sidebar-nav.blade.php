@@ -173,6 +173,9 @@
                                         <p class="nav-flyout-title">{{ $link['label'] }}</p>
                                         <div class="nav-flyout-list">
                                             @foreach ($children as $child)
+                                                @if (($link['hub_href'] ?? null) === '/billing' && $child['group'] && ($loop->first || $children[$loop->index - 1]['group'] !== $child['group']))
+                                                    <p class="px-2 pt-2 text-xs font-semibold">{{ $child['group'] }}</p>
+                                                @endif
                                                 @php $childActive = $nav->isLinkActive($child); @endphp
                                                 <a href="{{ $child['href'] }}" wire:navigate
                                                    class="nav-flyout-link {{ $childActive ? 'nav-flyout-link-active' : '' }}">

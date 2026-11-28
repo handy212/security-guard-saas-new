@@ -6,10 +6,12 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DispatchTeam extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, SoftDeletes;
 
     protected $fillable = ['tenant_id', 'name', 'standby_point_id'];
 
@@ -26,5 +28,10 @@ class DispatchTeam extends Model
     public function outstandingDispatches(): HasMany
     {
         return $this->hasMany(DispatchEvent::class)->whereNull('returned_at');
+    }
+
+    public function activeDeployment(): HasOne
+    {
+        return $this->hasOne(ResponseDeployment::class)->whereNull('closed_at');
     }
 }

@@ -8,7 +8,7 @@
 
             $active = match (true) {
                 $isOverview => request()->is('billing') && ! request()->is('billing/*'),
-                str_starts_with($href, 'compliance') => request()->is('compliance*'),
+                $href === 'compliance' => request()->is('compliance'),
                 $href === 'analytics' => request()->is('analytics'),
                 default => request()->is($href) || request()->is($href.'/*'),
             };
@@ -17,7 +17,7 @@
                 'href' => $link['href'],
                 'label' => $link['label'],
                 'icon' => $link['icon'] ?? 'billing',
-                'group' => 'Back Office',
+                'group' => $link['group'],
                 'active' => $active,
             ];
         })

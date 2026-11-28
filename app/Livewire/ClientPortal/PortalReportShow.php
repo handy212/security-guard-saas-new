@@ -5,9 +5,11 @@ namespace App\Livewire\ClientPortal;
 use App\Models\DailyActivityReport;
 use App\Models\PatrolSession;
 use App\Models\ShiftAssignment;
+use App\Services\PdfExportService;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PortalReportShow extends Component
 {
@@ -17,6 +19,11 @@ class PortalReportShow extends Component
     {
         $this->reportId = $reportId;
         $this->approvedReport();
+    }
+
+    public function download(PdfExportService $pdf): StreamedResponse
+    {
+        return $pdf->downloadDailyReport($this->approvedReport(), includeHandover: false);
     }
 
     public function render()

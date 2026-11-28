@@ -6,6 +6,8 @@ use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Guards\GuardApplicationQueue;
 use App\Livewire\Guards\GuardIndex;
 use App\Livewire\Guards\KnowYourGuardQueue;
+use App\Models\AttendanceLog;
+use App\Models\DailyActivityReport;
 use App\Models\PatrolCheckpoint;
 use App\Models\PatrolSession;
 use App\Models\PostOrder;
@@ -28,6 +30,43 @@ class GuardWorkspaceTest extends TestCase
         $admin = User::where('email', 'admin@demo.test')->firstOrFail();
         $this->actingAs($admin);
         app()->instance('currentTenant', $admin->tenant);
+    }
+
+    public function test_guard_can_submit_one_daily_report_for_a_finished_shift(): void
+    {
+        $guard = User::where('email', 'john.guard@test')->firstOrFail();
+        setPermissionsTeamId($guard->tenant_id);
+        $assignment = ShiftAssignment::where('guard_id', $guard->guardProfile->id)->firstOrFail();
+        $assignment->shift->update(['starts_at' => now()->subHours(2), 'ends_at' => now()->subHour()]);
+        $assignment->update(['status' => 'completed']);
+        $assignment->attendanceLogs()->delete();
+        DailyActivityReport::where('shift_assignment_id', $assignment->id)->delete();
+        AttendanceLog::create([
+            'tenant_id' => $guard->tenant_id,
+            'shift_assignment_id' => $assignment->id,
+            'guard_id' => $assignment->guard_id,
+            'site_id' => $assignment->shift->site_id,
+            'type' => 'clock_in',
+            'recorded_at' => now()->subHours(2),
+            'clock_in_at' => now()->subHours(2),
+            'clock_out_at' => now()->subHour(),
+            'status' => 'completed',
+        ]);
+
+        $field = Livewire::actingAs($guard)->test(MobileDashboard::class)
+            ->set('dailyReportAssignmentId', 999999)
+            ->call('submitDailyReport')
+            ->assertHasErrors('dailyReportAssignmentId')
+            ->set('dailyReportAssignmentId', $assignment->id)
+            ->set('dailyReportSummary', 'Checked the entrances and handed over.')
+            ->call('submitDailyReport')
+            ->assertHasNoErrors()
+            ->assertSee('Submitted for review.');
+
+        $field->set('dailyReportSummary', 'Retried copy.')->call('submitDailyReport')->assertHasNoErrors();
+        $report = DailyActivityReport::where('shift_assignment_id', $assignment->id)->sole();
+        $this->assertSame('Checked the entrances and handed over.', $report->summary);
+        $this->assertSame('submitted', $report->status);
     }
 
     public function test_guard_sees_active_site_and_assigned_post_orders_only(): void

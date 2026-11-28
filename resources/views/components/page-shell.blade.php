@@ -1,4 +1,4 @@
-@props(['title' => null, 'description' => null, 'breadcrumbs' => [], 'showHeader' => true, 'embedded' => false, 'compact' => false])
+@props(['title' => null, 'description' => null, 'breadcrumbs' => [], 'showHeader' => true, 'embedded' => false, 'compact' => false, 'stableHeader' => false])
 
 @php
     // Hide single-item breadcrumbs that just repeat the page context
@@ -9,7 +9,7 @@
 <div @class(['flex min-h-full flex-col', 'scheduler-panel' => $embedded])>
     @if ($showHeader)
         <div class="border-b border-zinc-200/70 bg-white/70 dark:border-zinc-800 dark:bg-transparent">
-            <div @class(['page-content flex flex-wrap justify-between', 'items-center gap-x-4 gap-y-2 py-2.5' => $compact, 'flex-col gap-4 py-5 sm:flex-row sm:items-end sm:gap-6' => ! $compact])>
+            <div @class(['page-content flex flex-wrap justify-between', 'min-h-16' => $stableHeader, 'items-center gap-x-4 gap-y-2 py-2.5' => $compact, 'flex-col gap-4 py-5 sm:flex-row sm:items-end sm:gap-6' => ! $compact])>
                 <div class="flex min-w-0 items-center gap-3">
                     @isset($headingIcon)
                         {{ $headingIcon }}

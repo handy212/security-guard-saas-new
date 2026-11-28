@@ -6,11 +6,16 @@ use App\Livewire\Billing\EstimateForm;
 use App\Livewire\Billing\ExpenseIndex;
 use App\Livewire\Billing\InvoiceForm;
 use App\Livewire\Billing\PayrollBoard;
+use App\Models\AttendanceLog;
 use App\Models\ClientAccount;
 use App\Models\Estimate;
 use App\Models\Expense;
 use App\Models\Guard;
 use App\Models\Invoice;
+use App\Models\PayrollExport;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
+use App\Models\Site;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\Timesheet;
@@ -72,15 +77,55 @@ class BackOfficeWorkflowTest extends TestCase
         $this->assertSame($plan->max_sites, $usage['sites']['max']);
     }
 
+    public function test_back_office_complaints_open_inside_clients(): void
+    {
+        $complaintsUrl = route('clients.index', ['tab' => 'complaints', 'status' => 'open']);
+
+        $this->actingAs($this->admin)
+            ->get(route('billing.hub'))
+            ->assertOk()
+            ->assertSee($complaintsUrl);
+
+        $this->get($complaintsUrl)
+            ->assertOk()
+            ->assertSee('Client directory')
+            ->assertSee('Log complaint')
+            ->assertDontSee('Add client');
+
+        $this->get(route('clients.complaints', ['status' => 'open']))
+            ->assertRedirect($complaintsUrl);
+
+        $this->get(route('clients.index'))
+            ->assertOk()
+            ->assertSee('Add client')
+            ->assertDontSee('Log complaint');
+    }
+
     public function test_back_office_hub_exposes_a_clear_cash_flow_hierarchy(): void
     {
         $this->actingAs($this->admin)
             ->get(route('billing.hub'))
             ->assertOk()
+            ->assertSee('Operations')
+            ->assertSee('Client complaints')
+            ->assertSee('Governance')
             ->assertSee('Cash flow')
             ->assertSee('Workspace summary')
             ->assertSee('Recent invoices')
             ->assertSee('Recent expenses');
+    }
+
+    public function test_asset_staff_can_open_back_office_without_seeing_finance(): void
+    {
+        $staff = User::factory()->create(['tenant_id' => $this->admin->tenant_id]);
+        $staff->givePermissionTo('equipment.manage');
+
+        $this->actingAs($staff)->get(route('billing.hub'))
+            ->assertOk()
+            ->assertSee('Operations')
+            ->assertSee('Categories low on stock')
+            ->assertDontSee('Cash flow')
+            ->assertDontSee('Recent invoices');
     }
 
     public function test_invoice_and_estimate_forms_show_a_single_primary_action_with_live_totals(): void
@@ -342,6 +387,19 @@ class BackOfficeWorkflowTest extends TestCase
         }
     }
 
+    public function test_payroll_prorates_each_month_and_rejects_overlapping_periods(): void
+    {
+        $guard = Guard::forTenant($this->admin->tenant_id)->firstOrFail();
+        $guard->update(['monthly_rate' => 3100]);
+        $service = app(PayrollService::class);
+
+        $sheet = $service->generateTimesheet($guard, '2026-01-31', '2026-02-01');
+
+        $this->assertSame(210.71, (float) $sheet->gross_pay);
+        $this->expectExceptionMessage('This period overlaps a pending or approved timesheet');
+        $service->generateTimesheet($guard, '2026-02-01', '2026-02-02');
+    }
+
     public function test_payroll_export_uses_only_approved_timesheets_for_the_period(): void
     {
         Storage::fake('local');
@@ -376,6 +434,53 @@ class BackOfficeWorkflowTest extends TestCase
         $csv = Storage::disk('local')->get($export->file_path);
         $this->assertStringContainsString('"120.00","5.00","900.00"', $csv);
         $this->assertStringNotContainsString('"80.00","0.00","700.00"', $csv);
+    }
+
+    public function test_payroll_prepares_and_exports_one_thousand_guards_in_one_period(): void
+    {
+        Storage::fake('local');
+        $tenantId = $this->admin->tenant_id;
+        $siteId = Site::forTenant($tenantId)->value('id');
+        $shift = Shift::create([
+            'tenant_id' => $tenantId, 'site_id' => $siteId, 'title' => 'Payroll test shift',
+            'starts_at' => '2030-01-03 08:00:00', 'ends_at' => '2030-01-03 16:00:00', 'status' => 'assigned',
+        ]);
+        foreach (range(1, 1001) as $index) {
+            $guard = Guard::create([
+                'tenant_id' => $tenantId, 'employee_number' => "PAYROLL-{$index}",
+                'first_name' => "Payroll {$index}", 'last_name' => 'Guard',
+                'status' => 'active', 'monthly_rate' => $index === 1001 ? 0 : 3100,
+            ]);
+            $assignment = ShiftAssignment::create([
+                'tenant_id' => $tenantId, 'shift_id' => $shift->id, 'guard_id' => $guard->id, 'status' => 'confirmed',
+            ]);
+            AttendanceLog::create([
+                'shift_assignment_id' => $assignment->id,
+                'tenant_id' => $tenantId, 'guard_id' => $guard->id, 'site_id' => $siteId,
+                'type' => 'clock_in', 'recorded_at' => '2030-01-03 08:00:00',
+                'clock_in_at' => '2030-01-03 08:00:00', 'clock_out_at' => '2030-01-03 16:00:00',
+                'worked_minutes' => 480, 'status' => 'on_time',
+            ]);
+        }
+
+        $board = Livewire::actingAs($this->admin)->test(PayrollBoard::class)
+            ->set('periodStart', '2030-01-01')->set('periodEnd', '2030-01-31')
+            ->call('preparePayroll')->assertHasNoErrors()->assertSet('preparation.created', 1000)
+            ->assertSet('preparation.missing_rate', 1)
+            ->call('preparePayroll')->assertSet('preparation.created', 0)->assertSet('preparation.existing', 1000)
+            ->set('guardSearch', 'PAYROLL-1000')->assertSee('Payroll 1000 Guard')->assertDontSee('Payroll 999 Guard')
+            ->set('guardSearch', '')
+            ->call('exportQuickBooks')->assertSee('Approve or reject all pending timesheets')
+            ->call('approvePeriod')->assertSee('Approved 1000 timesheets')
+            ->call('exportQuickBooks')->assertSee('Payroll CSV export generated');
+
+        $path = "payroll/{$tenantId}/quickbooks-2030-01-01-2030-01-31.csv";
+        $csv = Storage::disk('local')->get($path);
+        $this->assertCount(1001, explode("\n", $csv));
+        $this->assertStringContainsString('"Payroll 1000 Guard","2030-01-01","2030-01-31","8.00","0.00","3100.00"', $csv);
+        $this->assertStringNotContainsString('Payroll 1001 Guard', $csv);
+        $board->call('downloadPayrollExport', PayrollExport::forTenant($tenantId)->where('file_path', $path)->sole()->id)
+            ->assertFileDownloaded(basename($path));
     }
 
     private function createEstimate(): Estimate

@@ -4,6 +4,7 @@ namespace App\Livewire\Guard;
 
 use App\Enums\GuardDutyType;
 use App\Models\AttendanceLog;
+use App\Models\DailyActivityReport;
 use App\Models\DispatchEvent;
 use App\Models\DispatchTeam;
 use App\Models\Guard;
@@ -12,6 +13,7 @@ use App\Models\PatrolRoute;
 use App\Models\PatrolSession;
 use App\Models\PostOrder;
 use App\Models\ReportTemplate;
+use App\Models\ResponseDeployment;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\SosAlert;
@@ -22,6 +24,9 @@ use App\Services\EnterpriseScheduleService;
 use App\Services\GuardLocationService;
 use App\Services\OfflineSyncService;
 use App\Services\PatrolService;
+use App\Services\PlanEntitlementService;
+use App\Services\ReportService;
+use App\Services\ResponseDeploymentService;
 use App\Services\WorkforceService;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,6 +61,12 @@ class MobileDashboard extends Component
     public array $reportData = [];
 
     public string $passdownContent = '';
+
+    public ?int $dailyReportAssignmentId = null;
+
+    public string $dailyReportSummary = '';
+
+    public string $dailyReportHandover = '';
 
     public string $swapReason = '';
 
@@ -122,6 +133,33 @@ class MobileDashboard extends Component
         $reports->submit($submission);
         $this->reportData = [];
         $this->statusMessage = 'Custom report submitted.';
+    }
+
+    public function submitDailyReport(ReportService $reports, PlanEntitlementService $entitlements): void
+    {
+        abort_unless($entitlements->tenantHasFeature(TenantContext::id(), 'reports'), 403);
+        $assignment = $this->reportableAssignments()
+            ->with('shift')
+            ->find($this->dailyReportAssignmentId);
+
+        if (! $assignment) {
+            throw ValidationException::withMessages(['dailyReportAssignmentId' => 'Select a shift you clocked into in the past seven days.']);
+        }
+
+        $data = $this->validate([
+            'dailyReportSummary' => 'required|string|max:10000',
+            'dailyReportHandover' => 'nullable|string|max:10000',
+        ]);
+
+        $reports->submitForShift($assignment, $data['dailyReportSummary'], $data['dailyReportHandover'] ?: null);
+        $this->reset('dailyReportSummary', 'dailyReportHandover');
+        $this->statusMessage = 'Daily activity report submitted.';
+    }
+
+    public function updatedDailyReportAssignmentId(): void
+    {
+        $this->reset('dailyReportSummary', 'dailyReportHandover');
+        $this->resetValidation(['dailyReportAssignmentId', 'dailyReportSummary', 'dailyReportHandover']);
     }
 
     public function updatedActiveAssignmentId(): void
@@ -244,6 +282,22 @@ class MobileDashboard extends Component
     {
         $dispatch->acknowledgeTeamDispatch($this->assignedTeamDispatch($dispatchId), auth()->id());
         $this->statusMessage = 'Dispatch acknowledged.';
+    }
+
+    public function confirmStandbyArrival(ResponseDeploymentService $service): void
+    {
+        abort_unless(auth()->user()->can('mobile.use'), 403);
+        $guard = auth()->user()->guardProfile;
+        abort_unless($guard, 403);
+        $deployment = ResponseDeployment::forTenant(TenantContext::id())
+            ->where('custodian_id', $guard->id)->whereNull('closed_at')->firstOrFail();
+        try {
+            [$lat, $lng] = $this->coordinates();
+            $service->arrive($deployment, auth()->id(), $guard->id, $lat, $lng);
+            $this->statusMessage = 'Standby arrival confirmed. Your team is ready.';
+        } catch (RuntimeException $e) {
+            $this->addError('action', $e->getMessage());
+        }
     }
 
     public function submitDispatchOutcome(int $dispatchId, DispatchService $dispatch): void
@@ -468,6 +522,10 @@ class MobileDashboard extends Component
             ? $customReports->templatesForSite($selectedShift->site_id)
             : collect();
 
+        $reportAssignments = $guardId && app(PlanEntitlementService::class)->tenantHasFeature($tenantId, 'reports')
+            ? $this->reportableAssignments()->with('shift.site')->latest('id')->get()
+            : collect();
+
         $dispatches = $guardId
             ? app(DispatchService::class)->myActiveDispatches($guardId)
             : collect();
@@ -478,8 +536,13 @@ class MobileDashboard extends Component
 
         $guard = auth()->user()->guardProfile;
         $standbyTeam = $guard?->duty_type === GuardDutyType::Dispatch && $guard->dispatch_team_id
-            ? DispatchTeam::forTenant($tenantId)->with('standbyPoint.region')->find($guard->dispatch_team_id)
+            ? DispatchTeam::forTenant($tenantId)->with('activeDeployment')->find($guard->dispatch_team_id)
             : null;
+        $standbyDeployment = $standbyTeam?->activeDeployment;
+        if ($standbyDeployment && ! in_array($guardId, $standbyDeployment->officer_ids, true)) {
+            $standbyDeployment = null;
+        }
+        $standbyDeployment?->load(['kit' => fn ($query) => $query->where('guard_id', $guardId)->with('asset')]);
         $enterprise = app(EnterpriseScheduleService::class);
 
         return view('livewire.guard.mobile-dashboard', [
@@ -490,6 +553,7 @@ class MobileDashboard extends Component
             'assignments' => $assignments,
             'selectedAssignment' => $selectedAssignment,
             'standbyTeam' => $standbyTeam,
+            'standbyDeployment' => $standbyDeployment,
             'postOrders' => $postOrders,
             'dispatches' => $dispatches,
             'finishedDispatches' => $finishedDispatches,
@@ -503,6 +567,11 @@ class MobileDashboard extends Component
                 ->orderBy('first_name')
                 ->get(),
             'reportTemplates' => $reportTemplates,
+            'reportAssignments' => $reportAssignments,
+            'dailyReportStatus' => $reportAssignments->contains('id', $this->dailyReportAssignmentId)
+                ? DailyActivityReport::query()->where('tenant_id', $tenantId)
+                    ->where('shift_assignment_id', $this->dailyReportAssignmentId)->oldest('id')->value('status')
+                : null,
             'activePatrols' => PatrolSession::with('route')
                 ->withCount(['scans as verified_checkpoints' => fn ($query) => $query->where('status', 'valid')
                     ->select(DB::raw('COUNT(DISTINCT patrol_checkpoint_id)'))])
@@ -548,6 +617,15 @@ class MobileDashboard extends Component
         }
 
         return $assignment;
+    }
+
+    /** @return Builder<ShiftAssignment> */
+    private function reportableAssignments(): Builder
+    {
+        return ShiftAssignment::query()->where('tenant_id', TenantContext::id())
+            ->where('guard_id', auth()->user()->guardProfile?->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereHas('attendanceLogs', fn (Builder $query) => $query->where('clock_in_at', '>=', now()->subDays(7)));
     }
 
     private function coordinates(): array

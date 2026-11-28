@@ -16,8 +16,12 @@
             class="form-input text-sm"
             onchange="window.location.href = this.value"
         >
-            @foreach ($links as $link)
-                <option value="{{ $link['href'] }}" @selected($link['active'] ?? false)>{{ $link['label'] }}</option>
+            @foreach ($groups as $groupLabel => $groupLinks)
+                <optgroup label="{{ $groupLabel }}">
+                    @foreach ($groupLinks as $link)
+                        <option value="{{ $link['href'] }}" @selected($link['active'] ?? false)>{{ $link['label'] }}</option>
+                    @endforeach
+                </optgroup>
             @endforeach
         </select>
     </div>

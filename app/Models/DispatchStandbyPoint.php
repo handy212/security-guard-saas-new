@@ -10,7 +10,7 @@ class DispatchStandbyPoint extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'region_id', 'name', 'address', 'latitude', 'longitude'];
+    protected $fillable = ['tenant_id', 'region_id', 'name', 'address', 'latitude', 'longitude', 'radius_meters'];
 
     protected function casts(): array
     {

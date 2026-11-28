@@ -89,14 +89,25 @@
         @endif
     </section>
 
-    @if ($standbyTeam && $dispatches->isEmpty())
+    @if ($standbyTeam && ($dispatches->isEmpty() || $standbyDeployment?->kit->isNotEmpty()))
         <section x-show="tab === 'assignments' || tab === 'dispatches'" class="card">
             <p class="eyebrow">{{ $standbyTeam->name }}</p>
-            @if ($standbyTeam->standbyPoint?->region?->is_active)
-                <h2 class="big">{{ $standbyTeam->standbyPoint->name }}</h2>
-                <p class="small">Standby point · {{ $standbyTeam->standbyPoint->latitude }}, {{ $standbyTeam->standbyPoint->longitude }}</p>
+            @if ($standbyDeployment)
+                <h2 class="big">{{ $standbyDeployment->standby_location['name'] }}</h2>
+                <p class="small">{{ $standbyDeployment->ending_at ? 'Return kit to '.$standbyDeployment->handover_location : ($dispatches->isNotEmpty() ? 'On a call' : (($standbyDeployment->arrived_at ? 'Ready at standby' : 'En route to standby').' · '.$standbyDeployment->standby_location['latitude'].', '.$standbyDeployment->standby_location['longitude'])) }}</p>
+                @if (! $standbyDeployment->ending_at && ! $standbyDeployment->arrived_at && $standbyDeployment->custodian_id === auth()->user()->guardProfile?->id)
+                    <button type="button" class="field-btn-ghost" onclick="window.guardWithGeo(@this, 'confirmStandbyArrival')">Confirm standby arrival</button>
+                @endif
+                @if ($standbyDeployment->kit->isNotEmpty())
+                    <details class="mt-2">
+                        <summary class="small cursor-pointer">My issued kit</summary>
+                        @foreach ($standbyDeployment->kit as $item)
+                            <p class="small">{{ $item->asset?->displayLabel() }} × {{ $item->quantity }}</p>
+                        @endforeach
+                    </details>
+                @endif
             @else
-                <p>Contact Control for your standby point.</p>
+                <p>No active response deployment.</p>
             @endif
         </section>
     @endif
@@ -534,6 +545,39 @@
     </details>
 
     <h2 class="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Field reports and handover</h2>
+    @if ($reportAssignments->isNotEmpty())
+        <details class="item field-tool" @if ($dailyReportAssignmentId || $errors->has('dailyReportAssignmentId')) open @endif>
+            <summary class="field-tool-title">Daily activity report<span aria-hidden="true">+</span></summary>
+            <label class="block text-sm">
+                Shift
+                <select wire:model.live="dailyReportAssignmentId" class="field-input mt-1">
+                    <option value="">Choose a recent shift</option>
+                    @foreach ($reportAssignments as $assignment)
+                        <option value="{{ $assignment->id }}">{{ $assignment->shift?->site?->name }} · {{ $assignment->shift?->starts_at?->format('M j, H:i') }}</option>
+                    @endforeach
+                </select>
+            </label>
+            @error('dailyReportAssignmentId') <p role="alert" class="mt-2 text-sm text-red-300">{{ $message }}</p> @enderror
+            @if (in_array($dailyReportStatus, ['submitted', 'approved'], true))
+                <p class="field-panel-meta">{{ $dailyReportStatus === 'approved' ? 'Approved by your manager.' : 'Submitted for review.' }}</p>
+            @elseif ($dailyReportAssignmentId)
+                <form wire:submit="submitDailyReport" class="mt-2 space-y-3">
+                    <label class="block text-sm">
+                        Shift summary
+                        <textarea wire:model="dailyReportSummary" class="field-input mt-1" rows="3" maxlength="10000" required></textarea>
+                    </label>
+                    @error('dailyReportSummary') <p role="alert" class="text-sm text-red-300">{{ $message }}</p> @enderror
+                    <label class="block text-sm">
+                        Internal handover notes (optional)
+                        <textarea wire:model="dailyReportHandover" class="field-input mt-1" rows="2" maxlength="10000"></textarea>
+                    </label>
+                    @error('dailyReportHandover') <p role="alert" class="text-sm text-red-300">{{ $message }}</p> @enderror
+                    <button type="submit" wire:loading.attr="disabled" class="field-btn-primary">Submit for review</button>
+                </form>
+            @endif
+        </details>
+    @endif
+
     @if($reportTemplates->isNotEmpty())
         <details class="item field-tool" @if($activeReportTemplateId) open @endif>
             <summary class="field-tool-title">Custom reports<span aria-hidden="true">+</span></summary>

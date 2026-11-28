@@ -144,6 +144,14 @@ function applyLayers(entry, options) {
             const key = point.map((coordinate) => coordinate.toFixed(6)).join(':');
             if (!alarmsByPosition.has(key)) alarmsByPosition.set(key, []);
             alarmsByPosition.get(key).push(marker);
+        } else if (marker.standbyPointId != null) {
+            const label = `Standby point · ${marker.label}`;
+            const pin = L.marker(point, {
+                title: label,
+                zIndexOffset: 300,
+                icon: L.divIcon({ className: 'tracking-standby', html: 'S', iconSize: [28, 28], iconAnchor: [14, 14] }),
+            }).bindPopup(popupHtml(marker)).addTo(layers);
+            pin.getElement()?.setAttribute('aria-label', label);
         } else if (marker.siteId == null) {
             L.marker(point).bindPopup(popupHtml(marker)).addTo(layers);
         }
@@ -172,13 +180,13 @@ function applyLayers(entry, options) {
             return;
         }
         const point = [Number(circle.lat), Number(circle.lng)];
-        bounds.push(point);
-        L.circle(point, {
+        const area = L.circle(point, {
             radius: Number(circle.radius),
             color: circle.color || '#0284c7',
             fillOpacity: 0.08,
             weight: 1.5,
-        }).addTo(layers);
+        }).addTo(layers).getBounds();
+        bounds.push(area.getSouthWest(), area.getNorthEast());
     });
 
     if (polyline.length > 1) {
@@ -192,6 +200,10 @@ function applyLayers(entry, options) {
         }
     }
 
+    entry.bounds = bounds;
+    entry.pointZoom = Number(options.zoom) || 14;
+    if (entry.fitButton) entry.fitButton.disabled = bounds.length === 0;
+
     const resetViewport = options.viewportKey == null || entry.viewportKey !== options.viewportKey;
     entry.viewportKey = options.viewportKey;
     if (!resetViewport) {
@@ -201,16 +213,42 @@ function applyLayers(entry, options) {
 
     if (options.fitBounds === false && options.lat != null && options.lng != null) {
         map.setView([Number(options.lat), Number(options.lng)], Number(options.zoom) || 13);
-    } else if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
-    } else if (bounds.length === 1) {
-        map.setView(bounds[0], Number(options.zoom) || 14);
+    } else if (bounds.length) {
+        fitVisibleLocations(entry);
     } else if (options.lat != null && options.lng != null) {
         map.setView([Number(options.lat), Number(options.lng)], Number(options.zoom) || 13);
     }
 
     drawSiteMarkers(entry, entry.sites);
-    requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+}
+
+function fitVisibleLocations({ map, bounds, pointZoom }) {
+    const visibleBounds = L.latLngBounds(bounds);
+    if (!visibleBounds.isValid()) return;
+
+    if (visibleBounds.getSouthWest().equals(visibleBounds.getNorthEast())) {
+        map.setView(visibleBounds.getCenter(), pointZoom);
+    } else {
+        map.fitBounds(visibleBounds, { padding: [28, 28], maxZoom: 16 });
+    }
+}
+
+function addFitControl(entry) {
+    const control = L.control({ position: 'topleft' });
+    control.onAdd = () => {
+        const container = L.DomUtil.create('div', 'leaflet-bar');
+        const button = L.DomUtil.create('button', 'map-fit-button', container);
+        button.type = 'button';
+        button.title = 'Fit visible locations';
+        button.setAttribute('aria-label', button.title);
+        button.textContent = '⌖';
+        L.DomEvent.disableClickPropagation(container);
+        button.addEventListener('click', () => fitVisibleLocations(entry));
+        entry.fitButton = button;
+
+        return container;
+    };
+    control.addTo(entry.map);
 }
 
 export function initGuardCoreProMap(el) {
@@ -218,7 +256,8 @@ export function initGuardCoreProMap(el) {
         return;
     }
 
-    const payload = el.closest('[data-map-shell]')?.querySelector('[data-map-payload]')?.textContent ?? '';
+    const shell = el.closest('[data-map-shell]');
+    const payload = shell?.querySelector('[data-map-payload]')?.textContent ?? '';
     const existing = maps.get(el.id);
 
     if (existing?.element === el) {
@@ -250,6 +289,12 @@ export function initGuardCoreProMap(el) {
     map.on('zoomend', () => {
         if (entry.sites.length) drawSiteMarkers(entry, entry.sites);
     });
+    if (shell?.hasAttribute('data-map-fit-control')) addFitControl(entry);
+
+    const resizeObserver = new ResizeObserver(() => map.invalidateSize({ debounceMoveend: true }));
+    resizeObserver.observe(el);
+    map.once('unload', () => resizeObserver.disconnect());
+
     maps.set(el.id, entry);
     applyLayers(entry, options);
 }

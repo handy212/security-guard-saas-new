@@ -2,17 +2,9 @@
     fullscreen: false,
     expanded: false,
     sitesCollapsed: false,
-    toggleSites() {
-        this.sitesCollapsed = !this.sitesCollapsed;
-        this.resizeMap();
-    },
-    resizeMap() {
-        this.$nextTick(() => requestAnimationFrame(() => window.dispatchEvent(new Event('resize'))));
-    },
     async toggleFullscreen() {
         if (this.expanded) {
             this.expanded = false;
-            this.resizeMap();
             return;
         }
         if (document.fullscreenElement === this.$refs.mapWorkspace) {
@@ -23,13 +15,12 @@
             await this.$refs.mapWorkspace.requestFullscreen();
         } catch {
             this.expanded = true;
-            this.resizeMap();
         }
     },
     async showSite(siteId) {
         await this.$wire.openSite(siteId);
-        if ((this.fullscreen || this.expanded) && this.sitesCollapsed) this.toggleSites();
-        if (matchMedia('(max-width: 1279px)').matches) {
+        this.sitesCollapsed = false;
+        if (matchMedia('(max-width: 1023px)').matches) {
             this.$nextTick(() => {
                 const details = this.$refs.siteDetails.querySelector('[data-selected-site]');
                 details?.focus({ preventScroll: true });
@@ -38,7 +29,7 @@
         }
     }
 }" x-on:tracking-site-selected.window="showSite($event.detail.siteId)"
-    x-on:fullscreenchange.document="fullscreen = document.fullscreenElement === $refs.mapWorkspace; resizeMap()"
+    x-on:fullscreenchange.document="fullscreen = document.fullscreenElement === $refs.mapWorkspace"
     x-on:keydown.escape.window="if (expanded) toggleFullscreen()">
     <x-page-shell title="Live Tracker" compact>
         <x-slot:actions>
@@ -122,9 +113,9 @@
         </div>
 
         <div wire:key="tracking-map-workspace" x-ref="mapWorkspace" x-bind:data-expanded="expanded"
-            x-bind:data-sites-collapsed="(fullscreen || expanded) && sitesCollapsed"
-            x-trap.noscroll.inert="expanded" class="tracking-map-workspace grid items-start gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(19rem,1fr)]">
-            <div class="min-w-0 space-y-2">
+            x-bind:data-sites-collapsed="sitesCollapsed"
+            x-trap.noscroll.inert="expanded" class="tracking-map-workspace grid gap-3">
+            <div class="tracking-map-main grid min-w-0 gap-2">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="text-sm text-zinc-600 dark:text-zinc-300">
                         {{ $siteMarkerCount }} {{ Str::plural('site', $siteMarkerCount) }} on the map
@@ -134,11 +125,11 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
                         <label class="inline-flex items-center gap-2 text-sm">
-                            <input type="checkbox" wire:model.live="showGuardMarkers" class="rounded border-zinc-300 text-accent-700">
+                            <input type="checkbox" wire:model.live="showGuardMarkers" class="rounded border-zinc-300 accent-accent-700">
                             Show guard positions
                         </label>
-                        <x-button type="button" size="sm" variant="secondary" x-show="fullscreen || expanded" x-cloak
-                            x-on:click="toggleSites()" aria-controls="tracking-sites-panel"
+                        <x-button type="button" size="sm" variant="secondary"
+                            x-on:click="sitesCollapsed = !sitesCollapsed" aria-controls="tracking-sites-panel"
                             x-bind:aria-expanded="!sitesCollapsed" x-text="sitesCollapsed ? 'Show sites' : 'Hide sites'">Hide sites</x-button>
                         <x-button type="button" size="sm" variant="secondary" x-on:click="toggleFullscreen()"
                             x-bind:aria-pressed="fullscreen || expanded" x-text="fullscreen || expanded ? 'Exit fullscreen' : 'Fullscreen'">Fullscreen</x-button>
@@ -147,16 +138,19 @@
 
                 <x-map id="tracking-map" :lat="$mapCenter['lat']" :lng="$mapCenter['lng']"
                     :markers="$markers" :polyline="$polyline" :circles="$circles" :fit-bounds="$fitBounds"
-                    :viewport-key="$viewportKey" height="clamp(360px, 58vh, 720px)" />
+                    :viewport-key="$viewportKey" height="clamp(320px, 60dvh, 960px)" data-map-fit-control />
 
-                <div class="flex flex-wrap gap-x-4 gap-y-2 py-1 text-xs" aria-label="Site marker legend">
+                <div class="flex flex-wrap gap-x-4 gap-y-2 py-1 text-xs" aria-label="Map marker legend">
+                    @if ($standbyMarkerCount)
+                        <span class="inline-flex items-center gap-1.5"><span class="tracking-standby size-5" aria-hidden="true">S</span>Standby point</span>
+                    @endif
                     @foreach (['protected' => 'Protected', 'unprotected' => 'Unprotected', 'understaffed' => 'Understaffed', 'verification_required' => 'Verification required', 'not_scheduled' => 'Inactive or not scheduled'] as $status => $label)
                         <span class="inline-flex items-center gap-1.5"><span class="tracking-shield tracking-shield--{{ $status }}" aria-hidden="true">{{ match ($status) { 'protected' => '✓', 'unprotected' => '×', 'not_scheduled' => '–', default => '!' } }}</span>{{ $label }}</span>
                     @endforeach
                 </div>
             </div>
 
-            <div id="tracking-sites-panel" class="tracking-map-details min-w-0 space-y-3" x-show="!((fullscreen || expanded) && sitesCollapsed)">
+            <div id="tracking-sites-panel" class="tracking-map-details min-w-0 space-y-3" x-show="!sitesCollapsed">
                 <div x-ref="siteDetails" class="empty:hidden">
                     @include('livewire.tracking.site-details')
                 </div>
@@ -169,14 +163,14 @@
                             @endphp
                             <button type="button" wire:key="coverage-site-{{ $site->id }}" x-on:click="showSite({{ $site->id }})"
                                 aria-pressed="{{ $selectedCoverage && $selectedCoverage['site']->id === $site->id ? 'true' : 'false' }}"
-                                class="list-row w-full gap-2 text-left hover:bg-zinc-50 aria-pressed:bg-accent-50 dark:hover:bg-zinc-800 dark:aria-pressed:bg-accent-950">
+                                class="tracking-site-row list-row w-full gap-2 text-left hover:bg-zinc-50 aria-pressed:bg-accent-50 dark:hover:bg-zinc-800 dark:aria-pressed:bg-accent-950">
                                 <span class="min-w-0 flex-1">
                                     <strong class="block truncate">{{ $site->name }}</strong>
                                     @if ($site->clientAccount && $site->clientAccount->name !== $site->name)
                                         <span class="block truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $site->clientAccount->name }}</span>
                                     @endif
                                 </span>
-                                <span class="shrink-0 text-right text-xs">
+                                <span class="max-w-[45%] shrink-0 text-right text-xs">
                                     <span class="block">{{ $coverageStates[$row['status']] }}</span>
                                     @if ($row['required'] > 0)<span class="tabular-nums text-zinc-500">{{ $row['filled'] }}/{{ $row['required'] }} covered</span>@endif
                                 </span>

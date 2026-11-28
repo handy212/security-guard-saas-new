@@ -1,18 +1,11 @@
 <div>
-    <x-page-shell
-        title="Compliance Policies"
-        description="Tenant-wide escalation rules and data retention. Site SLA targets are managed on each site profile."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Policies'],
-        ]"
-    >
+    <x-page-shell title="Compliance Policies" compact stable-header>
         <x-slot:actions>
             <x-button variant="secondary" wire:click="openRetentionForm">Add retention</x-button>
             <x-button wire:click="openEscalationForm">Add escalation rule</x-button>
         </x-slot:actions>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
             <x-flash-status type="success" />
@@ -28,11 +21,9 @@
                 <x-section-card
                     title="Escalation rules"
                     description="Notify supervisors when incidents remain open."
+                    compact
                     flush
                 >
-                    <x-slot:actions>
-                        <button type="button" wire:click="openEscalationForm" class="table-action">Add</button>
-                    </x-slot:actions>
                     @forelse($escalations as $row)
                         <div class="list-row-start" wire:key="escalation-{{ $row->id }}">
                             <div class="min-w-0 flex-1">
@@ -55,11 +46,9 @@
                         </div>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No escalation rules" description="Add a rule to define when supervisors should be notified.">
-                                <x-slot:actions>
-                                    <x-button size="sm" wire:click="openEscalationForm">Add escalation rule</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                            <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                <span>No escalation rules.</span>
+                            </div>
                         </div>
                     @endforelse
                 </x-section-card>
@@ -67,26 +56,22 @@
                 <x-section-card
                     title="Retention policies"
                     description="How long records are kept before archival."
+                    compact
                     flush
                 >
-                    <x-slot:actions>
-                        <button type="button" wire:click="openRetentionForm" class="table-action">Add</button>
-                    </x-slot:actions>
                     @forelse($retention as $row)
                         <div class="list-row" wire:key="retention-{{ $row->id }}">
                             <div class="min-w-0 flex-1">
-                                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ ucfirst($row->record_type) }}</div>
+                                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ Str::headline($row->record_type) }}</div>
                                 <div class="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{{ $row->retention_days }} days</div>
                             </div>
                             <button type="button" wire:click="deleteRetention({{ $row->id }})" wire:confirm="Delete this policy?" class="table-action-danger">Delete</button>
                         </div>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No retention policies" description="Define how long each record type should be kept.">
-                                <x-slot:actions>
-                                    <x-button size="sm" wire:click="openRetentionForm">Add retention</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                            <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                <span>No retention policies.</span>
+                            </div>
                         </div>
                     @endforelse
                 </x-section-card>

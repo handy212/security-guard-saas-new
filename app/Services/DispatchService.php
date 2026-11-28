@@ -91,7 +91,7 @@ class DispatchService
 
             DB::afterCommit(function () use ($event, $tenantId, $payload) {
                 DispatchEventCreated::dispatch($event);
-                dispatch(function () use ($tenantId, $payload) {
+                dispatch(static function () use ($tenantId, $payload) {
                     app(WebhookDeliveryService::class)->dispatch($tenantId, 'dispatch.created', $payload);
                 });
             });
@@ -130,18 +130,21 @@ class DispatchService
         DB::transaction(function () use ($event, $teamId, $userId): void {
             $team = DispatchTeam::forTenant($event->tenant_id)->lockForUpdate()->findOrFail($teamId);
             $event = DispatchEvent::forTenant($event->tenant_id)->lockForUpdate()->findOrFail($event->id);
+            $deployment = $team->activeDeployment;
             $members = $team->members()->where('tenant_id', $event->tenant_id)->where('status', 'active')
-                ->where('duty_type', GuardDutyType::Dispatch->value)->with('user')->orderBy('id')->get();
+                ->where('duty_type', GuardDutyType::Dispatch->value)->whereIn('id', $deployment?->officer_ids ?? [])
+                ->with('user')->orderBy('id')->get();
 
             if ($event->status !== DispatchStatus::OPEN || $event->guard_id || $event->dispatch_team_id
                 || ! $event->mayAssignFromPatriot() || ($event->patriot_job_id === null && ! $event->site_id && ($event->latitude === null || $event->longitude === null))
-                || ! $team->standbyPoint?->region?->is_active || $members->isEmpty() || $team->outstandingDispatches()->exists()) {
-                throw ValidationException::withMessages(['assignTeamId' => 'Select an available team with active officers and a standby point for an open dispatch with a location.']);
+                || ! $deployment?->arrived_at || $deployment->ending_at || ! $members->contains('id', $deployment->custodian_id) || $team->outstandingDispatches()->exists()) {
+                throw ValidationException::withMessages(['assignTeamId' => 'Select a ready response deployment for an open dispatch with a location.']);
             }
 
             $event->update([
                 'dispatch_team_id' => $team->id,
-                'guard_id' => $members->first()->id,
+                'response_deployment_id' => $deployment->id,
+                'guard_id' => $deployment->custodian_id,
                 'status' => DispatchStatus::ASSIGNED,
                 'assigned_at' => now(),
             ]);
@@ -151,7 +154,7 @@ class DispatchService
             DB::afterCommit(function () use ($event, $members): void {
                 foreach ($members as $member) {
                     if ($member->user && $member->user->tenant_id === $event->tenant_id) {
-                        $this->notifyDispatchRecipient($event, $member->user);
+                        rescue(fn () => $this->notifyDispatchRecipient($event, $member->user));
                     }
                 }
             });
@@ -192,6 +195,49 @@ class DispatchService
             $event->update(['returned_at' => now()]);
             $this->logActivity($event, 'returned', 'Team return to standby station confirmed', $userId);
             $this->broadcastUpdate($event);
+        }, attempts: 3);
+    }
+
+    public function handOverTeamCall(DispatchEvent $event, int $targetTeamId, int $userId, string $reason): void
+    {
+        DB::transaction(function () use ($event, $targetTeamId, $userId, $reason): void {
+            $sourceTeamId = $event->dispatch_team_id;
+            if (! $sourceTeamId || $sourceTeamId === $targetTeamId) {
+                throw ValidationException::withMessages(['deployment' => 'Choose a different ready response team.']);
+            }
+            $teams = DispatchTeam::forTenant($event->tenant_id)->whereKey([$sourceTeamId, $targetTeamId])
+                ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $target = $teams->get($targetTeamId);
+            $deployment = $target?->activeDeployment;
+            $current = DispatchEvent::forTenant($event->tenant_id)->lockForUpdate()->findOrFail($event->id);
+            if ($current->dispatch_team_id !== $sourceTeamId || $current->returned_at
+                || ! in_array($current->status, [DispatchStatus::ASSIGNED, DispatchStatus::EN_ROUTE, DispatchStatus::ON_SCENE], true)
+                || ! $deployment?->arrived_at || $deployment->ending_at || $target->outstandingDispatches()->exists()) {
+                throw ValidationException::withMessages(['deployment' => 'This call can only be handed over to a ready team with no outstanding call.']);
+            }
+            $members = $target->members()->where('status', 'active')->where('duty_type', GuardDutyType::Dispatch->value)
+                ->whereIn('id', $deployment->officer_ids)->with('user')->get();
+            if (! $members->contains('id', $deployment->custodian_id)) {
+                throw ValidationException::withMessages(['deployment' => 'The receiving team needs an active duty lead.']);
+            }
+            $previousDeployment = $current->response_deployment_id;
+            $current->update([
+                'dispatch_team_id' => $target->id, 'response_deployment_id' => $deployment->id,
+                'guard_id' => $deployment->custodian_id,
+                'acknowledged_at' => null,
+            ]);
+            $this->logActivity($current, 'team_handover', 'Call handed over to '.$target->name.': '.$reason, $userId, [
+                'from_team_id' => $sourceTeamId, 'from_deployment_id' => $previousDeployment,
+                'to_team_id' => $target->id, 'to_deployment_id' => $deployment->id,
+            ]);
+            $this->broadcastUpdate($current);
+            DB::afterCommit(function () use ($current, $members): void {
+                foreach ($members as $member) {
+                    if ($member->user && $member->user->tenant_id === $current->tenant_id) {
+                        rescue(fn () => $this->notifyDispatchRecipient($current, $member->user));
+                    }
+                }
+            });
         }, attempts: 3);
     }
 
@@ -475,7 +521,9 @@ class DispatchService
         return DispatchEvent::query()
             ->with(['site', 'clientAccount', 'dispatchTeam.standbyPoint'])
             ->where(fn ($query) => $query->where('guard_id', $guardId)
-                ->orWhereHas('dispatchTeam.members', fn ($members) => $members->whereKey($guardId)))
+                ->orWhereHas('responseDeployment', fn ($deployment) => $deployment->whereJsonContains('officer_ids', $guardId))
+                ->orWhere(fn ($legacy) => $legacy->whereNull('response_deployment_id')
+                    ->whereHas('dispatchTeam.members', fn ($members) => $members->whereKey($guardId))))
             ->where(fn ($query) => $query->whereNotIn('status', [DispatchStatus::CLOSED, DispatchStatus::CANCELLED])
                 ->orWhere(fn ($returning) => $returning->whereNotNull('dispatch_team_id')->whereNull('returned_at')))
             ->where(fn ($query) => $query->whereNull('dispatch_team_id')->orWhereNull('returned_at')
@@ -633,10 +681,13 @@ class DispatchService
 
         $payload = $this->payload($event);
 
-        DB::afterCommit(function () use ($event, $payload) {
+        $tenantId = $event->tenant_id;
+        DB::afterCommit(function () use ($event, $tenantId, $payload) {
             DispatchEventUpdated::dispatch($event);
-            dispatch(function () use ($event, $payload) {
-                app(WebhookDeliveryService::class)->dispatch($event->tenant_id, 'dispatch.updated', $payload);
+            rescue(static function () use ($tenantId, $payload): void {
+                dispatch(static function () use ($tenantId, $payload): void {
+                    app(WebhookDeliveryService::class)->dispatch($tenantId, 'dispatch.updated', $payload);
+                });
             });
         });
 

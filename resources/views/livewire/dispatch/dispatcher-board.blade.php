@@ -5,9 +5,10 @@
         :breadcrumbs="[['label' => 'Dispatch']]"
     >
         <x-slot:headingIcon>
-            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-700 text-white"><x-nav-icon name="dispatch" class="size-5" /></span>
+            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-600 text-white"><x-nav-icon name="dispatch" class="size-5" /></span>
         </x-slot:headingIcon>
         <x-slot:actions>
+            <x-button size="sm" variant="secondary" :href="route('dispatch.deployments')" wire:navigate>Dispatch duty</x-button>
             <div class="dispatch-metrics dispatch-heading-metrics" aria-label="Dispatch totals">
                 <x-stat-card compact label="Critical" :value="$stats['critical']" icon="incidents" tone="danger" wire:click="applyStatFilter('critical')" :active="$priorityFilter === 'critical'" />
                 <x-stat-card compact label="Pending" :value="$stats['pending']" icon="pause" tone="warning" wire:click="applyStatFilter('unassigned')" :active="$statusFilter === 'unassigned'" />
@@ -108,7 +109,7 @@
                 wire:loading.delay
                 wire:target="search,statusFilter,priorityFilter,applyStatFilter,clearFilters"
                 role="status"
-                class="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 rounded bg-teal-600 dark:bg-teal-400"
+                class="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 rounded bg-accent-600 dark:bg-accent-400"
             ><span class="sr-only">Updating dispatch queue…</span></div>
 
             <x-section-card compact title="Dispatch queue" aria-label="Priority queue" :description="match ($statusFilter) {
@@ -264,10 +265,10 @@
                             </div>
                         @elseif ($selected->mayAssignFromPatriot() && $selected->status === \App\Enums\DispatchStatus::OPEN && $dispatchTeams->isNotEmpty())
                             <form wire:submit="assignDispatchTeam" class="mb-4 space-y-2">
-                                <x-select wire:model="assignTeamId" label="Assign response team">
+                                <x-select wire:model="assignTeamId" label="Assign team">
                                     <option value="">Choose an available team</option>
                                     @foreach ($dispatchTeams as $team)
-                                        <option value="{{ $team->id }}" @disabled($team->outstandingDispatches->isNotEmpty() || ! $team->standbyPoint?->region?->is_active || ! $team->active_officers_count)>{{ $team->name }} · {{ $team->standbyPoint?->name }}</option>
+                                        <option value="{{ $team->id }}" @disabled($team->outstandingDispatches->isNotEmpty() || ! $team->activeDeployment?->arrived_at || $team->activeDeployment?->ending_at || ! $team->active_officers_count)>{{ $team->name }} · {{ $team->activeDeployment?->standby_location['name'] ?? 'Off duty' }}</option>
                                     @endforeach
                                 </x-select>
                                 @error('assignTeamId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
@@ -287,7 +288,7 @@
                                     <div class="max-h-64 space-y-1.5 overflow-y-auto pr-1">
                                         @forelse ($assignmentGuards as $guard)
                                             <label class="dispatch-responder-option" wire:key="dispatch-responder-{{ $guard->id }}">
-                                                <input type="radio" wire:model.live="assignGuardId" value="{{ $guard->id }}" class="shrink-0 accent-teal-700">
+                                                <input type="radio" wire:model.live="assignGuardId" value="{{ $guard->id }}" class="shrink-0 accent-accent-600">
                                                 <span class="dispatch-responder-avatar" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($guard->first_name, 0, 1).\Illuminate\Support\Str::substr($guard->last_name, 0, 1)) }}</span>
                                                 <span class="min-w-0">
                                                     <strong class="block break-words text-sm">{{ $guard->full_name }}</strong>

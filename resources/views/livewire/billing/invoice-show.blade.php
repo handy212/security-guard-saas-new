@@ -2,15 +2,7 @@
     @error('clientCommunication')
         <p class="p-3 text-sm text-red-700 dark:text-red-300" role="alert">{{ $message }}</p>
     @enderror
-    <x-page-shell
-        :title="$invoice->invoice_number"
-        :description="($invoice->clientAccount?->name ?? 'Invoice').' · Document view'"
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Invoices', 'href' => route('billing.invoices')],
-            ['label' => $invoice->invoice_number],
-        ]"
-    >
+    <x-page-shell :title="$invoice->invoice_number" compact stable-header>
         <x-slot:actions>
             @if ($status === 'draft')
                 <x-button variant="secondary" :href="route('billing.invoices.edit', $invoice)">Edit</x-button>
@@ -28,6 +20,8 @@
             <x-button variant="secondary" wire:click="exportPdf">Download PDF</x-button>
         </x-slot:actions>
 
+        <x-sub-sidebar-layout class="billing-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
         <x-flash-status type="success" />
 
         <div class="grid gap-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -95,6 +89,7 @@
                 </x-section-card>
             </div>
         </div>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 
     @if ($showSend)

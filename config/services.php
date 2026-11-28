@@ -33,7 +33,7 @@ return [
         'password' => env('PATRIOT_PASSWORD'),
     ],
     'geocoding' => [
-        'url' => env('GEOCODING_URL', 'https://nominatim.openstreetmap.org'),
+        'url' => env('GEOCODING_URL'),
         'user_agent' => env('GEOCODING_USER_AGENT', 'GuardCore Pro'),
     ],
     'slack' => [

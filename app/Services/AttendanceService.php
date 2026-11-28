@@ -54,6 +54,7 @@ class AttendanceService
             'clock_out_latitude' => $lat,
             'clock_out_longitude' => $lng,
             'status' => 'completed',
+            'original_status' => $log->original_status ?? $log->status?->value,
             'worked_minutes' => Carbon::parse($log->clock_in_at)->diffInMinutes(now()),
         ]);
         $log->shiftAssignment?->update(['status' => 'completed']);

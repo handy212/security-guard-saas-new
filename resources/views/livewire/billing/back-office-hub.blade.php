@@ -1,9 +1,5 @@
 <div>
-    <x-page-shell
-        title="Back Office"
-        description="Invoices, estimates, expenses, payroll, compliance, and analytics."
-        :breadcrumbs="[['label' => 'Back Office']]"
-    >
+    <x-page-shell title="Back Office" compact stable-header>
         <x-slot:actions>
             @if($canBilling)
                 <x-button :href="route('billing.invoices.create')">New invoice</x-button>
@@ -16,6 +12,20 @@
 
         <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+
+            @if ($lowStockCount !== null || $openComplaints !== null || $canBilling)
+                <section aria-label="Items needing attention" class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    @if ($lowStockCount !== null)
+                        <x-stat-card compact label="Categories low on stock" :value="$lowStockCount" icon="equipment" :tone="$lowStockCount ? 'warning' : 'default'" :href="route('assets.inventory')" />
+                    @endif
+                    @if ($openComplaints !== null)
+                        <x-stat-card compact label="Open client complaints" :value="$openComplaints" icon="clients" :tone="$openComplaints ? 'warning' : 'default'" :href="route('clients.index', ['tab' => 'complaints', 'status' => 'open'])" />
+                    @endif
+                    @if ($canBilling)
+                        <x-stat-card compact label="Overdue invoices" :value="$stats['invoices_overdue']" icon="billing" :tone="$stats['invoices_overdue'] ? 'danger' : 'default'" :href="route('billing.invoices', ['status' => 'overdue'])" />
+                    @endif
+                </section>
+            @endif
 
             @if($canBilling || $canExpenses || $canEstimates)
                 <section aria-labelledby="back-office-cash-flow">
@@ -55,8 +65,10 @@
                 </section>
             @endif
 
-            <div @class(['billing-overview-grid', 'billing-overview-grid-single' => ! $canExpenses])>
-                <x-section-card title="Recent invoices" flush>
+            @if ($canBilling || $canExpenses)
+            <div @class(['billing-overview-grid items-start', 'billing-overview-grid-single' => ! ($canBilling && $canExpenses)])>
+                @if ($canBilling)
+                <x-section-card title="Recent invoices" compact flush>
                     <x-slot:actions>
                         <a href="{{ route('billing.invoices') }}" class="page-link" wire:navigate>View all</a>
                     </x-slot:actions>
@@ -73,7 +85,7 @@
                         </a>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No invoices yet" description="Generate invoices from client coverage.">
+                            <x-empty-state inline title="No invoices yet" description="Generate invoices from client coverage.">
                                 <x-slot:actions>
                                     <x-button size="sm" :href="route('billing.invoices')">Invoices</x-button>
                                 </x-slot:actions>
@@ -82,8 +94,9 @@
                     @endforelse
                 </x-section-card>
 
+                @endif
                 @if($canExpenses)
-                <x-section-card title="Recent expenses" description="Latest operating spend and reimbursements." flush>
+                <x-section-card title="Recent expenses" compact flush>
                     <x-slot:actions>
                         <a href="{{ route('billing.expenses') }}" class="page-link" wire:navigate>View all</a>
                     </x-slot:actions>
@@ -99,17 +112,15 @@
                             </div>
                         </div>
                     @empty
-                        <div class="p-3">
-                            <x-empty-state compact title="No expenses yet" description="Track vendor bills and operational spend.">
-                                <x-slot:actions>
-                                    <x-button size="sm" :href="route('billing.expenses')">Add expense</x-button>
-                                </x-slot:actions>
-                            </x-empty-state>
+                        <div class="list-row gap-2">
+                            <p class="flex-1 text-sm text-zinc-500 dark:text-zinc-400">No expenses yet.</p>
+                            <x-button size="sm" variant="secondary" :href="route('billing.expenses')">Add expense</x-button>
                         </div>
                     @endforelse
                 </x-section-card>
                 @endif
             </div>
+            @endif
         </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

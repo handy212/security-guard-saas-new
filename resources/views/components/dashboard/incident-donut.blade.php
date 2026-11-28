@@ -2,8 +2,8 @@
 
 @php
     $total = $breakdown->sum();
-    // Must match resources/js/dashboard-charts.js chartPalette()
-    $colors = ['#0f766e', '#d97706', '#0891b2', '#e11d48', '#65a30d'];
+    // Use the workspace accent first, as in dashboard-charts.js.
+    $colors = ['var(--workspace-accent)', '#d97706', '#0891b2', '#e11d48', '#65a30d'];
     $topLabel = $breakdown->keys()->first();
     $topShare = $total > 0 && $topLabel ? round(($breakdown->first() / $total) * 100, 1) : null;
 @endphp

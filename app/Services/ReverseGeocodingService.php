@@ -6,22 +6,26 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Throwable;
+use Illuminate\Support\Str;
 
 class ReverseGeocodingService
 {
     public function address(float $latitude, float $longitude): ?string
     {
-        $cacheKey = sprintf('reverse-geocode:%0.6f:%0.6f', $latitude, $longitude);
+        $url = rtrim((string) config('services.geocoding.url'), '/');
+        if ($url === '') {
+            return null;
+        }
+        $cacheKey = 'reverse-geocode:'.hash('sha256', sprintf('%s:%.7F:%.7F', $url, $latitude, $longitude));
 
-        return Cache::remember($cacheKey, now()->addDays(30), function () use ($latitude, $longitude): ?string {
+        return Cache::remember($cacheKey, now()->addDays(30), function () use ($url, $latitude, $longitude): ?string {
             try {
                 $response = Http::acceptJson()
                     ->withUserAgent((string) config('services.geocoding.user_agent'))
                     ->connectTimeout(3)
                     ->timeout(6)
-                    ->retry([200, 500], throw: false)
-                    ->get(rtrim((string) config('services.geocoding.url'), '/').'/reverse', [
+                    ->withoutRedirecting()
+                    ->get($url.'/reverse', [
                         'format' => 'jsonv2',
                         'lat' => $latitude,
                         'lon' => $longitude,
@@ -36,13 +40,9 @@ class ReverseGeocodingService
 
                 $address = $response->json('display_name');
 
-                return is_string($address) && $address !== '' ? $address : null;
-            } catch (ConnectionException $exception) {
-                Log::warning('Reverse geocoding connection failed.', ['exception' => $exception->getMessage()]);
-
-                return null;
-            } catch (Throwable $exception) {
-                report($exception);
+                return is_string($address) && trim($address) !== '' ? Str::limit(trim($address), 500, '') : null;
+            } catch (ConnectionException) {
+                Log::warning('Reverse geocoding connection failed.');
 
                 return null;
             }

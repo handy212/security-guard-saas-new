@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Tracking\LiveTracker;
 use App\Models\AttendanceLog;
 use App\Models\DispatchEvent;
+use App\Models\DispatchStandbyPoint;
 use App\Models\Guard;
 use App\Models\GuardIdleAlert;
 use App\Models\GuardLocation;
@@ -29,12 +30,21 @@ class LiveTrackerTest extends TestCase
         $this->seed();
         $admin = User::where('email', 'admin@demo.test')->firstOrFail();
         app()->instance('currentTenant', $admin->tenant);
+        $point = DispatchStandbyPoint::create([
+            'tenant_id' => $admin->tenant_id,
+            'name' => 'North staging',
+            'address' => 'North Road, Accra',
+            'latitude' => 5.64,
+            'longitude' => -0.19,
+        ]);
 
         $this->actingAs($admin)
             ->get(route('tracking.live'))
             ->assertOk()
             ->assertSee('Live Tracker')
-            ->assertSee('Open dispatch');
+            ->assertSee('Open dispatch')
+            ->assertSee('"standbyPointId":'.$point->id, false)
+            ->assertSee('North Road, Accra');
     }
 
     public function test_active_patriot_alarms_appear_even_when_site_filters_exclude_them(): void

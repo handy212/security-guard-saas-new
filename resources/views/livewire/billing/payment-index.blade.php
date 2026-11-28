@@ -1,12 +1,5 @@
 <div>
-    <x-page-shell
-        title="Payments"
-        description="Cash collected against invoices — record payments from any open invoice."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Payments'],
-        ]"
-    >
+    <x-page-shell title="Payments" compact stable-header>
         <x-slot:actions>
             <x-button variant="secondary" :href="route('billing.invoices')">Open invoices</x-button>
         </x-slot:actions>
@@ -87,7 +80,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="7">
-                            <x-empty-state
+                            <x-empty-state inline
                                 compact
                                 :title="$hasActiveFilters ? 'No matching payments' : 'No payments yet'"
                                 :description="$hasActiveFilters ? 'Try clearing filters or widening the date range.' : 'Record a payment from an open invoice to see it here.'"

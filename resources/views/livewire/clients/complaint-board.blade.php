@@ -1,13 +1,7 @@
 <div>
-    <x-page-shell
-        title="Client Complaints"
-        description="Log, track, and resolve client service issues."
-        :breadcrumbs="[
-            ['label' => 'Clients', 'href' => route('clients.index')],
-            ['label' => 'Complaints'],
-        ]"
-    >
+    <x-page-shell title="Client Complaints" compact stable-header>
         <x-slot:actions>
+            <x-button variant="secondary" :href="route('clients.index')">Client directory</x-button>
             <x-button wire:click="openForm">Log complaint</x-button>
         </x-slot:actions>
 
@@ -31,7 +25,7 @@
             </x-slot:controls>
         </x-page-toolbar>
 
-        <x-section-card title="Complaints" :description="$stats['open'].' open'" flush>
+        <x-section-card title="Complaints" compact flush>
             <x-data-table>
                 <x-table.head>
                     <tr>
@@ -72,7 +66,7 @@
                         </tr>
                     @empty
                         <x-table.empty colspan="5">
-                            <x-empty-state
+                            <x-empty-state inline
                                 compact
                                 :title="$hasActiveFilters ? 'No matching complaints' : 'No complaints'"
                                 :description="$hasActiveFilters ? 'Try clearing filters.' : 'Log a client service issue to start tracking.'"

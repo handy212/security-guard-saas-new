@@ -1,17 +1,11 @@
 <div>
-    <x-page-shell
-        :title="$isEditing ? 'Edit invoice' : 'New invoice'"
-        description="Create a draft invoice with line items, then send and collect payment."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Invoices', 'href' => route('billing.invoices')],
-            ['label' => $isEditing ? ($invoice->invoice_number ?? 'Edit') : 'New'],
-        ]"
-    >
+    <x-page-shell :title="$isEditing ? 'Edit invoice' : 'New invoice'" compact stable-header>
         <x-slot:actions>
             <x-button variant="secondary" :href="route('billing.invoices')">Cancel</x-button>
         </x-slot:actions>
 
+        <x-sub-sidebar-layout class="billing-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
         <x-flash-status type="success" />
 
         <form id="invoice-form" wire:submit="save" class="billing-form mx-auto max-w-3xl space-y-4">
@@ -65,5 +59,6 @@
                 </x-slot:footer>
             </x-form-card>
         </form>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

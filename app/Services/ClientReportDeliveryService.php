@@ -57,11 +57,11 @@ class ClientReportDeliveryService
                 $body = implode("\n", [
                     'Hello,',
                     '',
-                    "Your scheduled {$reportLabel} for {$client?->name} is ready.",
+                    "This is your scheduled {$reportLabel} reminder for {$client->name}.",
                     'Frequency: '.ucfirst($schedule->frequency),
                     "Prepared by: {$company}",
                     '',
-                    'Log in to the client portal for full details and attachments.',
+                    'Sign in to the client portal to see available reports.',
                     '',
                     '— '.$company,
                 ]);

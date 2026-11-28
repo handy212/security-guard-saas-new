@@ -1,11 +1,8 @@
 <div class="site-profile-page">
     <x-page-shell
+        :compact="$activeTab === 'overview'"
         :title="$site->name"
         :description="$site->clientAccount?->name ?? 'Post site'"
-        :breadcrumbs="[
-            ['label' => 'Sites', 'href' => route('sites.index')],
-            ['label' => $site->name],
-        ]"
     >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('sites.index')">Back to sites</x-button>
@@ -24,8 +21,8 @@
 
         <x-profile-layout :tabs="$profileTabs" :active="$activeTab">
         @if ($activeTab === 'overview')
-            <div class="space-y-3">
-                <x-section-card title="Last 7 days" flush>
+            <div class="profile-overview space-y-3">
+                <x-section-card title="Last 7 days" compact flush>
                     <div class="overview-stat-grid">
                         <x-stat-card compact label="Guards assigned" :value="$stats['guards_assigned']" icon="guards" hint="Upcoming shifts" />
                         <x-stat-card compact label="Tours completed" :value="$stats['tours_completed']" icon="patrols" />
@@ -38,32 +35,61 @@
                     </div>
                 </x-section-card>
 
-                <div class="overview-panel-grid">
-                    <x-section-card title="Site location" flush wire:key="site-map-{{ $site->id }}">
-                        @if (count($mapMarkers) > 0)
-                            <div class="p-0">
-                                <x-map
-                                    id="site-overview-map-{{ $site->id }}"
-                                    height="220px"
-                                    :lat="$mapCenter['lat']"
-                                    :lng="$mapCenter['lng']"
-                                    :zoom="$mapCenter['zoom']"
-                                    :markers="$mapMarkers"
-                                />
-                            </div>
-                            <p class="border-t border-zinc-100 px-4 py-2 text-xs tabular-nums text-zinc-500 dark:border-zinc-800">Geofence radius: {{ $site->geofence_radius_meters ?? 150 }}m</p>
-                        @else
-                            <div class="p-4">
-                                <x-empty-state compact title="No coordinates set" description="Add latitude and longitude on the Patrol tab.">
-                                    <x-slot:actions>
-                                        <x-button size="sm" variant="secondary" wire:click="setTab('tours')">Set geofence</x-button>
-                                    </x-slot:actions>
-                                </x-empty-state>
-                            </div>
-                        @endif
-                    </x-section-card>
+                <div class="profile-overview-columns">
+                    <div class="min-w-0 space-y-3">
+                        <x-section-card title="Site location" compact flush wire:key="site-map-{{ $site->id }}">
+                            @if (count($mapMarkers) > 0)
+                                <div class="p-0">
+                                    <x-map
+                                        id="site-overview-map-{{ $site->id }}"
+                                        height="220px"
+                                        :lat="$mapCenter['lat']"
+                                        :lng="$mapCenter['lng']"
+                                        :zoom="$mapCenter['zoom']"
+                                        :markers="$mapMarkers"
+                                    />
+                                </div>
+                                <p class="border-t border-zinc-100 px-4 py-2 text-xs tabular-nums text-zinc-500 dark:border-zinc-800">Geofence radius: {{ $site->geofence_radius_meters ?? 150 }}m</p>
+                            @else
+                                <div class="p-4">
+                                    <x-empty-state compact title="No coordinates set" description="Add latitude and longitude on the Patrol tab.">
+                                        <x-slot:actions>
+                                            <x-button size="sm" variant="secondary" wire:click="setTab('tours')">Set geofence</x-button>
+                                        </x-slot:actions>
+                                    </x-empty-state>
+                                </div>
+                            @endif
+                        </x-section-card>
 
-                    <x-section-card title="General information">
+                        <x-section-card title="Upcoming shifts" compact>
+                            @if ($upcomingShifts->isEmpty())
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400">No upcoming shifts. Schedule shifts from the Schedules module.</p>
+                            @else
+                                <x-data-table>
+                                    <x-table.head>
+                                        <tr>
+                                            <x-table.th>When</x-table.th>
+                                            <x-table.th responsive="md">Post</x-table.th>
+                                            <x-table.th responsive="lg">Guards</x-table.th>
+                                        </tr>
+                                    </x-table.head>
+                                    <tbody>
+                                        @foreach ($upcomingShifts as $shift)
+                                            <tr class="table-row-hover" wire:key="shift-{{ $shift->id }}">
+                                                <x-table.td class="font-medium tabular-nums">{{ $shift->starts_at?->format('M j, Y H:i') }}</x-table.td>
+                                                <x-table.td responsive="md" muted>{{ $shift->sitePost?->name ?? '—' }}</x-table.td>
+                                                <x-table.td responsive="lg" muted>
+                                                    {{ $shift->assignments->map(fn ($a) => $a->assignedGuard?->full_name)->filter()->join(', ') ?: '—' }}
+                                                </x-table.td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </x-data-table>
+                            @endif
+                        </x-section-card>
+                    </div>
+
+                    <x-section-card title="General information" compact>
                         <dl class="profile-dl">
                             <div class="profile-dl-row">
                                 <dt class="profile-dl-label">Site</dt>
@@ -94,39 +120,12 @@
                                 <dd class="text-right"><x-badge :status="$site->status" /></dd>
                             </div>
                         </dl>
-                        <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                        <div class="mt-2 flex flex-wrap gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
                             <x-button size="sm" variant="secondary" wire:click="setTab('profile')">Edit profile</x-button>
                             <x-button size="sm" variant="secondary" wire:click="setTab('contacts')">Manage contacts</x-button>
                         </div>
                     </x-section-card>
                 </div>
-
-                <x-section-card title="Upcoming shifts">
-                    <x-data-table>
-                        <x-table.head>
-                            <tr>
-                                <x-table.th>When</x-table.th>
-                                <x-table.th responsive="md">Post</x-table.th>
-                                <x-table.th responsive="lg">Guards</x-table.th>
-                            </tr>
-                        </x-table.head>
-                        <tbody>
-                            @forelse ($upcomingShifts as $shift)
-                                <tr class="table-row-hover" wire:key="shift-{{ $shift->id }}">
-                                    <x-table.td class="font-medium tabular-nums">{{ $shift->starts_at?->format('M j, Y H:i') }}</x-table.td>
-                                    <x-table.td responsive="md" muted>{{ $shift->sitePost?->name ?? '—' }}</x-table.td>
-                                    <x-table.td responsive="lg" muted>
-                                        {{ $shift->assignments->map(fn ($a) => $a->assignedGuard?->full_name)->filter()->join(', ') ?: '—' }}
-                                    </x-table.td>
-                                </tr>
-                            @empty
-                                <x-table.empty colspan="3">
-                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-medium">No upcoming shifts.</span> Schedule shifts from the Schedules module.</p>
-                                </x-table.empty>
-                            @endforelse
-                        </tbody>
-                    </x-data-table>
-                </x-section-card>
             </div>
         @endif
 

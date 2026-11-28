@@ -1,10 +1,13 @@
 <div class="directory-page clients-page">
+    @if ($showComplaints)
+        <livewire:clients.complaint-board />
+    @else
     <x-page-shell
         title="Clients"
         description="Manage client accounts, billing rates, and contacts."
-        :breadcrumbs="[['label' => 'Clients']]"
     >
         <x-slot:actions>
+            <x-button variant="secondary" :href="route('clients.index', ['tab' => 'complaints'])">Client complaints</x-button>
             <x-button wire:click="openCreate">Add client</x-button>
         </x-slot:actions>
 
@@ -119,5 +122,6 @@
                 </details>
             </x-drawer-form>
         </x-drawer>
+    @endif
     @endif
 </div>

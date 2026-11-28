@@ -1,12 +1,13 @@
 <div>
-    <x-page-shell title="Asset categories" description="Organize assets by type and set stock thresholds.">
+    <x-page-shell title="Assets" compact stable-header>
         <x-slot:actions>
             <x-button wire:click="openCreate">Add category</x-button>
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout class="assets-workspace">
-            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+        <x-sub-sidebar-layout class="billing-workspace assets-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+            <x-asset-tabs />
 
 
         <x-flash-status />
@@ -46,7 +47,7 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state compact title="No categories" />
+                        <x-empty-state inline title="No categories" />
                     </x-table.empty>
                 @endforelse
             </tbody>

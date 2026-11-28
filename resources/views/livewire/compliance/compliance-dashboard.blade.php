@@ -1,18 +1,7 @@
 <div>
-    <x-page-shell
-        title="Compliance Overview"
-        description="Expiring credentials, site documents, training, and SLA coverage across your organization."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Compliance'],
-        ]"
-    >
-        <x-slot:actions>
-            <x-button variant="secondary" :href="route('compliance.policies')">Policies</x-button>
-            <x-button variant="secondary" :href="route('analytics.dashboard')">Analytics</x-button>
-        </x-slot:actions>
+    <x-page-shell title="Compliance Overview" compact stable-header>
 
-        <x-sub-sidebar-layout>
+        <x-sub-sidebar-layout class="billing-workspace">
             <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
 
         <div class="stat-grid">
@@ -22,7 +11,7 @@
             <x-stat-card compact label="Training due" :value="$summary['expiring_training']" icon="plan" :tone="$summary['expiring_training'] ? 'warning' : 'success'" />
         </div>
 
-        <x-section-card title="SLA coverage" description="Sites with defined service targets">
+        <x-section-card title="SLA coverage" compact>
             <div class="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <p class="text-3xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-100">{{ $summary['sla']['coverage_percent'] }}%</p>
@@ -39,7 +28,7 @@
         </x-section-card>
 
         <div class="page-grid-2">
-            <x-section-card title="Expiring guard certifications">
+            <x-section-card title="Expiring guard certifications" compact flush>
                 <x-data-table>
                     <x-table.head>
                         <tr>
@@ -71,18 +60,17 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="4">
-                                <x-empty-state compact title="No expiring certifications" description="Nothing due in the next {{ $windowDays }} days.">
-                                    <x-slot:actions>
-                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
-                                    </x-slot:actions>
-                                </x-empty-state>
+                                <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <span>No expiring certifications.</span>
+                                    <a href="{{ route('guards.index') }}" wire:navigate class="page-link">Manage guards</a>
+                                </div>
                             </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
             </x-section-card>
 
-            <x-section-card title="Expiring guard documents">
+            <x-section-card title="Expiring guard documents" compact flush>
                 <x-data-table>
                     <x-table.head>
                         <tr>
@@ -114,11 +102,10 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="4">
-                                <x-empty-state compact title="No expiring documents" description="Guard files with expiry dates will appear here.">
-                                    <x-slot:actions>
-                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
-                                    </x-slot:actions>
-                                </x-empty-state>
+                                <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <span>No expiring documents.</span>
+                                    <a href="{{ route('guards.index') }}" wire:navigate class="page-link">Manage guards</a>
+                                </div>
                             </x-table.empty>
                         @endforelse
                     </tbody>
@@ -127,7 +114,7 @@
         </div>
 
         <div class="page-grid-2">
-            <x-section-card title="Expiring site documents">
+            <x-section-card title="Expiring site documents" compact flush>
                 <x-data-table>
                     <x-table.head>
                         <tr>
@@ -159,18 +146,17 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="4">
-                                <x-empty-state compact title="No expiring site documents" description="Upload permits and SOPs on each site profile.">
-                                    <x-slot:actions>
-                                        <x-button size="sm" :href="route('sites.index')">Manage sites</x-button>
-                                    </x-slot:actions>
-                                </x-empty-state>
+                                <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <span>No expiring site documents.</span>
+                                    <a href="{{ route('sites.index') }}" wire:navigate class="page-link">Manage sites</a>
+                                </div>
                             </x-table.empty>
                         @endforelse
                     </tbody>
                 </x-data-table>
             </x-section-card>
 
-            <x-section-card title="Expiring training">
+            <x-section-card title="Expiring training" compact flush>
                 <x-data-table>
                     <x-table.head>
                         <tr>
@@ -202,11 +188,10 @@
                             </tr>
                         @empty
                             <x-table.empty colspan="4">
-                                <x-empty-state compact title="No expiring training" description="Record guard training and renewal dates on guard profiles.">
-                                    <x-slot:actions>
-                                        <x-button size="sm" :href="route('guards.index')">Manage guards</x-button>
-                                    </x-slot:actions>
-                                </x-empty-state>
+                                <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <span>No expiring training.</span>
+                                    <a href="{{ route('guards.index') }}" wire:navigate class="page-link">Manage guards</a>
+                                </div>
                             </x-table.empty>
                         @endforelse
                     </tbody>

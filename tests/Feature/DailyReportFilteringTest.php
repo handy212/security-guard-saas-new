@@ -26,6 +26,29 @@ class DailyReportFilteringTest extends TestCase
         setPermissionsTeamId($this->admin->tenant_id);
     }
 
+    public function test_submitted_report_can_be_reviewed_approved_and_downloaded(): void
+    {
+        $report = DailyActivityReport::where('title', 'Day shift summary')->firstOrFail();
+        $report->update(['status' => 'draft', 'handover_notes' => 'Check the visitor register.']);
+
+        $component = Livewire::actingAs($this->admin)->test(DailyReportIndex::class)
+            ->assertSee('Check the visitor register.')
+            ->call('approve', $report->id)
+            ->assertHasErrors('approval');
+
+        $report->update(['status' => 'submitted']);
+        $component->call('approve', $report->id)->assertHasNoErrors();
+        $this->assertSame('approved', $report->fresh()->status);
+        $this->assertDatabaseHas('client_report_approvals', [
+            'approvable_type' => $report->getMorphClass(),
+            'approvable_id' => $report->id,
+            'client_account_id' => $report->site->client_account_id,
+            'status' => 'pending',
+        ]);
+        $component->call('download', $report->id)
+            ->assertFileDownloaded('daily-activity-report-'.$report->id.'.pdf');
+    }
+
     public function test_daily_reports_can_be_filtered_by_site_and_period_and_cleared(): void
     {
         $report = DailyActivityReport::query()
@@ -65,7 +88,6 @@ class DailyReportFilteringTest extends TestCase
             ->assertSet('dateTo', '')
             ->assertSee($otherReport->title);
     }
-
 
     public function test_daily_report_filters_announce_when_no_results_match(): void
     {

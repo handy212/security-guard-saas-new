@@ -7,14 +7,17 @@ use App\Enums\DispatchStatus;
 use App\Enums\GuardDutyType;
 use App\Jobs\EnrichPatriotDispatch;
 use App\Livewire\Dispatch\DispatcherBoard;
+use App\Livewire\Dispatch\ResponseDeployments;
 use App\Livewire\Guard\MobileDashboard;
 use App\Livewire\Settings\BranchIndex;
 use App\Livewire\Sites\SiteProfile;
+use App\Models\AssetCategory;
 use App\Models\Branch;
 use App\Models\ClientAccount;
 use App\Models\DispatchEvent;
 use App\Models\DispatchStandbyPoint;
 use App\Models\DispatchTeam;
+use App\Models\EquipmentAsset;
 use App\Models\Guard;
 use App\Models\OperationalAlert;
 use App\Models\PatriotAccountMapping;
@@ -24,10 +27,14 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DispatchService;
 use App\Services\PatriotDispatchPayload;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Broadcasting\Broadcaster;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use RuntimeException;
@@ -56,7 +63,37 @@ class DispatchSystemTest extends TestCase
             ->get(route('dispatch.control-room'))
             ->assertOk()
             ->assertSee('Dispatch Center')
-            ->assertSee('New dispatch');
+            ->assertSee('New dispatch')
+            ->assertSee(route('dispatch.deployments'))
+            ->assertDontSee('Manage response teams');
+    }
+
+    public function test_regions_and_response_settings_are_tabs_in_dispatch_deployments(): void
+    {
+        $this->actingAs($this->admin)->get(route('settings.branches', ['tab' => 'teams']))
+            ->assertRedirect(route('dispatch.deployments', ['tab' => 'teams']));
+
+        $this->get(route('billing.regions-response', ['tab' => 'teams']))
+            ->assertRedirect(route('dispatch.deployments', ['tab' => 'teams']));
+
+        $this->get(route('dispatch.deployments', ['tab' => 'teams']))
+            ->assertOk()
+            ->assertSee('Dispatch duty')
+            ->assertSee('Standby points')
+            ->assertSee('Add team');
+    }
+
+    public function test_regions_allow_multiple_blank_codes_and_validate_duplicate_codes(): void
+    {
+        $settings = Livewire::actingAs($this->admin)->test(BranchIndex::class);
+        foreach (['No-code North', 'No-code South'] as $name) {
+            $settings->call('openCreate')->set('form.name', $name)->call('save')->assertHasNoErrors();
+            $this->assertDatabaseHas('branches', ['tenant_id' => $this->tenant->id, 'name' => $name, 'code' => null]);
+        }
+
+        $code = Branch::forTenant($this->tenant->id)->whereNotNull('code')->value('code');
+        $settings->call('openCreate')->set('form.name', 'Duplicate code')
+            ->set('form.code', $code)->call('save')->assertHasErrors(['form.code' => 'unique']);
     }
 
     public function test_repeated_critical_patriot_intake_creates_one_pending_alarm(): void
@@ -592,8 +629,8 @@ class DispatchSystemTest extends TestCase
 
         $region = Branch::create(['tenant_id' => $this->tenant->id, 'name' => 'Greater Accra', 'is_active' => true]);
         $originalSiteRegion = $site->dispatch_region_id;
-        $settings = Livewire::actingAs($this->admin)->test(BranchIndex::class)
-            ->assertSee('Dispatch standby points')
+        $settings = Livewire::actingAs($this->admin)->test(BranchIndex::class, ['section' => 'standby'])
+            ->assertSee('Add standby point')
             ->set('pointRegionId', $region->id)
             ->set('pointName', 'North response station')
             ->set('pointLatitude', '91')
@@ -601,6 +638,7 @@ class DispatchSystemTest extends TestCase
             ->call('createStandbyPoint')
             ->assertHasErrors('pointLatitude')
             ->set('pointLatitude', '5.62')
+            ->set('pointRadius', '150')
             ->call('createStandbyPoint')
             ->assertHasNoErrors();
         $point = DispatchStandbyPoint::where('name', 'North response station')->sole();
@@ -617,15 +655,69 @@ class DispatchSystemTest extends TestCase
         $team = DispatchTeam::where('name', 'Response One')->sole();
         $this->assertSame(2, $team->members()->count());
         $this->assertSame($point->id, $team->standby_point_id);
-        $officerUser = $officers->first(fn (Guard $officer) => $officer->user_id !== null)->user;
+        $lead = $officers->first(fn (Guard $officer) => $officer->user_id !== null);
+        $officerUser = $lead->user;
+        $holder = $officers->first(fn (Guard $officer) => $officer->id !== $lead->id);
+        $asset = EquipmentAsset::create([
+            'tenant_id' => $this->tenant->id, 'name' => 'Response radio', 'asset_tag' => 'RESPONSE-TEST', 'status' => 'available',
+        ]);
+        $deployments = Livewire::actingAs($this->admin)->test(ResponseDeployments::class)
+            ->set('teamId', $team->id)->set('officers', $officers->modelKeys())
+            ->set('custodian', $lead->id)->set('location', 'Control room')
+            ->set('end', now()->addHours(8)->format('Y-m-d\TH:i'))
+            ->call('addKitLine')->assertSee('Issue to')
+            ->set('kit.0.asset_id', $asset->id)->set('kit.0.quantity', '1')->set('kit.0.condition', 'Good')
+            ->set('kit.0.guard_id', $holder->id)
+            ->call('addKitLine')->set('kit.1', ['asset_id' => $asset->id, 'guard_id' => $lead->id, 'quantity' => 1, 'condition' => 'Fair'])
+            ->call('deploy')->assertHasErrors('deployment')->assertSee('can only be issued once to one officer')
+            ->call('removeKitLine', 1)
+            ->call('deploy')->assertHasNoErrors()->assertSee('En route to standby')->assertSee('Issued kit (1)');
+        $deployment = $team->activeDeployment()->sole();
+        $item = $deployment->kit()->sole();
+        $this->assertSame($holder->id, $item->guard_id);
+        $this->assertSame('issued', $asset->fresh()->status->value);
+        $backup = Guard::whereKeyNot($officers->first()->id)->whereKeyNot($officers->last()->id)->firstOrFail();
+        $backupTeam = DispatchTeam::create(['tenant_id' => $this->tenant->id, 'name' => 'Backup response', 'standby_point_id' => $point->id]);
+        $backup->forceFill(['status' => 'active', 'duty_type' => GuardDutyType::Dispatch, 'dispatch_team_id' => $backupTeam->id])->save();
+        $backupForm = Livewire::actingAs($this->admin)->test(ResponseDeployments::class)
+            ->set('teamId', $backupTeam->id)->set('officers', [$backup->id])->set('custodian', $backup->id)
+            ->set('location', 'Control room')->set('end', now()->addHours(8)->format('Y-m-d\TH:i'))
+            ->set('kit', [['asset_id' => $asset->id, 'quantity' => 1, 'condition' => 'Good', 'guard_id' => $holder->id]])
+            ->call('deploy')->assertHasErrors('deployment')->assertSee('officer reporting for this duty')
+            ->set('kit.0.guard_id', $backup->id)
+            ->call('deploy')->assertHasErrors('deployment')->assertSee('is not available to issue');
+        $this->assertFalse($backupTeam->activeDeployment()->exists());
+        $backupForm->set('kit', [])->call('deploy');
+        $this->assertSame([], $backupForm->errors()->all());
+        $backupDeployment = $backupTeam->activeDeployment()->sole();
+        $backupForm->set('arrivalReasons.'.$backupDeployment->id, 'Arrival verified by Control')
+            ->call('confirmArrival', $backupDeployment->id)->assertHasNoErrors();
         Livewire::actingAs($officerUser)->test(MobileDashboard::class)
             ->assertSee('North response station')
-            ->assertSee('5.62, -0.19');
+            ->assertDontSee('My issued kit')
+            ->assertSee('5.62, -0.19')
+            ->set('latitude', 5.7)->set('longitude', -0.19)->call('confirmStandbyArrival')->assertHasErrors('action')
+            ->set('latitude', 5.62)->call('confirmStandbyArrival')->assertHasNoErrors()->assertSee('Ready at standby');
+        Livewire::actingAs($holder->user)->test(MobileDashboard::class)
+            ->assertSee('My issued kit')->assertSee('Response radio');
         $this->actingAs($this->admin);
 
         $event = DispatchEvent::create(['event_type' => 'alarm', 'site_id' => $site->id, 'status' => DispatchStatus::OPEN, 'dispatch_number' => 'TEAM-TEST']);
+        Exceptions::fake();
+        $broadcaster = \Mockery::mock(Broadcaster::class);
+        $broadcaster->shouldReceive('broadcast')->withArgs(fn ($channels, $event) => $event === 'dispatch.updated')
+            ->once()->andThrow(new BroadcastException('Test broadcaster unavailable.'));
+        $broadcaster->shouldReceive('broadcast')->withArgs(fn ($channels, $event) => $event !== 'dispatch.updated')->andReturnNull();
+        Broadcast::extend('failing-dispatch-test', fn () => $broadcaster);
+        config([
+            'broadcasting.default' => 'failing-dispatch-test',
+            'broadcasting.connections.failing-dispatch-test' => ['driver' => 'failing-dispatch-test'],
+        ]);
         $board->call('selectDispatch', $event->id)->set('assignTeamId', $team->id)
-            ->call('assignDispatchTeam')->assertHasNoErrors();
+            ->call('assignDispatchTeam')->assertHasNoErrors()->assertSee('Dispatch assigned to the response team.');
+        Exceptions::assertReported(BroadcastException::class);
+        $this->assertTrue($officerUser->notifications()->where('data->title', 'Dispatch assigned: TEAM-TEST')->exists());
+        config(['broadcasting.default' => 'null']);
         $this->assertSame($team->id, $event->fresh()->dispatch_team_id);
         $service = app(DispatchService::class);
         $this->assertTrue($service->myActiveDispatches($officers->last()->id)->contains('id', $event->id));
@@ -638,15 +730,54 @@ class DispatchSystemTest extends TestCase
         $this->assertSame('Site checked and secured.', $event->fresh()->action_taken);
         $this->assertTrue($event->fresh()->awaitingStationReturn());
         $this->assertTrue($team->outstandingDispatches()->exists());
+        $deployments->call('closeDuty', $deployment->id)->assertHasErrors('deployment');
+        $settings->call('removeDispatchTeam', $team->id)->assertHasErrors('responseTeam');
+        $settings->call('removeStandbyPoint', $point->id)->assertHasErrors('standbyPoint');
+        $this->assertModelExists($point);
 
         $board->call('confirmTeamReturn')->assertHasNoErrors();
         $this->assertNotNull($event->fresh()->returned_at);
         $this->assertFalse($team->outstandingDispatches()->exists());
         $this->assertFalse($service->myActiveDispatches($officers->last()->id)->contains('id', $event->id));
+        $handover = DispatchEvent::create(['event_type' => 'alarm', 'site_id' => $site->id, 'status' => DispatchStatus::OPEN, 'dispatch_number' => 'HANDOVER-TEST']);
+        $service->assignTeam($handover, $team->id, $this->admin->id);
+        $deployments->set('callHandovers.'.$handover->id.'.team', $backupTeam->id)
+            ->set('callHandovers.'.$handover->id.'.reason', 'Shift change')
+            ->call('handOverCall', $handover->id)->assertHasNoErrors();
+        $this->assertSame($backupDeployment->id, $handover->fresh()->response_deployment_id);
+        $this->assertFalse($team->outstandingDispatches()->exists());
+        $deployments->call('beginHandover', $deployment->id)->assertHasNoErrors()->assertSee('Ending duty')
+            ->assertSee('Receive kit at Control room')->assertSee('Close duty')
+            ->set('returns.'.$deployment->id.'.'.$item->id.'.outcome', 'damaged')
+            ->set('returns.'.$deployment->id.'.'.$item->id.'.notes', 'Broken antenna')
+            ->call('closeDuty', $deployment->id)->assertHasNoErrors()->assertSee('Select team');
+        $this->assertNotNull($deployment->fresh()->closed_at);
+        $this->assertSame($holder->id, $item->fresh()->guard_id);
+        $this->assertSame('maintenance', $asset->fresh()->status->value);
+        $service->setStatus($handover->fresh(), DispatchStatus::CANCELLED, $this->admin->id);
+        $service->confirmStationReturn($handover->fresh(), $this->admin->id);
+        $backupForm->call('beginHandover', $backupDeployment->id)->assertHasNoErrors()
+            ->call('closeDuty', $backupDeployment->id)->assertHasNoErrors();
+        $settings->call('removeStandbyPoint', $point->id)->assertHasNoErrors();
+        $this->assertModelMissing($point);
+        $this->assertNull($team->fresh()->standby_point_id);
+        $settings->call('editDispatchTeam', $team->id)
+            ->set('teamName', 'Response Two')
+            ->set('teamMembers', [(string) $officers->first()->id])
+            ->call('createDispatchTeam')->assertHasNoErrors();
+        $this->assertSame('Response Two', $team->fresh()->name);
+        $this->assertNull($officers->last()->fresh()->dispatch_team_id);
+        $settings->call('removeDispatchTeam', $team->id)->assertHasNoErrors();
+        $this->assertSoftDeleted($team);
+        $this->assertNull($officers->first()->fresh()->dispatch_team_id);
+        $this->assertSame($team->id, $event->fresh()->dispatchTeam->id);
     }
 
     public function test_settings_manager_can_edit_a_standby_point(): void
     {
+        config(['services.geocoding.url' => 'https://geocoder.example.test']);
+        Http::preventStrayRequests();
+        Http::fake(['https://geocoder.example.test/reverse?*' => Http::response(['display_name' => 'North Road, Accra'])]);
         $region = Branch::create(['tenant_id' => $this->tenant->id, 'name' => 'North Region', 'is_active' => true]);
         $point = DispatchStandbyPoint::create([
             'tenant_id' => $this->tenant->id,
@@ -661,6 +792,9 @@ class DispatchSystemTest extends TestCase
             ->assertSet('editingStandbyPointId', $point->id)
             ->set('pointName', 'North response station')
             ->set('pointLatitude', '5.64')
+            ->set('pointRadius', '150')
+            ->call('lookupStandbyAddress')
+            ->assertSet('pointAddress', 'North Road, Accra')
             ->call('createStandbyPoint')
             ->assertHasNoErrors()
             ->assertSee('Standby point updated.');
@@ -669,8 +803,53 @@ class DispatchSystemTest extends TestCase
             'id' => $point->id,
             'name' => 'North response station',
             'latitude' => 5.64,
+            'radius_meters' => 150,
+            'address' => 'North Road, Accra',
             'longitude' => -0.19,
         ]);
+    }
+
+    public function test_checkout_splits_stock_between_officers_and_checks_combined_quantity(): void
+    {
+        $region = Branch::create(['tenant_id' => $this->tenant->id, 'name' => 'Checkout test region', 'is_active' => true]);
+        $point = DispatchStandbyPoint::create([
+            'tenant_id' => $this->tenant->id, 'name' => 'Checkout standby', 'region_id' => $region->id,
+            'latitude' => 5.63, 'longitude' => -0.18, 'radius_meters' => 150,
+        ]);
+        $team = DispatchTeam::create(['tenant_id' => $this->tenant->id, 'name' => 'Checkout team', 'standby_point_id' => $point->id]);
+        $officers = Guard::forTenant($this->tenant->id)->limit(2)->pluck('id')->all();
+        Guard::forTenant($this->tenant->id)->whereKey($officers)->update([
+            'dispatch_team_id' => $team->id, 'duty_type' => GuardDutyType::Dispatch->value, 'status' => 'active',
+        ]);
+        $category = AssetCategory::create(['tenant_id' => $this->tenant->id, 'name' => 'Checkout stock', 'type' => 'consumable']);
+        $stock = EquipmentAsset::create([
+            'tenant_id' => $this->tenant->id, 'name' => 'Duty shirts', 'asset_category_id' => $category->id,
+            'quantity_on_hand' => 2, 'status' => 'available',
+        ]);
+        $lines = array_map(fn ($officerId) => ['asset_id' => $stock->id, 'guard_id' => $officerId, 'quantity' => 2, 'condition' => 'Good'], $officers);
+        $form = Livewire::actingAs($this->admin)->test(ResponseDeployments::class)
+            ->set('teamId', $team->id)->set('officers', $officers)->set('custodian', $officers[0])
+            ->set('location', 'Control room')->set('end', now()->addHours(8)->format('Y-m-d\TH:i'))->set('kit', $lines)
+            ->call('deploy')->assertHasErrors('deployment')->assertSee('only 2 available across all checkout lines');
+        $this->assertSame(2, $stock->fresh()->quantity_on_hand);
+        $this->assertFalse($team->activeDeployment()->exists());
+
+        $form->set('kit.0.quantity', 1)->set('kit.1.quantity', 1)->set('kit.1.guard_id', (string) $officers[0])
+            ->call('deploy')->assertHasErrors('deployment')->assertSee('listed more than once for the same officer');
+        $this->assertSame(2, $stock->fresh()->quantity_on_hand);
+        $this->assertFalse($team->activeDeployment()->exists());
+
+        $form->set('kit.1.guard_id', $officers[1])->call('deploy')->assertHasNoErrors();
+        $deployment = $team->activeDeployment()->sole();
+        $items = $deployment->kit()->orderBy('id')->get();
+        $this->assertSame($officers, $items->pluck('guard_id')->all());
+        $this->assertSame(0, $stock->fresh()->quantity_on_hand);
+
+        $form->call('beginHandover', $deployment->id)
+            ->set('returns.'.$deployment->id.'.'.$items[0]->id.'.outcome', 'returned')
+            ->set('returns.'.$deployment->id.'.'.$items[1]->id, ['outcome' => 'consumed', 'notes' => 'Used during duty'])
+            ->call('closeDuty', $deployment->id)->assertHasNoErrors();
+        $this->assertSame(1, $stock->fresh()->quantity_on_hand);
     }
 
     public function test_create_dispatch_with_full_workflow(): void

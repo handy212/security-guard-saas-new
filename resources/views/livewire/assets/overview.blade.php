@@ -1,16 +1,8 @@
 <div>
-    <x-page-shell
-        title="Assets"
-        description="Overview of company assets, inventory, and procurement."
-        :breadcrumbs="[['label' => 'Assets']]"
-    >
-        <x-slot:actions>
-            <x-button variant="secondary" :href="route('assets.index')">Asset list</x-button>
-            <x-button :href="route('assets.purchase-orders')">Purchase orders</x-button>
-        </x-slot:actions>
-
-        <x-sub-sidebar-layout class="assets-workspace">
-            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+    <x-page-shell title="Assets" compact stable-header>
+        <x-sub-sidebar-layout class="billing-workspace assets-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+            <x-asset-tabs />
 
             <x-flash-status />
 
@@ -74,7 +66,7 @@
             </section>
 
             <div class="assets-overview-grid">
-                <x-section-card title="Open purchase orders" description="Orders that still need attention." flush>
+                <x-section-card title="Open purchase orders" compact flush>
                     <x-slot:actions>
                         <a href="{{ route('assets.purchase-orders') }}" class="page-link" wire:navigate>View all</a>
                     </x-slot:actions>
@@ -88,7 +80,7 @@
                         </a>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No open POs" description="Create a purchase order to procure gear and supplies.">
+                            <x-empty-state inline title="No open POs" description="Create a purchase order to procure gear and supplies.">
                                 <x-slot:actions>
                                     <x-button size="sm" :href="route('assets.purchase-orders')">Purchase orders</x-button>
                                 </x-slot:actions>
@@ -97,7 +89,7 @@
                     @endforelse
                 </x-section-card>
 
-                <x-section-card title="Recent assignments" description="Latest guard and site equipment activity." flush>
+                <x-section-card title="Recent assignments" compact flush>
                     <x-slot:actions>
                         <a href="{{ route('assets.index') }}" class="page-link" wire:navigate>View assets</a>
                     </x-slot:actions>
@@ -114,7 +106,7 @@
                         </a>
                     @empty
                         <div class="p-3">
-                            <x-empty-state compact title="No recent assignments" description="Issue assets to guards from the asset list.">
+                            <x-empty-state inline title="No recent assignments" description="Issue assets to guards from the asset list.">
                                 <x-slot:actions>
                                     <x-button size="sm" :href="route('assets.index')">Asset list</x-button>
                                 </x-slot:actions>
@@ -123,7 +115,7 @@
                     @endforelse
                 </x-section-card>
 
-                <x-section-card title="Inventory alerts" description="Stock and warranty exceptions." flush>
+                <x-section-card title="Inventory alerts" compact flush>
                     @if($lowStock->isNotEmpty())
                         <div class="border-b border-zinc-100 px-4 py-2 dark:border-zinc-800">
                             <h4 class="text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Low stock</h4>
@@ -154,7 +146,7 @@
 
                     @if($lowStock->isEmpty() && $warrantyAlerts->isEmpty())
                         <div class="p-3">
-                            <x-empty-state compact title="No alerts" description="Stock levels and warranties look good." />
+                            <x-empty-state inline title="No alerts" description="Stock levels and warranties look good." />
                         </div>
                     @endif
                 </x-section-card>

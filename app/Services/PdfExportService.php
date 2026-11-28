@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\DailyActivityReport;
 use App\Models\Estimate;
 use App\Models\Incident;
 use App\Models\Invoice;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PdfExportService
 {
@@ -45,6 +47,21 @@ class PdfExportService
         Storage::put($path, $pdf->output());
 
         return $path;
+    }
+
+    public function downloadDailyReport(DailyActivityReport $report, bool $includeHandover): StreamedResponse
+    {
+        $report->loadMissing(['site', 'assignedGuard', 'tenant']);
+        $issuer = $this->profiles->forTenant($report->tenant);
+        $pdf = Pdf::loadView('pdf.daily-report', ['report' => $report, 'includeHandover' => $includeHandover] + $this->issuerViewData($issuer));
+
+        return response()->streamDownload(
+            function () use ($pdf): void {
+                echo $pdf->output();
+            },
+            'daily-activity-report-'.$report->id.'.pdf',
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 
     private function issuerViewData(array $issuer): array

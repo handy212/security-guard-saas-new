@@ -18,7 +18,7 @@ class DispatchEvent extends Model
         'event_type', 'priority', 'caller_type', 'caller_name', 'incident_location',
         'incident_date', 'incident_time', 'status', 'description', 'action_taken', 'internal_notes',
         'attachment_path', 'latitude', 'longitude', 'sos_alert_id', 'incident_id',
-        'patriot_job_id', 'patriot_client_ref', 'dispatch_team_id', 'returned_at', 'acknowledged_at',
+        'patriot_job_id', 'patriot_client_ref', 'dispatch_team_id', 'response_deployment_id', 'returned_at', 'acknowledged_at',
         'patriot_instance', 'patriot_sync_status', 'patriot_intake_snapshot', 'patriot_payload', 'patriot_response_state', 'patriot_pending_action', 'patriot_writeback_started_at', 'patriot_writeback_error',
         'opened_at', 'assigned_at', 'en_route_at', 'on_scene_at', 'resolved_at', 'closed_at',
     ];
@@ -59,7 +59,12 @@ class DispatchEvent extends Model
 
     public function dispatchTeam(): BelongsTo
     {
-        return $this->belongsTo(DispatchTeam::class);
+        return $this->belongsTo(DispatchTeam::class)->withTrashed();
+    }
+
+    public function responseDeployment(): BelongsTo
+    {
+        return $this->belongsTo(ResponseDeployment::class);
     }
 
     public function mayAssignFromPatriot(): bool

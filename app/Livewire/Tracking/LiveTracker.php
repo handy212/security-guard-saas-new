@@ -6,6 +6,8 @@ use App\Enums\DispatchStatus;
 use App\Models\AttendanceLog;
 use App\Models\Branch;
 use App\Models\DispatchEvent;
+use App\Models\DispatchStandbyPoint;
+use App\Models\DispatchTeam;
 use App\Models\GeofenceViolation;
 use App\Models\Guard;
 use App\Models\GuardIdleAlert;
@@ -246,7 +248,23 @@ class LiveTracker extends Component
                 'lat' => $row['site']->latitude, 'lng' => $row['site']->longitude, 'label' => $row['site']->name,
                 'siteId' => $row['site']->id, 'status' => $row['status'], 'statusLabel' => self::COVERAGE_STATES[$row['status']],
             ])->values()->all();
-        $markers = array_merge($siteMarkers, $this->showGuardMarkers ? $guardMarkers : []);
+        $teamCounts = DispatchTeam::forTenant($tenantId)->whereNotNull('standby_point_id')
+            ->selectRaw('standby_point_id, COUNT(*) AS team_count')->groupBy('standby_point_id')
+            ->pluck('team_count', 'standby_point_id');
+        $standbyMarkers = DispatchStandbyPoint::forTenant($tenantId)->with('region:id,name')
+            ->when($this->branchFilter !== '', fn ($query) => $query->where('region_id', $this->branchFilter))
+            ->orderBy('id')->get()
+            ->map(fn (DispatchStandbyPoint $point): array => [
+                'lat' => $point->latitude, 'lng' => $point->longitude,
+                'standbyPointId' => $point->id, 'label' => $point->name,
+                'radius' => $point->radius_meters,
+                'meta' => implode(' · ', array_filter([
+                    'Standby point', $point->region?->name,
+                    $point->address ?? ($point->latitude.', '.$point->longitude),
+                    ($teamCounts[$point->id] ?? 0).' assigned teams',
+                ])),
+            ])->all();
+        $markers = array_merge($siteMarkers, $standbyMarkers, $this->showGuardMarkers ? $guardMarkers : []);
 
         $patriotAlarms = DispatchEvent::forTenant($tenantId)->with('site')
             ->whereNotNull('patriot_job_id')
@@ -280,7 +298,10 @@ class LiveTracker extends Component
             'lng' => (float) $p->longitude,
         ])->values()->all();
 
-        $circles = [];
+        $circles = collect($standbyMarkers)->whereNotNull('radius')
+            ->map(fn (array $marker): array => [
+                'lat' => $marker['lat'], 'lng' => $marker['lng'], 'radius' => $marker['radius'], 'color' => '#1d4ed8',
+            ])->values()->all();
         $selectedSite = $selectedCoverage['site'] ?? null;
 
         if ($selectedSite?->latitude !== null && $selectedSite->longitude !== null && $selectedSite->geofence_radius_meters) {
@@ -346,6 +367,7 @@ class LiveTracker extends Component
             'coverageSummary' => $this->coverageSummary($coverage, $deployments),
             'matchingSites' => $matchingSites,
             'siteMarkerCount' => count($siteMarkers),
+            'standbyMarkerCount' => count($standbyMarkers),
             'matchingDeployments' => $matchingDeployments,
             'selectedCoverage' => $selectedCoverage,
             'selectedDeployment' => $selectedDeployment,

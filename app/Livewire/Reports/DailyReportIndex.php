@@ -4,12 +4,14 @@ namespace App\Livewire\Reports;
 
 use App\Models\DailyActivityReport;
 use App\Models\Site;
+use App\Services\PdfExportService;
 use App\Services\ReportService;
 use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DailyReportIndex extends Component
 {
@@ -73,6 +75,13 @@ class DailyReportIndex extends Component
         session()->flash('status', 'Report approved.');
     }
 
+    public function download(DailyActivityReport $report, PdfExportService $pdf): StreamedResponse
+    {
+        $this->authorize('approve', $report);
+        abort_unless($report->status === 'approved', 404);
+
+        return $pdf->downloadDailyReport($report, includeHandover: true);
+    }
 
     private function filterRules(): array
     {

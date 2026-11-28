@@ -4,6 +4,7 @@
         :description="$report->site?->name ?: 'Approved service report'"
     >
         <x-slot:actions>
+            <x-button size="sm" variant="secondary" wire:click="download">Download PDF</x-button>
             <x-button variant="secondary" :href="route('client-portal.dashboard')">Back to overview</x-button>
         </x-slot:actions>
     </x-portal-page-header>

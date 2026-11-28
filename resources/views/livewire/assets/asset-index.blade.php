@@ -1,19 +1,13 @@
 <div>
-    <x-page-shell
-        title="Assets"
-        description="Manage radios, uniforms, vehicles, and issued gear."
-        :breadcrumbs="[
-            ['label' => 'Assets', 'href' => route('assets.overview')],
-            ['label' => 'Asset list'],
-        ]"
-    >
+    <x-page-shell title="Assets" compact stable-header>
         <x-slot:actions>
             <x-button wire:click="openCreate">Add asset</x-button>
         </x-slot:actions>
 
         
-        <x-sub-sidebar-layout class="assets-workspace">
-            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+        <x-sub-sidebar-layout class="billing-workspace assets-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+            <x-asset-tabs />
 
 
         <x-flash-status />
@@ -78,7 +72,7 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="6">
-                        <x-empty-state compact title="No assets" description="Add assets or receive a purchase order.">
+                        <x-empty-state inline title="No assets" description="Add assets or receive a purchase order.">
                             <x-slot:actions><x-button size="sm" wire:click="openCreate">Add asset</x-button></x-slot:actions>
                         </x-empty-state>
                     </x-table.empty>

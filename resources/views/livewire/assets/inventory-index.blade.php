@@ -1,8 +1,9 @@
 <div>
-    <x-page-shell title="Asset inventory" description="Stock levels and availability by category.">
+    <x-page-shell title="Assets" compact stable-header>
         
-        <x-sub-sidebar-layout class="assets-workspace">
-            <x-slot:sidebar><x-assets-nav /></x-slot:sidebar>
+        <x-sub-sidebar-layout class="billing-workspace assets-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
+            <x-asset-tabs />
 
 
         <x-flash-status />
@@ -48,7 +49,7 @@
                     </tr>
                 @empty
                     <x-table.empty colspan="7">
-                        <x-empty-state compact title="No inventory data" description="Create categories and assets to populate inventory." />
+                        <x-empty-state inline title="No inventory data" description="Create categories and assets to populate inventory." />
                     </x-table.empty>
                 @endforelse
             </tbody>

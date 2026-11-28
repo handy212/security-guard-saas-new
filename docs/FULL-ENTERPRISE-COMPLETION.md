@@ -1,8 +1,8 @@
-# GuardOps SaaS Full Enterprise Completion Review
+# GuardCore Pro Enterprise Implementation Review
 
-This package has been upgraded from a basic MVP to a fuller enterprise source blueprint. It now includes source-level modules for the complete checklist requested by the customer.
+This inventory describes application capabilities and identifies verification still required before production sign-off.
 
-## Completed core modules
+## Core module inventory
 
 1. SaaS / Tenant Management
 - Security companies / tenants
@@ -82,11 +82,13 @@ This package has been upgraded from a basic MVP to a fuller enterprise source bl
 - Deliveries
 - Maintenance observations
 - Handover notes
-- End-of-shift report
-- Auto-send/client approval foundation
+- Guards submit a daily activity report for a shift they clocked into in the last seven days.
+- Managers review the full summary and handover and approve submitted reports.
+- Approved reports are available as PDFs to managers and the site’s client portal account.
+- Scheduled report communications are reminders to check the portal.
 
 10. Dispatch / Control Room
-- Live map page foundation
+- Live Tracker map with site coverage, standby points, alarms, and GPS history
 - Active shifts
 - SOS alerts
 - Emergency dispatch events
@@ -101,7 +103,7 @@ This package has been upgraded from a basic MVP to a fuller enterprise source bl
 - Patrol completion proof
 - Attendance confirmation foundation
 - Client complaints
-- Client report approvals/signatures
+- Client report sign-off records the authenticated approver and decision. Signature-file capture is outside the current sign-off workflow.
 
 12. Compliance
 - Guard license expiry
@@ -125,11 +127,15 @@ This package has been upgraded from a basic MVP to a fuller enterprise source bl
 - Active sites
 - Missed patrols
 - Incidents by severity
-- Late/no-show shifts
+- Late arrivals and no-shows by scheduled shift date
 - Patrol completion rate
 - Client SLA performance field
-- Revenue by client/site foundation
-- Guard performance score JSON field
+- Daily invoiced value by invoice date, excluding drafts and voids
+- Historical snapshots show operational counts for their selected day. Active guard and site counts and SLA coverage reflect the time the snapshot was generated.
+- Guard performance scoring and revenue breakdowns by client/site are outside this inventory of verified analytics.
 
-## Important note
-This is a large source package generated in a sandbox without Composer installed. It is meant as an implementation-ready Laravel source blueprint. On a real development machine, run Composer/NPM install, migrate, then continue hardening with automated browser tests, map provider keys, queue workers, Reverb/Pusher credentials, storage disks and PDF generator configuration.
+## Production verification
+
+Verify Paystack, queue and scheduler execution, real-time broadcasting, push and WhatsApp delivery, mail delivery, and backups in the target deployment. Exercise GPS, QR scanning, offline recovery, and emergency delivery on representative devices before using the system for live operations.
+
+Use secret values provisioned for the target environment. The local environment file is ignored by Git. Rotate any historical repository credentials that were also used outside development.

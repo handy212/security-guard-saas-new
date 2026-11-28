@@ -1,17 +1,11 @@
 <div>
-    <x-page-shell
-        :title="$isEditing ? 'Edit estimate' : 'New estimate'"
-        description="Draft pricing for a client, then send and convert when accepted."
-        :breadcrumbs="[
-            ['label' => 'Back Office', 'href' => route('billing.hub')],
-            ['label' => 'Estimates', 'href' => route('billing.estimates')],
-            ['label' => $isEditing ? ($estimate->estimate_number ?? 'Edit') : 'New'],
-        ]"
-    >
+    <x-page-shell :title="$isEditing ? 'Edit estimate' : 'New estimate'" compact stable-header>
         <x-slot:actions>
             <x-button variant="secondary" :href="route('billing.estimates')">Cancel</x-button>
         </x-slot:actions>
 
+        <x-sub-sidebar-layout class="billing-workspace">
+            <x-slot:sidebar><x-back-office-nav /></x-slot:sidebar>
         <x-flash-status type="success" />
 
         <form id="estimate-form" wire:submit="save" class="billing-form mx-auto max-w-3xl space-y-4">
@@ -64,5 +58,6 @@
                 </x-slot:footer>
             </x-form-card>
         </form>
+        </x-sub-sidebar-layout>
     </x-page-shell>
 </div>

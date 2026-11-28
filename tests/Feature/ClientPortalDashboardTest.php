@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\ClientPortal\Approvals;
+use App\Livewire\ClientPortal\PortalReportShow;
 use App\Models\CheckpointScan;
 use App\Models\ClientAccount;
 use App\Models\ClientReportApproval;
@@ -10,9 +12,11 @@ use App\Models\PatrolSession;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Models\User;
+use App\Services\ReportService;
 use App\Services\TenantBrandingService;
 use App\Services\TenantRoleProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ClientPortalDashboardTest extends TestCase
@@ -113,6 +117,25 @@ class ClientPortalDashboardTest extends TestCase
             ->assertDontSee('Daily Activity Report #'.$foreignApproval->approvable_id);
     }
 
+    public function test_client_can_record_a_single_decision_on_an_approved_daily_report(): void
+    {
+        $report = DailyActivityReport::where('title', 'Day shift summary')->firstOrFail();
+        $report->update(['status' => 'submitted']);
+        $manager = User::where('email', 'admin@demo.test')->firstOrFail();
+        app(ReportService::class)->approve($report, $manager->id);
+        $approval = ClientReportApproval::where('approvable_type', $report->getMorphClass())
+            ->where('approvable_id', $report->id)->sole();
+
+        Livewire::actingAs($this->portalUser)->test(Approvals::class)
+            ->assertSee($report->title)
+            ->call('approve', $approval->id)
+            ->call('reject', $approval->id)
+            ->assertHasNoErrors();
+
+        $this->assertSame('approved', $approval->fresh()->status);
+        $this->assertEquals($this->portalUser->id, $approval->fresh()->approved_by);
+    }
+
     public function test_approved_daily_report_shows_shift_patrol_evidence(): void
     {
         $report = DailyActivityReport::query()
@@ -141,6 +164,10 @@ class ClientPortalDashboardTest extends TestCase
             ->assertSee($report->site->name)
             ->assertSee('Service period')
             ->assertSee($scan->checkpoint->name);
+
+        Livewire::actingAs($this->portalUser)->test(PortalReportShow::class, ['reportId' => $report->id])
+            ->call('download')
+            ->assertFileDownloaded('daily-activity-report-'.$report->id.'.pdf');
     }
 
     public function test_client_cannot_view_an_approved_report_for_another_client(): void

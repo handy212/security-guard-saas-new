@@ -22,19 +22,22 @@ This review compares the source package against enterprise security workforce an
 - Additional Livewire module entry screens
 - Additional API routes for offline sync and visitor check-in/out
 
-## Still required before production
-- Install Laravel dependencies and run full migrations in a real Laravel environment
-- Complete authentication scaffolding UI
-- Complete permission policies for every action
-- Add real map provider integration for dispatch/live tracking
-- Add browser/mobile QR scanner component
-- Add native mobile app or complete PWA offline support
-- Add payment gateway for SaaS subscriptions
-- Add PDF report templates and scheduled email delivery
-- Add push/SMS/WhatsApp notification drivers
-- Add automated tests for all workflows
-- Add Docker production deployment files
-- Security hardening: rate limits, file scanning, signed URLs, 2FA, audit retention and backup strategy
+## Implemented and awaiting deployment verification
+
+- Authentication UI, authorization policies, and two-factor authentication
+- Leaflet/OpenStreetMap tracking and browser QR scanning
+- Paystack subscription billing
+- Guard PWA offline synchronization, including scan and attendance events
+- Daily Activity Report review and approved PDF downloads
+- Scheduled portal reminders, web push, and provider-backed messaging
+- Docker production configuration and automated feature tests
+
+## Open production acceptance
+
+- Verify tenant isolation and permission coverage for sensitive workflows in the target deployment.
+- Exercise GPS, QR/NFC, intermittent connectivity, alarm delivery, and notification recovery on real devices.
+- Validate provider credentials, scheduler and queue health, storage access, backup restore, and file scanning.
+- Confirm analytics definitions and any contracted reports or exports with the operating team.
 
 ## Enterprise feature sources reviewed
 Enterprise guard-management platforms commonly include scheduling/timekeeping, guard tour tracking with GPS/NFC/QR, incident and activity reporting, client portals, compliance/license tracking, payroll/billing integrations, real-time monitoring, missed-checkpoint alerts, visitor workflows, post orders, and offline sync.

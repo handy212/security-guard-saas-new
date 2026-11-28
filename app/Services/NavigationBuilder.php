@@ -16,6 +16,7 @@ class NavigationBuilder
     {
         if (! empty($link['hub'])) {
             return collect(config('navigation.'.$link['hub'], []))
+                ->reject(fn (array $child) => ($child['hub'] ?? null) === $link['hub'])
                 ->contains(fn (array $child) => $this->linkVisible($child));
         }
 
@@ -132,6 +133,7 @@ class NavigationBuilder
                 'href' => $child['href'],
                 'label' => $child['label'],
                 'icon' => $child['icon'] ?? ($link['icon'] ?? 'dashboard'),
+                'group' => $child['group'] ?? null,
             ])
             ->values()
             ->all();
@@ -221,22 +223,18 @@ class NavigationBuilder
         }
 
         if ($link['href'] === '/clients') {
-            return request()->is('clients')
-                || (
-                    request()->is('clients/*')
-                    && ! request()->is('clients/complaints*')
-                );
+            return request()->is('clients', 'clients/*');
         }
 
         if ($link['href'] === '/sites') {
             return request()->is('sites') || request()->is('sites/*');
         }
 
-        if (($link['hub_href'] ?? $link['href']) === '/billing') {
+        if (($link['hub_href'] ?? null) === '/billing' || $link['href'] === '/billing') {
             return (request()->is('billing') || request()->is('billing/*'))
                 && ! request()->is('billing/subscription*')
                 || request()->is('compliance') || request()->is('compliance/*')
-                || request()->is('analytics');
+                || request()->is('analytics', 'assets', 'assets/*');
         }
 
         if ($link['href'] === '/reports') {

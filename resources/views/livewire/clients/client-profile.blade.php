@@ -2,10 +2,6 @@
     <x-page-shell
         :title="$clientAccount->name"
         :description="$clientAccount->industry ?: 'Client account'"
-        :breadcrumbs="[
-            ['label' => 'Clients', 'href' => route('clients.index')],
-            ['label' => $clientAccount->name],
-        ]"
     >
         <x-slot:actions>
             <x-button variant="secondary" :href="route('clients.index')">Back to clients</x-button>

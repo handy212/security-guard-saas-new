@@ -73,6 +73,10 @@ export function getCoords() {
 export async function guardWithGeo(wire, callbackName, offlineType = null, buildOfflineData = null) {
     const isSos = callbackName === 'raiseSos';
     const showError = (message) => window.dispatchEvent(new CustomEvent('field-feedback', { detail: { message } }));
+    if (callbackName === 'confirmStandbyArrival' && !navigator.onLine) {
+        showError('Standby arrival is unconfirmed. Reconnect and try again, or contact Control.');
+        return;
+    }
     if (isSos && !navigator.onLine) {
         showError('SOS was not sent. Contact Control through your approved emergency channel now.');
         return;

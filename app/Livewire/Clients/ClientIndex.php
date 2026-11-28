@@ -7,12 +7,16 @@ use App\Livewire\Concerns\HasFormDrawer;
 use App\Livewire\Concerns\HasPerPage;
 use App\Models\ClientAccount;
 use App\Support\TenantContext;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class ClientIndex extends Component
 {
     use AuthorizesModuleAccess, HasFormDrawer, HasPerPage, WithPagination;
+
+    #[Locked]
+    public bool $showComplaints = false;
 
     public string $search = '';
 
@@ -25,14 +29,18 @@ class ClientIndex extends Component
         'latitude' => '', 'longitude' => '', 'status' => 'active', 'default_monthly_rate' => 0,
     ];
 
-    protected $queryString = [
-        'search' => ['except' => ''],
-        'statusFilter' => ['except' => 'all', 'as' => 'status'],
-    ];
+    protected function queryString(): array
+    {
+        return request()->query('tab') === 'complaints' ? [] : [
+            'search' => ['except' => ''],
+            'statusFilter' => ['except' => 'all', 'as' => 'status'],
+        ];
+    }
 
     public function mount(): void
     {
         $this->authorizePolicy('viewAny', ClientAccount::class);
+        $this->showComplaints = request()->query('tab') === 'complaints';
     }
 
     protected function rules(): array
@@ -151,6 +159,10 @@ class ClientIndex extends Component
 
     public function render()
     {
+        if ($this->showComplaints) {
+            return view('livewire.clients.client-index')->layout('layouts.app');
+        }
+
         $tenantId = TenantContext::id();
 
         return view('livewire.clients.client-index', [
